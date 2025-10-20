@@ -3,6 +3,7 @@
 import { LowerThirdCard } from "./cards/LowerThirdCard";
 import { CountdownCard } from "./cards/CountdownCard";
 import { PosterCard } from "./cards/PosterCard";
+import { GuestsCard } from "./cards/GuestsCard";
 
 /**
  * OverlayControlPanel contains all overlay control cards
@@ -13,6 +14,7 @@ export function OverlayControlPanel() {
       <LowerThirdCard />
       <CountdownCard />
       <PosterCard />
+      <GuestsCard />
     </div>
   );
 }

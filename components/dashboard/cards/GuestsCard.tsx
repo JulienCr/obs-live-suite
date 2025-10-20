@@ -1,0 +1,120 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Users, Zap } from "lucide-react";
+
+interface Guest {
+  id: string;
+  displayName: string;
+  subtitle?: string;
+  accentColor: string;
+  avatarUrl?: string;
+}
+
+/**
+ * GuestsCard displays guests with quick lower third buttons
+ */
+export function GuestsCard() {
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchGuests();
+  }, []);
+
+  const fetchGuests = async () => {
+    try {
+      const res = await fetch("/api/assets/guests");
+      const data = await res.json();
+      setGuests(data.guests || []);
+    } catch (error) {
+      console.error("Failed to fetch guests:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickLowerThird = async (guest: Guest) => {
+    try {
+      await fetch("/api/overlays/lower", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "show",
+          payload: {
+            title: guest.displayName,
+            subtitle: guest.subtitle || "",
+            side: "left",
+            duration: 8,
+          },
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to show lower third:", error);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="w-5 h-5" />
+          Quick Guests
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-sm text-muted-foreground">Loading...</div>
+        ) : guests.length === 0 ? (
+          <div className="text-sm text-muted-foreground text-center py-4">
+            No guests yet. Add guests in Assets.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {guests.slice(0, 5).map((guest) => (
+              <div
+                key={guest.id}
+                className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
+                    style={{ backgroundColor: guest.accentColor }}
+                  >
+                    {guest.displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">
+                      {guest.displayName}
+                    </div>
+                    {guest.subtitle && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {guest.subtitle}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => handleQuickLowerThird(guest)}
+                  title="Show Lower Third (8s)"
+                  className="flex-shrink-0"
+                >
+                  <Zap className="w-3 h-3" />
+                </Button>
+              </div>
+            ))}
+            {guests.length > 5 && (
+              <div className="text-xs text-center text-muted-foreground pt-2">
+                + {guests.length - 5} more in Assets
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
