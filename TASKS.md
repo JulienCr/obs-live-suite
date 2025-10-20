@@ -1,5 +1,27 @@
 # OBS Live Suite - Task Tracking
 
+## 🔄 Recent Updates
+
+### January 2025 - WebSocket Native Modules Fix
+- ✅ Fixed `bufferUtil.mask is not a function` error
+- ✅ Installed `bufferutil` and `utf-8-validate` native modules
+- ✅ OBS WebSocket connection now works properly
+- ✅ Added `WebSocketHub.isRunning()` method
+- ✅ Added `PathManager.getDbFilePath()` alias method
+
+### January 2025 - Auto-Initialization Fix  
+- ✅ Added `instrumentation.ts` for automatic server initialization on startup
+- ✅ OBS connection now starts automatically when app launches  
+- ✅ No manual `/api/init` call required anymore
+- ✅ Enabled Next.js `instrumentationHook` experimental feature
+
+### January 2025 - Test Suite & Linting
+- ✅ Created comprehensive test suite with 108 passing tests
+- ✅ Fixed all linting errors (type safety, React hooks, unused vars)
+- ✅ Added component tests for overlay renderers
+- ✅ Added API route tests for type safety
+- ✅ Configured Jest with jsdom environment
+
 ## Implementation Status: Core MVP Complete! 🎉
 
 ### Completed Phases (11/16)
@@ -45,11 +67,11 @@
 - Security middleware
 
 ### ✅ Testing Complete
-- 65 tests passing (8 test suites)
-- Models, services, utils, config, and integration tests
-- Jest + Testing Library configured
+- 108 tests passing (12 test suites)
+- Models, services, utils, config, components, and integration tests
+- Jest + Testing Library + jsdom configured
 - Coverage reporting enabled
-- All core business logic tested
+- All core business logic and React components tested
 
 ## Next Steps
 1. Test the application: `pnpm dev`

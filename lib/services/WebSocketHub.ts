@@ -96,6 +96,13 @@ export class WebSocketHub {
   }
 
   /**
+   * Check if the WebSocket server is running
+   */
+  isRunning(): boolean {
+    return this.wss !== null && this.httpServer !== null;
+  }
+
+  /**
    * Stop the WebSocket server
    */
   stop(): void {

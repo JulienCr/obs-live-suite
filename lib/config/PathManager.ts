@@ -81,6 +81,13 @@ export class PathManager {
   }
 
   /**
+   * Alias for getDatabasePath() for backwards compatibility
+   */
+  getDbFilePath(): string {
+    return this.getDatabasePath();
+  }
+
+  /**
    * Get the profiles directory
    */
   getProfilesDir(): string {

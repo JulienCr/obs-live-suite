@@ -30,6 +30,7 @@
     "@radix-ui/react-toast": "^1.2.0",
     "archiver": "^7.0.1",
     "better-sqlite3": "^11.5.0",
+    "bufferutil": "^4.0.9",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.445.0",
@@ -41,6 +42,7 @@
     "react-hook-form": "^7.53.0",
     "semver": "^7.6.3",
     "tailwind-merge": "^2.5.0",
+    "utf-8-validate": "^6.0.5",
     "ws": "^8.18.0",
     "zod": "^3.23.0"
   },

@@ -23,6 +23,11 @@ __tests__/
 │   └── updater-check.test.ts
 ├── integration/         # Integration tests
 │   └── api-routes.test.ts
+├── functional/          # Functional/E2E tests
+│   ├── server-initialization.test.ts
+│   ├── api-endpoints.test.ts
+│   ├── websocket-communication.test.ts
+│   └── database-operations.test.ts
 └── README.md
 ```
 
@@ -60,6 +65,12 @@ pnpm test Guest.test.ts
 ### Integration Tests
 - **Services**: Service layer interactions
 - **API Routes**: Endpoint request/response validation
+
+### Functional Tests
+- **Server Initialization**: Full server startup and initialization flow
+- **API Endpoints**: Real HTTP endpoint testing with actual services
+- **WebSocket Communication**: Real-time messaging and client connections
+- **Database Operations**: Full CRUD operations on all tables
 
 ### Coverage Goals
 - Branches: 50%

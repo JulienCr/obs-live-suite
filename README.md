@@ -42,6 +42,11 @@ cp .env.example .env
 pnpm dev
 ```
 
+The server will automatically:
+- Initialize the database
+- Start the WebSocket hub
+- Connect to OBS (with automatic retries if OBS isn't running yet)
+
 6. Open browser at `http://localhost:3000`
 
 7. Add overlay Browser Sources in OBS:
