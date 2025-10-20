@@ -30,6 +30,25 @@
   border-radius: 2px;
 }
 
+.lower-third-avatar-container {
+  margin-right: 16px;
+}
+
+.lower-third-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.lower-third-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .lower-third-content {
   display: flex;
   flex-direction: column;

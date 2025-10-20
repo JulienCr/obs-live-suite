@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AvatarUploader } from "./AvatarUploader";
 import { Plus, Trash2, Edit, User, Zap } from "lucide-react";
 
 interface Guest {
@@ -23,6 +24,7 @@ export function GuestManager() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     displayName: "",
     subtitle: "",
@@ -46,27 +48,78 @@ export function GuestManager() {
     }
   };
 
-  const handleCreate = async () => {
+  const handleSubmit = async () => {
     try {
-      const res = await fetch("/api/assets/guests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      
-      if (res.ok) {
-        fetchGuests();
-        setShowForm(false);
-        setFormData({
-          displayName: "",
-          subtitle: "",
-          accentColor: "#3b82f6",
-          avatarUrl: "",
+      if (editingId) {
+        // Update existing guest
+        console.log("[GuestManager] Updating guest with data:", formData);
+        const res = await fetch(`/api/assets/guests/${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
         });
+        
+        if (res.ok) {
+          fetchGuests();
+          setShowForm(false);
+          setEditingId(null);
+          setFormData({
+            displayName: "",
+            subtitle: "",
+            accentColor: "#3b82f6",
+            avatarUrl: "",
+          });
+        }
+      } else {
+        // Create new guest
+        console.log("[GuestManager] Creating new guest with data:", formData);
+        const res = await fetch("/api/assets/guests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+        
+        if (res.ok) {
+          const result = await res.json();
+          console.log("[GuestManager] Guest created successfully:", result);
+          fetchGuests();
+          setShowForm(false);
+          setFormData({
+            displayName: "",
+            subtitle: "",
+            accentColor: "#3b82f6",
+            avatarUrl: "",
+          });
+        } else {
+          const error = await res.json();
+          console.error("[GuestManager] Failed to create guest:", error);
+        }
       }
     } catch (error) {
-      console.error("Failed to create guest:", error);
+      console.error("Failed to save guest:", error);
     }
+  };
+
+  const handleEdit = (guest: Guest) => {
+    setEditingId(guest.id);
+    setFormData({
+      displayName: guest.displayName,
+      subtitle: guest.subtitle || "",
+      accentColor: guest.accentColor,
+      avatarUrl: guest.avatarUrl || "",
+    });
+    setShowForm(true);
+  };
+
+  const handleCancelEdit = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setFormData({
+      displayName: "",
+      subtitle: "",
+      accentColor: "#3b82f6",
+      avatarUrl: "",
+    });
   };
 
   const handleDelete = async (id: string) => {
@@ -93,6 +146,8 @@ export function GuestManager() {
             subtitle: guest.subtitle || "",
             side: "left",
             duration: 8, // Auto-hide after 8 seconds
+            avatarUrl: guest.avatarUrl,
+            accentColor: guest.accentColor,
           },
         }),
       });
@@ -114,17 +169,28 @@ export function GuestManager() {
             Manage guest profiles for lower thirds
           </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
+        <Button onClick={() => {
+          setEditingId(null);
+          setFormData({
+            displayName: "",
+            subtitle: "",
+            accentColor: "#3b82f6",
+            avatarUrl: "",
+          });
+          setShowForm(!showForm);
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Guest
         </Button>
       </div>
 
-      {/* Create Form */}
+      {/* Create/Edit Form */}
       {showForm && (
         <Alert>
           <AlertDescription>
             <div className="space-y-4 mt-2">
+              <h3 className="font-medium">{editingId ? "Edit Guest" : "Create Guest"}</h3>
+              
               <div className="space-y-2">
                 <Label htmlFor="displayName">Display Name</Label>
                 <Input
@@ -172,25 +238,22 @@ export function GuestManager() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="avatarUrl">Avatar URL (Optional)</Label>
-                <Input
-                  id="avatarUrl"
-                  value={formData.avatarUrl}
-                  onChange={(e) =>
-                    setFormData({ ...formData, avatarUrl: e.target.value })
-                  }
-                  placeholder="/assets/avatars/guest.jpg"
+                <Label>Avatar (Optional)</Label>
+                <AvatarUploader
+                  currentAvatar={formData.avatarUrl}
+                  onUpload={(url) => setFormData({ ...formData, avatarUrl: url })}
+                  accentColor={formData.accentColor}
                 />
               </div>
 
               <div className="flex gap-2">
                 <Button
-                  onClick={handleCreate}
+                  onClick={handleSubmit}
                   disabled={!formData.displayName}
                 >
-                  Create Guest
+                  {editingId ? "Update Guest" : "Create Guest"}
                 </Button>
-                <Button variant="outline" onClick={() => setShowForm(false)}>
+                <Button variant="outline" onClick={handleCancelEdit}>
                   Cancel
                 </Button>
               </div>
@@ -217,10 +280,18 @@ export function GuestManager() {
             >
               <div className="flex items-center gap-4">
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold"
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden"
                   style={{ backgroundColor: guest.accentColor }}
                 >
-                  {guest.displayName.charAt(0).toUpperCase()}
+                  {guest.avatarUrl ? (
+                    <img
+                      src={guest.avatarUrl}
+                      alt={guest.displayName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    guest.displayName.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div>
                   <h3 className="font-medium">{guest.displayName}</h3>
@@ -241,7 +312,11 @@ export function GuestManager() {
                   <Zap className="w-3 h-3 mr-2" />
                   Quick LT
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleEdit(guest)}
+                >
                   <Edit className="w-3 h-3 mr-2" />
                   Edit
                 </Button>

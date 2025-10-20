@@ -28,13 +28,16 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log("[POST Guest] Received body:", body);
     
-    // Clean up empty strings - convert to undefined for optional fields
+    // Clean up empty strings - convert to null for optional fields
     const cleanedBody = {
       ...body,
-      subtitle: body.subtitle || undefined,
-      avatarUrl: body.avatarUrl || undefined,
+      subtitle: body.subtitle === "" ? null : body.subtitle,
+      avatarUrl: body.avatarUrl === "" ? null : body.avatarUrl,
     };
+    
+    console.log("[POST Guest] Cleaned body:", cleanedBody);
     
     const guest = guestSchema.parse({
       id: randomUUID(),
@@ -43,8 +46,12 @@ export async function POST(request: Request) {
       updatedAt: new Date(),
     });
     
+    console.log("[POST Guest] Parsed guest:", guest);
+    
     const db = DatabaseService.getInstance();
     db.createGuest(guest);
+    
+    console.log("[POST Guest] Guest created successfully");
     
     return NextResponse.json({ guest }, { status: 201 });
   } catch (error) {

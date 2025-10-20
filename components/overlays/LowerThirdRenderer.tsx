@@ -11,6 +11,7 @@ interface LowerThirdState {
   subtitle?: string;
   side: "left" | "right";
   accentColor: string;
+  avatarUrl?: string;
 }
 
 /**
@@ -37,13 +38,15 @@ export function LowerThirdRenderer() {
     switch (data.type) {
       case "show":
         if (data.payload) {
+          console.log("[LowerThird] Received show payload:", data.payload);
           setState({
             visible: true,
             animating: true,
             title: data.payload.title,
             subtitle: data.payload.subtitle,
             side: data.payload.side,
-            accentColor: "#3b82f6",
+            accentColor: data.payload.accentColor || "#3b82f6",
+            avatarUrl: data.payload.avatarUrl,
           });
 
           if (data.payload.duration) {
@@ -63,10 +66,12 @@ export function LowerThirdRenderer() {
         }, 500); // Wait for animation to complete
         break;
       case "update":
+        console.log("[LowerThird] Received update payload:", data.payload);
         setState((prev) => ({
           ...prev,
           ...data.payload,
-          accentColor: prev.accentColor,
+          accentColor: data.payload?.accentColor || prev.accentColor,
+          avatarUrl: data.payload?.avatarUrl !== undefined ? data.payload.avatarUrl : prev.avatarUrl,
         }));
         break;
     }
@@ -179,6 +184,16 @@ export function LowerThirdRenderer() {
         className="lower-third-accent"
         style={{ backgroundColor: state.accentColor }}
       />
+      {state.avatarUrl && state.avatarUrl !== "" && state.avatarUrl !== "null" && (
+        <div className="lower-third-avatar-container">
+          <div 
+            className="lower-third-avatar"
+            style={{ borderColor: state.accentColor }}
+          >
+            <img src={state.avatarUrl} alt={state.title} />
+          </div>
+        </div>
+      )}
       <div className="lower-third-content">
         <div className="lower-third-title">{state.title}</div>
         {state.subtitle && (

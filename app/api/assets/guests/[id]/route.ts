@@ -12,15 +12,20 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
+    console.log("[PATCH Guest] Received body:", body);
     
-    // Clean up empty strings - convert to undefined for optional fields
+    // Clean up empty strings - convert to null for optional fields
+    // Don't use || because it converts empty string to undefined
     const cleanedBody = {
+      id: params.id, // Add the ID from URL params
       ...body,
-      subtitle: body.subtitle || undefined,
-      avatarUrl: body.avatarUrl || undefined,
+      subtitle: body.subtitle === "" ? null : body.subtitle,
+      avatarUrl: body.avatarUrl === "" ? null : body.avatarUrl,
     };
     
+    console.log("[PATCH Guest] Cleaned body:", cleanedBody);
     const updates = updateGuestSchema.parse(cleanedBody);
+    console.log("[PATCH Guest] Validated updates:", updates);
     
     const db = DatabaseService.getInstance();
     db.updateGuest(params.id, {
@@ -29,6 +34,7 @@ export async function PATCH(
     });
     
     const guest = db.getGuestById(params.id);
+    console.log("[PATCH Guest] Updated guest:", guest);
     return NextResponse.json({ guest });
   } catch (error) {
     console.error("Guest update error:", error);

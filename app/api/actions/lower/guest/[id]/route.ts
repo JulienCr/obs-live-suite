@@ -33,6 +33,8 @@ export async function POST(
       side: "left",
       themeId: "default",
       duration,
+      avatarUrl: guest.avatarUrl,
+      accentColor: guest.accentColor,
     });
 
     return NextResponse.json({ 

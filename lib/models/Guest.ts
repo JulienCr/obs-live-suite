@@ -8,7 +8,7 @@ export const guestSchema = z.object({
   displayName: z.string().min(1, "Display name is required").max(100),
   subtitle: z.string().max(200).optional(),
   accentColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color").default("#3b82f6"),
-  avatarUrl: z.string().url().optional(),
+  avatarUrl: z.string().optional().nullable(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });

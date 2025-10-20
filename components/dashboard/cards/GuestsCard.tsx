@@ -38,18 +38,24 @@ export function GuestsCard() {
 
   const handleQuickLowerThird = async (guest: Guest) => {
     try {
+      const payload = {
+        action: "show",
+        payload: {
+          title: guest.displayName,
+          subtitle: guest.subtitle || "",
+          side: "left",
+          duration: 8,
+          avatarUrl: guest.avatarUrl,
+          accentColor: guest.accentColor,
+        },
+      };
+      console.log("[GuestsCard] Sending lower third request:", payload);
+      console.log("[GuestsCard] Guest data:", guest);
+      
       await fetch("/api/overlays/lower", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "show",
-          payload: {
-            title: guest.displayName,
-            subtitle: guest.subtitle || "",
-            side: "left",
-            duration: 8,
-          },
-        }),
+        body: JSON.stringify(payload),
       });
     } catch (error) {
       console.error("Failed to show lower third:", error);
@@ -80,10 +86,18 @@ export function GuestsCard() {
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 overflow-hidden"
                     style={{ backgroundColor: guest.accentColor }}
                   >
-                    {guest.displayName.charAt(0).toUpperCase()}
+                    {guest.avatarUrl ? (
+                      <img
+                        src={guest.avatarUrl}
+                        alt={guest.displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      guest.displayName.charAt(0).toUpperCase()
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm truncate">

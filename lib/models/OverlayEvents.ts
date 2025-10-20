@@ -49,6 +49,8 @@ export const lowerThirdShowPayloadSchema = z.object({
   side: z.enum(["left", "right"]).default("left"),
   themeId: z.string().uuid().optional(),
   duration: z.number().int().positive().optional(),
+  avatarUrl: z.string().optional(),
+  accentColor: z.string().optional(),
 });
 
 export type LowerThirdShowPayload = z.infer<typeof lowerThirdShowPayloadSchema>;

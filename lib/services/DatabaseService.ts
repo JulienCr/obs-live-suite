@@ -183,6 +183,14 @@ export class DatabaseService {
    * Create a new guest
    */
   createGuest(guest: any): void {
+    console.log("[DB] Creating guest with data:", {
+      id: guest.id,
+      displayName: guest.displayName,
+      subtitle: guest.subtitle,
+      accentColor: guest.accentColor,
+      avatarUrl: guest.avatarUrl,
+    });
+    
     const stmt = this.db.prepare(`
       INSERT INTO guests (id, displayName, subtitle, accentColor, avatarUrl, createdAt, updatedAt)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -196,23 +204,42 @@ export class DatabaseService {
       guest.createdAt.toISOString(),
       guest.updatedAt.toISOString()
     );
+    
+    console.log("[DB] Guest created successfully");
   }
 
   /**
    * Update a guest
    */
   updateGuest(id: string, updates: any): void {
+    // Get existing guest to merge with updates
+    const existing = this.getGuestById(id) as any;
+    if (!existing) {
+      throw new Error(`Guest with id ${id} not found`);
+    }
+
+    // Merge existing data with updates
+    const merged = {
+      displayName: updates.displayName !== undefined ? updates.displayName : existing.displayName,
+      subtitle: updates.subtitle !== undefined ? updates.subtitle : existing.subtitle,
+      accentColor: updates.accentColor !== undefined ? updates.accentColor : existing.accentColor,
+      avatarUrl: updates.avatarUrl !== undefined ? updates.avatarUrl : existing.avatarUrl,
+      updatedAt: updates.updatedAt || new Date(),
+    };
+
+    console.log("[DB] Updating guest:", id, "with merged data:", merged);
+
     const stmt = this.db.prepare(`
       UPDATE guests
       SET displayName = ?, subtitle = ?, accentColor = ?, avatarUrl = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
-      updates.displayName,
-      updates.subtitle || null,
-      updates.accentColor,
-      updates.avatarUrl || null,
-      updates.updatedAt.toISOString(),
+      merged.displayName,
+      merged.subtitle || null,
+      merged.accentColor,
+      merged.avatarUrl || null,
+      merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
       id
     );
   }

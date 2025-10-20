@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Eye, EyeOff } from "lucide-react";
 
 interface Poster {
   id: string;
@@ -13,11 +14,10 @@ interface Poster {
 }
 
 /**
- * PosterCard - Control card for poster/image overlays
+ * PosterCard - Thumbnail gallery for quick poster triggering
  */
 export function PosterCard() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
+  const [activePoster, setActivePoster] = useState<string | null>(null);
   const [posters, setPosters] = useState<Poster[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,10 +37,14 @@ export function PosterCard() {
     }
   };
 
-  const handleTakeover = async () => {
+  const handleTogglePoster = async (poster: Poster) => {
+    // Toggle: if clicking the active poster, hide it
+    if (activePoster === poster.id) {
+      await handleHide();
+      return;
+    }
+
     try {
-      const poster = posters[currentIndex];
-      
       const response = await fetch("/api/overlays/poster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,13 +62,13 @@ export function PosterCard() {
         throw new Error("Failed to show poster");
       }
 
-      setIsVisible(true);
+      setActivePoster(poster.id);
     } catch (error) {
       console.error("Error showing poster:", error);
     }
   };
 
-  const handleFade = async () => {
+  const handleHide = async () => {
     try {
       const response = await fetch("/api/overlays/poster", {
         method: "POST",
@@ -76,92 +80,68 @@ export function PosterCard() {
         throw new Error("Failed to hide poster");
       }
 
-      setIsVisible(false);
+      setActivePoster(null);
     } catch (error) {
       console.error("Error hiding poster:", error);
     }
-  };
-
-  const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + posters.length) % posters.length);
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % posters.length);
   };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Poster
+          Posters
           <div
             className={`w-3 h-3 rounded-full ${
-              isVisible ? "bg-green-500" : "bg-gray-300"
+              activePoster ? "bg-green-500" : "bg-gray-300"
             }`}
           />
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="aspect-video bg-muted rounded-lg overflow-hidden flex items-center justify-center">
-          {loading ? (
-            <div className="text-sm text-muted-foreground">Loading...</div>
-          ) : posters.length > 0 ? (
-            <img
-              src={posters[currentIndex].fileUrl}
-              alt={posters[currentIndex].title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="text-sm text-muted-foreground">No posters</div>
-          )}
-        </div>
-
-        {posters.length > 0 && (
-          <>
-            <div className="text-sm text-center font-medium">
-              {posters[currentIndex].title}
+      <CardContent>
+        {loading ? (
+          <div className="text-center py-8 text-muted-foreground">Loading...</div>
+        ) : posters.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No posters
+          </div>
+        ) : (
+          <ScrollArea className="h-[500px] w-full">
+            <div className="grid grid-cols-2 gap-2 pr-4">
+              {posters.map((poster) => (
+                <button
+                  key={poster.id}
+                  onClick={() => handleTogglePoster(poster)}
+                  className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all hover:scale-105 hover:shadow-lg ${
+                    activePoster === poster.id
+                      ? "border-green-500 ring-2 ring-green-500 ring-offset-2"
+                      : "border-border hover:border-primary"
+                  }`}
+                  title={poster.title}
+                >
+                  <img
+                    src={poster.fileUrl}
+                    alt={poster.title}
+                    className="w-full h-full object-cover"
+                  />
+                  
+                  {/* Active indicator */}
+                  {activePoster === poster.id && (
+                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
+                      <Eye className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                  
+                  {/* Hover overlay with title */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
+                    <span className="text-white text-xs font-medium text-center line-clamp-2">
+                      {poster.title}
+                    </span>
+                  </div>
+                </button>
+              ))}
             </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrevious}
-                disabled={posters.length <= 1}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleTakeover}
-                disabled={isVisible}
-                className="flex-1"
-              >
-                <Play className="w-4 h-4 mr-2" />
-                Take Over
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNext}
-                disabled={posters.length <= 1}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleFade}
-              disabled={!isVisible}
-              className="w-full"
-            >
-              Fade Out
-            </Button>
-          </>
+          </ScrollArea>
         )}
       </CardContent>
     </Card>

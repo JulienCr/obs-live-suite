@@ -4,30 +4,45 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { PosterShowPayload } from "@/lib/models/OverlayEvents";
 import "./poster.css";
 
-interface PosterState {
-  visible: boolean;
+interface PosterData {
   fileUrl: string;
-  transition: "fade" | "slide" | "cut" | "blur";
   isVideo: boolean;
 }
 
+interface PosterState {
+  visible: boolean;
+  hiding: boolean;
+  current: PosterData | null;
+  previous: PosterData | null;
+  transition: "fade" | "slide" | "cut" | "blur";
+}
+
 /**
- * PosterRenderer displays poster/image overlays
+ * PosterRenderer displays poster/image overlays with cross-fade support
  */
 export function PosterRenderer() {
   const [state, setState] = useState<PosterState>({
     visible: false,
-    fileUrl: "",
+    hiding: false,
+    current: null,
+    previous: null,
     transition: "fade",
-    isVideo: false,
   });
 
   const ws = useRef<WebSocket | null>(null);
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const fadeOutTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const crossFadeTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const handleEvent = useCallback((data: { type: string; payload?: PosterShowPayload; id: string }) => {
     if (hideTimeout.current) {
       clearTimeout(hideTimeout.current);
+    }
+    if (fadeOutTimeout.current) {
+      clearTimeout(fadeOutTimeout.current);
+    }
+    if (crossFadeTimeout.current) {
+      clearTimeout(crossFadeTimeout.current);
     }
 
     switch (data.type) {
@@ -38,22 +53,57 @@ export function PosterRenderer() {
             data.payload.fileUrl.endsWith(".webm") ||
             data.payload.fileUrl.endsWith(".mov");
 
-          setState({
-            visible: true,
+          const newPoster: PosterData = {
             fileUrl: data.payload.fileUrl,
-            transition: data.payload.transition,
             isVideo,
+          };
+
+          setState((prev) => {
+            // Cross-fade: move current to previous if there's a current poster
+            if (prev.visible && prev.current) {
+              // Clear previous after cross-fade completes
+              crossFadeTimeout.current = setTimeout(() => {
+                setState((s) => ({ ...s, previous: null }));
+              }, 500); // Match fade duration
+              
+              return {
+                visible: true,
+                hiding: false,
+                current: newPoster,
+                previous: prev.current,
+                transition: data.payload!.transition,
+              };
+            }
+            
+            // No current poster, just show the new one
+            return {
+              visible: true,
+              hiding: false,
+              current: newPoster,
+              previous: null,
+              transition: data.payload!.transition,
+            };
           });
 
           if (data.payload.duration) {
             hideTimeout.current = setTimeout(() => {
-              setState((prev) => ({ ...prev, visible: false }));
+              // Start fade out animation
+              setState((prev) => ({ ...prev, hiding: true }));
+              // After fade completes, fully hide
+              fadeOutTimeout.current = setTimeout(() => {
+                setState((prev) => ({ ...prev, visible: false, hiding: false, current: null, previous: null }));
+              }, 500); // Match fade duration
             }, data.payload.duration * 1000);
           }
         }
         break;
       case "hide":
-        setState((prev) => ({ ...prev, visible: false }));
+        // Start fade out animation
+        setState((prev) => ({ ...prev, hiding: true }));
+        // After fade completes, fully hide
+        fadeOutTimeout.current = setTimeout(() => {
+          setState((prev) => ({ ...prev, visible: false, hiding: false, current: null, previous: null }));
+        }, 500); // Match fade duration
         break;
     }
 
@@ -151,31 +201,52 @@ export function PosterRenderer() {
       if (hideTimeout.current) {
         clearTimeout(hideTimeout.current);
       }
+      if (fadeOutTimeout.current) {
+        clearTimeout(fadeOutTimeout.current);
+      }
+      if (crossFadeTimeout.current) {
+        clearTimeout(crossFadeTimeout.current);
+      }
     };
   }, [handleEvent]);
 
-  if (!state.visible) {
+  if (!state.visible && !state.hiding) {
     return null;
   }
 
+  const renderPoster = (posterData: PosterData, className: string) => {
+    return (
+      <div key={posterData.fileUrl} className={className}>
+        {posterData.isVideo ? (
+          <video
+            className="poster-media"
+            src={posterData.fileUrl}
+            autoPlay
+            loop
+            muted
+            aria-label="Poster video"
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            className="poster-media"
+            src={posterData.fileUrl}
+            alt="Poster"
+          />
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className={`poster poster-transition-${state.transition}`}>
-      {state.isVideo ? (
-        <video
-          className="poster-media"
-          src={state.fileUrl}
-          autoPlay
-          loop
-          muted
-          aria-label="Poster video"
-        />
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          className="poster-media"
-          src={state.fileUrl}
-          alt="Poster"
-        />
+    <div className={`poster-container ${state.hiding ? 'poster-hiding' : ''}`}>
+      {/* Previous poster fading out */}
+      {state.previous && renderPoster(state.previous, 'poster-layer poster-crossfade-out')}
+      
+      {/* Current poster */}
+      {state.current && renderPoster(
+        state.current, 
+        `poster-layer poster-transition-${state.transition} ${state.previous ? 'poster-crossfade-in' : ''}`
       )}
     </div>
   );

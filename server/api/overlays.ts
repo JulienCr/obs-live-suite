@@ -24,7 +24,9 @@ router.post("/lower", async (req, res) => {
 
     switch (action) {
       case "show":
+        console.log("[Backend] Received lower third show payload:", payload);
         const validated = lowerThirdShowPayloadSchema.parse(payload);
+        console.log("[Backend] Validated payload:", validated);
         await channelManager.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, validated);
         break;
 

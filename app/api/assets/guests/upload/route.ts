@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { uploadFile } from "@/lib/utils/fileUpload";
 
 /**
- * POST /api/assets/upload
- * Upload a poster file (image or video)
+ * POST /api/assets/guests/upload
+ * Upload an avatar image for a guest
  */
 export async function POST(request: Request) {
   try {
@@ -18,24 +18,21 @@ export async function POST(request: Request) {
     }
 
     const result = await uploadFile(file, {
-      subfolder: "posters",
+      subfolder: "guests",
       allowedTypes: [
         "image/jpeg",
         "image/png",
         "image/gif",
         "image/webp",
-        "video/mp4",
-        "video/webm",
-        "video/quicktime",
       ],
-      maxSizeMB: 50,
+      maxSizeMB: 5,
     });
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Upload error:", error);
+    console.error("Avatar upload error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to upload file" },
+      { error: error instanceof Error ? error.message : "Failed to upload avatar" },
       { status: 500 }
     );
   }
