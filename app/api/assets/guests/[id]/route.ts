@@ -12,7 +12,15 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
-    const updates = updateGuestSchema.parse(body);
+    
+    // Clean up empty strings - convert to undefined for optional fields
+    const cleanedBody = {
+      ...body,
+      subtitle: body.subtitle || undefined,
+      avatarUrl: body.avatarUrl || undefined,
+    };
+    
+    const updates = updateGuestSchema.parse(cleanedBody);
     
     const db = DatabaseService.getInstance();
     db.updateGuest(params.id, {
@@ -23,6 +31,7 @@ export async function PATCH(
     const guest = db.getGuestById(params.id);
     return NextResponse.json({ guest });
   } catch (error) {
+    console.error("Guest update error:", error);
     return NextResponse.json(
       { error: "Failed to update guest" },
       { status: 400 }

@@ -29,9 +29,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
+    // Clean up empty strings - convert to undefined for optional fields
+    const cleanedBody = {
+      ...body,
+      subtitle: body.subtitle || undefined,
+      avatarUrl: body.avatarUrl || undefined,
+    };
+    
     const guest = guestSchema.parse({
       id: randomUUID(),
-      ...body,
+      ...cleanedBody,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -41,6 +48,7 @@ export async function POST(request: Request) {
     
     return NextResponse.json({ guest }, { status: 201 });
   } catch (error) {
+    console.error("Guest creation error:", error);
     return NextResponse.json(
       { error: "Failed to create guest" },
       { status: 400 }
