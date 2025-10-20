@@ -2,6 +2,12 @@
 
 ## 🔄 Recent Updates
 
+### October 2025 - Countdown Add Time Feature ✅
+- ✅ Added "add-time" action to countdown backend
+- ✅ Added handler in CountdownRenderer for adding time
+- ✅ Added "+30s" button in CountdownCard (visible only when running)
+- ✅ Allows extending countdown time by 30 seconds during playback
+
 ### October 2025 - Lower Third Display Fix ✅
 - ✅ Fixed lower third not showing text (validation schema issue)
 - ✅ Made `themeId` optional in `lowerThirdShowPayloadSchema`

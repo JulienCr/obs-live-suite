@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, Trash2, Edit, User } from "lucide-react";
+import { Plus, Trash2, Edit, User, Zap } from "lucide-react";
 
 interface Guest {
   id: string;
@@ -77,6 +77,27 @@ export function GuestManager() {
       fetchGuests();
     } catch (error) {
       console.error("Failed to delete guest:", error);
+    }
+  };
+
+  const handleQuickLowerThird = async (guest: Guest) => {
+    try {
+      // Send lower third with auto-hide after 8 seconds
+      await fetch("/api/overlays/lower", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "show",
+          payload: {
+            title: guest.displayName,
+            subtitle: guest.subtitle || "",
+            side: "left",
+            duration: 8, // Auto-hide after 8 seconds
+          },
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to show lower third:", error);
     }
   };
 
@@ -211,6 +232,15 @@ export function GuestManager() {
                 </div>
               </div>
               <div className="flex gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => handleQuickLowerThird(guest)}
+                  title="Show Lower Third (8s auto-hide)"
+                >
+                  <Zap className="w-3 h-3 mr-2" />
+                  Quick LT
+                </Button>
                 <Button variant="outline" size="sm">
                   <Edit className="w-3 h-3 mr-2" />
                   Edit

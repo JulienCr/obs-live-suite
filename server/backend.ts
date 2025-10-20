@@ -133,6 +133,7 @@ class BackendServer {
           case "start": type = "start"; break;
           case "pause": type = "pause"; break;
           case "reset": type = "reset"; break;
+          case "add-time": type = "add-time"; break;
           default: return res.status(400).json({ error: "Invalid action" });
         }
         await this.channelManager.publish(channel, type, payload);

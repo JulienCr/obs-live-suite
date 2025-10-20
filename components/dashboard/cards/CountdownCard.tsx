@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Play, Pause, RotateCcw } from "lucide-react";
+import { Play, Pause, RotateCcw, Plus } from "lucide-react";
 
 /**
  * CountdownCard - Control card for countdown timer
@@ -84,6 +84,25 @@ export function CountdownCard() {
       setSeconds(0);
     } catch (error) {
       console.error("Error resetting countdown:", error);
+    }
+  };
+
+  const handleAddTime = async (secondsToAdd: number) => {
+    try {
+      const response = await fetch("/api/overlays/countdown", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          action: "add-time", 
+          payload: { seconds: secondsToAdd } 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add time");
+      }
+    } catch (error) {
+      console.error("Error adding time:", error);
     }
   };
 
@@ -171,6 +190,18 @@ export function CountdownCard() {
             <RotateCcw className="w-4 h-4" />
           </Button>
         </div>
+
+        {isRunning && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => handleAddTime(30)}
+            className="w-full"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Ajouter 30 secondes
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

@@ -47,6 +47,12 @@ export function CountdownRenderer() {
           visible: false,
         }));
         break;
+      case "add-time":
+        setState((prev) => ({
+          ...prev,
+          seconds: prev.seconds + (data.payload?.seconds ?? 0),
+        }));
+        break;
     }
 
     if (ws.current) {
