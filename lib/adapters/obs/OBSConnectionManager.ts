@@ -152,7 +152,14 @@ export class OBSConnectionManager {
    * Check if connected
    */
   isConnected(): boolean {
-    return this.status === ConnectionStatus.CONNECTED;
+    // Check both our status and the actual WebSocket connection state
+    try {
+      // obs-websocket-js doesn't expose connection state directly,
+      // but we can check if we can access the socket
+      return this.status === ConnectionStatus.CONNECTED && this.obs !== null;
+    } catch {
+      return false;
+    }
   }
 
   /**
