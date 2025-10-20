@@ -135,7 +135,7 @@ export class OBSConnectionManager {
       this.reconnectTimer = undefined;
       try {
         await this.connect();
-      } catch (error) {
+      } catch {
         // Error already logged in connect()
       }
     }, delay);

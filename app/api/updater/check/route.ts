@@ -13,7 +13,13 @@ export async function POST() {
     const registryService = RegistryService.getInstance();
     const releaseChecker = new GitHubReleaseChecker();
 
-    const plugins = db.prepare("SELECT * FROM plugins").all() as any[];
+    interface PluginRow {
+      id: string;
+      isIgnored: number;
+      registryId: string | null;
+      localVersion: string | null;
+    }
+    const plugins = db.prepare("SELECT * FROM plugins").all() as PluginRow[];
 
     for (const plugin of plugins) {
       if (plugin.isIgnored) continue;

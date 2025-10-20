@@ -31,10 +31,18 @@ export class PathManager {
    * Resolve the data directory path
    */
   private resolveDataDir(): string {
-    const configPath = this.appConfig.dataDir;
-    return configPath.startsWith("~")
-      ? join(homedir(), configPath.slice(1))
-      : configPath;
+    return this.resolvePath(this.appConfig.dataDir);
+  }
+
+  /**
+   * Resolve any path that may contain ~ (home directory)
+   * Works cross-platform (Windows, Mac, Linux)
+   */
+  public resolvePath(path: string): string {
+    if (path.startsWith("~")) {
+      return join(homedir(), path.slice(1));
+    }
+    return path;
   }
 
   /**
@@ -105,6 +113,14 @@ export class PathManager {
    */
   getLogsDir(): string {
     return join(this.dataDir, "logs");
+  }
+
+  /**
+   * Get the log file path (resolves ~ for cross-platform compatibility)
+   */
+  getLogFilePath(): string {
+    const logFile = this.appConfig.logFile;
+    return this.resolvePath(logFile);
   }
 
   /**

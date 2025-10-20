@@ -1,4 +1,28 @@
 import { z } from "zod";
+import { platform, homedir } from "os";
+import { join } from "path";
+
+/**
+ * Get platform-specific default data directory
+ */
+function getDefaultDataDir(): string {
+  const currentPlatform = platform();
+  
+  switch (currentPlatform) {
+    case "win32":
+      // Windows: %APPDATA%\obs-live-suite or %USERPROFILE%\AppData\Roaming\obs-live-suite
+      return join(process.env.APPDATA || join(homedir(), "AppData", "Roaming"), "obs-live-suite");
+    case "darwin":
+      // macOS: ~/Library/Application Support/obs-live-suite
+      return join(homedir(), "Library", "Application Support", "obs-live-suite");
+    case "linux":
+    default:
+      // Linux: ~/.config/obs-live-suite or ~/.obs-live-suite
+      return join(homedir(), ".config", "obs-live-suite");
+  }
+}
+
+const defaultDataDir = getDefaultDataDir();
 
 /**
  * Environment variable schema
@@ -13,10 +37,10 @@ const envSchema = z.object({
   STREAMDECK_BASE_URL: z.string().default("http://localhost:3000"),
   CSRF_SECRET: z.string().optional(),
   AUTH_TOKEN: z.string().optional(),
-  DATA_DIR: z.string().default("~/.obs-live-suite"),
-  DATABASE_PATH: z.string().default("~/.obs-live-suite/data.db"),
+  DATA_DIR: z.string().default(defaultDataDir),
+  DATABASE_PATH: z.string().default(join(defaultDataDir, "data.db")),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
-  LOG_FILE: z.string().default("~/.obs-live-suite/app.log"),
+  LOG_FILE: z.string().default(join(defaultDataDir, "logs", "app.log")),
   GITHUB_TOKEN: z.string().optional(),
   REGISTRY_UPDATE_INTERVAL: z.string().default("86400"),
 });

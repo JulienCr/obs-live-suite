@@ -52,7 +52,7 @@ export function PosterCard() {
       <CardContent className="space-y-4">
         <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
           {posters.length > 0 ? (
-            <Image className="w-12 h-12 text-muted-foreground" />
+            <Image className="w-12 h-12 text-muted-foreground" aria-label="Poster placeholder" />
           ) : (
             <div className="text-sm text-muted-foreground">No posters</div>
           )}

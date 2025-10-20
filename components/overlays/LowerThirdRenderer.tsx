@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { LowerThirdShowPayload } from "@/lib/models/OverlayEvents";
 import "./lower-third.css";
 
@@ -27,6 +27,54 @@ export function LowerThirdRenderer() {
   const ws = useRef<WebSocket | null>(null);
   const hideTimeout = useRef<NodeJS.Timeout>();
 
+  const handleEvent = useCallback((data: { type: string; payload?: LowerThirdShowPayload; id: string }) => {
+    if (hideTimeout.current) {
+      clearTimeout(hideTimeout.current);
+    }
+
+    switch (data.type) {
+      case "show":
+        if (data.payload) {
+          setState({
+            visible: true,
+            title: data.payload.title,
+            subtitle: data.payload.subtitle,
+            side: data.payload.side,
+            accentColor: "#3b82f6",
+          });
+
+          if (data.payload.duration) {
+            hideTimeout.current = setTimeout(() => {
+              setState((prev) => ({ ...prev, visible: false }));
+            }, data.payload.duration * 1000);
+          }
+        }
+        break;
+      case "hide":
+        setState((prev) => ({ ...prev, visible: false }));
+        break;
+      case "update":
+        setState((prev) => ({
+          ...prev,
+          ...data.payload,
+          accentColor: prev.accentColor,
+        }));
+        break;
+    }
+
+    // Send acknowledgment
+    if (ws.current) {
+      ws.current.send(
+        JSON.stringify({
+          type: "ack",
+          eventId: data.id,
+          channel: "lower",
+          success: true,
+        })
+      );
+    }
+  }, []);
+
   useEffect(() => {
     // Connect to WebSocket server
     const wsUrl = `ws://${window.location.hostname}:3001`;
@@ -43,7 +91,7 @@ export function LowerThirdRenderer() {
       );
     };
 
-    ws.current.onmessage = (event) => {
+    const handleMessage = (event: MessageEvent) => {
       try {
         const message = JSON.parse(event.data);
         if (message.channel === "lower") {
@@ -53,6 +101,8 @@ export function LowerThirdRenderer() {
         console.error("Failed to parse message:", error);
       }
     };
+
+    ws.current.onmessage = handleMessage;
 
     ws.current.onerror = (error) => {
       console.error("WebSocket error:", error);
@@ -68,68 +118,7 @@ export function LowerThirdRenderer() {
     return () => {
       ws.current?.close();
     };
-  }, []);
-
-  const handleEvent = (data: any) => {
-    switch (data.type) {
-      case "show":
-        showLowerThird(data.payload);
-        break;
-      case "hide":
-        hideLowerThird();
-        break;
-      case "update":
-        updateLowerThird(data.payload);
-        break;
-    }
-
-    // Send acknowledgment
-    sendAck(data.id, true);
-  };
-
-  const showLowerThird = (payload: LowerThirdShowPayload) => {
-    if (hideTimeout.current) {
-      clearTimeout(hideTimeout.current);
-    }
-
-    setState({
-      visible: true,
-      title: payload.title,
-      subtitle: payload.subtitle,
-      side: payload.side,
-      accentColor: "#3b82f6", // TODO: Get from theme
-    });
-
-    // Auto-hide after duration
-    if (payload.duration) {
-      hideTimeout.current = setTimeout(() => {
-        hideLowerThird();
-      }, payload.duration * 1000);
-    }
-  };
-
-  const hideLowerThird = () => {
-    setState((prev) => ({ ...prev, visible: false }));
-  };
-
-  const updateLowerThird = (payload: Partial<LowerThirdShowPayload>) => {
-    setState((prev) => ({
-      ...prev,
-      ...payload,
-      accentColor: prev.accentColor,
-    }));
-  };
-
-  const sendAck = (eventId: string, success: boolean) => {
-    ws.current?.send(
-      JSON.stringify({
-        type: "ack",
-        eventId,
-        channel: "lower",
-        success,
-      })
-    );
-  };
+  }, [handleEvent]);
 
   if (!state.visible) {
     return null;

@@ -4,7 +4,6 @@ import { PathResolver } from "./PathResolver";
 import { VersionExtractor } from "./VersionExtractor";
 import { Logger } from "../../utils/Logger";
 import { PluginKind, CreatePluginInput } from "../../models/Plugin";
-import { randomUUID } from "crypto";
 
 /**
  * PluginScanner discovers installed OBS plugins and scripts

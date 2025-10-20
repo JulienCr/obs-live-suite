@@ -3,6 +3,7 @@ import { OBSConnectionManager } from "../adapters/obs/OBSConnectionManager";
 import { OBSStateManager } from "../adapters/obs/OBSStateManager";
 import { DatabaseService } from "../services/DatabaseService";
 import { Logger } from "../utils/Logger";
+import { PathManager } from "../config/PathManager";
 
 /**
  * ServerInit handles server-side initialization
@@ -13,6 +14,10 @@ export class ServerInit {
   private logger: Logger;
 
   private constructor() {
+    // Initialize Logger file path first (before creating any loggers)
+    const pathManager = PathManager.getInstance();
+    Logger.setLogFilePath(pathManager.getLogFilePath());
+    
     this.logger = new Logger("ServerInit");
   }
 

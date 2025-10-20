@@ -114,7 +114,7 @@ export function UpdaterContainer() {
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
             ) : plugins.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No plugins found. Click "Scan Plugins" to search.
+                No plugins found. Click &quot;Scan Plugins&quot; to search.
               </div>
             ) : (
               <div className="space-y-3">

@@ -10,11 +10,17 @@ __tests__/
 ├── services/            # Service layer tests
 │   ├── ChannelManager.test.ts
 │   └── MacroEngine.test.ts
+├── components/          # React component tests
+│   ├── CountdownRenderer.test.tsx
+│   ├── LowerThirdRenderer.test.tsx
+│   └── PosterRenderer.test.tsx
 ├── utils/               # Utility function tests
 │   ├── Logger.test.ts
 │   └── cn.test.ts
 ├── config/              # Configuration tests
 │   └── AppConfig.test.ts
+├── api/                 # API route tests
+│   └── updater-check.test.ts
 ├── integration/         # Integration tests
 │   └── api-routes.test.ts
 └── README.md
@@ -48,6 +54,8 @@ pnpm test Guest.test.ts
 - **Models**: Zod schema validation and model class methods
 - **Utils**: Utility functions (logger, class name merger)
 - **Config**: Configuration loading and getters
+- **Components**: React overlay renderers with WebSocket integration
+- **API**: API route handlers and type safety
 
 ### Integration Tests
 - **Services**: Service layer interactions
@@ -84,12 +92,30 @@ describe('ServiceName', () => {
 ```
 
 ### API Tests
-Test endpoint behavior:
+Test endpoint behavior and type safety:
 ```typescript
 describe('API Endpoint', () => {
-  it('should accept valid request', () => {
-    const request = { action: 'test' };
-    expect(request.action).toBe('test');
+  it('should handle properly typed data', () => {
+    interface DataRow {
+      id: string;
+      value: number;
+    }
+    const data: DataRow[] = [{ id: 'test', value: 1 }];
+    expect(data[0].id).toBe('test');
+  });
+});
+```
+
+### Component Tests
+Test React components with mocked WebSocket:
+```typescript
+describe('ComponentName', () => {
+  it('should render when data is received', async () => {
+    render(<Component />);
+    mockWs.simulateMessage({ type: 'show', data: {} });
+    await waitFor(() => {
+      expect(screen.getByText('Content')).toBeInTheDocument();
+    });
   });
 });
 ```

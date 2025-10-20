@@ -1,5 +1,5 @@
 import archiver from "archiver";
-import { createWriteStream, createReadStream, existsSync } from "fs";
+import { createWriteStream, existsSync } from "fs";
 import { join } from "path";
 import { PathManager } from "../config/PathManager";
 import { Logger } from "../utils/Logger";

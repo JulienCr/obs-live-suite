@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { PosterShowPayload } from "@/lib/models/OverlayEvents";
 import "./poster.css";
 
@@ -25,6 +25,51 @@ export function PosterRenderer() {
   const ws = useRef<WebSocket | null>(null);
   const hideTimeout = useRef<NodeJS.Timeout>();
 
+  const handleEvent = useCallback((data: { type: string; payload?: PosterShowPayload; id: string }) => {
+    if (hideTimeout.current) {
+      clearTimeout(hideTimeout.current);
+    }
+
+    switch (data.type) {
+      case "show":
+        if (data.payload) {
+          const isVideo =
+            data.payload.fileUrl.endsWith(".mp4") ||
+            data.payload.fileUrl.endsWith(".webm") ||
+            data.payload.fileUrl.endsWith(".mov");
+
+          setState({
+            visible: true,
+            fileUrl: data.payload.fileUrl,
+            transition: data.payload.transition,
+            isVideo,
+          });
+
+          if (data.payload.duration) {
+            hideTimeout.current = setTimeout(() => {
+              setState((prev) => ({ ...prev, visible: false }));
+            }, data.payload.duration * 1000);
+          }
+        }
+        break;
+      case "hide":
+        setState((prev) => ({ ...prev, visible: false }));
+        break;
+    }
+
+    // Send acknowledgment
+    if (ws.current) {
+      ws.current.send(
+        JSON.stringify({
+          type: "ack",
+          eventId: data.id,
+          channel: "poster",
+          success: true,
+        })
+      );
+    }
+  }, []);
+
   useEffect(() => {
     // Connect to WebSocket server
     const wsUrl = `ws://${window.location.hostname}:3001`;
@@ -40,7 +85,7 @@ export function PosterRenderer() {
       );
     };
 
-    ws.current.onmessage = (event) => {
+    const handleMessage = (event: MessageEvent) => {
       try {
         const message = JSON.parse(event.data);
         if (message.channel === "poster") {
@@ -51,66 +96,15 @@ export function PosterRenderer() {
       }
     };
 
+    ws.current.onmessage = handleMessage;
+
     return () => {
       ws.current?.close();
       if (hideTimeout.current) {
         clearTimeout(hideTimeout.current);
       }
     };
-  }, []);
-
-  const handleEvent = (data: any) => {
-    switch (data.type) {
-      case "show":
-        showPoster(data.payload);
-        break;
-      case "hide":
-        hidePoster();
-        break;
-    }
-
-    sendAck(data.id, true);
-  };
-
-  const showPoster = (payload: PosterShowPayload) => {
-    if (hideTimeout.current) {
-      clearTimeout(hideTimeout.current);
-    }
-
-    const isVideo =
-      payload.fileUrl.endsWith(".mp4") ||
-      payload.fileUrl.endsWith(".webm") ||
-      payload.fileUrl.endsWith(".mov");
-
-    setState({
-      visible: true,
-      fileUrl: payload.fileUrl,
-      transition: payload.transition,
-      isVideo,
-    });
-
-    // Auto-hide after duration
-    if (payload.duration) {
-      hideTimeout.current = setTimeout(() => {
-        hidePoster();
-      }, payload.duration * 1000);
-    }
-  };
-
-  const hidePoster = () => {
-    setState((prev) => ({ ...prev, visible: false }));
-  };
-
-  const sendAck = (eventId: string, success: boolean) => {
-    ws.current?.send(
-      JSON.stringify({
-        type: "ack",
-        eventId,
-        channel: "poster",
-        success,
-      })
-    );
-  };
+  }, [handleEvent]);
 
   if (!state.visible) {
     return null;
@@ -125,8 +119,10 @@ export function PosterRenderer() {
           autoPlay
           loop
           muted
+          aria-label="Poster video"
         />
       ) : (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           className="poster-media"
           src={state.fileUrl}
