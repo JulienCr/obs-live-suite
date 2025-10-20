@@ -255,6 +255,84 @@ Overlay pages (in OBS):
 
 ---
 
+## Plugin Management System (October 2025)
+
+### Plugin Scanner and Update Checker UI Implementation
+**Context**: The backend infrastructure for plugin scanning existed but had no user interface. User requested ability to list plugins and check for updates.
+
+**Complete Solution Implemented**:
+1. **PluginSettings Component** (`components/settings/PluginSettings.tsx`):
+   - Lists all plugins from database with details (name, version, kind, path)
+   - "Scan Plugins" button triggers `/api/updater/scan` to discover installed plugins
+   - "Check for Updates" button triggers `/api/updater/check` to query GitHub
+   - Update status badges (Update Available, Up to Date, Unknown, Ignored)
+   - Release notes display for plugins with updates
+   - External links to GitHub releases
+   - Loading states, error handling, and auto-refresh
+
+2. **Settings Page Update** (`app/settings/page.tsx`):
+   - Added 5th tab "Plugins" to existing settings page
+   - Changed TabsList from `grid-cols-4` to `grid-cols-5`
+   - Imported Package icon from lucide-react
+
+3. **Existing Backend Infrastructure** (already complete):
+   - `PluginScanner` - Scans OBS directories for plugins/scripts
+   - `/api/updater/scan` - POST endpoint to trigger scan
+   - `/api/updater/check` - POST endpoint to check for updates via GitHub
+   - `/api/updater/plugins` - GET endpoint to retrieve all plugins
+   - `RegistryService` - Maps plugin names to GitHub repos
+   - `GitHubReleaseChecker` - Fetches latest releases from GitHub
+
+**Key Implementation Details**:
+- Plugin data stored in `plugins` table in SQLite database
+- Paths stored as JSON string, parsed on display
+- Status badges use color coding: green=up_to_date, blue=update_available, gray=unknown
+- All API calls handle errors gracefully with user-friendly messages
+- Component follows React hooks best practices (useEffect, useState)
+
+**Files Modified**:
+- NEW: `components/settings/PluginSettings.tsx` - Plugin management UI
+- MODIFIED: `app/settings/page.tsx` - Added Plugins tab
+- MODIFIED: `TASKS.md` - Updated working features list
+
+**User Experience Flow**:
+1. User navigates to Settings → Plugins tab
+2. Clicks "Scan Plugins" to discover installed OBS plugins
+3. System scans OBS plugin/script directories and saves to database
+4. Plugins displayed in scrollable list with details
+5. User clicks "Check for Updates" to query GitHub for latest versions
+6. System updates database with latest version info and update status
+7. Plugins with updates show blue badge and release notes
+8. User can click "View Release" to open GitHub release page
+
+**Lesson**: When backend infrastructure exists but has no UI, create a dedicated settings component that wraps the API calls with proper loading states, error handling, and user-friendly feedback. Always provide both "scan" and "refresh" capabilities for discovery-type features.
+
+### Plugin Scanner Fixes (October 2025)
+**Problem 1**: Each scan appended results instead of replacing them, creating duplicate entries.
+
+**Root Cause**: The scan endpoint used `INSERT OR REPLACE` with `randomUUID()`, but since IDs were always new, it always inserted instead of replacing.
+
+**Solution**: Clear the plugins table before scanning with `DELETE FROM plugins` before inserting new scan results.
+
+**Problem 2**: Scanner was listing `32bit` and `64bit` folders as plugins instead of actual plugin files.
+
+**Root Cause**: On Windows, OBS plugins are `.dll` files stored in subdirectories (`32bit`/`64bit`). The scanner was treating these subdirectories as plugins instead of scanning their contents.
+
+**Solution**: Updated `PluginScanner.scanPluginDirectory()` to:
+1. Detect special directories (`32bit`, `64bit`, `bin`)
+2. Scan inside them for actual plugin files (`.dll`, `.so`, `.dylib`)
+3. Extract plugin name from filename without extension
+4. Use a `Set` to deduplicate (same plugin in both 32bit and 64bit)
+5. Still handle regular plugin directories for non-Windows platforms
+
+**Files Modified**:
+- `app/api/updater/scan/route.ts` - Added `DELETE FROM plugins` before insert
+- `lib/services/updater/PluginScanner.ts` - Fixed directory scanning logic
+
+**Lesson**: When scanning cross-platform file structures, understand the platform-specific conventions (Windows uses DLLs in arch-specific folders, while Linux/Mac may use different structures). Always deduplicate when the same logical item can appear in multiple locations (32bit + 64bit).
+
+---
+
 ## Future Considerations
 
 ### Things to Watch Out For

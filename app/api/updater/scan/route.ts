@@ -13,8 +13,12 @@ export async function POST() {
     const plugins = await scanner.scan();
 
     const db = DatabaseService.getInstance().getDb();
+    
+    // Clear existing plugins to avoid duplicates
+    db.prepare("DELETE FROM plugins").run();
+
     const insertStmt = db.prepare(`
-      INSERT OR REPLACE INTO plugins (
+      INSERT INTO plugins (
         id, name, kind, localVersion, paths, registryId,
         latestVersion, releaseUrl, releaseNotes, updateStatus,
         isIgnored, isWatched, lastChecked, compatibleOBSVersions,

@@ -52,6 +52,7 @@ export class PluginScanner {
    */
   private async scanPluginDirectory(directory: string): Promise<CreatePluginInput[]> {
     const plugins: CreatePluginInput[] = [];
+    const seen = new Set<string>();
 
     try {
       const entries = readdirSync(directory);
@@ -60,9 +61,50 @@ export class PluginScanner {
         const fullPath = join(directory, entry);
         const stats = statSync(fullPath);
 
+        // Skip common non-plugin directories (32bit, 64bit on Windows)
+        if (stats.isDirectory() && (entry === "32bit" || entry === "64bit" || entry === "bin")) {
+          // Scan inside these directories for actual plugins (DLLs on Windows, dylibs on Mac)
+          try {
+            const subEntries = readdirSync(fullPath);
+            for (const subEntry of subEntries) {
+              const subPath = join(fullPath, subEntry);
+              const subStats = statSync(subPath);
+              
+              // On Windows, plugins are DLL files
+              if (subStats.isFile() && (subEntry.endsWith(".dll") || subEntry.endsWith(".so") || subEntry.endsWith(".dylib"))) {
+                const name = basename(subEntry, subEntry.match(/\.(dll|so|dylib)$/)?.[0] || "");
+                
+                // Avoid duplicates (same plugin in 32bit and 64bit)
+                if (seen.has(name)) continue;
+                seen.add(name);
+
+                const version = this.versionExtractor.extractFromPlugin(subPath);
+
+                plugins.push({
+                  name,
+                  kind: PluginKind.PLUGIN,
+                  localVersion: version,
+                  paths: [subPath],
+                  registryId: this.normalizeRegistryId(name),
+                  updateStatus: UpdateStatus.UNKNOWN,
+                  isIgnored: false,
+                  isWatched: false,
+                });
+              }
+            }
+          } catch (subError) {
+            this.logger.error(`Failed to scan subdirectory ${fullPath}`, subError);
+          }
+          continue;
+        }
+
+        // Handle regular plugin directories (for systems where plugins are in their own folders)
         if (stats.isDirectory()) {
           const version = this.versionExtractor.extractFromPlugin(fullPath);
           const name = basename(entry);
+
+          if (seen.has(name)) continue;
+          seen.add(name);
 
           plugins.push({
             name,

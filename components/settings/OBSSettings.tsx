@@ -47,7 +47,7 @@ export function OBSSettings() {
       const data = await res.json();
       setConfig({
         url: data.url || "ws://localhost:4455",
-        password: "", // Never pre-fill password for security
+        password: data.password || "", // Load password to show current value
       });
       setSourceIsDatabase(data.sourceIsDatabase);
     } catch (error) {

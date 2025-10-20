@@ -12,9 +12,11 @@ export async function GET() {
     const settingsService = SettingsService.getInstance();
     const settings = settingsService.getOBSSettings();
     
-    // Never send password in plaintext - only indicate if it's set
+    // Return full settings including password
+    // (UI settings page needs to show current values)
     const response = {
       url: settings.url,
+      password: settings.password || "",
       hasPassword: !!settings.password,
       sourceIsDatabase: settingsService.hasOBSSettingsInDatabase(),
     };
