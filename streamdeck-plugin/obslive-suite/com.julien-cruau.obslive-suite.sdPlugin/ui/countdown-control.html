@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Control Countdown</title>
+	<link rel="stylesheet" href="shared-styles.css">
+</head>
+<body>
+	<div class="sdpi-wrapper">
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Action</div>
+			<select class="sdpi-item-value" id="action">
+				<option value="pause">Pause</option>
+				<option value="start">Resume</option>
+				<option value="reset">Reset</option>
+			</select>
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label info-text">
+				Pause: Stop the countdown<br>
+				Resume: Continue countdown<br>
+				Reset: Return to initial time
+			</div>
+		</div>
+	</div>
+
+	<script src="countdown-control.js"></script>
+</body>
+</html>
+

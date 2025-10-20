@@ -1,0 +1,143 @@
+{
+	"Name": "OBS Live Suite",
+	"Version": "1.0.0.0",
+	"Author": "Julien Cruau",
+	"Description": "Control OBS Live Suite overlays - Lower Thirds, Countdown, and Posters",
+	"Category": "OBS Live Suite",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"Icon": "imgs/plugin/marketplace",
+	"URL": "https://github.com/julien-cruau/obs-live-suite",
+	"SDKVersion": 2,
+	"Software": {
+		"MinimumVersion": "6.5"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "20",
+		"Debug": "enabled"
+	},
+	"CodePath": "bin/plugin.js",
+	"UUID": "com.julien-cruau.obslive-suite",
+	"Actions": [
+		{
+			"Name": "Show Guest",
+			"UUID": "com.julien-cruau.obslive-suite.lower.guest",
+			"Icon": "imgs/actions/lower-guest/icon",
+			"Tooltip": "Show guest lower third from database",
+			"PropertyInspectorPath": "ui/lower-third-guest.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/lower-guest/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Custom Lower Third",
+			"UUID": "com.julien-cruau.obslive-suite.lower.custom",
+			"Icon": "imgs/actions/lower-custom/icon",
+			"Tooltip": "Show custom lower third with text",
+			"PropertyInspectorPath": "ui/lower-third-custom.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/lower-custom/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Hide Lower Third",
+			"UUID": "com.julien-cruau.obslive-suite.lower.hide",
+			"Icon": "imgs/actions/lower-hide/icon",
+			"Tooltip": "Hide the lower third overlay",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/lower-hide/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Start Countdown",
+			"UUID": "com.julien-cruau.obslive-suite.countdown.start",
+			"Icon": "imgs/actions/countdown-start/icon",
+			"Tooltip": "Start countdown timer with live display",
+			"PropertyInspectorPath": "ui/countdown-start.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/countdown-start/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Control Countdown",
+			"UUID": "com.julien-cruau.obslive-suite.countdown.control",
+			"Icon": "imgs/actions/countdown-control/icon",
+			"Tooltip": "Pause, resume, or reset countdown",
+			"PropertyInspectorPath": "ui/countdown-control.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/countdown-control/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Add Time",
+			"UUID": "com.julien-cruau.obslive-suite.countdown.addtime",
+			"Icon": "imgs/actions/countdown-addtime/icon",
+			"Tooltip": "Add time to running countdown",
+			"PropertyInspectorPath": "ui/countdown-addtime.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/countdown-addtime/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Show Poster",
+			"UUID": "com.julien-cruau.obslive-suite.poster.show",
+			"Icon": "imgs/actions/poster-show/icon",
+			"Tooltip": "Show poster from database",
+			"PropertyInspectorPath": "ui/poster-show.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/poster-show/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Control Poster",
+			"UUID": "com.julien-cruau.obslive-suite.poster.control",
+			"Icon": "imgs/actions/poster-control/icon",
+			"Tooltip": "Hide, next, or previous poster",
+			"PropertyInspectorPath": "ui/poster-control.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/poster-control/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		}
+	]
+}

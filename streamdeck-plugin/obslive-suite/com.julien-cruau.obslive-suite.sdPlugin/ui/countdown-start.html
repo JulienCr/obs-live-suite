@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Start Countdown</title>
+	<link rel="stylesheet" href="shared-styles.css">
+</head>
+<body>
+	<div class="sdpi-wrapper">
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Duration Presets</div>
+			<div class="preset-buttons">
+				<button class="preset-btn" data-seconds="30">30s</button>
+				<button class="preset-btn" data-seconds="60">1m</button>
+				<button class="preset-btn" data-seconds="120">2m</button>
+				<button class="preset-btn" data-seconds="180">3m</button>
+				<button class="preset-btn" data-seconds="300">5m</button>
+				<button class="preset-btn" data-seconds="600">10m</button>
+			</div>
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Custom Duration (seconds)</div>
+			<input class="sdpi-item-value" type="number" id="seconds" min="1" max="7200" value="300">
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label info-text">
+				Button will display live countdown timer when running.
+			</div>
+		</div>
+	</div>
+
+	<script src="countdown-start.js"></script>
+</body>
+</html>
+
