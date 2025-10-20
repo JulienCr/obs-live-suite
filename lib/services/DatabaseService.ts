@@ -306,6 +306,123 @@ export class DatabaseService {
     stmt.run(id);
   }
 
+  // ==================== PROFILES ====================
+
+  /**
+   * Get all profiles
+   */
+  getAllProfiles(): unknown[] {
+    const stmt = this.db.prepare("SELECT * FROM profiles ORDER BY isActive DESC, name ASC");
+    const rows = stmt.all();
+    return rows.map((row: any) => ({
+      ...row,
+      isActive: Boolean(row.isActive),
+      posterRotation: JSON.parse(row.posterRotation || "[]"),
+      audioSettings: JSON.parse(row.audioSettings || "{}"),
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    }));
+  }
+
+  /**
+   * Get profile by ID
+   */
+  getProfileById(id: string): unknown | null {
+    const stmt = this.db.prepare("SELECT * FROM profiles WHERE id = ?");
+    const row = stmt.get(id) as any;
+    if (!row) return null;
+    return {
+      ...row,
+      isActive: Boolean(row.isActive),
+      posterRotation: JSON.parse(row.posterRotation || "[]"),
+      audioSettings: JSON.parse(row.audioSettings || "{}"),
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    };
+  }
+
+  /**
+   * Get active profile
+   */
+  getActiveProfile(): unknown | null {
+    const stmt = this.db.prepare("SELECT * FROM profiles WHERE isActive = 1 LIMIT 1");
+    const row = stmt.get() as any;
+    if (!row) return null;
+    return {
+      ...row,
+      isActive: Boolean(row.isActive),
+      posterRotation: JSON.parse(row.posterRotation || "[]"),
+      audioSettings: JSON.parse(row.audioSettings || "{}"),
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    };
+  }
+
+  /**
+   * Create a new profile
+   */
+  createProfile(profile: any): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO profiles (id, name, description, themeId, dskSourceName, defaultScene, posterRotation, audioSettings, isActive, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      profile.id,
+      profile.name,
+      profile.description || null,
+      profile.themeId,
+      profile.dskSourceName || "Habillage",
+      profile.defaultScene || null,
+      JSON.stringify(profile.posterRotation || []),
+      JSON.stringify(profile.audioSettings || {}),
+      profile.isActive ? 1 : 0,
+      profile.createdAt.toISOString(),
+      profile.updatedAt.toISOString()
+    );
+  }
+
+  /**
+   * Update a profile
+   */
+  updateProfile(id: string, updates: any): void {
+    const stmt = this.db.prepare(`
+      UPDATE profiles
+      SET name = ?, description = ?, themeId = ?, dskSourceName = ?, defaultScene = ?, posterRotation = ?, audioSettings = ?, isActive = ?, updatedAt = ?
+      WHERE id = ?
+    `);
+    stmt.run(
+      updates.name,
+      updates.description || null,
+      updates.themeId,
+      updates.dskSourceName || "Habillage",
+      updates.defaultScene || null,
+      JSON.stringify(updates.posterRotation || []),
+      JSON.stringify(updates.audioSettings || {}),
+      updates.isActive ? 1 : 0,
+      updates.updatedAt.toISOString(),
+      id
+    );
+  }
+
+  /**
+   * Set active profile (deactivates all others)
+   */
+  setActiveProfile(id: string): void {
+    // Deactivate all profiles
+    this.db.prepare("UPDATE profiles SET isActive = 0").run();
+    // Activate the specified profile
+    this.db.prepare("UPDATE profiles SET isActive = 1, updatedAt = ? WHERE id = ?")
+      .run(new Date().toISOString(), id);
+  }
+
+  /**
+   * Delete a profile
+   */
+  deleteProfile(id: string): void {
+    const stmt = this.db.prepare("DELETE FROM profiles WHERE id = ?");
+    stmt.run(id);
+  }
+
   /**
    * Close the database connection
    */

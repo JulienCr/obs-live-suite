@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Play, Square, Circle, Settings, Image } from "lucide-react";
+import { Play, Square, Circle, Settings, Image, Folder } from "lucide-react";
 
 interface OBSStatus {
   connected: boolean;
@@ -146,6 +146,11 @@ export function DashboardHeader() {
             <div className="text-sm font-mono" suppressHydrationWarning>
               {currentTime.toLocaleTimeString()}
             </div>
+            <Link href="/profiles">
+              <Button variant="ghost" size="sm" title="Profiles">
+                <Folder className="w-4 h-4" />
+              </Button>
+            </Link>
             <Link href="/assets">
               <Button variant="ghost" size="sm" title="Assets">
                 <Image className="w-4 h-4" />
