@@ -366,6 +366,207 @@ Overlay pages (in OBS):
 
 **Lesson**: When building admin/management tools, provide sensible defaults (hide built-in/system items) while giving users the option to see everything. Use database fields creatively (isIgnored) to mark different categories of items.
 
+### Plugin Version Detection Enhancement (October 2025)
+**Context**: Plugin versions were not being detected because the original `VersionExtractor` only looked for metadata files in plugin directories, but Windows plugins are DLL files stored directly in `32bit`/`64bit` folders.
+
+**Solution**: Enhanced `extractFromPlugin()` to detect DLL files and use multiple strategies:
+1. **Check for companion JSON** - Look for `[plugin-name].json` in the same directory
+2. **OBS data folder** - Check `C:\Program Files\obs-studio\data\obs-plugins\[plugin-name]\` for:
+   - `manifest.json`, `plugin.json` (JSON version fields)
+   - `version.txt`, `VERSION` (plain text version files)
+   - `locale/en-US.ini` (locale files often contain version)
+3. **Documentation files** - Check nearby docs/README files for version info
+4. **Pattern matching** - Extract semantic versions (X.Y.Z) from text content
+
+**OBS Plugin Data Structure** (Windows):
+```
+C:\Program Files\obs-studio\
+├── obs-plugins\
+│   ├── 32bit\
+│   │   └── plugin-name.dll
+│   └── 64bit\
+│       └── plugin-name.dll
+└── data\
+    └── obs-plugins\
+        └── plugin-name\
+            ├── manifest.json (may contain version)
+            └── locale\
+                └── en-US.ini (may contain version)
+```
+
+**Files Modified**:
+- `lib/services/updater/VersionExtractor.ts` - Added `extractFromPluginFile()` method
+
+**Lesson**: On Windows, DLL metadata isn't easily accessible from Node.js. Instead, look for companion metadata files in known OBS data structures. Different plugin authors store version info in different places - use multiple fallback strategies.
+
+---
+
+## Stream Deck Integration (October 2025)
+
+### Convenience API Endpoints for Stream Deck
+**Context**: User requested guidance on wiring app actions to Stream Deck. While basic endpoints existed, they required manual text entry or complex JSON payloads.
+
+**Solution Implemented**:
+1. **Guest Lower Third by ID** - `/api/actions/lower/guest/[id]`
+   - Automatically loads guest name, subtitle from database
+   - Only requires guest ID in URL, optional duration in body
+   - Example: `POST http://localhost:3000/api/actions/lower/guest/abc-123`
+
+2. **Poster Control by ID** - `/api/actions/poster/show/[id]`, `/hide`, `/next`, `/previous`
+   - Show specific poster by ID without knowing file URL
+   - Simplified endpoints for hide/next/previous actions
+   - All on port 3000 for consistency
+
+3. **Helper Script** - `scripts/list-streamdeck-ids.js`
+   - Lists all guests and posters with their IDs
+   - Shows ready-to-use Stream Deck URLs for each
+   - Run with: `pnpm streamdeck:ids`
+
+4. **Comprehensive Documentation** - `docs/STREAM-DECK-SETUP.md`
+   - Quick reference table of most common actions
+   - Detailed examples for each action type
+   - Guest workflow with step-by-step setup
+   - Multi-action button examples
+   - Troubleshooting guide
+
+**Architecture Decision**:
+- Port 3000 endpoints (Next.js) for simple actions (lower third, countdown start)
+- Port 3002 endpoints (backend) for complex actions (poster control, OBS control)
+- All convenience endpoints proxy to backend internally for consistency
+
+**Files Created/Modified**:
+- NEW: `app/api/actions/lower/guest/[id]/route.ts` - Guest lower third by ID
+- NEW: `app/api/actions/poster/show/[id]/route.ts` - Poster by ID
+- NEW: `app/api/actions/poster/hide/route.ts` - Simplified hide
+- NEW: `app/api/actions/poster/next/route.ts` - Next poster
+- NEW: `app/api/actions/poster/previous/route.ts` - Previous poster
+- NEW: `scripts/list-streamdeck-ids.js` - ID discovery helper
+- UPDATED: `docs/STREAM-DECK-SETUP.md` - Complete guide
+- UPDATED: `package.json` - Added `streamdeck:ids` script
+
+**User Experience**:
+1. Create guests/posters in dashboard Assets page
+2. Run `pnpm streamdeck:ids` to get list of IDs and URLs
+3. Copy/paste URLs into Stream Deck buttons
+4. Done - no manual typing of names/subtitles
+
+**Lesson**: For hardware controller integration, provide both flexible APIs (custom text) AND convenience APIs (database IDs). Users prefer ID-based endpoints because they're more maintainable - changing guest info in database automatically updates all Stream Deck buttons.
+
+---
+
+## Stream Deck Plugin Development (October 2025)
+
+### Native Plugin vs HTTP API
+**Context**: User initially used HTTP API with Stream Deck's "Website" action. This works but requires manual URL/JSON configuration. Native plugin provides much better UX.
+
+**Solution Implemented**:
+1. **Native Plugin Structure** - Created Elgato SDK-compatible plugin with manifest.json
+2. **8 Distinct Actions** - Each with dedicated property inspector UI
+3. **Dynamic Dropdowns** - Populated from API using fetch() in property inspectors
+4. **WebSocket Integration** - Live countdown updates displayed on buttons
+5. **Build/Distribution System** - Package as .streamDeckPlugin for easy installation
+
+**Architecture**:
+```
+Plugin (Node.js) ←→ Stream Deck Software
+     ↓
+API Calls (HTTP) → OBS Live Suite (port 3000/3002)
+     ↓
+WebSocket (WS) ← OBS Live Suite (port 3001)
+```
+
+**Key Implementation Details**:
+- `plugin.js` runs in Node.js context (not browser)
+- Property inspectors run in Chromium (can use modern web APIs)
+- WebSocket connection managed in plugin.js, state broadcast to all actions
+- Each action has independent property inspector HTML file
+- Settings saved via Stream Deck's `setSettings` event
+
+**Files Created**:
+- `streamdeck-plugin/com.obslive.suite.sdPlugin/` - Main plugin directory
+- `manifest.json` - Plugin metadata and action definitions
+- `plugin.js` - Core logic, WebSocket manager, API client
+- `actions/*/property-inspector.html` - Configuration UIs for each action
+- `libs/sdpi.css` - Elgato-style property inspector CSS
+- Build scripts and comprehensive documentation
+
+**Lesson**: Native Stream Deck plugins require more upfront work than HTTP API but provide dramatically better UX. Dynamic dropdowns, live updates, and preset buttons are worth the investment for production use.
+
+### WebSocket in Node.js Context
+**Problem**: Plugin.js runs in Node.js (not browser), so must use `require('ws')` instead of browser WebSocket API.
+
+**Solution**: 
+```javascript
+const WebSocket = require('ws');
+const ws = new WebSocket('ws://localhost:3001');
+```
+
+**Lesson**: Stream Deck plugin.js runs in Node.js environment. Use Node.js modules, not browser APIs. Property inspectors ARE browser-based and can use fetch(), WebSocket (browser), etc.
+
+### Property Inspector Communication
+**Pattern**: Property inspectors communicate with plugin.js via events:
+- PI → Plugin: `sendToPlugin` event with custom payload
+- Plugin → PI: `sendToPropertyInspector` event with custom payload
+- Settings: PI uses `setSettings` to save, plugin receives via `didReceiveSettings`
+
+**Example Flow**:
+1. User opens property inspector
+2. PI sends `{ event: 'refreshGuests' }` to plugin
+3. Plugin fetches guests from API
+4. Plugin sends `{ event: 'guestsList', guests: [...] }` to PI
+5. PI populates dropdown with guest data
+
+**Lesson**: Property inspector communication is event-based. Always include `event` field in payload for routing. Use `context` parameter to target specific button instances.
+
+### Countdown Live Updates
+**Challenge**: Display live countdown timer (MM:SS) on Stream Deck button that updates every second.
+
+**Solution**:
+1. Plugin connects to OBS Live Suite WebSocket on startup
+2. Subscribe to `countdown` channel
+3. Receive `tick` events with seconds remaining
+4. Update global countdown state
+5. Call `setTitle()` for all countdown action contexts
+6. Format as MM:SS string
+
+**Performance**: WebSocket tick events arrive every ~1s. SetTitle calls are lightweight (<1ms). No noticeable performance impact.
+
+**Lesson**: For live data display on buttons, use WebSocket + setTitle(). Stream Deck handles button rendering efficiently. Track all action contexts globally to update multiple instances simultaneously.
+
+### Icon Requirements
+**Elgato Requirements**:
+- Standard: 72x72 PNG
+- Retina: 144x144 PNG (@2x suffix)
+- Transparent background
+- Dark UI compatible
+
+**Naming Convention**:
+- `action-name.png` (72x72)
+- `action-name@2x.png` (144x144)
+
+**Manifest Reference**:
+```json
+"Icon": "imgs/actions/action-name"
+```
+(No file extension - Stream Deck adds .png/@2x.png automatically)
+
+**Lesson**: Icons are optional but highly recommended. Stream Deck shows action names if icons missing. Create simple, clear designs that work at small sizes. Use consistent color coding (e.g., green=start, red=stop, blue=info).
+
+### Build and Distribution
+**Development Workflow**:
+1. Edit files in `com.obslive.suite.sdPlugin/`
+2. Run `npm run install-plugin` to copy to Stream Deck folder
+3. Restart Stream Deck software
+4. Test changes
+
+**Distribution**:
+1. Run `npm run package` to create `.streamDeckPlugin` file
+2. File is just a ZIP with special extension
+3. Users double-click to install
+4. Stream Deck extracts to plugins folder automatically
+
+**Lesson**: Stream Deck plugins are just ZIP files with metadata. DistributionTool is optional - simple ZIP + rename works fine. Always test with `npm run install-plugin` before distributing.
+
 ---
 
 ## Future Considerations

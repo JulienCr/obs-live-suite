@@ -25,7 +25,8 @@
     "test:coverage": "jest --coverage",
     "test:functional": "node scripts/test-lower-third-functional.js",
     "test:functional:ui": "node scripts/test-dashboard-ui.js",
-    "test:all": "pnpm test && pnpm test:functional && pnpm test:functional:ui"
+    "test:all": "pnpm test && pnpm test:functional && pnpm test:functional:ui",
+    "streamdeck:ids": "node scripts/list-streamdeck-ids.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

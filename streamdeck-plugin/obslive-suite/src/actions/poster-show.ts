@@ -8,6 +8,8 @@ import { APIClient } from "../utils/api-client";
 
 @action({ UUID: "com.julien-cruau.obslive-suite.poster.show" })
 export class PosterShow extends SingletonAction<PosterSettings> {
+	private currentlyShownPosterId: string | null = null;
+
 	override async onPropertyInspectorDidAppear(ev: PropertyInspectorDidAppearEvent<PosterSettings>): Promise<void> {
 		console.log("[Poster Show] Property Inspector appeared");
 		// Send poster list to property inspector when it appears
@@ -33,8 +35,18 @@ export class PosterShow extends SingletonAction<PosterSettings> {
 		}
 
 		try {
-			await APIClient.showPoster(posterId);
-			await ev.action.showOk();
+			// Toggle behavior: if same poster is already shown, hide it
+			if (this.currentlyShownPosterId === posterId) {
+				console.log("[Poster Show] Same poster already shown, hiding it");
+				await APIClient.controlPoster("hide");
+				this.currentlyShownPosterId = null;
+				await ev.action.showOk();
+			} else {
+				console.log("[Poster Show] Showing poster:", posterId);
+				await APIClient.showPoster(posterId);
+				this.currentlyShownPosterId = posterId;
+				await ev.action.showOk();
+			}
 		} catch (error) {
 			console.error("[Poster Show] Failed:", error);
 			await ev.action.showAlert();

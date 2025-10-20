@@ -92,6 +92,20 @@ pnpm start:prod
 - **Database**: better-sqlite3
 - **Process Manager**: PM2
 
+## Stream Deck Integration
+
+OBS Live Suite provides two methods for Stream Deck integration:
+
+### Native Stream Deck Plugin (Recommended)
+A complete native plugin with dynamic dropdowns, live countdown display, and 8 pre-configured actions.
+- **Location**: `streamdeck-plugin/` directory
+- **Quick Start**: See `streamdeck-plugin/QUICKSTART.md`
+- **Full Documentation**: See `streamdeck-plugin/README.md`
+
+### HTTP API (Alternative)
+Use Stream Deck's "Website" action with HTTP endpoints for simple integration.
+- **Documentation**: [Stream Deck Setup Guide](docs/STREAM-DECK-SETUP.md)
+
 ## Documentation
 
 - [API Documentation](./docs/API.md)

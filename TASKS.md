@@ -2,6 +2,21 @@
 
 ## 🔄 Recent Updates
 
+### October 2025 - Native Stream Deck Plugin ✅
+- ✅ Created complete Stream Deck plugin in `streamdeck-plugin/` directory
+- ✅ Implemented 8 actions with property inspectors:
+  - Lower Third: Show Guest (dropdown), Custom (text inputs), Hide
+  - Countdown: Start (presets), Control (pause/resume/reset), Add Time
+  - Poster: Show (dropdown), Control (hide/next/previous)
+- ✅ WebSocket integration for live countdown timer display on buttons
+- ✅ Dynamic dropdowns populated from API (/api/assets/guests, /api/assets/posters)
+- ✅ Comprehensive documentation: README, SETUP, QUICKSTART guides
+- ✅ Build and packaging scripts (npm run package)
+- ✅ Install/uninstall utilities for local development
+- ✅ Elgato SDK-compatible structure with manifest.json
+- ✅ Property inspector styling with sdpi.css
+- ✅ Icon guide and placeholders for custom icons
+
 ### October 2025 - OBS Settings Sync (UI ↔ Database ↔ .env) ✅
 - ✅ Created settings table in DatabaseService for persistent storage
 - ✅ Created SettingsService with priority: Database > .env file
@@ -31,6 +46,7 @@
 - ✅ Built-in plugin filtering (hides 40+ OBS default plugins by default)
 - ✅ "Show built-in plugins" toggle to see all plugins or just custom ones
 - ✅ Shows count of hidden built-in plugins when filtered
+- ✅ Enhanced version detection for DLL plugins (checks data folders, JSON files, locale INI)
 
 ### October 2025 - Guests Quick Lower Third ✅
 - ✅ Added "Quick LT" button on each guest (Assets page)
@@ -123,7 +139,17 @@
 - Individual overlay pages (for granular control)
 - OBS WebSocket integration with auto-reconnect
 - Real-time WebSocket communication
-- Stream Deck HTTP API endpoints
+- **Stream Deck HTTP API endpoints with convenient shortcuts**
+  - Show guest lower thirds by ID
+  - Show posters by ID
+  - Countdown, OBS control, scene switching
+  - Full documentation in `docs/STREAM-DECK-SETUP.md`
+- **Native Stream Deck Plugin (streamdeck-plugin/)**
+  - 8 actions: Guest/Custom/Hide Lower Thirds, Start/Control/Add Time Countdown, Show/Control Posters
+  - Dynamic dropdowns populated from API (guests, posters)
+  - Live countdown display with WebSocket updates
+  - Property inspectors with presets and configuration
+  - Full documentation and build scripts included
 - **Plugin scanner and update checker with full UI**
 - Macro execution engine
 - Server initialization and PM2 support

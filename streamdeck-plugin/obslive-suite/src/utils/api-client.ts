@@ -10,11 +10,13 @@ export interface Guest {
 	id: string;
 	displayName: string;
 	subtitle?: string;
+	[key: string]: string | undefined;
 }
 
 export interface Poster {
 	id: string;
 	title: string;
+	[key: string]: string | undefined;
 }
 
 /**

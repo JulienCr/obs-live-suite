@@ -9,10 +9,10 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const db = DatabaseService.getInstance();
     const poster = db.getPosterById(id) as any;
 
@@ -29,8 +29,9 @@ export async function POST(
       body: JSON.stringify({
         action: 'show',
         payload: {
-          imageUrl: poster.fileUrl,
-          title: poster.title,
+          posterId: id,
+          fileUrl: poster.fileUrl,
+          transition: 'fade'
         },
       }),
     });
