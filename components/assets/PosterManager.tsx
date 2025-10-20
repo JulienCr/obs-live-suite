@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { PosterUploader } from "./PosterUploader";
-import { Plus, Trash2, Upload, Image as ImageIcon, Video } from "lucide-react";
+import { Plus, Trash2, Upload } from "lucide-react";
 
 interface Poster {
   id: string;
@@ -165,16 +165,34 @@ export function PosterManager() {
               key={poster.id}
               className="border rounded-lg overflow-hidden group relative"
             >
-              <div className="aspect-video bg-muted flex items-center justify-center">
+              <div className="aspect-video bg-muted relative overflow-hidden">
                 {poster.type === "image" ? (
-                  <ImageIcon className="w-12 h-12 text-muted-foreground" />
+                  <img
+                    src={poster.fileUrl}
+                    alt={poster.title}
+                    className="w-full h-full object-cover"
+                  />
                 ) : poster.type === "youtube" ? (
-                  <div className="flex flex-col items-center">
-                    <Video className="w-12 h-12 text-red-500 mb-2" />
-                    <span className="text-xs text-muted-foreground">YouTube</span>
-                  </div>
+                  <iframe
+                    src={poster.fileUrl}
+                    title={poster.title}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
                 ) : (
-                  <Video className="w-12 h-12 text-muted-foreground" />
+                  <video
+                    src={poster.fileUrl}
+                    className="w-full h-full object-cover"
+                    controls={false}
+                    muted
+                    loop
+                    onMouseEnter={(e) => e.currentTarget.play()}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.pause();
+                      e.currentTarget.currentTime = 0;
+                    }}
+                  />
                 )}
               </div>
               <div className="p-4">
