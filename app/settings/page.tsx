@@ -6,7 +6,8 @@ import { OBSSettings } from "@/components/settings/OBSSettings";
 import { BackendSettings } from "@/components/settings/BackendSettings";
 import { PathSettings } from "@/components/settings/PathSettings";
 import { BackupSettings } from "@/components/settings/BackupSettings";
-import { Settings, Server, FolderOpen, Download } from "lucide-react";
+import { PluginSettings } from "@/components/settings/PluginSettings";
+import { Settings, Server, FolderOpen, Download, Package } from "lucide-react";
 
 /**
  * Settings page with tabbed interface
@@ -26,7 +27,7 @@ export default function SettingsPage() {
         </div>
 
         <Tabs defaultValue="obs" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="obs" className="flex items-center gap-2">
               <Server className="w-4 h-4" />
               OBS
@@ -42,6 +43,10 @@ export default function SettingsPage() {
             <TabsTrigger value="backup" className="flex items-center gap-2">
               <Download className="w-4 h-4" />
               Backup
+            </TabsTrigger>
+            <TabsTrigger value="plugins" className="flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Plugins
             </TabsTrigger>
           </TabsList>
 
@@ -66,6 +71,12 @@ export default function SettingsPage() {
           <TabsContent value="backup">
             <Card className="p-6">
               <BackupSettings />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="plugins">
+            <Card className="p-6">
+              <PluginSettings />
             </Card>
           </TabsContent>
         </Tabs>

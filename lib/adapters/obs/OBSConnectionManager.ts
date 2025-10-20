@@ -1,6 +1,6 @@
 import OBSWebSocket from "obs-websocket-js";
 import { Logger } from "../../utils/Logger";
-import { AppConfig } from "../../config/AppConfig";
+import { SettingsService } from "../../services/SettingsService";
 
 /**
  * Connection status enum
@@ -19,7 +19,7 @@ export class OBSConnectionManager {
   private static instance: OBSConnectionManager;
   private obs: OBSWebSocket;
   private logger: Logger;
-  private config: AppConfig;
+  private settingsService: SettingsService;
   private status: ConnectionStatus;
   private reconnectTimer?: NodeJS.Timeout;
   private reconnectAttempts: number;
@@ -29,7 +29,7 @@ export class OBSConnectionManager {
   private constructor() {
     this.obs = new OBSWebSocket();
     this.logger = new Logger("OBSConnectionManager");
-    this.config = AppConfig.getInstance();
+    this.settingsService = SettingsService.getInstance();
     this.status = ConnectionStatus.DISCONNECTED;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 10;
@@ -66,22 +66,28 @@ export class OBSConnectionManager {
   }
 
   /**
-   * Connect to OBS WebSocket
+   * Connect to OBS WebSocket using stored settings
    */
   async connect(): Promise<void> {
+    const settings = this.settingsService.getOBSSettings();
+    return this.connectWithCredentials(settings.url, settings.password);
+  }
+
+  /**
+   * Connect to OBS WebSocket with specific credentials
+   * Useful for testing connection before saving
+   */
+  async connectWithCredentials(url: string, password?: string): Promise<void> {
     if (this.status === ConnectionStatus.CONNECTED) {
-      this.logger.info("Already connected to OBS");
-      return;
+      this.logger.info("Disconnecting existing OBS connection");
+      await this.disconnect();
     }
 
     this.status = ConnectionStatus.CONNECTING;
-    this.logger.info("Connecting to OBS...");
+    this.logger.info(`Connecting to OBS at ${url}...`);
 
     try {
-      await this.obs.connect(
-        this.config.obsWebSocketUrl,
-        this.config.obsWebSocketPassword
-      );
+      await this.obs.connect(url, password);
 
       this.status = ConnectionStatus.CONNECTED;
       this.reconnectAttempts = 0;

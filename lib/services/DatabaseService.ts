@@ -86,6 +86,12 @@ export class DatabaseService {
         updatedAt TEXT NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS presets (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -421,6 +427,46 @@ export class DatabaseService {
   deleteProfile(id: string): void {
     const stmt = this.db.prepare("DELETE FROM profiles WHERE id = ?");
     stmt.run(id);
+  }
+
+  /**
+   * Get a setting by key
+   */
+  getSetting(key: string): string | null {
+    const stmt = this.db.prepare("SELECT value FROM settings WHERE key = ?");
+    const result = stmt.get(key) as { value: string } | undefined;
+    return result?.value || null;
+  }
+
+  /**
+   * Set a setting value
+   */
+  setSetting(key: string, value: string): void {
+    const stmt = this.db.prepare(
+      "INSERT OR REPLACE INTO settings (key, value, updatedAt) VALUES (?, ?, ?)"
+    );
+    stmt.run(key, value, new Date().toISOString());
+  }
+
+  /**
+   * Delete a setting
+   */
+  deleteSetting(key: string): void {
+    const stmt = this.db.prepare("DELETE FROM settings WHERE key = ?");
+    stmt.run(key);
+  }
+
+  /**
+   * Get all settings
+   */
+  getAllSettings(): Record<string, string> {
+    const stmt = this.db.prepare("SELECT key, value FROM settings");
+    const rows = stmt.all() as Array<{ key: string; value: string }>;
+    const settings: Record<string, string> = {};
+    for (const row of rows) {
+      settings[row.key] = row.value;
+    }
+    return settings;
   }
 
   /**

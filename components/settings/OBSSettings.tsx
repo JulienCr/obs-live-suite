@@ -21,7 +21,10 @@ export function OBSSettings() {
     url: "ws://localhost:4455",
     password: "",
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [sourceIsDatabase, setSourceIsDatabase] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
@@ -34,16 +37,25 @@ export function OBSSettings() {
 
   // Load current configuration
   useEffect(() => {
-    // Load default configuration
-    const savedConfig = {
-      url: "ws://localhost:4455",
-      password: "", // Never load password for security
-    };
-    setConfig(savedConfig);
-
-    // Fetch current OBS status
+    loadSettings();
     fetchStatus();
   }, []);
+
+  const loadSettings = async () => {
+    try {
+      const res = await fetch("/api/settings/obs");
+      const data = await res.json();
+      setConfig({
+        url: data.url || "ws://localhost:4455",
+        password: "", // Never pre-fill password for security
+      });
+      setSourceIsDatabase(data.sourceIsDatabase);
+    } catch (error) {
+      console.error("Failed to load OBS settings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchStatus = async () => {
     try {
@@ -63,13 +75,13 @@ export function OBSSettings() {
     setTestResult(null);
 
     try {
-      // Test connection via backend
-      const res = await fetch("http://localhost:3002/api/obs/reconnect", {
+      const res = await fetch("/api/settings/obs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: config.url,
-          password: config.password,
+          password: config.password || undefined,
+          testOnly: true, // Don't save, just test
         }),
       });
 
@@ -79,7 +91,7 @@ export function OBSSettings() {
         setTestResult({
           success: true,
           message: "Successfully connected to OBS!",
-          obsVersion: data.obsVersion,
+          obsVersion: `${data.obsVersion} (WebSocket ${data.obsWebSocketVersion})`,
         });
         fetchStatus();
       } else {
@@ -99,15 +111,73 @@ export function OBSSettings() {
   };
 
   const handleSave = async () => {
-    // In a real app, this would save to backend/database
-    // For now, user needs to update .env file
-    alert(
-      "Please update your .env file with:\n\n" +
-        `OBS_WEBSOCKET_URL=${config.url}\n` +
-        `OBS_WEBSOCKET_PASSWORD=${config.password}\n\n` +
-        "Then restart the backend server."
-    );
+    setSaving(true);
+    setTestResult(null);
+
+    try {
+      const res = await fetch("/api/settings/obs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: config.url,
+          password: config.password || undefined,
+          testOnly: false, // Save settings
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setTestResult({
+          success: true,
+          message: "Settings saved and connected successfully!",
+          obsVersion: `${data.obsVersion} (WebSocket ${data.obsWebSocketVersion})`,
+        });
+        setSourceIsDatabase(true);
+        fetchStatus();
+      } else {
+        setTestResult({
+          success: false,
+          message: data.error || "Failed to save settings",
+        });
+      }
+    } catch (error) {
+      setTestResult({
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to save settings",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const handleClearSettings = async () => {
+    if (!confirm("Clear saved settings and use .env defaults?")) return;
+
+    try {
+      await fetch("/api/settings/obs", { method: "DELETE" });
+      await loadSettings();
+      setTestResult({
+        success: true,
+        message: "Settings cleared. Using .env configuration.",
+      });
+      fetchStatus();
+    } catch (error) {
+      setTestResult({
+        success: false,
+        message: "Failed to clear settings",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+        Loading settings...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -119,7 +189,7 @@ export function OBSSettings() {
       </div>
 
       {/* Current Status */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-medium">Current Status:</span>
         {currentStatus?.connected ? (
           <Badge variant="default" className="flex items-center gap-1">
@@ -137,6 +207,9 @@ export function OBSSettings() {
             Scene: {currentStatus.currentScene}
           </span>
         )}
+        <Badge variant="outline" className="ml-auto">
+          Source: {sourceIsDatabase ? "Database (UI)" : ".env file"}
+        </Badge>
       </div>
 
       {/* WebSocket URL */}
@@ -191,8 +264,8 @@ export function OBSSettings() {
       )}
 
       {/* Actions */}
-      <div className="flex gap-3">
-        <Button onClick={handleTest} disabled={testing}>
+      <div className="flex gap-3 flex-wrap">
+        <Button onClick={handleTest} disabled={testing || saving}>
           {testing ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -205,24 +278,45 @@ export function OBSSettings() {
             </>
           )}
         </Button>
-        <Button onClick={handleSave} variant="default">
-          Save Settings
+        <Button onClick={handleSave} disabled={testing || saving} variant="default">
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save Settings"
+          )}
         </Button>
+        {sourceIsDatabase && (
+          <Button onClick={handleClearSettings} variant="outline" disabled={testing || saving}>
+            Clear & Use .env
+          </Button>
+        )}
       </div>
 
       {/* Help */}
       <Alert>
-        <AlertDescription className="text-sm">
-          <strong>Setup Guide:</strong>
-          <ol className="list-decimal list-inside mt-2 space-y-1">
-            <li>Open OBS Studio</li>
-            <li>Go to Tools → obs-websocket Settings</li>
-            <li>Check "Enable WebSocket server"</li>
-            <li>
-              Note the Server Port (default: 4455) and Password (if enabled)
-            </li>
-            <li>Enter the connection details above and test</li>
-          </ol>
+        <AlertDescription className="text-sm space-y-3">
+          <div>
+            <strong>Setup Guide:</strong>
+            <ol className="list-decimal list-inside mt-2 space-y-1">
+              <li>Open OBS Studio</li>
+              <li>Go to Tools → obs-websocket Settings</li>
+              <li>Check "Enable WebSocket server"</li>
+              <li>
+                Note the Server Port (default: 4455) and Password (if enabled)
+              </li>
+              <li>Enter the connection details above and test</li>
+            </ol>
+          </div>
+          <div>
+            <strong>Configuration Priority:</strong>
+            <p className="mt-1">
+              Settings saved here take priority over .env file. 
+              Use "Clear & Use .env" to revert to environment variables.
+            </p>
+          </div>
         </AlertDescription>
       </Alert>
     </div>
