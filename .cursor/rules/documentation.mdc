@@ -1,0 +1,15 @@
+---
+alwaysApply: true
+---
+* **Doc ≠ Spec** → prioritize *executable clarity* (tests, typings, comments) over prose.
+* Write **only what helps the next developer (or LLM) understand the intent**, not the reasoning.
+* **No auto-generated docs** unless explicitly requested.
+* **Prefer self-explanatory code**: strong types, clear names, test coverage.
+* If documentation is required:
+  * Ask user **before creating or expanding** it.
+  * Limit to short contextual notes (`README.md`, `CONTRIBUTING.md`, or inline comments).
+* Keep the **root `README.md`** up to date with:
+  * Startup / setup walkthrough
+  * Troubleshooting tips
+  * Nothing else
+* Optimize for **token economy** — brevity > completeness.
