@@ -144,6 +144,168 @@ export class DatabaseService {
     return this.db;
   }
 
+  // ==================== GUESTS ====================
+
+  /**
+   * Get all guests
+   */
+  getAllGuests(): unknown[] {
+    const stmt = this.db.prepare("SELECT * FROM guests ORDER BY displayName ASC");
+    const rows = stmt.all();
+    return rows.map((row: any) => ({
+      ...row,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    }));
+  }
+
+  /**
+   * Get guest by ID
+   */
+  getGuestById(id: string): unknown | null {
+    const stmt = this.db.prepare("SELECT * FROM guests WHERE id = ?");
+    const row = stmt.get(id) as any;
+    if (!row) return null;
+    return {
+      ...row,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    };
+  }
+
+  /**
+   * Create a new guest
+   */
+  createGuest(guest: any): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO guests (id, displayName, subtitle, accentColor, avatarUrl, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      guest.id,
+      guest.displayName,
+      guest.subtitle || null,
+      guest.accentColor,
+      guest.avatarUrl || null,
+      guest.createdAt.toISOString(),
+      guest.updatedAt.toISOString()
+    );
+  }
+
+  /**
+   * Update a guest
+   */
+  updateGuest(id: string, updates: any): void {
+    const stmt = this.db.prepare(`
+      UPDATE guests
+      SET displayName = ?, subtitle = ?, accentColor = ?, avatarUrl = ?, updatedAt = ?
+      WHERE id = ?
+    `);
+    stmt.run(
+      updates.displayName,
+      updates.subtitle || null,
+      updates.accentColor,
+      updates.avatarUrl || null,
+      updates.updatedAt.toISOString(),
+      id
+    );
+  }
+
+  /**
+   * Delete a guest
+   */
+  deleteGuest(id: string): void {
+    const stmt = this.db.prepare("DELETE FROM guests WHERE id = ?");
+    stmt.run(id);
+  }
+
+  // ==================== POSTERS ====================
+
+  /**
+   * Get all posters
+   */
+  getAllPosters(): unknown[] {
+    const stmt = this.db.prepare("SELECT * FROM posters ORDER BY createdAt DESC");
+    const rows = stmt.all();
+    return rows.map((row: any) => ({
+      ...row,
+      tags: JSON.parse(row.tags || "[]"),
+      profileIds: JSON.parse(row.profileIds || "[]"),
+      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    }));
+  }
+
+  /**
+   * Get poster by ID
+   */
+  getPosterById(id: string): unknown | null {
+    const stmt = this.db.prepare("SELECT * FROM posters WHERE id = ?");
+    const row = stmt.get(id) as any;
+    if (!row) return null;
+    return {
+      ...row,
+      tags: JSON.parse(row.tags || "[]"),
+      profileIds: JSON.parse(row.profileIds || "[]"),
+      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    };
+  }
+
+  /**
+   * Create a new poster
+   */
+  createPoster(poster: any): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO posters (id, title, fileUrl, type, duration, tags, profileIds, metadata, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      poster.id,
+      poster.title,
+      poster.fileUrl,
+      poster.type,
+      poster.duration || null,
+      JSON.stringify(poster.tags || []),
+      JSON.stringify(poster.profileIds || []),
+      poster.metadata ? JSON.stringify(poster.metadata) : null,
+      poster.createdAt.toISOString(),
+      poster.updatedAt.toISOString()
+    );
+  }
+
+  /**
+   * Update a poster
+   */
+  updatePoster(id: string, updates: any): void {
+    const stmt = this.db.prepare(`
+      UPDATE posters
+      SET title = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, updatedAt = ?
+      WHERE id = ?
+    `);
+    stmt.run(
+      updates.title,
+      updates.fileUrl,
+      updates.type,
+      updates.duration || null,
+      JSON.stringify(updates.tags || []),
+      JSON.stringify(updates.profileIds || []),
+      updates.metadata ? JSON.stringify(updates.metadata) : null,
+      updates.updatedAt.toISOString(),
+      id
+    );
+  }
+
+  /**
+   * Delete a poster
+   */
+  deletePoster(id: string): void {
+    const stmt = this.db.prepare("DELETE FROM posters WHERE id = ?");
+    stmt.run(id);
+  }
+
   /**
    * Close the database connection
    */

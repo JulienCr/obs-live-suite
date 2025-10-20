@@ -6,6 +6,7 @@ import { z } from "zod";
 export enum PosterType {
   IMAGE = "image",
   VIDEO = "video",
+  YOUTUBE = "youtube",
 }
 
 /**

@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, Trash2, Upload, Image as ImageIcon } from "lucide-react";
+import { PosterUploader } from "./PosterUploader";
+import { Plus, Trash2, Upload, Image as ImageIcon, Video } from "lucide-react";
 
 interface Poster {
   id: string;
   title: string;
   fileUrl: string;
-  type: "image" | "video";
+  type: "image" | "video" | "youtube";
   tags: string[];
   createdAt: string;
 }
@@ -23,11 +23,12 @@ interface Poster {
 export function PosterManager() {
   const [posters, setPosters] = useState<Poster[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUploader, setShowUploader] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     fileUrl: "",
-    type: "image" as "image" | "video",
+    type: "image" as "image" | "video" | "youtube",
     tags: [] as string[],
   });
 
@@ -47,6 +48,12 @@ export function PosterManager() {
     }
   };
 
+  const handleUploadComplete = (url: string, type: "image" | "video" | "youtube") => {
+    setFormData({ ...formData, fileUrl: url, type });
+    setShowUploader(false);
+    setShowForm(true);
+  };
+
   const handleCreate = async () => {
     try {
       const res = await fetch("/api/assets/posters", {
@@ -58,6 +65,7 @@ export function PosterManager() {
       if (res.ok) {
         fetchPosters();
         setShowForm(false);
+        setShowUploader(false);
         setFormData({ title: "", fileUrl: "", type: "image", tags: [] });
       }
     } catch (error) {
@@ -89,71 +97,56 @@ export function PosterManager() {
             Manage images and videos for your shows
           </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
+        <Button onClick={() => setShowUploader(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Poster
         </Button>
       </div>
 
-      {/* Create Form */}
-      {showForm && (
-        <Alert>
-          <AlertDescription>
-            <div className="space-y-4 mt-2">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Poster title"
-                />
-              </div>
+      {/* Upload Step */}
+      {showUploader && (
+        <PosterUploader
+          onUpload={handleUploadComplete}
+          onCancel={() => setShowUploader(false)}
+        />
+      )}
 
-              <div className="space-y-2">
-                <Label htmlFor="fileUrl">File URL</Label>
-                <Input
-                  id="fileUrl"
-                  value={formData.fileUrl}
-                  onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
-                  placeholder="/assets/posters/my-poster.jpg"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Place files in public/assets/posters/
-                </p>
-              </div>
+      {/* Title Form (after upload) */}
+      {showForm && formData.fileUrl && (
+        <div className="border rounded-lg p-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <Badge>{formData.type}</Badge>
+            <span className="text-sm text-muted-foreground truncate">
+              {formData.fileUrl}
+            </span>
+          </div>
 
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <div className="flex gap-2">
-                  <Button
-                    variant={formData.type === "image" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFormData({ ...formData, type: "image" })}
-                  >
-                    Image
-                  </Button>
-                  <Button
-                    variant={formData.type === "video" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFormData({ ...formData, type: "video" })}
-                  >
-                    Video
-                  </Button>
-                </div>
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="title">Poster Title</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              placeholder="Enter a title for this poster"
+              autoFocus
+            />
+          </div>
 
-              <div className="flex gap-2">
-                <Button onClick={handleCreate} disabled={!formData.title || !formData.fileUrl}>
-                  Create Poster
-                </Button>
-                <Button variant="outline" onClick={() => setShowForm(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </AlertDescription>
-        </Alert>
+          <div className="flex gap-2">
+            <Button onClick={handleCreate} disabled={!formData.title}>
+              Save Poster
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowForm(false);
+                setFormData({ title: "", fileUrl: "", type: "image", tags: [] });
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* Posters Grid */}
@@ -175,8 +168,13 @@ export function PosterManager() {
               <div className="aspect-video bg-muted flex items-center justify-center">
                 {poster.type === "image" ? (
                   <ImageIcon className="w-12 h-12 text-muted-foreground" />
+                ) : poster.type === "youtube" ? (
+                  <div className="flex flex-col items-center">
+                    <Video className="w-12 h-12 text-red-500 mb-2" />
+                    <span className="text-xs text-muted-foreground">YouTube</span>
+                  </div>
                 ) : (
-                  <div className="text-muted-foreground">VIDEO</div>
+                  <Video className="w-12 h-12 text-muted-foreground" />
                 )}
               </div>
               <div className="p-4">
