@@ -14,7 +14,10 @@
     "stop": "pm2 stop obs-live-suite",
     "restart": "pm2 restart obs-live-suite",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -42,8 +45,12 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/archiver": "^6.0.2",
     "@types/better-sqlite3": "^7.6.11",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.16.0",
     "@types/node-cron": "^3.0.11",
     "@types/react": "^18.3.0",
@@ -53,10 +60,13 @@
     "autoprefixer": "^10.4.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.0",
+    "jest": "^30.2.0",
+    "jest-environment-node": "^30.2.0",
     "pm2": "^5.4.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
+    "ts-jest": "^29.4.5",
     "typescript": "^5.6.0"
   }
 }
