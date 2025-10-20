@@ -193,6 +193,32 @@ Overlay pages (in OBS):
 
 **Lesson**: In a multi-process architecture, be crystal clear about which process owns which ports. Frontend (Next.js) should only serve UI; backend should own all stateful services (WebSocket, OBS connection). Never duplicate service initialization across processes.
 
+### Overlay Hide Action Not Working (January 2025)
+**Problem**: Dashboard could show lower third overlays successfully, but the Hide button didn't work. Overlay remained visible after clicking Hide.
+
+**Diagnosis**:
+- Added console logging to trace WebSocket messages
+- Show event sent: `type: "show"` ✅ (correct)
+- Hide event sent: `type: "LOWER_THIRD_HIDE"` ❌ (wrong!)
+- Overlay switch statement expected `type: "hide"` but received `type: "LOWER_THIRD_HIDE"`
+
+**Root Cause**:
+- `server/backend.ts` had old inline route handlers with hardcoded uppercase event type strings
+- When dashboard called `/api/actions/lower/hide`, it proxied to backend's `/api/overlays/lower`
+- Backend converted `action: "hide"` to `type: "LOWER_THIRD_HIDE"` (old naming convention)
+- Overlay renderer only recognized lowercase event types defined in `OverlayEvents` enum
+
+**Solution**:
+- Updated `server/backend.ts` overlay routes to use lowercase enum-compatible strings:
+  - Lower third: `"show"`, `"hide"`, `"update"` (was: `"LOWER_THIRD_SHOW"`, etc.)
+  - Countdown: `"set"`, `"start"`, `"pause"`, `"reset"` (was: `"COUNTDOWN_SET"`, etc.)
+  - Poster: `"show"`, `"hide"`, `"next"`, `"previous"` (was: `"POSTER_SHOW"`, etc.)
+
+**Files Changed**:
+- `server/backend.ts` - Updated all overlay event type strings to match enum values
+
+**Lesson**: When you have event type enums defined in one place (`lib/models/OverlayEvents.ts`), ensure ALL places that send those events use the same string values. Duplicate route handlers in different files can get out of sync. Consider importing and using the actual enum values instead of hardcoded strings to prevent this type of mismatch.
+
 ---
 
 ## Future Considerations

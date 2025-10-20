@@ -110,9 +110,9 @@ class BackendServer {
         const channel = OverlayChannel.LOWER;
         let type;
         switch (action) {
-          case "show": type = "LOWER_THIRD_SHOW"; break;
-          case "hide": type = "LOWER_THIRD_HIDE"; break;
-          case "update": type = "LOWER_THIRD_UPDATE"; break;
+          case "show": type = "show"; break;
+          case "hide": type = "hide"; break;
+          case "update": type = "update"; break;
           default: return res.status(400).json({ error: "Invalid action" });
         }
         await this.channelManager.publish(channel, type, payload);
@@ -129,10 +129,10 @@ class BackendServer {
         const channel = OverlayChannel.COUNTDOWN;
         let type;
         switch (action) {
-          case "set": type = "COUNTDOWN_SET"; break;
-          case "start": type = "COUNTDOWN_START"; break;
-          case "pause": type = "COUNTDOWN_PAUSE"; break;
-          case "reset": type = "COUNTDOWN_RESET"; break;
+          case "set": type = "set"; break;
+          case "start": type = "start"; break;
+          case "pause": type = "pause"; break;
+          case "reset": type = "reset"; break;
           default: return res.status(400).json({ error: "Invalid action" });
         }
         await this.channelManager.publish(channel, type, payload);
@@ -149,10 +149,10 @@ class BackendServer {
         const channel = OverlayChannel.POSTER;
         let type;
         switch (action) {
-          case "show": type = "POSTER_SHOW"; break;
-          case "hide": type = "POSTER_HIDE"; break;
-          case "next": type = "POSTER_NEXT"; break;
-          case "previous": type = "POSTER_PREVIOUS"; break;
+          case "show": type = "show"; break;
+          case "hide": type = "hide"; break;
+          case "next": type = "next"; break;
+          case "previous": type = "previous"; break;
           default: return res.status(400).json({ error: "Invalid action" });
         }
         await this.channelManager.publish(channel, type, payload);
