@@ -12,7 +12,17 @@ export async function GET() {
     const stateManager = OBSStateManager.getInstance();
 
     const status = connectionManager.getStatus();
-    const state = stateManager.getState();
+    let state = stateManager.getState();
+
+    // If connected but scene is null, refresh state
+    if (connectionManager.isConnected() && !state.currentScene) {
+      try {
+        await stateManager.refreshState();
+        state = stateManager.getState();
+      } catch (error) {
+        console.error("Failed to refresh OBS state:", error);
+      }
+    }
 
     return NextResponse.json({
       connected: connectionManager.isConnected(),
