@@ -76,47 +76,83 @@ export function LowerThirdRenderer() {
   }, []);
 
   useEffect(() => {
-    // Connect to WebSocket server
-    const wsUrl = `ws://${window.location.hostname}:3001`;
-    ws.current = new WebSocket(wsUrl);
+    let reconnectTimeout: NodeJS.Timeout;
+    let isMounted = true;
 
-    ws.current.onopen = () => {
-      console.log("Connected to WebSocket");
-      // Subscribe to lower third channel
-      ws.current?.send(
-        JSON.stringify({
-          type: "subscribe",
-          channel: "lower",
-        })
-      );
-    };
+    const connect = () => {
+      // Don't create new connection if component is unmounting
+      if (!isMounted) return;
 
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const message = JSON.parse(event.data);
-        if (message.channel === "lower") {
-          handleEvent(message.data);
+      // Close existing connection before creating new one
+      if (ws.current && (ws.current.readyState === WebSocket.OPEN || ws.current.readyState === WebSocket.CONNECTING)) {
+        try {
+          ws.current.close();
+        } catch (error) {
+          // Ignore close errors
         }
-      } catch (error) {
-        console.error("Failed to parse message:", error);
       }
+
+      const wsUrl = `ws://${window.location.hostname}:3001`;
+      ws.current = new WebSocket(wsUrl);
+
+      ws.current.onopen = () => {
+        if (!isMounted) {
+          ws.current?.close();
+          return;
+        }
+        console.log("[LowerThird] Connected to WebSocket");
+        ws.current?.send(
+          JSON.stringify({
+            type: "subscribe",
+            channel: "lower",
+          })
+        );
+      };
+
+      const handleMessage = (event: MessageEvent) => {
+        if (!isMounted) return;
+        try {
+          const message = JSON.parse(event.data);
+          if (message.channel === "lower") {
+            handleEvent(message.data);
+          }
+        } catch (error) {
+          console.error("[LowerThird] Failed to parse message:", error);
+        }
+      };
+
+      ws.current.onmessage = handleMessage;
+
+      ws.current.onerror = (error) => {
+        console.error("[LowerThird] WebSocket error:", error);
+      };
+
+      ws.current.onclose = (event) => {
+        // Only auto-reconnect on unexpected disconnections
+        // Code 1000 = normal closure, 1001 = going away (page navigation)
+        if (isMounted && event.code !== 1000 && event.code !== 1001) {
+          console.log("[LowerThird] WebSocket closed unexpectedly, reconnecting in 3s...");
+          reconnectTimeout = setTimeout(() => {
+            connect();
+          }, 3000);
+        } else {
+          console.log("[LowerThird] WebSocket closed normally");
+        }
+      };
     };
 
-    ws.current.onmessage = handleMessage;
-
-    ws.current.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    ws.current.onclose = () => {
-      console.log("WebSocket closed, reconnecting...");
-      setTimeout(() => {
-        window.location.reload();
-      }, 3000);
-    };
+    connect();
 
     return () => {
-      ws.current?.close();
+      isMounted = false;
+      clearTimeout(reconnectTimeout);
+      if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
+        try {
+          ws.current.close(1000, "Component unmounting");
+        } catch (error) {
+          // Ignore close errors during cleanup
+        }
+      }
     };
   }, [handleEvent]);
 

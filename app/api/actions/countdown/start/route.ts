@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ChannelManager } from "@/lib/services/ChannelManager";
-import { CountdownEventType } from "@/lib/models/OverlayEvents";
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 
 /**
  * POST /api/actions/countdown/start
- * Start countdown (Stream Deck compatible)
+ * Start countdown (Stream Deck compatible, proxies to backend)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -18,17 +18,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const channelManager = ChannelManager.getInstance();
-    
     // Set the countdown time
-    await channelManager.publishCountdown(CountdownEventType.SET, { seconds });
+    await fetch(`${BACKEND_URL}/api/overlays/countdown`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'set', payload: { seconds } }),
+    });
     
     // Start it
-    await channelManager.publishCountdown(CountdownEventType.START);
+    await fetch(`${BACKEND_URL}/api/overlays/countdown`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'start' }),
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Countdown start API error:", error);
+    console.error("Countdown start API proxy error:", error);
     return NextResponse.json(
       { error: "Failed to start countdown" },
       { status: 500 }

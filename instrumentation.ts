@@ -1,23 +1,32 @@
 /**
  * Next.js Instrumentation Hook
- * Runs once when the server starts (before any requests)
- * https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
+ * 
+ * NOTE: In dev mode, WebSocket and OBS services run in a separate backend process
+ * This avoids Next.js multi-process issues. See: server/backend.ts
+ * 
+ * In production, services can run here since Next.js uses a single process.
  */
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { ServerInit } = await import('./lib/init/ServerInit');
+    const isDev = process.env.NODE_ENV === 'development';
     
-    // Initialize server services on startup
-    const serverInit = ServerInit.getInstance();
-    
-    if (!ServerInit.isInitialized()) {
-      try {
-        await serverInit.initialize();
-        console.log('✓ Server initialized successfully');
-      } catch (error) {
-        console.error('✗ Server initialization failed:', error);
-        // Don't throw - allow server to start even if OBS connection fails
+    if (isDev) {
+      // In dev mode, services run in separate backend process
+      console.log('✓ Next.js server started (dev mode)');
+      console.log('  Run "pnpm run backend" in a separate terminal for WebSocket/OBS services');
+    } else {
+      // In production, initialize services here
+      const { ServerInit } = await import('./lib/init/ServerInit');
+      const serverInit = ServerInit.getInstance();
+      
+      if (!ServerInit.isInitialized()) {
+        try {
+          await serverInit.initialize();
+          console.log('✓ Server initialized successfully (production)');
+        } catch (error) {
+          console.error('✗ Server initialization failed:', error);
+        }
       }
     }
   }

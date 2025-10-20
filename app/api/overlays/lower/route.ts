@@ -1,46 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ChannelManager } from "@/lib/services/ChannelManager";
-import { LowerThirdEventType } from "@/lib/models/OverlayEvents";
-import { lowerThirdShowPayloadSchema } from "@/lib/models/OverlayEvents";
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 
 /**
  * POST /api/overlays/lower
- * Control lower third overlay
+ * Proxy to backend server
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, payload } = body;
 
-    const channelManager = ChannelManager.getInstance();
+    const response = await fetch(`${BACKEND_URL}/api/overlays/lower`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
 
-    switch (action) {
-      case "show":
-        const validated = lowerThirdShowPayloadSchema.parse(payload);
-        await channelManager.publishLowerThird(LowerThirdEventType.SHOW, validated);
-        break;
+    const data = await response.json();
 
-      case "hide":
-        await channelManager.publishLowerThird(LowerThirdEventType.HIDE);
-        break;
-
-      case "update":
-        await channelManager.publishLowerThird(LowerThirdEventType.UPDATE, payload);
-        break;
-
-      default:
-        return NextResponse.json(
-          { error: "Invalid action" },
-          { status: 400 }
-        );
+    if (!response.ok) {
+      return NextResponse.json(data, { status: response.status });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(data);
   } catch (error) {
-    console.error("Lower third API error:", error);
+    console.error("[Next.js] Lower third proxy error:", error);
     return NextResponse.json(
-      { error: "Failed to control lower third" },
-      { status: 500 }
+      { error: "Backend service unavailable" },
+      { status: 503 }
     );
   }
 }

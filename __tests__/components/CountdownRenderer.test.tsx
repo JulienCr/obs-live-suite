@@ -11,10 +11,18 @@ class MockWebSocket {
   onerror: ((event: Event) => void) | null = null;
   onclose: ((event: Event) => void) | null = null;
   
+  readyState: number = 0; // CONNECTING
+  
   send = jest.fn();
-  close = jest.fn();
+  close = jest.fn((code?: number, reason?: string) => {
+    this.readyState = 3; // CLOSED
+    if (this.onclose) {
+      this.onclose({ code: code || 1000, reason: reason || '' } as any);
+    }
+  });
 
   simulateOpen() {
+    this.readyState = 1; // OPEN
     if (this.onopen) {
       this.onopen(new Event('open'));
     }
@@ -27,12 +35,22 @@ class MockWebSocket {
   }
 }
 
+// Define WebSocket constants
+const MOCK_WEBSOCKET_CONNECTING = 0;
+const MOCK_WEBSOCKET_OPEN = 1;
+const MOCK_WEBSOCKET_CLOSING = 2;
+const MOCK_WEBSOCKET_CLOSED = 3;
+
 describe('CountdownRenderer', () => {
   let mockWs: MockWebSocket;
 
   beforeEach(() => {
     mockWs = new MockWebSocket();
     (global as any).WebSocket = jest.fn(() => mockWs);
+    (global as any).WebSocket.CONNECTING = MOCK_WEBSOCKET_CONNECTING;
+    (global as any).WebSocket.OPEN = MOCK_WEBSOCKET_OPEN;
+    (global as any).WebSocket.CLOSING = MOCK_WEBSOCKET_CLOSING;
+    (global as any).WebSocket.CLOSED = MOCK_WEBSOCKET_CLOSED;
   });
 
   afterEach(() => {
@@ -209,7 +227,7 @@ describe('CountdownRenderer', () => {
     }
 
     expect(consoleError).toHaveBeenCalledWith(
-      'Failed to parse message:',
+      '[Countdown] Failed to parse message:',
       expect.any(Error)
     );
 

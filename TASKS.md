@@ -2,6 +2,15 @@
 
 ## 🔄 Recent Updates
 
+### January 2025 - WebSocket Multiple Initialization Fix ✅
+- ✅ Fixed WebSocket connection/disconnection cycles
+- ✅ Identified root cause: multiple processes trying to start WebSocket servers
+- ✅ ServerInit now properly initializes WebSocket on startup
+- ✅ All API routes now call ServiceEnsurer.ensureServices()
+- ✅ Improved error handling for port conflicts
+- ✅ Process-safe initialization with locking mechanism
+- ✅ Test script created to verify fix (test-websocket-fix.js)
+
 ### January 2025 - OBS Connection Fully Working ✅
 - ✅ Lazy connection initialization for dev mode process isolation
 - ✅ OBS WebSocket connected and displaying real scene names

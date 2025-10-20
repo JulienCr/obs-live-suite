@@ -1,31 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { OBSStateManager } from "@/lib/adapters/obs/OBSStateManager";
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 
 /**
  * POST /api/obs/record
- * Toggle recording
+ * Toggle recording (proxies to backend)
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action } = body;
+    
+    const response = await fetch(`${BACKEND_URL}/api/obs/record`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
 
-    const stateManager = OBSStateManager.getInstance();
-
-    if (action === "start") {
-      await stateManager.startRecording();
-    } else if (action === "stop") {
-      await stateManager.stopRecording();
-    } else {
-      return NextResponse.json(
-        { error: "Invalid action" },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({ success: true });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error("OBS record API error:", error);
+    console.error("OBS record API proxy error:", error);
     return NextResponse.json(
       { error: "Failed to control recording" },
       { status: 500 }

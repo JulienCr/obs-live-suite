@@ -1,45 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ChannelManager } from "@/lib/services/ChannelManager";
-import { PosterEventType } from "@/lib/models/OverlayEvents";
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 
 /**
  * POST /api/overlays/poster
- * Control poster overlay
+ * Control poster overlay (proxies to backend)
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, payload } = body;
+    
+    const response = await fetch(`${BACKEND_URL}/api/overlays/poster`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
 
-    const channelManager = ChannelManager.getInstance();
-
-    switch (action) {
-      case "show":
-        await channelManager.publishPoster(PosterEventType.SHOW, payload);
-        break;
-
-      case "hide":
-        await channelManager.publishPoster(PosterEventType.HIDE);
-        break;
-
-      case "next":
-        await channelManager.publishPoster(PosterEventType.NEXT);
-        break;
-
-      case "previous":
-        await channelManager.publishPoster(PosterEventType.PREVIOUS);
-        break;
-
-      default:
-        return NextResponse.json(
-          { error: "Invalid action" },
-          { status: 400 }
-        );
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return NextResponse.json(data, { status: response.status });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(data);
   } catch (error) {
-    console.error("Poster API error:", error);
+    console.error("Poster API proxy error:", error);
     return NextResponse.json(
       { error: "Failed to control poster" },
       { status: 500 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ChannelManager } from "@/lib/services/ChannelManager";
-import { LowerThirdEventType } from "@/lib/models/OverlayEvents";
+import { LowerThirdEventType, OverlayChannel } from "@/lib/models/OverlayEvents";
+import { BackendClient } from "@/lib/utils/BackendClient";
 
 /**
  * POST /api/actions/lower/show
@@ -11,9 +11,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { title, subtitle, side = "left", duration } = body;
 
-    const channelManager = ChannelManager.getInstance();
-    
-    await channelManager.publishLowerThird(LowerThirdEventType.SHOW, {
+    await BackendClient.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, {
       title,
       subtitle,
       side,

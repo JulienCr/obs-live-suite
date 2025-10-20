@@ -25,6 +25,7 @@ export class WebSocketHub {
   private logger: Logger;
   private config: AppConfig;
   private heartbeatInterval?: NodeJS.Timeout;
+  private startAttempted: boolean;
 
   private constructor() {
     this.wss = null;
@@ -32,6 +33,7 @@ export class WebSocketHub {
     this.clients = new Map();
     this.logger = new Logger("WebSocketHub");
     this.config = AppConfig.getInstance();
+    this.startAttempted = false;
   }
 
   /**
@@ -48,12 +50,14 @@ export class WebSocketHub {
    * Start the WebSocket server
    */
   start(): void {
-    if (this.wss) {
-      this.logger.warn("WebSocket server already running");
+    if (this.startAttempted) {
+      this.logger.debug("WebSocket server start already attempted, skipping");
       return;
     }
 
+    this.startAttempted = true;
     const port = this.config.websocketPort;
+    this.logger.info(`Starting WebSocket server on port ${port}...`);
 
     this.httpServer = createServer();
     this.wss = new WebSocketServer({ server: this.httpServer });
@@ -88,29 +92,51 @@ export class WebSocketHub {
       });
     });
 
-    this.httpServer.on('error', (error: NodeJS.ErrnoException) => {
+    // Handle both synchronous and asynchronous errors
+    const handleError = (error: NodeJS.ErrnoException) => {
       if (error.code === 'EADDRINUSE') {
-        this.logger.error(`Port ${port} already in use`);
-        // Clean up on error
-        this.wss = null;
-        this.httpServer = null;
+        this.logger.warn(`Port ${port} already in use - WebSocket server is running in another process. This is expected in Next.js dev mode.`);
+        // Clean up local references
+        if (this.wss) {
+          try { this.wss.close(); } catch (e) { /* ignore */ }
+          this.wss = null;
+        }
+        if (this.httpServer) {
+          try { this.httpServer.close(); } catch (e) { /* ignore */ }
+          this.httpServer = null;
+        }
+        // Don't throw - this is expected in multi-process mode
       } else {
-        this.logger.error(`HTTP server error`, error);
+        this.logger.error(`HTTP server error:`, error);
       }
-    });
+    };
 
-    this.httpServer.listen(port, () => {
-      this.logger.info(`WebSocket server listening on port ${port}`);
-    });
+    this.httpServer.on('error', handleError);
 
-    this.startHeartbeat();
+    try {
+      this.httpServer.listen(port, () => {
+        this.logger.info(`WebSocket server listening on port ${port}`);
+        this.startHeartbeat();
+      });
+    } catch (error) {
+      // Catch synchronous errors
+      handleError(error as NodeJS.ErrnoException);
+    }
   }
 
   /**
-   * Check if the WebSocket server is running
+   * Check if the WebSocket server is running in this process
+   * Note: In Next.js dev mode, another process may be running the server
    */
   isRunning(): boolean {
     return this.wss !== null && this.httpServer !== null;
+  }
+
+  /**
+   * Check if this process attempted to start the server
+   */
+  wasAttempted(): boolean {
+    return this.startAttempted;
   }
 
   /**
@@ -132,6 +158,7 @@ export class WebSocketHub {
     }
 
     this.clients.clear();
+    this.startAttempted = false;
     this.logger.info("WebSocket server stopped");
   }
 

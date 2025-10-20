@@ -1,41 +1,19 @@
 import { NextResponse } from "next/server";
-import { OBSStateManager } from "@/lib/adapters/obs/OBSStateManager";
-import { OBSConnectionManager } from "@/lib/adapters/obs/OBSConnectionManager";
-import { OBSConnectionEnsurer } from "@/lib/adapters/obs/OBSConnectionEnsurer";
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 
 /**
  * GET /api/obs/status
- * Get current OBS status
+ * Get current OBS status (proxies to backend)
  */
 export async function GET() {
   try {
-    // Ensure connection (handles dev mode process isolation)
-    await OBSConnectionEnsurer.ensureConnected();
-
-    const connectionManager = OBSConnectionManager.getInstance();
-    const stateManager = OBSStateManager.getInstance();
-
-    const status = connectionManager.getStatus();
-    const isConnected = connectionManager.isConnected();
-    let state = stateManager.getState();
-
-    // If connected but scene is null, refresh state
-    if (isConnected && !state.currentScene) {
-      try {
-        await stateManager.refreshState();
-        state = stateManager.getState();
-      } catch (error) {
-        console.error("Failed to refresh OBS state:", error);
-      }
-    }
-
-    return NextResponse.json({
-      connected: isConnected,
-      status,
-      ...state,
-    });
+    const response = await fetch(`${BACKEND_URL}/api/obs/status`);
+    const data = await response.json();
+    
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error("OBS status API error:", error);
+    console.error("OBS status API proxy error:", error);
     return NextResponse.json(
       { error: "Failed to get OBS status" },
       { status: 500 }

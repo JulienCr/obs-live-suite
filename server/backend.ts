@@ -1,0 +1,329 @@
+#!/usr/bin/env node
+/**
+ * Standalone Backend Server
+ * Runs WebSocket hub and OBS connection independently from Next.js
+ * Exposes HTTP API for Next.js to publish messages
+ */
+
+// Load environment variables from .env file
+import { config as dotenvConfig } from "dotenv";
+dotenvConfig();
+
+import express from "express";
+import { WebSocketHub } from "../lib/services/WebSocketHub";
+import { ChannelManager } from "../lib/services/ChannelManager";
+import { OBSConnectionManager } from "../lib/adapters/obs/OBSConnectionManager";
+import { OBSStateManager } from "../lib/adapters/obs/OBSStateManager";
+import { DatabaseService } from "../lib/services/DatabaseService";
+import { Logger } from "../lib/utils/Logger";
+import { PathManager } from "../lib/config/PathManager";
+import { AppConfig } from "../lib/config/AppConfig";
+
+class BackendServer {
+  private logger: Logger;
+  private wsHub: WebSocketHub;
+  private channelManager: ChannelManager;
+  private obsManager: OBSConnectionManager;
+  private app: express.Application;
+  private httpPort: number;
+  private initialized = false;
+
+  constructor() {
+    // Initialize Logger file path first
+    const pathManager = PathManager.getInstance();
+    Logger.setLogFilePath(pathManager.getLogFilePath());
+    
+    this.logger = new Logger("BackendServer");
+    this.wsHub = WebSocketHub.getInstance();
+    this.channelManager = ChannelManager.getInstance();
+    this.obsManager = OBSConnectionManager.getInstance();
+    this.app = express();
+    
+    // Use port 3002 for backend HTTP API
+    const config = AppConfig.getInstance();
+    this.httpPort = (config as any).backendApiPort || 3002;
+    
+    this.setupHttpApi();
+  }
+
+  private setupApiRoutes(): void {
+    // OBS Status
+    this.app.get('/api/obs/status', async (req, res) => {
+      try {
+        const state = OBSStateManager.getInstance().getState();
+        res.json({
+          connected: this.obsManager.isConnected(),
+          ...state,
+        });
+      } catch (error) {
+        this.logger.error('Error in /api/obs/status:', error);
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // OBS Reconnect
+    this.app.post('/api/obs/reconnect', async (req, res) => {
+      try {
+        await this.obsManager.disconnect();
+        await this.obsManager.connect();
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // OBS Stream Control
+    this.app.post('/api/obs/stream', async (req, res) => {
+      try {
+        const { action } = req.body;
+        if (action === "start") {
+          await this.obsManager.call("StartStream");
+        } else if (action === "stop") {
+          await this.obsManager.call("StopStream");
+        }
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // OBS Record Control
+    this.app.post('/api/obs/record', async (req, res) => {
+      try {
+        const { action } = req.body;
+        if (action === "start") {
+          await this.obsManager.call("StartRecord");
+        } else if (action === "stop") {
+          await this.obsManager.call("StopRecord");
+        }
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // Overlays - Lower Third
+    this.app.post('/api/overlays/lower', async (req, res) => {
+      try {
+        const { action, payload } = req.body;
+        const channel = "lower";
+        let type;
+        switch (action) {
+          case "show": type = "LOWER_THIRD_SHOW"; break;
+          case "hide": type = "LOWER_THIRD_HIDE"; break;
+          case "update": type = "LOWER_THIRD_UPDATE"; break;
+          default: return res.status(400).json({ error: "Invalid action" });
+        }
+        await this.channelManager.publish(channel, type, payload);
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // Overlays - Countdown
+    this.app.post('/api/overlays/countdown', async (req, res) => {
+      try {
+        const { action, payload } = req.body;
+        const channel = "countdown";
+        let type;
+        switch (action) {
+          case "set": type = "COUNTDOWN_SET"; break;
+          case "start": type = "COUNTDOWN_START"; break;
+          case "pause": type = "COUNTDOWN_PAUSE"; break;
+          case "reset": type = "COUNTDOWN_RESET"; break;
+          default: return res.status(400).json({ error: "Invalid action" });
+        }
+        await this.channelManager.publish(channel, type, payload);
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // Overlays - Poster
+    this.app.post('/api/overlays/poster', async (req, res) => {
+      try {
+        const { action, payload } = req.body;
+        const channel = "poster";
+        let type;
+        switch (action) {
+          case "show": type = "POSTER_SHOW"; break;
+          case "hide": type = "POSTER_HIDE"; break;
+          case "next": type = "POSTER_NEXT"; break;
+          case "previous": type = "POSTER_PREVIOUS"; break;
+          default: return res.status(400).json({ error: "Invalid action" });
+        }
+        await this.channelManager.publish(channel, type, payload);
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // 404 handler MUST be added LAST (after all routes)
+    this.app.use((req, res) => {
+      this.logger.warn(`404: ${req.method} ${req.path}`);
+      res.status(404).json({ error: 'Endpoint not found', path: req.path });
+    });
+    
+    this.logger.info("✓ API routes configured");
+  }
+
+  private setupHttpApi(): void {
+    this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
+
+    // CORS for Next.js
+    this.app.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
+      if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+      }
+      next();
+    });
+
+    // Health check
+    this.app.get('/health', (req, res) => {
+      res.json({ 
+        status: 'ok',
+        wsRunning: this.wsHub.isRunning(),
+        obsConnected: this.obsManager.isConnected(),
+        timestamp: Date.now()
+      });
+    });
+
+    // API routes will be loaded during start()
+
+    // Legacy endpoints (for backward compatibility)
+    this.app.post('/publish', async (req, res) => {
+      try {
+        const { channel, type, payload } = req.body;
+        
+        if (!channel || !type) {
+          return res.status(400).json({ error: 'channel and type are required' });
+        }
+
+        await this.channelManager.publish(channel, type, payload);
+        
+        res.json({ success: true });
+      } catch (error) {
+        this.logger.error('Failed to publish message', error);
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // WebSocket stats
+    this.app.get('/ws/stats', (req, res) => {
+      res.json({
+        isRunning: this.wsHub.isRunning(),
+        clients: this.wsHub.getClientCount(),
+        channels: {
+          lower: this.wsHub.getChannelSubscribers('lower'),
+          countdown: this.wsHub.getChannelSubscribers('countdown'),
+          poster: this.wsHub.getChannelSubscribers('poster'),
+        }
+      });
+    });
+
+    // 404 handler will be added AFTER API routes in start()
+  }
+
+  async start(): Promise<void> {
+    if (this.initialized) {
+      this.logger.warn("Backend server already initialized");
+      return;
+    }
+
+    this.logger.info("Starting backend server...");
+
+    try {
+      // 0. Setup API routes (must be first)
+      this.setupApiRoutes();
+
+      // 1. Initialize database
+      DatabaseService.getInstance();
+      this.logger.info("✓ Database initialized");
+
+      // 2. Start WebSocket Hub
+      this.wsHub.start();
+      this.logger.info("✓ WebSocket hub started");
+
+      // 3. Connect to OBS
+      try {
+        await this.obsManager.connect();
+        const stateManager = OBSStateManager.getInstance();
+        await stateManager.refreshState();
+        this.logger.info("✓ OBS connected");
+      } catch (error) {
+        this.logger.warn("OBS connection failed (will retry)", error);
+      }
+
+      // 4. Start HTTP API server
+      await new Promise<void>((resolve) => {
+        this.app.listen(this.httpPort, () => {
+          this.logger.info(`✓ HTTP API listening on port ${this.httpPort}`);
+          resolve();
+        });
+      });
+
+      this.initialized = true;
+      this.logger.info("✓ Backend server ready");
+    } catch (error) {
+      this.logger.error("Failed to start backend server", error);
+      throw error;
+    }
+  }
+
+  async stop(): Promise<void> {
+    this.logger.info("Stopping backend server...");
+
+    try {
+      this.wsHub.stop();
+      await this.obsManager.disconnect();
+      const db = DatabaseService.getInstance();
+      db.close();
+
+      this.initialized = false;
+      this.logger.info("✓ Backend server stopped");
+    } catch (error) {
+      this.logger.error("Error stopping backend server", error);
+    }
+  }
+
+  isInitialized(): boolean {
+    return this.initialized;
+  }
+}
+
+// Start server
+const server = new BackendServer();
+
+server.start().then(() => {
+  console.log("\n✓ Backend server is running");
+  console.log("  - WebSocket: ws://localhost:3001");
+  console.log("  - HTTP API: http://localhost:3002");
+  console.log("  - OBS: Connected");
+  console.log("");
+}).catch((error) => {
+  console.error("✗ Failed to start backend server:", error);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('\nReceived SIGTERM, shutting down gracefully...');
+  await server.stop();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('\nReceived SIGINT, shutting down gracefully...');
+  await server.stop();
+  process.exit(0);
+});
+
+export { server };
+

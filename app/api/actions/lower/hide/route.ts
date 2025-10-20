@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server";
-import { ChannelManager } from "@/lib/services/ChannelManager";
-import { LowerThirdEventType } from "@/lib/models/OverlayEvents";
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 
 /**
  * POST /api/actions/lower/hide
- * Hide lower third (Stream Deck compatible)
+ * Hide lower third (Stream Deck compatible, proxies to backend)
  */
 export async function POST() {
   try {
-    const channelManager = ChannelManager.getInstance();
-    await channelManager.publishLowerThird(LowerThirdEventType.HIDE);
+    const response = await fetch(`${BACKEND_URL}/api/overlays/lower`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'hide' }),
+    });
 
-    return NextResponse.json({ success: true });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error("Lower hide API error:", error);
+    console.error("Lower hide API proxy error:", error);
     return NextResponse.json(
       { error: "Failed to hide lower third" },
       { status: 500 }

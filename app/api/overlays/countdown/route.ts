@@ -1,45 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ChannelManager } from "@/lib/services/ChannelManager";
-import { CountdownEventType } from "@/lib/models/OverlayEvents";
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 
 /**
  * POST /api/overlays/countdown
- * Control countdown timer
+ * Control countdown timer (proxies to backend)
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, payload } = body;
+    
+    const response = await fetch(`${BACKEND_URL}/api/overlays/countdown`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
 
-    const channelManager = ChannelManager.getInstance();
-
-    switch (action) {
-      case "set":
-        await channelManager.publishCountdown(CountdownEventType.SET, payload);
-        break;
-
-      case "start":
-        await channelManager.publishCountdown(CountdownEventType.START);
-        break;
-
-      case "pause":
-        await channelManager.publishCountdown(CountdownEventType.PAUSE);
-        break;
-
-      case "reset":
-        await channelManager.publishCountdown(CountdownEventType.RESET);
-        break;
-
-      default:
-        return NextResponse.json(
-          { error: "Invalid action" },
-          { status: 400 }
-        );
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return NextResponse.json(data, { status: response.status });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(data);
   } catch (error) {
-    console.error("Countdown API error:", error);
+    console.error("Countdown API proxy error:", error);
     return NextResponse.json(
       { error: "Failed to control countdown" },
       { status: 500 }

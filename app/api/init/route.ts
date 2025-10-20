@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ServerInit } from "@/lib/init/ServerInit";
+import { ServiceEnsurer } from "@/lib/services/ServiceEnsurer";
 
 /**
  * GET /api/init
@@ -7,11 +7,8 @@ import { ServerInit } from "@/lib/init/ServerInit";
  */
 export async function GET() {
   try {
-    const serverInit = ServerInit.getInstance();
-    
-    if (!ServerInit.isInitialized()) {
-      await serverInit.initialize();
-    }
+    // Ensure all services (including WebSocket) are running
+    await ServiceEnsurer.ensureServices();
 
     return NextResponse.json({ 
       initialized: true,

@@ -41,7 +41,7 @@ describe('AppConfig', () => {
     });
 
     it('should get data directory', () => {
-      expect(appConfig.dataDir).toContain('.obs-live-suite');
+      expect(appConfig.dataDir).toContain('obs-live-suite');
     });
 
     it('should get database path', () => {

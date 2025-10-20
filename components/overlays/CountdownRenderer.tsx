@@ -62,35 +62,83 @@ export function CountdownRenderer() {
   }, []);
 
   useEffect(() => {
-    // Connect to WebSocket server
-    const wsUrl = `ws://${window.location.hostname}:3001`;
-    ws.current = new WebSocket(wsUrl);
+    let reconnectTimeout: NodeJS.Timeout;
+    let isMounted = true;
 
-    ws.current.onopen = () => {
-      console.log("Connected to WebSocket");
-      ws.current?.send(
-        JSON.stringify({
-          type: "subscribe",
-          channel: "countdown",
-        })
-      );
-    };
+    const connect = () => {
+      // Don't create new connection if component is unmounting
+      if (!isMounted) return;
 
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const message = JSON.parse(event.data);
-        if (message.channel === "countdown") {
-          handleEvent(message.data);
+      // Close existing connection before creating new one
+      if (ws.current && (ws.current.readyState === WebSocket.OPEN || ws.current.readyState === WebSocket.CONNECTING)) {
+        try {
+          ws.current.close();
+        } catch (error) {
+          // Ignore close errors
         }
-      } catch (error) {
-        console.error("Failed to parse message:", error);
       }
+
+      const wsUrl = `ws://${window.location.hostname}:3001`;
+      ws.current = new WebSocket(wsUrl);
+
+      ws.current.onopen = () => {
+        if (!isMounted) {
+          ws.current?.close();
+          return;
+        }
+        console.log("[Countdown] Connected to WebSocket");
+        ws.current?.send(
+          JSON.stringify({
+            type: "subscribe",
+            channel: "countdown",
+          })
+        );
+      };
+
+      const handleMessage = (event: MessageEvent) => {
+        if (!isMounted) return;
+        try {
+          const message = JSON.parse(event.data);
+          if (message.channel === "countdown") {
+            handleEvent(message.data);
+          }
+        } catch (error) {
+          console.error("[Countdown] Failed to parse message:", error);
+        }
+      };
+
+      ws.current.onmessage = handleMessage;
+
+      ws.current.onerror = (error) => {
+        console.error("[Countdown] WebSocket error:", error);
+      };
+
+      ws.current.onclose = (event) => {
+        // Only auto-reconnect on unexpected disconnections
+        // Code 1000 = normal closure, 1001 = going away (page navigation)
+        if (isMounted && event.code !== 1000 && event.code !== 1001) {
+          console.log("[Countdown] WebSocket closed unexpectedly, reconnecting in 3s...");
+          reconnectTimeout = setTimeout(() => {
+            connect();
+          }, 3000);
+        } else {
+          console.log("[Countdown] WebSocket closed normally");
+        }
+      };
     };
 
-    ws.current.onmessage = handleMessage;
+    connect();
 
     return () => {
-      ws.current?.close();
+      isMounted = false;
+      clearTimeout(reconnectTimeout);
+      if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
+        try {
+          ws.current.close(1000, "Component unmounting");
+        } catch (error) {
+          // Ignore close errors during cleanup
+        }
+      }
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }

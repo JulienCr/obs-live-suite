@@ -89,6 +89,59 @@ This file documents key decisions, mistakes, and dead-ends encountered during de
 
 ---
 
+## WebSocket Implementation
+
+### Multiple WebSocket Initialization Problem (January 2025)
+**Problem**: WebSocket server was experiencing constant connection/disconnection cycles. Root cause was multiple processes trying to start WebSocket servers on the same port.
+
+**Diagnosis**:
+1. `instrumentation.ts` called `ServerInit.initialize()` on startup, which SKIPPED WebSocket initialization (lazy loading approach)
+2. Multiple API routes (`/api/overlays/*`, `/api/actions/*`) accessed `ChannelManager.getInstance()`
+3. `ChannelManager` called `WebSocketHub.getInstance()` but never started the server
+4. Only `/api/init` and `/api/test/lower-third` called `ServiceEnsurer.ensureServices()` which actually starts WebSocket
+5. In Next.js dev mode, each API route runs in separate process → multiple processes tried to bind to same port
+6. Result: `EADDRINUSE` errors, connection failures, constant reconnection attempts
+
+**Solution Implemented**:
+1. **ServerInit now starts WebSocket on initialization** - Removed lazy loading approach, WebSocket starts immediately in `instrumentation.ts`
+2. **All API routes now call `ServiceEnsurer.ensureServices()`** - Ensures services are running in current process before use
+3. **Improved error handling** - Better logging for port conflicts and duplicate initialization attempts
+4. **Process-safe initialization** - `ServiceEnsurer` uses locking mechanism to prevent race conditions
+
+**Files Changed**:
+- `lib/init/ServerInit.ts` - Now starts WebSocket immediately instead of skipping
+- `lib/services/ServiceEnsurer.ts` - Proper initialization locking
+- `lib/services/WebSocketHub.ts` - Improved error messages for port conflicts
+- `app/api/overlays/lower/route.ts` - Added ServiceEnsurer call
+- `app/api/overlays/countdown/route.ts` - Added ServiceEnsurer call
+- `app/api/overlays/poster/route.ts` - Added ServiceEnsurer call
+- `app/api/actions/lower/show/route.ts` - Added ServiceEnsurer call
+- `app/api/actions/lower/hide/route.ts` - Added ServiceEnsurer call
+- `app/api/actions/countdown/start/route.ts` - Added ServiceEnsurer call
+
+**Lesson**: In Next.js with multiple API routes, always ensure singleton services (like WebSocket servers) are initialized once at server startup via `instrumentation.ts`, not lazily on first request. API routes should use `ServiceEnsurer` to verify services are running in their process.
+
+### WebSocket Reconnection Loop (January 2025)
+**Problem**: Overlay components showed constant connect/disconnect cycles every 3 seconds in development mode.
+
+**Root Cause**: 
+- `LowerThirdRenderer.tsx` had `onclose` handler that called `window.location.reload()` after 3 seconds
+- React dev mode with HMR causes frequent component remounts
+- Cycle: mount → cleanup closes WebSocket → onclose reloads page → mount → repeat
+
+**Solution**:
+- Replaced page reload with proper reconnection logic
+- Added `isUnmounting` flag to distinguish intentional closes from unexpected disconnections
+- Only reconnect on unexpected disconnections, not on React cleanup
+- Applied fix to all overlay components (LowerThird, Countdown, Poster)
+
+**Files Changed**:
+- `components/overlays/LowerThirdRenderer.tsx` - Removed page reload, added reconnection logic
+- `components/overlays/CountdownRenderer.tsx` - Added proper error and reconnection handlers
+- `components/overlays/PosterRenderer.tsx` - Added proper error and reconnection handlers
+
+---
+
 ## Future Considerations
 
 ### Things to Watch Out For
@@ -109,6 +162,8 @@ This file documents key decisions, mistakes, and dead-ends encountered during de
 3. ❌ Don't rely on API endpoints for critical initialization - use Next.js hooks
 4. ❌ Don't block app startup on external service connections - fail gracefully
 5. ❌ Don't commit `.env` files or secrets to git
+6. ❌ Don't lazy-load singleton network services (WebSocket, HTTP servers) - initialize them at server startup
+7. ❌ Don't assume API routes share the same process in Next.js dev mode - always use ServiceEnsurer pattern
 
 ---
 
