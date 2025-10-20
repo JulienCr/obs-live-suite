@@ -2,12 +2,14 @@
 
 ## 🔄 Recent Updates
 
-### January 2025 - OBS Connection Fully Working
+### January 2025 - OBS Connection Fully Working ✅
+- ✅ Lazy connection initialization for dev mode process isolation
 - ✅ OBS WebSocket connected and displaying real scene names
-- ✅ Auto-refresh state when scene is null
-- ✅ `/api/obs/reconnect` endpoint with state refresh
+- ✅ Auto-connect on first API access (solves Next.js dev mode issues)
 - ✅ Dashboard shows actual OBS scene, FPS, streaming/recording status
+- ✅ Connection works in both development and production modes
 - ✅ Manual reconnect capability added
+- ✅ Automatic state refresh when scene is null
 
 ### January 2025 - WebSocket Native Modules Fix
 - ✅ Fixed `bufferUtil.mask is not a function` error
