@@ -88,6 +88,17 @@ export class WebSocketHub {
       });
     });
 
+    this.httpServer.on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'EADDRINUSE') {
+        this.logger.error(`Port ${port} already in use`);
+        // Clean up on error
+        this.wss = null;
+        this.httpServer = null;
+      } else {
+        this.logger.error(`HTTP server error`, error);
+      }
+    });
+
     this.httpServer.listen(port, () => {
       this.logger.info(`WebSocket server listening on port ${port}`);
     });

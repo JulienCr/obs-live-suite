@@ -2,6 +2,13 @@
 
 ## 🔄 Recent Updates
 
+### January 2025 - OBS Connection Fully Working
+- ✅ OBS WebSocket connected and displaying real scene names
+- ✅ Auto-refresh state when scene is null
+- ✅ `/api/obs/reconnect` endpoint with state refresh
+- ✅ Dashboard shows actual OBS scene, FPS, streaming/recording status
+- ✅ Manual reconnect capability added
+
 ### January 2025 - WebSocket Native Modules Fix
 - ✅ Fixed `bufferUtil.mask is not a function` error
 - ✅ Installed `bufferutil` and `utf-8-validate` native modules

@@ -40,6 +40,14 @@ export class ServerInit {
       return;
     }
 
+    // Check if WebSocket hub is already running (extra safety check)
+    const wsHub = WebSocketHub.getInstance();
+    if (wsHub.isRunning()) {
+      this.logger.info("Server services already running, skipping initialization");
+      ServerInit.initialized = true;
+      return;
+    }
+
     this.logger.info("Initializing server services...");
 
     try {
@@ -47,8 +55,8 @@ export class ServerInit {
       DatabaseService.getInstance();
       this.logger.info("✓ Database initialized");
 
-      // Start WebSocket hub
-      WebSocketHub.getInstance().start();
+      // Start WebSocket hub (it has its own check too)
+      wsHub.start();
       this.logger.info("✓ WebSocket hub started");
 
       // Connect to OBS (don't wait, allow retries)
