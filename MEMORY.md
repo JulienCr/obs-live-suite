@@ -221,6 +221,40 @@ Overlay pages (in OBS):
 
 ---
 
+## Overlay Architecture
+
+### Composite vs Individual Overlays (October 2025)
+**Decision**: Provide both composite and individual overlay options for maximum flexibility.
+
+**Composite Overlay** (`/overlays/composite`):
+- Combines all three overlay types (lower-third, countdown, poster) into a single page
+- Easier to set up in OBS (only one browser source needed)
+- All overlays share the same z-index layering: Poster (bottom) → Lower Third (middle) → Countdown (top)
+- Each renderer still manages its own WebSocket subscription and state independently
+- Recommended for users who want simplicity
+
+**Individual Overlays** (`/overlays/lower-third`, `/overlays/countdown`, `/overlays/poster`):
+- Separate pages for each overlay type
+- More control in OBS (can reorder layers, apply different filters, enable/disable individually)
+- Useful for advanced users who need granular control
+- All individual overlays are kept alongside the composite option
+
+**Implementation Notes**:
+- Each renderer component connects to the same WebSocket on port 3001
+- Renderers subscribe to their specific channel (lower, countdown, poster)
+- Multiple renderers on the same page don't conflict - each handles its own events
+- The composite page simply renders all three components in a single container
+
+**Files**:
+- `app/overlays/composite/page.tsx` - Composite overlay page
+- `app/overlays/lower-third/page.tsx` - Individual lower third
+- `app/overlays/countdown/page.tsx` - Individual countdown
+- `app/overlays/poster/page.tsx` - Individual poster
+
+**Lesson**: When building overlay systems, provide both "all-in-one" and "à la carte" options. Different users have different needs for control vs. simplicity.
+
+---
+
 ## Future Considerations
 
 ### Things to Watch Out For

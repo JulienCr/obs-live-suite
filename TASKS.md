@@ -76,6 +76,8 @@
 - Lower third overlay (show/hide with animations)
 - Countdown timer with pause/resume
 - Poster display with transitions
+- **Composite overlay (all overlays in one browser source)**
+- Individual overlay pages (for granular control)
 - OBS WebSocket integration with auto-reconnect
 - Real-time WebSocket communication
 - Stream Deck HTTP API endpoints
@@ -103,6 +105,25 @@
 2. Connect to OBS and add browser sources
 3. Test overlay controls from dashboard
 4. Optionally implement remaining phases based on priority
+
+## Overlay Setup in OBS
+
+### Option 1: Composite Overlay (Recommended for Simplicity)
+Add a single browser source in OBS:
+- URL: `http://localhost:3000/overlays/composite`
+- Width: 1920, Height: 1080
+- All overlays (lower-third, countdown, poster) in one source
+
+### Option 2: Individual Overlays (More Control)
+Add separate browser sources for each overlay:
+- Lower Third: `http://localhost:3000/overlays/lower-third`
+- Countdown: `http://localhost:3000/overlays/countdown`
+- Poster: `http://localhost:3000/overlays/poster`
+
+Use individual overlays when you need:
+- Different layer ordering in OBS
+- Different filters/effects per overlay
+- Independent enable/disable per overlay type
 
 ## Notes
 - Core functionality is COMPLETE and ready for testing
