@@ -35,24 +35,49 @@ export function DashboardHeader() {
   }, []);
 
   useEffect(() => {
-    // TODO: Fetch OBS status from API
-    // For now, mock data
-    setStatus({
-      connected: true,
-      currentScene: "Main Scene",
-      isStreaming: false,
-      isRecording: false,
-    });
+    // Fetch OBS status from API
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch("/api/obs/status");
+        const data = await res.json();
+        setStatus({
+          connected: data.connected,
+          currentScene: data.currentScene,
+          isStreaming: data.isStreaming,
+          isRecording: data.isRecording,
+        });
+      } catch (error) {
+        console.error("Failed to fetch OBS status:", error);
+      }
+    };
+
+    // Fetch immediately
+    fetchStatus();
+
+    // Poll every 2 seconds
+    const interval = setInterval(fetchStatus, 2000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleStreamToggle = async () => {
-    // TODO: Implement stream toggle
-    console.log("Toggle stream");
+    try {
+      const endpoint = status.isStreaming ? "/api/obs/stream/stop" : "/api/obs/stream/start";
+      await fetch(endpoint, { method: "POST" });
+      // Status will update on next poll
+    } catch (error) {
+      console.error("Failed to toggle stream:", error);
+    }
   };
 
   const handleRecordToggle = async () => {
-    // TODO: Implement record toggle
-    console.log("Toggle record");
+    try {
+      const endpoint = status.isRecording ? "/api/obs/record/stop" : "/api/obs/record/start";
+      await fetch(endpoint, { method: "POST" });
+      // Status will update on next poll
+    } catch (error) {
+      console.error("Failed to toggle record:", error);
+    }
   };
 
   return (
