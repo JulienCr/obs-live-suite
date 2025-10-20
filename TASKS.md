@@ -49,7 +49,7 @@
 
 ## Implementation Status: Core MVP Complete! 🎉
 
-### Completed Phases (13/16)
+### Completed Phases (14/16)
 - [x] Phase 1: Project foundation
 - [x] Phase 2: Data layer & models  
 - [x] Phase 3: OBS integration
@@ -57,14 +57,14 @@
 - [x] Phase 5: Overlay renderers
 - [x] Phase 6: Dashboard UI
 - [x] Phase 7: Assets library (Posters & Guests)
+- [x] Phase 8: Profiles & show management
 - [x] Phase 9: Stream Deck integration
 - [x] Phase 10: OBS extensions updater
 - [x] Phase 11: Macro system
 - [x] Phase 12: Settings & configuration UI
 - [x] Phase 15: Deployment & DevOps
 
-### Remaining Phases (3)
-- [ ] Phase 8: Profiles & show management (CRUD, export/import)
+### Remaining Phases (2)
 - [ ] Phase 13: Advanced features (Scheduled rotations, audio cues, health monitoring)
 - [ ] Phase 14: Security & reliability (CSRF, rate limiting, action queue)
 
@@ -85,13 +85,14 @@
 - Server initialization and PM2 support
 - **Settings page with OBS, Backend, Paths, and Backup tabs**
 - **Assets Library for managing posters and guests**
+- **Profiles system for managing different shows**
 
 ### 🚧 Features to Complete
-- Profile switching and export/import
+- Profile export/import (zip with assets)
 - Theme editor (colors, fonts, styles)
 - Scheduled poster rotations
 - Audio cue system
-- Security middleware
+- Security middleware (CSRF, rate limiting)
 
 ### ✅ Testing Complete
 - 108 tests passing (12 test suites)
