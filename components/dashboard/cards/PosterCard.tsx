@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Image, Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, ChevronLeft, ChevronRight } from "lucide-react";
+
+interface Poster {
+  id: string;
+  title: string;
+  fileUrl: string;
+  type: string;
+}
 
 /**
  * PosterCard - Control card for poster/image overlays
@@ -11,11 +18,24 @@ import { Image, Play, ChevronLeft, ChevronRight } from "lucide-react";
 export function PosterCard() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const [posters, setPosters] = useState<Poster[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // TODO: Load from API
-  const posters = [
-    { id: "1", title: "Show Poster", url: "/posters/example.jpg" },
-  ];
+  useEffect(() => {
+    fetchPosters();
+  }, []);
+
+  const fetchPosters = async () => {
+    try {
+      const res = await fetch("/api/assets/posters");
+      const data = await res.json();
+      setPosters(data.posters || []);
+    } catch (error) {
+      console.error("Failed to fetch posters:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleTakeover = async () => {
     try {
@@ -28,7 +48,7 @@ export function PosterCard() {
           action: "show",
           payload: {
             posterId: poster.id,
-            fileUrl: poster.url,
+            fileUrl: poster.fileUrl,
             transition: "fade"
           }
         }),
@@ -83,9 +103,15 @@ export function PosterCard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-          {posters.length > 0 ? (
-            <Image className="w-12 h-12 text-muted-foreground" aria-label="Poster placeholder" />
+        <div className="aspect-video bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+          {loading ? (
+            <div className="text-sm text-muted-foreground">Loading...</div>
+          ) : posters.length > 0 ? (
+            <img
+              src={posters[currentIndex].fileUrl}
+              alt={posters[currentIndex].title}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="text-sm text-muted-foreground">No posters</div>
           )}
