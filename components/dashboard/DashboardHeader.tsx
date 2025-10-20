@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Play, Square, Circle } from "lucide-react";
+import { Play, Square, Circle, Settings } from "lucide-react";
 
 interface OBSStatus {
   connected: boolean;
@@ -140,9 +141,16 @@ export function DashboardHeader() {
             </Button>
           </div>
 
-          {/* Right: Clock */}
-          <div className="text-sm font-mono" suppressHydrationWarning>
-            {currentTime.toLocaleTimeString()}
+          {/* Right: Clock and Settings */}
+          <div className="flex items-center gap-4">
+            <div className="text-sm font-mono" suppressHydrationWarning>
+              {currentTime.toLocaleTimeString()}
+            </div>
+            <Link href="/settings">
+              <Button variant="ghost" size="sm">
+                <Settings className="w-4 h-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
