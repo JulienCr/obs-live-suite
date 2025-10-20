@@ -331,6 +331,41 @@ Overlay pages (in OBS):
 
 **Lesson**: When scanning cross-platform file structures, understand the platform-specific conventions (Windows uses DLLs in arch-specific folders, while Linux/Mac may use different structures). Always deduplicate when the same logical item can appear in multiple locations (32bit + 64bit).
 
+### Plugin Scanner - Deduplication and Built-in Filter (October 2025)
+**Problem 1**: Plugins still appeared twice even after initial fix because deduplication was per-directory, not global.
+
+**Root Cause**: The `Set` for deduplication was created in `scanPluginDirectory()`, which is called once per directory. Since `PathResolver.getPluginDirectories()` returns duplicate paths on Windows, the same directory was scanned twice with fresh Sets.
+
+**Solution**: Moved deduplication to the `scan()` method level:
+1. Use a `Map<name, plugin>` to deduplicate across all directories
+2. Track processed directories with a `Set` to skip duplicates
+3. Only keep first occurrence of each plugin name
+
+**Problem 2**: Too many plugins listed (84 total, mostly built-in OBS plugins).
+
+**Root Cause**: Users typically only want to see custom/third-party plugins, not the 40+ built-in plugins that ship with OBS.
+
+**Solution**: Implemented built-in plugin filtering:
+1. Created `BUILTIN_PLUGINS` Set with all known OBS built-in plugins
+2. Mark built-in plugins with `isIgnored: true` during scan
+3. Added `showBuiltIn` checkbox toggle in UI (unchecked by default)
+4. Filter display to show only custom plugins unless toggled
+5. Show count of hidden built-in plugins in UI
+
+**Custom Plugins Identified** (from user's system):
+- downstream-keyer
+- move-transition
+- obs-composite-blur
+- obs-shaderfilter
+- transition-table
+- obs-midi-mg
+
+**Files Modified**:
+- `lib/services/updater/PluginScanner.ts` - Global deduplication, built-in detection
+- `components/settings/PluginSettings.tsx` - Added filter toggle and count display
+
+**Lesson**: When building admin/management tools, provide sensible defaults (hide built-in/system items) while giving users the option to see everything. Use database fields creatively (isIgnored) to mark different categories of items.
+
 ---
 
 ## Future Considerations

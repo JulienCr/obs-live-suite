@@ -43,6 +43,7 @@ export function PluginSettings() {
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastScan, setLastScan] = useState<Date | null>(null);
+  const [showBuiltIn, setShowBuiltIn] = useState(false);
 
   /**
    * Load plugins from database
@@ -149,6 +150,11 @@ export function PluginSettings() {
     }
   };
 
+  // Filter plugins based on showBuiltIn toggle
+  const filteredPlugins = showBuiltIn 
+    ? plugins 
+    : plugins.filter(p => !p.isIgnored);
+
   // Load plugins on mount
   useEffect(() => {
     loadPlugins();
@@ -165,7 +171,7 @@ export function PluginSettings() {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 flex-wrap">
+      <div className="flex gap-3 flex-wrap items-center">
         <Button 
           onClick={handleScan} 
           disabled={isScanning || isChecking}
@@ -211,6 +217,19 @@ export function PluginSettings() {
         >
           <RefreshCw className="w-4 h-4" />
         </Button>
+
+        <div className="ml-auto flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="showBuiltIn"
+            checked={showBuiltIn}
+            onChange={(e) => setShowBuiltIn(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300"
+          />
+          <label htmlFor="showBuiltIn" className="text-sm cursor-pointer">
+            Show built-in plugins
+          </label>
+        </div>
       </div>
 
       {/* Last scan info */}
@@ -230,20 +249,29 @@ export function PluginSettings() {
 
       {/* Plugin count */}
       <div className="text-sm font-medium">
-        {plugins.length} plugin{plugins.length !== 1 ? "s" : ""} found
+        {filteredPlugins.length} plugin{filteredPlugins.length !== 1 ? "s" : ""} found
+        {!showBuiltIn && plugins.length > filteredPlugins.length && (
+          <span className="text-muted-foreground ml-2">
+            ({plugins.length - filteredPlugins.length} built-in hidden)
+          </span>
+        )}
       </div>
 
       {/* Plugins list */}
       <ScrollArea className="h-[500px] border rounded-lg">
-        {plugins.length === 0 ? (
+        {filteredPlugins.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
             <Package className="w-16 h-16 mb-4 opacity-20" />
             <p className="text-lg font-medium">No plugins found</p>
-            <p className="text-sm">Click "Scan Plugins" to discover installed plugins</p>
+            <p className="text-sm">
+              {plugins.length > 0 
+                ? "All plugins are built-in. Enable 'Show built-in plugins' to see them."
+                : "Click 'Scan Plugins' to discover installed plugins"}
+            </p>
           </div>
         ) : (
           <div className="divide-y">
-            {plugins.map((plugin) => {
+            {filteredPlugins.map((plugin) => {
               const paths = getPaths(plugin.paths);
               const hasUpdate = plugin.updateStatus === "update_available";
 

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, XCircle, Loader2, TestTube } from "lucide-react";
 
 interface OBSConfig {
@@ -25,6 +26,7 @@ export function OBSSettings() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [sourceIsDatabase, setSourceIsDatabase] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
@@ -232,11 +234,24 @@ export function OBSSettings() {
         <Label htmlFor="obs-password">Password (Optional)</Label>
         <Input
           id="obs-password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           placeholder="Enter OBS WebSocket password"
           value={config.password}
           onChange={(e) => setConfig({ ...config, password: e.target.value })}
         />
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="show-password"
+            checked={showPassword}
+            onCheckedChange={(checked) => setShowPassword(checked === true)}
+          />
+          <label
+            htmlFor="show-password"
+            className="text-sm cursor-pointer select-none"
+          >
+            Show password
+          </label>
+        </div>
         <p className="text-xs text-muted-foreground">
           Find in OBS: Tools → obs-websocket Settings → Show Connect Info
         </p>

@@ -1,0 +1,23 @@
+{
+  "plugins": [
+    {
+      "id": "obs-websocket",
+      "name": "obs-websocket",
+      "canonicalRepo": "obsproject/obs-websocket",
+      "releaseFeed": "https://api.github.com/repos/obsproject/obs-websocket/releases/latest"
+    },
+    {
+      "id": "obs-move-transition",
+      "name": "Move Transition",
+      "canonicalRepo": "exeldro/obs-move-transition",
+      "releaseFeed": "https://api.github.com/repos/exeldro/obs-move-transition/releases/latest"
+    },
+    {
+      "id": "obs-downstream-keyer",
+      "name": "Downstream Keyer",
+      "canonicalRepo": "exeldro/obs-downstream-keyer",
+      "releaseFeed": "https://api.github.com/repos/exeldro/obs-downstream-keyer/releases/latest"
+    }
+  ],
+  "lastUpdated": "2025-10-20T17:58:00.531Z"
+}

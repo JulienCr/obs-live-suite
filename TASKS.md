@@ -25,6 +25,12 @@
 - ✅ Release notes display for plugins with available updates
 - ✅ External links to GitHub releases for manual updates
 - ✅ Real-time loading states and error handling
+- ✅ Fixed duplicate plugin entries on rescan (clears table before scanning)
+- ✅ Fixed scanner to detect actual DLL files instead of 32bit/64bit folders
+- ✅ Global deduplication across all directories (Map-based approach)
+- ✅ Built-in plugin filtering (hides 40+ OBS default plugins by default)
+- ✅ "Show built-in plugins" toggle to see all plugins or just custom ones
+- ✅ Shows count of hidden built-in plugins when filtered
 
 ### October 2025 - Guests Quick Lower Third ✅
 - ✅ Added "Quick LT" button on each guest (Assets page)
