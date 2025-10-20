@@ -23,7 +23,7 @@ export function PosterRenderer() {
   });
 
   const ws = useRef<WebSocket | null>(null);
-  const hideTimeout = useRef<NodeJS.Timeout>();
+  const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const handleEvent = useCallback((data: { type: string; payload?: PosterShowPayload; id: string }) => {
     if (hideTimeout.current) {
@@ -82,7 +82,7 @@ export function PosterRenderer() {
       if (ws.current && (ws.current.readyState === WebSocket.OPEN || ws.current.readyState === WebSocket.CONNECTING)) {
         try {
           ws.current.close();
-        } catch (error) {
+        } catch {
           // Ignore close errors
         }
       }
@@ -144,7 +144,7 @@ export function PosterRenderer() {
       if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
         try {
           ws.current.close(1000, "Component unmounting");
-        } catch (error) {
+        } catch {
           // Ignore close errors during cleanup
         }
       }

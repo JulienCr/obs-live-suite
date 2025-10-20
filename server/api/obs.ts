@@ -56,9 +56,9 @@ router.post("/stream", async (req, res) => {
     const connectionManager = OBSConnectionManager.getInstance();
 
     if (action === "start") {
-      await connectionManager.call("StartStream");
+      await connectionManager.getOBS().call("StartStream");
     } else if (action === "stop") {
-      await connectionManager.call("StopStream");
+      await connectionManager.getOBS().call("StopStream");
     } else {
       return res.status(400).json({ error: "Invalid action. Use 'start' or 'stop'" });
     }
@@ -80,9 +80,9 @@ router.post("/record", async (req, res) => {
     const connectionManager = OBSConnectionManager.getInstance();
 
     if (action === "start") {
-      await connectionManager.call("StartRecord");
+      await connectionManager.getOBS().call("StartRecord");
     } else if (action === "stop") {
-      await connectionManager.call("StopRecord");
+      await connectionManager.getOBS().call("StopRecord");
     } else {
       return res.status(400).json({ error: "Invalid action. Use 'start' or 'stop'" });
     }
@@ -131,7 +131,7 @@ router.post("/source/visibility", async (req, res) => {
     }
 
     const connectionManager = OBSConnectionManager.getInstance();
-    await connectionManager.call("SetSceneItemEnabled", {
+    await connectionManager.getOBS().call("SetSceneItemEnabled", {
       sceneName,
       sceneItemId: sourceName as any, // Will need scene item ID lookup
       sceneItemEnabled: visible

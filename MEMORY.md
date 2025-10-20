@@ -140,6 +140,59 @@ This file documents key decisions, mistakes, and dead-ends encountered during de
 - `components/overlays/CountdownRenderer.tsx` - Added proper error and reconnection handlers
 - `components/overlays/PosterRenderer.tsx` - Added proper error and reconnection handlers
 
+### Lower Third Not Showing Text (October 2025)
+**Problem**: Lower third overlay at `/overlays/lower-third` wouldn't display any text. API calls were silently failing.
+
+**Root Cause**: 
+- `lowerThirdShowPayloadSchema` required `themeId` to be a valid UUID
+- `/api/actions/lower/show` was sending `themeId: "default"` (not a valid UUID)
+- Zod validation failed silently, preventing the message from being broadcast
+- Theme system isn't fully implemented yet (marked with TODO)
+
+**Solution**:
+- Made `themeId` optional in `lowerThirdShowPayloadSchema` using `.optional()`
+- This allows the lower third to work while theme system is being developed
+
+**Files Changed**:
+- `lib/models/OverlayEvents.ts` - Made `themeId` field optional
+
+**Lesson**: When validation schemas fail silently, check for required fields that might not have proper values yet. Use `.optional()` for fields that aren't fully implemented.
+
+### CRITICAL: Port 3001 Conflict - Architecture Clarification (October 2025)
+**Problem**: When loading overlay pages in OBS, error `EADDRINUSE: address already in use :::3001`. Next.js was trying to start WebSocket server on same port as backend.
+
+**Root Cause**:
+- Overlay pages called `/api/init` which triggered `ServiceEnsurer.ensureServices()`
+- This tried to start WebSocket server in Next.js process on port 3001
+- Backend already runs WebSocket on port 3001
+- **Architectural confusion**: Next.js should NEVER start WebSocket services
+
+**Correct Architecture**:
+```
+Backend (standalone):
+  - Port 3001: WebSocket (for overlays + internal use)
+  - Port 3002: HTTP API (for dashboard requests)
+  
+Next.js (UI only):
+  - Port 3000: Serves dashboard and overlay HTML pages
+  - NO WebSocket server
+  - NO service initialization
+  
+Overlay pages (in OBS):
+  - Connect directly to ws://localhost:3001 (backend)
+  - No need for /api/init call
+```
+
+**Solution**:
+- Removed `/api/init` call from `app/overlays/lower-third/page.tsx`
+- Overlay pages now just render components that connect to backend WebSocket
+- Only backend starts and manages WebSocket server
+
+**Files Changed**:
+- `app/overlays/lower-third/page.tsx` - Removed unnecessary `/api/init` call
+
+**Lesson**: In a multi-process architecture, be crystal clear about which process owns which ports. Frontend (Next.js) should only serve UI; backend should own all stateful services (WebSocket, OBS connection). Never duplicate service initialization across processes.
+
 ---
 
 ## Future Considerations

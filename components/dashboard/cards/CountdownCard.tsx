@@ -30,24 +30,61 @@ export function CountdownCard() {
   };
 
   const handleStart = async () => {
-    // TODO: Implement start via API
-    const totalSeconds = minutes * 60 + seconds;
-    console.log("Start countdown:", totalSeconds);
-    setIsRunning(true);
+    try {
+      const totalSeconds = minutes * 60 + seconds;
+      
+      const response = await fetch("/api/actions/countdown/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seconds: totalSeconds }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to start countdown");
+      }
+
+      setIsRunning(true);
+    } catch (error) {
+      console.error("Error starting countdown:", error);
+    }
   };
 
   const handlePause = async () => {
-    // TODO: Implement pause via API
-    console.log("Pause countdown");
-    setIsRunning(false);
+    try {
+      const response = await fetch("/api/overlays/countdown", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "pause" }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to pause countdown");
+      }
+
+      setIsRunning(false);
+    } catch (error) {
+      console.error("Error pausing countdown:", error);
+    }
   };
 
   const handleReset = async () => {
-    // TODO: Implement reset via API
-    console.log("Reset countdown");
-    setIsRunning(false);
-    setMinutes(5);
-    setSeconds(0);
+    try {
+      const response = await fetch("/api/overlays/countdown", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset" }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to reset countdown");
+      }
+
+      setIsRunning(false);
+      setMinutes(5);
+      setSeconds(0);
+    } catch (error) {
+      console.error("Error resetting countdown:", error);
+    }
   };
 
   return (

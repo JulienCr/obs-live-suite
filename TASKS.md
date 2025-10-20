@@ -2,6 +2,13 @@
 
 ## 🔄 Recent Updates
 
+### October 2025 - Lower Third Display Fix ✅
+- ✅ Fixed lower third not showing text (validation schema issue)
+- ✅ Made `themeId` optional in `lowerThirdShowPayloadSchema`
+- ✅ Created functional test suite with Playwright
+- ✅ Added port cleanup scripts for dev server
+- ✅ Verified end-to-end: API → WebSocket → Browser display
+
 ### January 2025 - WebSocket Multiple Initialization Fix ✅
 - ✅ Fixed WebSocket connection/disconnection cycles
 - ✅ Identified root cause: multiple processes trying to start WebSocket servers

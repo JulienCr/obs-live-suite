@@ -141,7 +141,7 @@ export function DashboardHeader() {
           </div>
 
           {/* Right: Clock */}
-          <div className="text-sm font-mono">
+          <div className="text-sm font-mono" suppressHydrationWarning>
             {currentTime.toLocaleTimeString()}
           </div>
         </div>

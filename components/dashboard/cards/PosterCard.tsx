@@ -18,15 +18,48 @@ export function PosterCard() {
   ];
 
   const handleTakeover = async () => {
-    // TODO: Implement takeover via API
-    console.log("Takeover poster:", posters[currentIndex]);
-    setIsVisible(true);
+    try {
+      const poster = posters[currentIndex];
+      
+      const response = await fetch("/api/overlays/poster", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          action: "show",
+          payload: {
+            posterId: poster.id,
+            fileUrl: poster.url,
+            transition: "fade"
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to show poster");
+      }
+
+      setIsVisible(true);
+    } catch (error) {
+      console.error("Error showing poster:", error);
+    }
   };
 
   const handleFade = async () => {
-    // TODO: Implement fade out via API
-    console.log("Fade poster");
-    setIsVisible(false);
+    try {
+      const response = await fetch("/api/overlays/poster", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "hide" }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to hide poster");
+      }
+
+      setIsVisible(false);
+    } catch (error) {
+      console.error("Error hiding poster:", error);
+    }
   };
 
   const handlePrevious = () => {

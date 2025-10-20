@@ -47,7 +47,7 @@ export const lowerThirdShowPayloadSchema = z.object({
   title: z.string(),
   subtitle: z.string().optional(),
   side: z.enum(["left", "right"]).default("left"),
-  themeId: z.string().uuid(),
+  themeId: z.string().uuid().optional(),
   duration: z.number().int().positive().optional(),
 });
 
@@ -67,7 +67,7 @@ export type CountdownSetPayload = z.infer<typeof countdownSetPayloadSchema>;
  * Poster show event payload
  */
 export const posterShowPayloadSchema = z.object({
-  posterId: z.string().uuid(),
+  posterId: z.string().uuid().optional(),
   fileUrl: z.string(),
   transition: z.enum(["fade", "slide", "cut", "blur"]).default("fade"),
   duration: z.number().int().positive().optional(),

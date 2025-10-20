@@ -88,7 +88,9 @@ export class OBSSceneController {
 
     try {
       const result = await obs.call("GetSceneList");
-      return result.scenes.map((scene) => scene.sceneName);
+      return result.scenes
+        .map((scene) => scene.sceneName)
+        .filter((name): name is string => name !== null && name !== undefined);
     } catch (error) {
       this.logger.error("Failed to get scenes", error);
       throw error;

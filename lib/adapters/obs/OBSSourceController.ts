@@ -122,7 +122,8 @@ export class OBSSourceController {
     try {
       await obs.call("SetInputSettings", {
         inputName: sourceName,
-        inputSettings: settings,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        inputSettings: settings as Record<string, any>,
       });
 
       this.logger.info(`Updated settings for: ${sourceName}`);

@@ -23,6 +23,8 @@ export async function POST() {
 
     for (const plugin of plugins) {
       if (plugin.isIgnored) continue;
+      if (!plugin.localVersion) continue;
+      if (!plugin.registryId) continue;
 
       const registryEntry = registryService.getEntry(plugin.registryId);
       if (!registryEntry) continue;

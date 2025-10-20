@@ -22,14 +22,14 @@ export function CountdownRenderer() {
   });
 
   const ws = useRef<WebSocket | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const handleEvent = useCallback((data: { type: string; payload?: { seconds: number }; id: string }) => {
     switch (data.type) {
       case "set":
         setState((prev) => ({
           ...prev,
-          seconds: data.payload.seconds,
+          seconds: data.payload?.seconds ?? 0,
           visible: true,
         }));
         break;
@@ -73,7 +73,7 @@ export function CountdownRenderer() {
       if (ws.current && (ws.current.readyState === WebSocket.OPEN || ws.current.readyState === WebSocket.CONNECTING)) {
         try {
           ws.current.close();
-        } catch (error) {
+        } catch {
           // Ignore close errors
         }
       }
@@ -135,7 +135,7 @@ export function CountdownRenderer() {
       if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
         try {
           ws.current.close(1000, "Component unmounting");
-        } catch (error) {
+        } catch {
           // Ignore close errors during cleanup
         }
       }

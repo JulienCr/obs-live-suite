@@ -98,11 +98,11 @@ export class WebSocketHub {
         this.logger.warn(`Port ${port} already in use - WebSocket server is running in another process. This is expected in Next.js dev mode.`);
         // Clean up local references
         if (this.wss) {
-          try { this.wss.close(); } catch (e) { /* ignore */ }
+          try { this.wss.close(); } catch { /* ignore */ }
           this.wss = null;
         }
         if (this.httpServer) {
-          try { this.httpServer.close(); } catch (e) { /* ignore */ }
+          try { this.httpServer.close(); } catch { /* ignore */ }
           this.httpServer = null;
         }
         // Don't throw - this is expected in multi-process mode

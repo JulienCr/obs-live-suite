@@ -17,22 +17,62 @@ export function LowerThirdCard() {
   const [isVisible, setIsVisible] = useState(false);
 
   const handleShow = async () => {
-    // TODO: Implement show via API
-    console.log("Show lower third:", { title, subtitle, side });
-    setIsVisible(true);
+    try {
+      const response = await fetch("/api/actions/lower/show", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, subtitle, side }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to show lower third");
+      }
+
+      setIsVisible(true);
+    } catch (error) {
+      console.error("Error showing lower third:", error);
+    }
   };
 
   const handleHide = async () => {
-    // TODO: Implement hide via API
-    console.log("Hide lower third");
-    setIsVisible(false);
+    try {
+      const response = await fetch("/api/actions/lower/hide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to hide lower third");
+      }
+
+      setIsVisible(false);
+    } catch (error) {
+      console.error("Error hiding lower third:", error);
+    }
   };
 
   const handleAuto = async () => {
-    // TODO: Implement auto-hide after duration
-    console.log("Show lower third with auto-hide");
-    setIsVisible(true);
-    setTimeout(() => setIsVisible(false), 5000);
+    try {
+      const response = await fetch("/api/actions/lower/show", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          title, 
+          subtitle, 
+          side, 
+          duration: 5 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to show lower third");
+      }
+
+      setIsVisible(true);
+      setTimeout(() => setIsVisible(false), 5000);
+    } catch (error) {
+      console.error("Error showing lower third:", error);
+    }
   };
 
   return (

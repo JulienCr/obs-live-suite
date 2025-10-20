@@ -3,7 +3,7 @@ import { join, basename } from "path";
 import { PathResolver } from "./PathResolver";
 import { VersionExtractor } from "./VersionExtractor";
 import { Logger } from "../../utils/Logger";
-import { PluginKind, CreatePluginInput } from "../../models/Plugin";
+import { PluginKind, CreatePluginInput, UpdateStatus } from "../../models/Plugin";
 
 /**
  * PluginScanner discovers installed OBS plugins and scripts
@@ -70,7 +70,7 @@ export class PluginScanner {
             localVersion: version,
             paths: [fullPath],
             registryId: this.normalizeRegistryId(name),
-            updateStatus: "unknown",
+            updateStatus: UpdateStatus.UNKNOWN,
             isIgnored: false,
             isWatched: false,
           });
@@ -104,7 +104,7 @@ export class PluginScanner {
             localVersion: version,
             paths: [fullPath],
             registryId: this.normalizeRegistryId(name),
-            updateStatus: "unknown",
+            updateStatus: UpdateStatus.UNKNOWN,
             isIgnored: false,
             isWatched: false,
           });

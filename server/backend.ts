@@ -13,6 +13,7 @@ import express from "express";
 import { WebSocketHub } from "../lib/services/WebSocketHub";
 import { ChannelManager } from "../lib/services/ChannelManager";
 import { OBSConnectionManager } from "../lib/adapters/obs/OBSConnectionManager";
+import { OverlayChannel } from "../lib/models/OverlayEvents";
 import { OBSStateManager } from "../lib/adapters/obs/OBSStateManager";
 import { DatabaseService } from "../lib/services/DatabaseService";
 import { Logger } from "../lib/utils/Logger";
@@ -77,9 +78,9 @@ class BackendServer {
       try {
         const { action } = req.body;
         if (action === "start") {
-          await this.obsManager.call("StartStream");
+          await this.obsManager.getOBS().call("StartStream");
         } else if (action === "stop") {
-          await this.obsManager.call("StopStream");
+          await this.obsManager.getOBS().call("StopStream");
         }
         res.json({ success: true });
       } catch (error) {
@@ -92,9 +93,9 @@ class BackendServer {
       try {
         const { action } = req.body;
         if (action === "start") {
-          await this.obsManager.call("StartRecord");
+          await this.obsManager.getOBS().call("StartRecord");
         } else if (action === "stop") {
-          await this.obsManager.call("StopRecord");
+          await this.obsManager.getOBS().call("StopRecord");
         }
         res.json({ success: true });
       } catch (error) {
@@ -106,7 +107,7 @@ class BackendServer {
     this.app.post('/api/overlays/lower', async (req, res) => {
       try {
         const { action, payload } = req.body;
-        const channel = "lower";
+        const channel = OverlayChannel.LOWER;
         let type;
         switch (action) {
           case "show": type = "LOWER_THIRD_SHOW"; break;
@@ -125,7 +126,7 @@ class BackendServer {
     this.app.post('/api/overlays/countdown', async (req, res) => {
       try {
         const { action, payload } = req.body;
-        const channel = "countdown";
+        const channel = OverlayChannel.COUNTDOWN;
         let type;
         switch (action) {
           case "set": type = "COUNTDOWN_SET"; break;
@@ -145,7 +146,7 @@ class BackendServer {
     this.app.post('/api/overlays/poster', async (req, res) => {
       try {
         const { action, payload } = req.body;
-        const channel = "poster";
+        const channel = OverlayChannel.POSTER;
         let type;
         switch (action) {
           case "show": type = "POSTER_SHOW"; break;

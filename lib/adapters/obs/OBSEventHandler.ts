@@ -1,6 +1,5 @@
 import { OBSConnectionManager } from "./OBSConnectionManager";
 import { Logger } from "../../utils/Logger";
-import OBSWebSocket from "obs-websocket-js";
 
 /**
  * Event callback type
@@ -61,7 +60,8 @@ export class OBSEventHandler {
   private setupOBSListener(eventName: string): void {
     const obs = this.connectionManager.getOBS();
 
-    obs.on(eventName as keyof OBSWebSocket.OBSEventTypes, (data: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    obs.on(eventName as any, (data: unknown) => {
       const handlers = this.eventHandlers.get(eventName);
       if (handlers) {
         handlers.forEach((handler) => {

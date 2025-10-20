@@ -6,6 +6,7 @@ import "./lower-third.css";
 
 interface LowerThirdState {
   visible: boolean;
+  animating: boolean;
   title: string;
   subtitle?: string;
   side: "left" | "right";
@@ -18,6 +19,7 @@ interface LowerThirdState {
 export function LowerThirdRenderer() {
   const [state, setState] = useState<LowerThirdState>({
     visible: false,
+    animating: false,
     title: "",
     subtitle: "",
     side: "left",
@@ -25,7 +27,7 @@ export function LowerThirdRenderer() {
   });
 
   const ws = useRef<WebSocket | null>(null);
-  const hideTimeout = useRef<NodeJS.Timeout>();
+  const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const handleEvent = useCallback((data: { type: string; payload?: LowerThirdShowPayload; id: string }) => {
     if (hideTimeout.current) {
@@ -37,6 +39,7 @@ export function LowerThirdRenderer() {
         if (data.payload) {
           setState({
             visible: true,
+            animating: true,
             title: data.payload.title,
             subtitle: data.payload.subtitle,
             side: data.payload.side,
@@ -45,13 +48,19 @@ export function LowerThirdRenderer() {
 
           if (data.payload.duration) {
             hideTimeout.current = setTimeout(() => {
-              setState((prev) => ({ ...prev, visible: false }));
+              setState((prev) => ({ ...prev, animating: false }));
+              setTimeout(() => {
+                setState((prev) => ({ ...prev, visible: false }));
+              }, 500); // Wait for animation to complete
             }, data.payload.duration * 1000);
           }
         }
         break;
       case "hide":
-        setState((prev) => ({ ...prev, visible: false }));
+        setState((prev) => ({ ...prev, animating: false }));
+        setTimeout(() => {
+          setState((prev) => ({ ...prev, visible: false }));
+        }, 500); // Wait for animation to complete
         break;
       case "update":
         setState((prev) => ({
@@ -87,7 +96,7 @@ export function LowerThirdRenderer() {
       if (ws.current && (ws.current.readyState === WebSocket.OPEN || ws.current.readyState === WebSocket.CONNECTING)) {
         try {
           ws.current.close();
-        } catch (error) {
+        } catch {
           // Ignore close errors
         }
       }
@@ -149,7 +158,7 @@ export function LowerThirdRenderer() {
       if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
         try {
           ws.current.close(1000, "Component unmounting");
-        } catch (error) {
+        } catch {
           // Ignore close errors during cleanup
         }
       }
@@ -163,7 +172,7 @@ export function LowerThirdRenderer() {
   return (
     <div
       className={`lower-third lower-third-${state.side} ${
-        state.visible ? "animate-in" : "animate-out"
+        state.animating ? "animate-in" : "animate-out"
       }`}
     >
       <div
