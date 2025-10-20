@@ -2,6 +2,14 @@
 
 ## 🔄 Recent Updates
 
+### October 2025 - Guests Quick Lower Third ✅
+- ✅ Added "Quick LT" button on each guest (Assets page)
+- ✅ Created GuestsCard component for dashboard
+- ✅ Shows up to 5 guests with lightning button for instant lower third
+- ✅ 8-second auto-hide for quick guest introductions
+- ✅ Compact design with avatar circles and truncated text
+- ✅ Fixed empty avatarUrl validation error
+
 ### October 2025 - Countdown Add Time Feature ✅
 - ✅ Added "add-time" action to countdown backend
 - ✅ Added handler in CountdownRenderer for adding time
