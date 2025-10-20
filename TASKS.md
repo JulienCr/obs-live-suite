@@ -2,6 +2,30 @@
 
 ## 🔄 Recent Updates
 
+### October 2025 - OBS Settings Sync (UI ↔ Database ↔ .env) ✅
+- ✅ Created settings table in DatabaseService for persistent storage
+- ✅ Created SettingsService with priority: Database > .env file
+- ✅ Modified OBSConnectionManager to use SettingsService
+- ✅ API endpoints: GET/POST/DELETE /api/settings/obs
+- ✅ Updated OBSSettings UI:
+  - Shows source indicator (Database or .env)
+  - Test connection before saving
+  - Save to database (overrides .env)
+  - Clear button to revert to .env defaults
+- ✅ Settings saved in UI take priority over .env
+- ✅ Password field now functional and displayed
+
+### October 2025 - OBS Plugin Manager UI ✅
+- ✅ Created PluginSettings component with full plugin management UI
+- ✅ Added "Plugins" tab to settings page (5 tabs total now)
+- ✅ Display all installed plugins with name, version, kind (plugin/script)
+- ✅ Show update status badges (Update Available, Up to Date, Unknown)
+- ✅ "Scan Plugins" button to discover installed OBS plugins
+- ✅ "Check for Updates" button to query GitHub for latest releases
+- ✅ Release notes display for plugins with available updates
+- ✅ External links to GitHub releases for manual updates
+- ✅ Real-time loading states and error handling
+
 ### October 2025 - Guests Quick Lower Third ✅
 - ✅ Added "Quick LT" button on each guest (Assets page)
 - ✅ Created GuestsCard component for dashboard
@@ -94,10 +118,10 @@
 - OBS WebSocket integration with auto-reconnect
 - Real-time WebSocket communication
 - Stream Deck HTTP API endpoints
-- Plugin scanner and update checker
+- **Plugin scanner and update checker with full UI**
 - Macro execution engine
 - Server initialization and PM2 support
-- **Settings page with OBS, Backend, Paths, and Backup tabs**
+- **Settings page with OBS, Backend, Paths, Backup, and Plugins tabs**
 - **Assets Library for managing posters and guests**
 - **Profiles system for managing different shows**
 
