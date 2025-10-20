@@ -34,9 +34,9 @@ export function OBSSettings() {
 
   // Load current configuration
   useEffect(() => {
-    // Load from environment or backend
+    // Load default configuration
     const savedConfig = {
-      url: process.env.NEXT_PUBLIC_OBS_WEBSOCKET_URL || "ws://localhost:4455",
+      url: "ws://localhost:4455",
       password: "", // Never load password for security
     };
     setConfig(savedConfig);
