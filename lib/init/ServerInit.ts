@@ -2,6 +2,7 @@ import { WebSocketHub } from "../services/WebSocketHub";
 import { OBSConnectionManager } from "../adapters/obs/OBSConnectionManager";
 import { OBSStateManager } from "../adapters/obs/OBSStateManager";
 import { DatabaseService } from "../services/DatabaseService";
+import { ThemeService } from "../services/ThemeService";
 import { Logger } from "../utils/Logger";
 import { PathManager } from "../config/PathManager";
 
@@ -47,6 +48,11 @@ export class ServerInit {
       // Initialize database
       DatabaseService.getInstance();
       this.logger.info("✓ Database initialized");
+
+      // Initialize default themes
+      const themeService = ThemeService.getInstance();
+      await themeService.initializeDefaultThemes();
+      this.logger.info("✓ Default themes initialized");
 
       // Initialize WebSocket Hub
       const wsHub = WebSocketHub.getInstance();

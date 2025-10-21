@@ -32,6 +32,47 @@ export class DatabaseService {
   }
 
   /**
+   * Run database migrations
+   */
+  private runMigrations(): void {
+    // Check if layout columns exist in themes table
+    try {
+      const tableInfo = this.db.prepare("PRAGMA table_info(themes)").all() as any[];
+      const hasLowerThirdLayout = tableInfo.some((col) => col.name === "lowerThirdLayout");
+      const hasCountdownLayout = tableInfo.some((col) => col.name === "countdownLayout");
+      const hasPosterLayout = tableInfo.some((col) => col.name === "posterLayout");
+
+      if (!hasLowerThirdLayout) {
+        this.logger.info("Adding lowerThirdLayout column to themes table");
+        this.db.exec(`
+          ALTER TABLE themes ADD COLUMN lowerThirdLayout TEXT NOT NULL DEFAULT '{"x":60,"y":920,"scale":1}';
+        `);
+      }
+
+      if (!hasCountdownLayout) {
+        this.logger.info("Adding countdownLayout column to themes table");
+        this.db.exec(`
+          ALTER TABLE themes ADD COLUMN countdownLayout TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}';
+        `);
+      }
+
+      if (!hasPosterLayout) {
+        this.logger.info("Adding posterLayout column to themes table");
+        this.db.exec(`
+          ALTER TABLE themes ADD COLUMN posterLayout TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}';
+        `);
+      }
+
+      if (!hasLowerThirdLayout || !hasCountdownLayout || !hasPosterLayout) {
+        this.logger.info("Theme table migration completed");
+      }
+    } catch (error) {
+      this.logger.error("Migration error:", error);
+      // If themes table doesn't exist yet, that's fine - it will be created
+    }
+  }
+
+  /**
    * Initialize database tables
    */
   private initializeTables(): void {
@@ -65,8 +106,11 @@ export class DatabaseService {
         colors TEXT NOT NULL,
         lowerThirdTemplate TEXT NOT NULL,
         lowerThirdFont TEXT NOT NULL,
+        lowerThirdLayout TEXT NOT NULL DEFAULT '{"x":60,"y":920,"scale":1}',
         countdownStyle TEXT NOT NULL,
         countdownFont TEXT NOT NULL,
+        countdownLayout TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}',
+        posterLayout TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}',
         isGlobal INTEGER NOT NULL,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
@@ -141,6 +185,9 @@ export class DatabaseService {
     `);
 
     this.logger.info("Database tables initialized");
+    
+    // Run migrations after tables are created
+    this.runMigrations();
   }
 
   /**
@@ -455,6 +502,109 @@ export class DatabaseService {
     const stmt = this.db.prepare("DELETE FROM profiles WHERE id = ?");
     stmt.run(id);
   }
+
+  // ==================== THEMES ====================
+
+  /**
+   * Get all themes
+   */
+  getAllThemes(): unknown[] {
+    const stmt = this.db.prepare("SELECT * FROM themes ORDER BY isGlobal DESC, name ASC");
+    const rows = stmt.all();
+    return rows.map((row: any) => ({
+      ...row,
+      colors: JSON.parse(row.colors),
+      lowerThirdFont: JSON.parse(row.lowerThirdFont),
+      lowerThirdLayout: JSON.parse(row.lowerThirdLayout || '{"x":60,"y":920,"scale":1}'),
+      countdownFont: JSON.parse(row.countdownFont),
+      countdownLayout: JSON.parse(row.countdownLayout || '{"x":960,"y":540,"scale":1}'),
+      posterLayout: JSON.parse(row.posterLayout || '{"x":960,"y":540,"scale":1}'),
+      isGlobal: Boolean(row.isGlobal),
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    }));
+  }
+
+  /**
+   * Get theme by ID
+   */
+  getThemeById(id: string): unknown | null {
+    const stmt = this.db.prepare("SELECT * FROM themes WHERE id = ?");
+    const row = stmt.get(id) as any;
+    if (!row) return null;
+    return {
+      ...row,
+      colors: JSON.parse(row.colors),
+      lowerThirdFont: JSON.parse(row.lowerThirdFont),
+      lowerThirdLayout: JSON.parse(row.lowerThirdLayout || '{"x":60,"y":920,"scale":1}'),
+      countdownFont: JSON.parse(row.countdownFont),
+      countdownLayout: JSON.parse(row.countdownLayout || '{"x":960,"y":540,"scale":1}'),
+      posterLayout: JSON.parse(row.posterLayout || '{"x":960,"y":540,"scale":1}'),
+      isGlobal: Boolean(row.isGlobal),
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    };
+  }
+
+  /**
+   * Create a new theme
+   */
+  createTheme(theme: any): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO themes (id, name, colors, lowerThirdTemplate, lowerThirdFont, lowerThirdLayout, countdownStyle, countdownFont, countdownLayout, posterLayout, isGlobal, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      theme.id,
+      theme.name,
+      JSON.stringify(theme.colors),
+      theme.lowerThirdTemplate,
+      JSON.stringify(theme.lowerThirdFont),
+      JSON.stringify(theme.lowerThirdLayout || { x: 60, y: 920, scale: 1 }),
+      theme.countdownStyle,
+      JSON.stringify(theme.countdownFont),
+      JSON.stringify(theme.countdownLayout || { x: 960, y: 540, scale: 1 }),
+      JSON.stringify(theme.posterLayout || { x: 960, y: 540, scale: 1 }),
+      theme.isGlobal ? 1 : 0,
+      theme.createdAt.toISOString(),
+      theme.updatedAt.toISOString()
+    );
+  }
+
+  /**
+   * Update a theme
+   */
+  updateTheme(id: string, updates: any): void {
+    const stmt = this.db.prepare(`
+      UPDATE themes
+      SET name = ?, colors = ?, lowerThirdTemplate = ?, lowerThirdFont = ?, lowerThirdLayout = ?, countdownStyle = ?, countdownFont = ?, countdownLayout = ?, posterLayout = ?, isGlobal = ?, updatedAt = ?
+      WHERE id = ?
+    `);
+    stmt.run(
+      updates.name,
+      JSON.stringify(updates.colors),
+      updates.lowerThirdTemplate,
+      JSON.stringify(updates.lowerThirdFont),
+      JSON.stringify(updates.lowerThirdLayout || { x: 60, y: 920, scale: 1 }),
+      updates.countdownStyle,
+      JSON.stringify(updates.countdownFont),
+      JSON.stringify(updates.countdownLayout || { x: 960, y: 540, scale: 1 }),
+      JSON.stringify(updates.posterLayout || { x: 960, y: 540, scale: 1 }),
+      updates.isGlobal ? 1 : 0,
+      updates.updatedAt.toISOString(),
+      id
+    );
+  }
+
+  /**
+   * Delete a theme
+   */
+  deleteTheme(id: string): void {
+    const stmt = this.db.prepare("DELETE FROM themes WHERE id = ?");
+    stmt.run(id);
+  }
+
+  // ==================== SETTINGS ====================
 
   /**
    * Get a setting by key
