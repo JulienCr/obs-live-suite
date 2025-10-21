@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, Trash2, Check, Folder, Edit } from "lucide-react";
+import { Plus, Trash2, Check, Folder, Edit, X } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -17,20 +18,30 @@ interface Profile {
   createdAt: string;
 }
 
+interface Theme {
+  id: string;
+  name: string;
+  isGlobal: boolean;
+}
+
 /**
  * Profile management component
  */
 export function ProfileManager() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [themes, setThemes] = useState<Theme[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    themeId: "",
   });
 
   useEffect(() => {
     fetchProfiles();
+    fetchThemes();
   }, []);
 
   const fetchProfiles = async () => {
@@ -42,6 +53,20 @@ export function ProfileManager() {
       console.error("Failed to fetch profiles:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchThemes = async () => {
+    try {
+      const res = await fetch("/api/themes");
+      const data = await res.json();
+      setThemes(data.themes || []);
+      // Set default theme if not already set
+      if (data.themes && data.themes.length > 0 && !formData.themeId) {
+        setFormData(prev => ({ ...prev, themeId: data.themes[0].id }));
+      }
+    } catch (error) {
+      console.error("Failed to fetch themes:", error);
     }
   };
 
@@ -59,11 +84,49 @@ export function ProfileManager() {
       if (res.ok) {
         fetchProfiles();
         setShowForm(false);
-        setFormData({ name: "", description: "" });
+        setEditingProfile(null);
+        setFormData({ name: "", description: "", themeId: themes[0]?.id || "" });
       }
     } catch (error) {
       console.error("Failed to create profile:", error);
     }
+  };
+
+  const handleUpdate = async () => {
+    if (!editingProfile) return;
+
+    try {
+      const res = await fetch(`/api/profiles/${editingProfile.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        fetchProfiles();
+        setShowForm(false);
+        setEditingProfile(null);
+        setFormData({ name: "", description: "", themeId: themes[0]?.id || "" });
+      }
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+    }
+  };
+
+  const handleEdit = (profile: Profile) => {
+    setEditingProfile(profile);
+    setFormData({
+      name: profile.name,
+      description: profile.description || "",
+      themeId: profile.themeId,
+    });
+    setShowForm(true);
+  };
+
+  const handleCancelEdit = () => {
+    setShowForm(false);
+    setEditingProfile(null);
+    setFormData({ name: "", description: "", themeId: themes[0]?.id || "" });
   };
 
   const handleActivate = async (id: string) => {
@@ -105,11 +168,24 @@ export function ProfileManager() {
         </Button>
       </div>
 
-      {/* Create Form */}
+      {/* Create/Edit Form */}
       {showForm && (
         <Alert>
           <AlertDescription>
             <div className="space-y-4 mt-2">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-medium">
+                  {editingProfile ? "Edit Profile" : "Create New Profile"}
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelEdit}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="name">Profile Name</Label>
                 <Input
@@ -135,11 +211,35 @@ export function ProfileManager() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="theme">Theme</Label>
+                <Select
+                  id="theme"
+                  value={formData.themeId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, themeId: e.target.value })
+                  }
+                >
+                  {themes.length === 0 ? (
+                    <option value="">No themes available</option>
+                  ) : (
+                    themes.map((theme) => (
+                      <option key={theme.id} value={theme.id}>
+                        {theme.name} {theme.isGlobal ? "(Global)" : ""}
+                      </option>
+                    ))
+                  )}
+                </Select>
+              </div>
+
               <div className="flex gap-2">
-                <Button onClick={handleCreate} disabled={!formData.name}>
-                  Create Profile
+                <Button
+                  onClick={editingProfile ? handleUpdate : handleCreate}
+                  disabled={!formData.name || !formData.themeId}
+                >
+                  {editingProfile ? "Update Profile" : "Create Profile"}
                 </Button>
-                <Button variant="outline" onClick={() => setShowForm(false)}>
+                <Button variant="outline" onClick={handleCancelEdit}>
                   Cancel
                 </Button>
               </div>
@@ -209,7 +309,11 @@ export function ProfileManager() {
                     Activate
                   </Button>
                 )}
-                <Button variant="outline" size="sm">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEdit(profile)}
+                >
                   <Edit className="w-3 h-3 mr-2" />
                   Edit
                 </Button>
