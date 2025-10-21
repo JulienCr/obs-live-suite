@@ -7,11 +7,9 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "node scripts/dev-with-cleanup.js",
-    "dev:simple": "concurrently \"pnpm:dev:backend\" \"pnpm:dev:frontend\" --names \"BACKEND,NEXT\" --prefix-colors \"blue,green\" --kill-others",
+    "dev": "concurrently \"pnpm:dev:backend\" \"pnpm:dev:frontend\" --names \"BACKEND,NEXT\" --prefix-colors \"blue,green\" --kill-others",
     "dev:frontend": "next dev",
     "dev:backend": "tsx watch server/backend.ts",
-    "cleanup-ports": "node scripts/cleanup-ports.js",
     "backend": "tsx server/backend.ts",
     "build": "next build",
     "start": "next start",
@@ -48,6 +46,7 @@
     "express": "^5.1.0",
     "lucide-react": "^0.445.0",
     "next": "^15.5.6",
+    "next-themes": "^0.4.6",
     "node-cron": "^3.0.3",
     "obs-websocket-js": "^5.0.5",
     "react": "^19.2.0",
