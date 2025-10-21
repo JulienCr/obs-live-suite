@@ -7,6 +7,7 @@ import "./poster.css";
 interface PosterData {
   fileUrl: string;
   isVideo: boolean;
+  offsetX?: number; // Horizontal offset from center (960px = center)
 }
 
 interface PosterState {
@@ -56,7 +57,11 @@ export function PosterRenderer() {
           const newPoster: PosterData = {
             fileUrl: data.payload.fileUrl,
             isVideo,
+            offsetX: data.payload.theme?.layout?.x, // Extract horizontal offset from theme
           };
+          
+          console.log("[PosterRenderer] Received theme data:", data.payload.theme);
+          console.log("[PosterRenderer] Offset X:", newPoster.offsetX);
 
           setState((prev) => {
             // Cross-fade: move current to previous if there's a current poster
@@ -215,11 +220,36 @@ export function PosterRenderer() {
   }
 
   const renderPoster = (posterData: PosterData, className: string) => {
+    // Calculate horizontal position as percentage of screen width
+    // Center = 50%, offsetX in pixels from 0-1920
+    const horizontalPercent = posterData.offsetX !== undefined 
+      ? (posterData.offsetX / 1920) * 100 
+      : 50; // Default to center (50%)
+    
+    console.log("[PosterRenderer] Rendering with offsetX:", posterData.offsetX, "horizontalPercent:", horizontalPercent);
+    
+    // Apply positioning to the media element itself
+    const mediaStyle: React.CSSProperties = posterData.offsetX !== undefined ? {
+      position: 'absolute',
+      left: `${horizontalPercent}%`,
+      top: '50%',
+      transform: 'translate(-50%, -50%)',
+      maxWidth: '90%',
+      height: '90%',
+      objectFit: 'contain',
+      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
+      borderRadius: '8px',
+    } : {};
+    
     return (
-      <div key={posterData.fileUrl} className={className}>
+      <div 
+        key={posterData.fileUrl} 
+        className={className}
+      >
         {posterData.isVideo ? (
           <video
-            className="poster-media"
+            className={posterData.offsetX !== undefined ? '' : 'poster-media'}
+            style={mediaStyle}
             src={posterData.fileUrl}
             autoPlay
             loop
@@ -229,7 +259,8 @@ export function PosterRenderer() {
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            className="poster-media"
+            className={posterData.offsetX !== undefined ? '' : 'poster-media'}
+            style={mediaStyle}
             src={posterData.fileUrl}
             alt="Poster"
           />

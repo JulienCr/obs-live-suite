@@ -1,13 +1,43 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { CountdownDisplay } from "./CountdownDisplay";
 import "./countdown.css";
+
+interface ThemeData {
+  colors: {
+    primary: string;
+    accent: string;
+    surface: string;
+    text: string;
+    success: string;
+    warn: string;
+  };
+  style: string;
+  font: {
+    family: string;
+    size: number;
+    weight: number;
+  };
+  layout?: {
+    x: number;
+    y: number;
+    scale: number;
+  };
+}
 
 interface CountdownState {
   visible: boolean;
   seconds: number;
   isRunning: boolean;
   style: "bold" | "corner" | "banner";
+  position?: { x: number; y: number };
+  format?: "mm:ss" | "hh:mm:ss" | "seconds";
+  size?: { scale: number };
+  theme?: ThemeData & {
+    color?: string;
+    shadow?: boolean;
+  };
 }
 
 /**
@@ -24,13 +54,23 @@ export function CountdownRenderer() {
   const ws = useRef<WebSocket | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  const handleEvent = useCallback((data: { type: string; payload?: { seconds: number }; id: string }) => {
+  const handleEvent = useCallback((data: { type: string; payload?: any; id: string }) => {
     switch (data.type) {
       case "set":
+        const themeStyle = data.payload?.style || data.payload?.theme?.style || "bold";
         setState((prev) => ({
           ...prev,
           seconds: data.payload?.seconds ?? 0,
           visible: true,
+          style: themeStyle as "bold" | "corner" | "banner",
+          position: data.payload?.position,
+          format: data.payload?.format || "mm:ss",
+          size: data.payload?.size,
+          theme: {
+            ...data.payload?.theme,
+            color: data.payload?.theme?.color,
+            shadow: data.payload?.theme?.shadow,
+          },
         }));
         break;
       case "start":
@@ -45,6 +85,22 @@ export function CountdownRenderer() {
           seconds: 0,
           isRunning: false,
           visible: false,
+        }));
+        break;
+      case "update":
+        const updateThemeStyle = data.payload?.style || data.payload?.theme?.style || "bold";
+        setState((prev) => ({
+          ...prev,
+          style: updateThemeStyle as "bold" | "corner" | "banner",
+          position: data.payload?.position || prev.position,
+          format: data.payload?.format || prev.format,
+          size: data.payload?.size || prev.size,
+          theme: {
+            ...prev.theme,
+            ...data.payload?.theme,
+            color: data.payload?.theme?.color || prev.theme?.color,
+            shadow: data.payload?.theme?.shadow !== undefined ? data.payload.theme.shadow : prev.theme?.shadow,
+          },
         }));
         break;
       case "add-time":
@@ -176,25 +232,31 @@ export function CountdownRenderer() {
     };
   }, [state.isRunning, state.seconds]);
 
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
   if (!state.visible) {
     return null;
   }
 
+  console.log("[Countdown] Rendering with theme:", {
+    hasTheme: !!state.theme,
+    colors: state.theme?.colors,
+    font: state.theme?.font,
+    layout: state.theme?.layout,
+    style: state.style,
+    position: state.position,
+    format: state.format,
+    size: state.size,
+  });
+
   return (
-    <div className={`countdown countdown-${state.style}`}>
-      <div className="countdown-time">{formatTime(state.seconds)}</div>
-      {state.seconds <= 10 && state.seconds > 0 && (
-        <div className="countdown-warning">URGENT</div>
-      )}
-    </div>
+    <CountdownDisplay
+      seconds={state.seconds}
+      style={state.style}
+      position={state.position}
+      format={state.format}
+      size={state.size}
+      theme={state.theme}
+      isPreview={false}
+    />
   );
 }
 

@@ -4,6 +4,28 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { LowerThirdShowPayload } from "@/lib/models/OverlayEvents";
 import "./lower-third.css";
 
+interface ThemeData {
+  colors: {
+    primary: string;
+    accent: string;
+    surface: string;
+    text: string;
+    success: string;
+    warn: string;
+  };
+  template: string;
+  font: {
+    family: string;
+    size: number;
+    weight: number;
+  };
+  layout?: {
+    x: number;
+    y: number;
+    scale: number;
+  };
+}
+
 interface LowerThirdState {
   visible: boolean;
   animating: boolean;
@@ -12,6 +34,7 @@ interface LowerThirdState {
   side: "left" | "right";
   accentColor: string;
   avatarUrl?: string;
+  theme?: ThemeData;
 }
 
 /**
@@ -39,14 +62,23 @@ export function LowerThirdRenderer() {
       case "show":
         if (data.payload) {
           console.log("[LowerThird] Received show payload:", data.payload);
+          console.log("[LowerThird] Has theme?", !!data.payload.theme);
+          if (data.payload.theme) {
+            console.log("[LowerThird] Theme data:", {
+              colors: data.payload.theme.colors,
+              font: data.payload.theme.font,
+              layout: data.payload.theme.layout,
+            });
+          }
           setState({
             visible: true,
             animating: true,
             title: data.payload.title,
             subtitle: data.payload.subtitle,
             side: data.payload.side,
-            accentColor: data.payload.accentColor || "#3b82f6",
+            accentColor: data.payload.accentColor || data.payload.theme?.colors?.primary || "#3b82f6",
             avatarUrl: data.payload.avatarUrl,
+            theme: data.payload.theme,
           });
 
           if (data.payload.duration) {
@@ -174,30 +206,78 @@ export function LowerThirdRenderer() {
     return null;
   }
 
+  // Apply theme styles
+  const layout = state.theme?.layout || { x: 60, y: 920, scale: 1 };
+  
+  // Use theme colors if available, otherwise fall back to accentColor
+  const accentColor = state.theme?.colors.primary || state.accentColor;
+  const backgroundColor = state.theme 
+    ? `linear-gradient(90deg, ${state.theme.colors.surface}E6 0%, ${state.theme.colors.surface}D9 100%)`
+    : "linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.85) 100%)";
+  
+  const containerStyle: React.CSSProperties = {
+    background: backgroundColor,
+    // Apply layout positioning
+    left: `${layout.x}px`,
+    bottom: `${1080 - layout.y}px`,
+    transform: `translateY(100%) scale(${layout.scale})`,
+    transformOrigin: "bottom left",
+  };
+
+  const titleStyle: React.CSSProperties = state.theme ? {
+    fontFamily: state.theme.font.family,
+    fontSize: `${state.theme.font.size}px`,
+    fontWeight: state.theme.font.weight,
+    color: state.theme.colors.text,
+  } : {
+    fontFamily: "inherit",
+    fontSize: "28px",
+    fontWeight: 700,
+    color: "white",
+  };
+
+  const subtitleStyle: React.CSSProperties = state.theme ? {
+    fontFamily: state.theme.font.family,
+    fontSize: `${Math.round(state.theme.font.size * 0.64)}px`,
+    fontWeight: Math.max(400, state.theme.font.weight - 200),
+    color: state.theme.colors.text,
+  } : {
+    fontFamily: "inherit",
+    fontSize: "18px",
+    fontWeight: 400,
+    color: "rgba(255, 255, 255, 0.9)",
+  };
+
+  console.log("[LowerThird] Rendering with theme:", {
+    hasTheme: !!state.theme,
+    colors: state.theme?.colors,
+    font: state.theme?.font,
+    layout: layout,
+  });
+
   return (
     <div
-      className={`lower-third lower-third-${state.side} ${
-        state.animating ? "animate-in" : "animate-out"
-      }`}
+      className={`lower-third ${state.animating ? "animate-in" : "animate-out"}`}
+      style={containerStyle}
     >
       <div
         className="lower-third-accent"
-        style={{ backgroundColor: state.accentColor }}
+        style={{ backgroundColor: accentColor }}
       />
       {state.avatarUrl && state.avatarUrl !== "" && state.avatarUrl !== "null" && (
         <div className="lower-third-avatar-container">
           <div 
             className="lower-third-avatar"
-            style={{ borderColor: state.accentColor }}
+            style={{ borderColor: accentColor }}
           >
             <img src={state.avatarUrl} alt={state.title} />
           </div>
         </div>
       )}
       <div className="lower-third-content">
-        <div className="lower-third-title">{state.title}</div>
+        <div className="lower-third-title" style={titleStyle}>{state.title}</div>
         {state.subtitle && (
-          <div className="lower-third-subtitle">{state.subtitle}</div>
+          <div className="lower-third-subtitle" style={subtitleStyle}>{state.subtitle}</div>
         )}
       </div>
     </div>
