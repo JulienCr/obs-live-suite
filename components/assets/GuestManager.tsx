@@ -135,20 +135,12 @@ export function GuestManager() {
 
   const handleQuickLowerThird = async (guest: Guest) => {
     try {
-      // Send lower third with auto-hide after 8 seconds
-      await fetch("/api/overlays/lower", {
+      // Use the same endpoint as Stream Deck plugin (has theme enrichment)
+      await fetch(`/api/actions/lower/guest/${guest.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "show",
-          payload: {
-            title: guest.displayName,
-            subtitle: guest.subtitle || "",
-            side: "left",
-            duration: 8, // Auto-hide after 8 seconds
-            avatarUrl: guest.avatarUrl,
-            accentColor: guest.accentColor,
-          },
+          duration: 8, // Auto-hide after 8 seconds
         }),
       });
     } catch (error) {
