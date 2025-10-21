@@ -27,6 +27,8 @@ export enum CountdownEventType {
   START = "start",
   PAUSE = "pause",
   RESET = "reset",
+  UPDATE = "update",
+  ADD_TIME = "add-time",
   TICK = "tick",
 }
 
@@ -60,7 +62,24 @@ export type LowerThirdShowPayload = z.infer<typeof lowerThirdShowPayloadSchema>;
  */
 export const countdownSetPayloadSchema = z.object({
   seconds: z.number().int().positive(),
-  style: z.string().optional(),
+  style: z.enum(["bold", "corner", "banner"]).optional(),
+  position: z.object({
+    x: z.number(),
+    y: z.number(),
+  }).optional(),
+  format: z.enum(["mm:ss", "hh:mm:ss", "seconds"]).optional(),
+  size: z.object({
+    scale: z.number().min(0.1).max(5),
+  }).optional(),
+  theme: z.object({
+    color: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+    font: z.object({
+      family: z.string(),
+      size: z.number().int().positive(),
+      weight: z.number().int().min(100).max(900),
+    }).optional(),
+    shadow: z.boolean().optional(),
+  }).optional(),
 });
 
 export type CountdownSetPayload = z.infer<typeof countdownSetPayloadSchema>;
@@ -73,6 +92,13 @@ export const posterShowPayloadSchema = z.object({
   fileUrl: z.string(),
   transition: z.enum(["fade", "slide", "cut", "blur"]).default("fade"),
   duration: z.number().int().positive().optional(),
+  theme: z.object({
+    layout: z.object({
+      x: z.number(),
+      y: z.number(),
+      scale: z.number(),
+    }),
+  }).optional(),
 });
 
 export type PosterShowPayload = z.infer<typeof posterShowPayloadSchema>;

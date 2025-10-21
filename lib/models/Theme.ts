@@ -45,6 +45,19 @@ export enum CountdownStyle {
 }
 
 /**
+ * Layout configuration for overlays
+ */
+export const layoutConfigSchema = z.object({
+  x: z.number().default(60),
+  y: z.number().default(0),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  scale: z.number().min(0.5).max(2).default(1),
+});
+
+export type LayoutConfig = z.infer<typeof layoutConfigSchema>;
+
+/**
  * Theme schema
  */
 export const themeSchema = z.object({
@@ -53,8 +66,11 @@ export const themeSchema = z.object({
   colors: colorSchemaSchema,
   lowerThirdTemplate: z.nativeEnum(LowerThirdTemplate),
   lowerThirdFont: fontConfigSchema,
+  lowerThirdLayout: layoutConfigSchema.default({ x: 60, y: 920, scale: 1 }),
   countdownStyle: z.nativeEnum(CountdownStyle),
   countdownFont: fontConfigSchema,
+  countdownLayout: layoutConfigSchema.default({ x: 960, y: 540, scale: 1 }),
+  posterLayout: layoutConfigSchema.default({ x: 960, y: 540, scale: 1 }), // x is horizontal offset from center
   isGlobal: z.boolean().default(false),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
