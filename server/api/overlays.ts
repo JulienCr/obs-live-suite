@@ -3,6 +3,7 @@
  */
 import { Router } from "express";
 import { ChannelManager } from "../../lib/services/ChannelManager";
+import { DatabaseService } from "../../lib/services/DatabaseService";
 import { 
   LowerThirdEventType, 
   CountdownEventType, 
@@ -10,9 +11,11 @@ import {
   OverlayChannel 
 } from "../../lib/models/OverlayEvents";
 import { lowerThirdShowPayloadSchema } from "../../lib/models/OverlayEvents";
+import { enrichLowerThirdPayload, enrichCountdownPayload, enrichPosterPayload } from "../../lib/utils/themeEnrichment";
 
 const router = Router();
 const channelManager = ChannelManager.getInstance();
+const db = DatabaseService.getInstance();
 
 /**
  * POST /api/overlays/lower
@@ -26,8 +29,12 @@ router.post("/lower", async (req, res) => {
       case "show":
         console.log("[Backend] Received lower third show payload:", payload);
         const validated = lowerThirdShowPayloadSchema.parse(payload);
-        console.log("[Backend] Validated payload:", validated);
-        await channelManager.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, validated);
+        
+        // Enrich with theme data using shared utility
+        const enrichedPayload = enrichLowerThirdPayload(validated, db);
+        console.log("[Backend] Enriched with theme:", !!enrichedPayload.theme);
+        
+        await channelManager.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, enrichedPayload);
         break;
 
       case "hide":
@@ -56,10 +63,15 @@ router.post("/lower", async (req, res) => {
 router.post("/countdown", async (req, res) => {
   try {
     const { action, payload } = req.body;
+    console.log("[Backend] /countdown endpoint hit - action:", action);
 
     switch (action) {
       case "set":
-        await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.SET, payload);
+        // Enrich with theme data using shared utility
+        const enrichedPayload = enrichCountdownPayload(payload, db);
+        console.log("[Backend] Enriched countdown with theme:", !!enrichedPayload.theme);
+        
+        await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.SET, enrichedPayload);
         break;
 
       case "start":
@@ -74,8 +86,28 @@ router.post("/countdown", async (req, res) => {
         await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.RESET);
         break;
 
+      case "update":
+        console.log("[Backend] Received countdown update:", payload);
+        try {
+          // Enrich with theme data using shared utility
+          const enrichedUpdatePayload = enrichCountdownPayload(payload || {}, db);
+          console.log("[Backend] Enriched countdown update with theme:", !!enrichedUpdatePayload.theme);
+          
+          await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.UPDATE, enrichedUpdatePayload);
+        } catch (enrichError) {
+          console.error("[Backend] Error enriching countdown update:", enrichError);
+          // Send update without enrichment if enrichment fails
+          await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.UPDATE, payload || {});
+        }
+        break;
+
+      case "add-time":
+        await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.ADD_TIME, payload);
+        break;
+
       default:
-        return res.status(400).json({ error: "Invalid action" });
+        console.log("[Backend] ❌ UNKNOWN ACTION:", action, "- Available: set, start, pause, reset, update, add-time");
+        return res.status(400).json({ error: `Invalid action: ${action}. Available: set, start, pause, reset, update, add-time` });
     }
 
     res.json({ success: true });
@@ -95,7 +127,11 @@ router.post("/poster", async (req, res) => {
 
     switch (action) {
       case "show":
-        await channelManager.publish(OverlayChannel.POSTER, PosterEventType.SHOW, payload);
+        // Enrich with theme data using shared utility
+        const enrichedPayload = enrichPosterPayload(payload, db);
+        console.log("[Backend] Enriched poster with theme:", !!enrichedPayload.theme);
+        
+        await channelManager.publish(OverlayChannel.POSTER, PosterEventType.SHOW, enrichedPayload);
         break;
 
       case "hide":

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { BackendClient } from "@/lib/utils/BackendClient";
 import { LowerThirdEventType, OverlayChannel } from "@/lib/models/OverlayEvents";
+import { enrichLowerThirdPayload } from "@/lib/utils/themeEnrichment";
 
 /**
  * POST /api/actions/lower/guest/[id]
@@ -27,15 +28,20 @@ export async function POST(
     const body = await request.json().catch(() => ({}));
     const duration = body.duration || 8;
 
-    await BackendClient.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, {
+    // Build base payload and enrich with theme data using shared utility
+    const basePayload = {
       title: guest.displayName,
       subtitle: guest.subtitle || "",
-      side: "left",
-      themeId: "default",
+      side: "left" as const,
       duration,
       avatarUrl: guest.avatarUrl,
       accentColor: guest.accentColor,
-    });
+    };
+
+    const enrichedPayload = enrichLowerThirdPayload(basePayload, db);
+    console.log("[GuestAction] Publishing with theme:", !!enrichedPayload.theme);
+    
+    await BackendClient.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, enrichedPayload);
 
     return NextResponse.json({ 
       success: true, 

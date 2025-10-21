@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
+import { enrichPosterPayload } from "@/lib/utils/themeEnrichment";
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 
@@ -23,16 +24,22 @@ export async function POST(
       );
     }
 
+    // Build base payload and enrich with theme data
+    const basePayload = {
+      posterId: id,
+      fileUrl: poster.fileUrl,
+      transition: 'fade' as const,
+    };
+    
+    const enrichedPayload = enrichPosterPayload(basePayload, db);
+    console.log("[PosterAction] Publishing with theme:", !!enrichedPayload.theme);
+
     const response = await fetch(`${BACKEND_URL}/api/overlays/poster`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'show',
-        payload: {
-          posterId: id,
-          fileUrl: poster.fileUrl,
-          transition: 'fade'
-        },
+        payload: enrichedPayload,
       }),
     });
 

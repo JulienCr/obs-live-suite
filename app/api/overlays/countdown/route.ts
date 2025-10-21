@@ -9,6 +9,7 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log("[Countdown Proxy] Forwarding request:", body.action);
     
     const response = await fetch(`${BACKEND_URL}/api/overlays/countdown`, {
       method: 'POST',
@@ -19,6 +20,7 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     
     if (!response.ok) {
+      console.error("[Countdown Proxy] Backend error:", response.status, data);
       return NextResponse.json(data, { status: response.status });
     }
 
