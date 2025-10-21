@@ -62,3 +62,4 @@ next-env.d.ts
 .vercel
 .turbo
 
+.cursor/rules/mcp.json

@@ -5,10 +5,11 @@ A desktop-first web application for managing live show overlays, Stream Deck int
 ## Features
 
 - **Overlay Control Suite**: Lower thirds, countdown timers, theatre posters
+- **Theme Customization**: Live preview theme editor with colors, fonts, and styles
 - **Real-Time Dashboard**: One-page control surface with hot presets
 - **Stream Deck Integration**: HTTP API for button mapping
 - **OBS Extensions Updater**: Plugin/script version management
-- **Profiles**: Save and load complete show setups
+- **Profiles**: Save and load complete show setups with themes
 - **Macro System**: Automated action sequences
 
 ## Requirements
@@ -55,6 +56,42 @@ The server will automatically:
    - Poster: `http://localhost:3000/overlays/poster`
    - Set size: 1920x1080, check "Shutdown source when not visible"
 
+## Theming System
+
+Customize the appearance and positioning of your overlays with the built-in theme editor:
+
+1. Navigate to **Assets** page → **Themes** section
+2. Click **New Theme** or edit an existing one
+3. Customize in real-time with **interactive 16:9 canvas preview**:
+   - **Colors**: Primary, accent, surface, text, success, warn
+   - **Lower Third**: Choose from Classic, Bar, Card, or Slide templates
+   - **Countdown**: Choose from Bold (center), Corner, or Banner (top) styles
+   - **Fonts**: Family, size, and weight for both overlays
+   - **Position**: Drag overlays on canvas to position them precisely
+   - **Scale**: Use +/- buttons to resize overlays (50%-200%)
+
+The **interactive canvas** shows a true 16:9 aspect ratio (1920x1080) with:
+- Drag & drop positioning with pixel coordinates
+- Real-time preview as you edit
+- Grid lines and center guides for alignment
+- Scale controls for each overlay
+- Exact pixel coordinate display
+- **Undo/Redo** with Ctrl+Z / Ctrl+Y keyboard shortcuts
+- History of up to 50 layout changes
+
+**5 Pre-built Themes Included:**
+- Modern Blue (Classic + Bold)
+- Vibrant Purple (Bar + Corner)
+- Elegant Red (Card + Banner)
+- Clean Green (Slide + Bold)
+- Dark Mode (Classic + Corner)
+
+**Applying Themes:**
+- **Quick Apply**: Click "Apply to Active Profile" on any theme card
+- **Profile Assignment**: Select theme when creating/editing profiles
+- **Active Badge**: See which theme is currently in use
+- Overlays automatically update when you switch themes
+
 ## Production Deployment
 
 1. Build the application:
@@ -86,7 +123,7 @@ pnpm start:prod
 ## Architecture
 
 - **Framework**: Next.js 14+ (App Router)
-- **UI**: Tailwind CSS + shadcn/ui
+- **UI**: Tailwind CSS + shadcn/ui (dark mode default)
 - **OBS Integration**: obs-websocket-js v5
 - **Real-time**: WebSocket (ws)
 - **Database**: better-sqlite3

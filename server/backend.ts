@@ -3,6 +3,7 @@
  * Standalone Backend Server
  * Runs WebSocket hub and OBS connection independently from Next.js
  * Exposes HTTP API for Next.js to publish messages
+ * Updated: Added countdown UPDATE action support
  */
 
 // Load environment variables from .env file
@@ -133,6 +134,7 @@ class BackendServer {
           case "start": type = "start"; break;
           case "pause": type = "pause"; break;
           case "reset": type = "reset"; break;
+          case "update": type = "update"; break;
           case "add-time": type = "add-time"; break;
           default: return res.status(400).json({ error: "Invalid action" });
         }
