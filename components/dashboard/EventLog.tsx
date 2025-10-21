@@ -20,7 +20,7 @@ export function EventLog() {
   const [events] = useState<LogEvent[]>([
     {
       id: "1",
-      timestamp: new Date(),
+      timestamp: new Date("2024-01-01T12:00:00Z"), // Fixed timestamp to prevent hydration mismatch
       action: "Lower Third Shown",
       details: "John Doe - Host",
     },

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Play, Square, Circle, Settings, Image, Folder } from "lucide-react";
+import { Settings, Image, Folder, Radio, LayoutDashboard } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface OBSStatus {
   connected: boolean;
@@ -61,104 +62,61 @@ export function DashboardHeader() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleStreamToggle = async () => {
-    try {
-      const endpoint = status.isStreaming ? "/api/obs/stream/stop" : "/api/obs/stream/start";
-      await fetch(endpoint, { method: "POST" });
-      // Status will update on next poll
-    } catch (error) {
-      console.error("Failed to toggle stream:", error);
-    }
-  };
-
-  const handleRecordToggle = async () => {
-    try {
-      const endpoint = status.isRecording ? "/api/obs/record/stop" : "/api/obs/record/start";
-      await fetch(endpoint, { method: "POST" });
-      // Status will update on next poll
-    } catch (error) {
-      console.error("Failed to toggle record:", error);
-    }
-  };
+  const isOnAir = status.isStreaming || status.isRecording;
 
   return (
     <header className="border-b bg-card">
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-2.5">
         <div className="flex items-center justify-between">
           {/* Left: OBS Status */}
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold">OBS Live Suite</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold">OBS Live Suite</h1>
             
-            <Badge variant={status.connected ? "default" : "destructive"}>
+            <Badge variant={status.connected ? "default" : "destructive"} className="text-xs px-2 py-0.5">
               {status.connected ? "Connected" : "Disconnected"}
             </Badge>
 
             {status.currentScene && (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 Scene: <span className="font-medium">{status.currentScene}</span>
               </div>
             )}
           </div>
 
-          {/* Center: Stream/Record Controls */}
+          {/* Center: ON AIR Indicator */}
           <div className="flex items-center gap-2">
-            <Button
-              variant={status.isStreaming ? "destructive" : "default"}
-              size="sm"
-              onClick={handleStreamToggle}
-              disabled={!status.connected}
-            >
-              {status.isStreaming ? (
-                <>
-                  <Square className="w-4 h-4 mr-2" />
-                  Stop Stream
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 mr-2" />
-                  Start Stream
-                </>
-              )}
-            </Button>
-
-            <Button
-              variant={status.isRecording ? "destructive" : "outline"}
-              size="sm"
-              onClick={handleRecordToggle}
-              disabled={!status.connected}
-            >
-              {status.isRecording ? (
-                <>
-                  <Square className="w-4 h-4 mr-2" />
-                  Stop Recording
-                </>
-              ) : (
-                <>
-                  <Circle className="w-4 h-4 mr-2" />
-                  Start Recording
-                </>
-              )}
-            </Button>
+            {isOnAir && (
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-red-500 text-white rounded text-xs font-bold animate-pulse">
+                <Radio className="w-3.5 h-3.5" />
+                <span>ON AIR</span>
+              </div>
+            )}
           </div>
 
-          {/* Right: Clock and Actions */}
-          <div className="flex items-center gap-4">
-            <div className="text-sm font-mono" suppressHydrationWarning>
+          {/* Right: Clock and Navigation */}
+          <div className="flex items-center gap-2">
+            <div className="text-xs font-mono" suppressHydrationWarning>
               {currentTime.toLocaleTimeString()}
             </div>
+            <ThemeToggle />
+            <Link href="/dashboard">
+              <Button variant="ghost" size="sm" title="Dashboard">
+                <LayoutDashboard className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
             <Link href="/profiles">
               <Button variant="ghost" size="sm" title="Profiles">
-                <Folder className="w-4 h-4" />
+                <Folder className="w-3.5 h-3.5" />
               </Button>
             </Link>
             <Link href="/assets">
               <Button variant="ghost" size="sm" title="Assets">
-                <Image className="w-4 h-4" />
+                <Image className="w-3.5 h-3.5" />
               </Button>
             </Link>
             <Link href="/settings">
               <Button variant="ghost" size="sm" title="Settings">
-                <Settings className="w-4 h-4" />
+                <Settings className="w-3.5 h-3.5" />
               </Button>
             </Link>
           </div>

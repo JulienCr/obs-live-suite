@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Play, Pause, RotateCcw, Plus } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Play, Pause, RotateCcw, Plus, Settings } from "lucide-react";
 
 /**
  * CountdownCard - Control card for countdown timer
@@ -14,6 +16,34 @@ export function CountdownCard() {
   const [minutes, setMinutes] = useState(5);
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  
+  // Customization options
+  const [style, setStyle] = useState<"bold" | "corner" | "banner">("bold");
+  const [format, setFormat] = useState<"mm:ss" | "hh:mm:ss" | "seconds">("mm:ss");
+  const [position, setPosition] = useState({ x: 960, y: 540 });
+  const [scale, setScale] = useState(1);
+  const [color, setColor] = useState("#3b82f6");
+  const [fontFamily, setFontFamily] = useState("Courier New, monospace");
+  const [fontSize, setFontSize] = useState(80);
+  const [fontWeight, setFontWeight] = useState(900);
+  const [shadow, setShadow] = useState(true);
+
+  // Throttling for updates
+  const updateTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Position presets for 1920x1080 resolution (arranged logically: top row, middle row, bottom row)
+  const positionPresets = [
+    { name: "Top Left", x: 200, y: 150 },
+    { name: "Top Center", x: 960, y: 150 },
+    { name: "Top Right", x: 1720, y: 150 },
+    { name: "Middle Left", x: 200, y: 540 },
+    { name: "Center", x: 960, y: 540 },
+    { name: "Middle Right", x: 1720, y: 540 },
+    { name: "Bottom Left", x: 200, y: 930 },
+    { name: "Bottom Center", x: 960, y: 930 },
+    { name: "Bottom Right", x: 1720, y: 930 },
+  ];
 
   const presets = [
     { label: "10:00", value: 600 },
@@ -29,14 +59,102 @@ export function CountdownCard() {
     setSeconds(secs);
   };
 
+  const handlePositionPreset = (preset: { name: string; x: number; y: number }) => {
+    setPosition({ x: preset.x, y: preset.y });
+  };
+
+  // Watch for changes in settings and update countdown in real-time (throttled)
+  useEffect(() => {
+    if (isRunning) {
+      // Clear previous timeout
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+
+      // Throttle updates to prevent too many rapid calls
+      updateTimeoutRef.current = setTimeout(() => {
+        const updatePayload = {
+          style,
+          format,
+          position,
+          size: { scale },
+          theme: {
+            color,
+            font: {
+              family: fontFamily,
+              size: fontSize,
+              weight: fontWeight,
+            },
+            shadow,
+          },
+        };
+        sendCountdownUpdate(updatePayload);
+      }, 100); // 100ms throttle
+    }
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [style, format, position, scale, color, fontFamily, fontSize, fontWeight, shadow]);
+
+  const sendCountdownUpdate = async (updatePayload: any) => {
+    try {
+      console.log("[Frontend] Sending countdown update:", updatePayload);
+      const response = await fetch("/api/overlays/countdown", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update", payload: updatePayload }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        // If backend doesn't support "update" action yet, silently ignore
+        if (response.status === 400 && errorData.error === "Invalid action") {
+          console.warn("[Frontend] Backend doesn't support 'update' action yet. Please restart the backend server to enable real-time updates.");
+          return;
+        }
+        
+        console.error("[Frontend] Update failed:", response.status, errorData);
+        throw new Error(`Failed to update countdown: ${response.status} ${errorData.error || response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log("[Frontend] Update successful:", result);
+    } catch (error) {
+      console.error("Error updating countdown:", error);
+    }
+  };
+
   const handleStart = async () => {
     try {
       const totalSeconds = minutes * 60 + seconds;
       
+      const payload = {
+        seconds: totalSeconds,
+        style,
+        format,
+        position,
+        size: { scale },
+        theme: {
+          color,
+          font: {
+            family: fontFamily,
+            size: fontSize,
+            weight: fontWeight,
+          },
+          shadow,
+        },
+      };
+      
       const response = await fetch("/api/actions/countdown/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seconds: totalSeconds }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -201,6 +319,161 @@ export function CountdownCard() {
             <Plus className="w-4 h-4 mr-2" />
             Ajouter 30 secondes
           </Button>
+        )}
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="w-full"
+        >
+          <Settings className="w-4 h-4 mr-2" />
+          {showAdvanced ? "Hide" : "Show"} Advanced Options
+        </Button>
+
+        {showAdvanced && (
+          <div className="space-y-4 border-t pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Style</Label>
+                <Select value={style} onValueChange={(value: "bold" | "corner" | "banner") => setStyle(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bold">Bold</SelectItem>
+                    <SelectItem value="corner">Corner</SelectItem>
+                    <SelectItem value="banner">Banner</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Format</Label>
+                <Select value={format} onValueChange={(value: "mm:ss" | "hh:mm:ss" | "seconds") => setFormat(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mm:ss">MM:SS</SelectItem>
+                    <SelectItem value="hh:mm:ss">HH:MM:SS</SelectItem>
+                    <SelectItem value="seconds">Seconds</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Position Presets</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {positionPresets.map((preset) => (
+                  <Button
+                    key={preset.name}
+                    variant={position.x === preset.x && position.y === preset.y ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePositionPreset(preset)}
+                    className="text-xs"
+                  >
+                    {preset.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Position X</Label>
+                <Input
+                  type="number"
+                  value={position.x}
+                  onChange={(e) => setPosition(prev => ({ ...prev, x: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Position Y</Label>
+                <Input
+                  type="number"
+                  value={position.y}
+                  onChange={(e) => setPosition(prev => ({ ...prev, y: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Scale: {scale}x</Label>
+              <Input
+                type="range"
+                min="0.1"
+                max="3"
+                step="0.1"
+                value={scale}
+                onChange={(e) => setScale(parseFloat(e.target.value))}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Color</Label>
+                <Input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Font Size</Label>
+                <Input
+                  type="number"
+                  min="12"
+                  max="200"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(parseInt(e.target.value) || 80)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Font Family</Label>
+              <Select value={fontFamily} onValueChange={setFontFamily}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Courier New, monospace">Courier New</SelectItem>
+                  <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                  <SelectItem value="Times New Roman, serif">Times New Roman</SelectItem>
+                  <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                  <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
+                  <SelectItem value="Impact, sans-serif">Impact</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Font Weight</Label>
+                <Select value={fontWeight.toString()} onValueChange={(value) => setFontWeight(parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="300">Light (300)</SelectItem>
+                    <SelectItem value="400">Normal (400)</SelectItem>
+                    <SelectItem value="600">Semi-Bold (600)</SelectItem>
+                    <SelectItem value="700">Bold (700)</SelectItem>
+                    <SelectItem value="900">Black (900)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2 pt-6">
+                <Checkbox
+                  id="shadow"
+                  checked={shadow}
+                  onCheckedChange={setShadow}
+                />
+                <Label htmlFor="shadow">Text Shadow</Label>
+              </div>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

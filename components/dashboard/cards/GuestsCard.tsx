@@ -38,24 +38,15 @@ export function GuestsCard() {
 
   const handleQuickLowerThird = async (guest: Guest) => {
     try {
-      const payload = {
-        action: "show",
-        payload: {
-          title: guest.displayName,
-          subtitle: guest.subtitle || "",
-          side: "left",
-          duration: 8,
-          avatarUrl: guest.avatarUrl,
-          accentColor: guest.accentColor,
-        },
-      };
-      console.log("[GuestsCard] Sending lower third request:", payload);
-      console.log("[GuestsCard] Guest data:", guest);
+      console.log("[GuestsCard] Showing guest lower third with theme:", guest.id);
       
-      await fetch("/api/overlays/lower", {
+      // Use the same endpoint as Stream Deck plugin (has theme enrichment)
+      await fetch(`/api/actions/lower/guest/${guest.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          duration: 8, // Auto-hide after 8 seconds
+        }),
       });
     } catch (error) {
       console.error("Failed to show lower third:", error);
