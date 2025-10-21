@@ -15,67 +15,67 @@ import { Settings, Server, FolderOpen, Download, Package } from "lucide-react";
 export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Settings className="w-8 h-8" />
+      <div className="container mx-auto px-4 py-4">
+        <div className="mb-4">
+          <h1 className="text-xl font-semibold flex items-center gap-2">
+            <Settings className="w-5 h-5" />
             Settings
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground text-xs mt-1">
             Configure OBS Live Suite connections and preferences
           </p>
         </div>
 
-        <Tabs defaultValue="obs" className="space-y-4">
+        <Tabs defaultValue="obs" className="space-y-3">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="obs" className="flex items-center gap-2">
-              <Server className="w-4 h-4" />
+            <TabsTrigger value="obs" className="flex items-center gap-1.5 text-xs">
+              <Server className="w-3.5 h-3.5" />
               OBS
             </TabsTrigger>
-            <TabsTrigger value="backend" className="flex items-center gap-2">
-              <Server className="w-4 h-4" />
+            <TabsTrigger value="backend" className="flex items-center gap-1.5 text-xs">
+              <Server className="w-3.5 h-3.5" />
               Backend
             </TabsTrigger>
-            <TabsTrigger value="paths" className="flex items-center gap-2">
-              <FolderOpen className="w-4 h-4" />
+            <TabsTrigger value="paths" className="flex items-center gap-1.5 text-xs">
+              <FolderOpen className="w-3.5 h-3.5" />
               Paths
             </TabsTrigger>
-            <TabsTrigger value="backup" className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
+            <TabsTrigger value="backup" className="flex items-center gap-1.5 text-xs">
+              <Download className="w-3.5 h-3.5" />
               Backup
             </TabsTrigger>
-            <TabsTrigger value="plugins" className="flex items-center gap-2">
-              <Package className="w-4 h-4" />
+            <TabsTrigger value="plugins" className="flex items-center gap-1.5 text-xs">
+              <Package className="w-3.5 h-3.5" />
               Plugins
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="obs">
-            <Card className="p-6">
+            <Card className="p-4">
               <OBSSettings />
             </Card>
           </TabsContent>
 
           <TabsContent value="backend">
-            <Card className="p-6">
+            <Card className="p-4">
               <BackendSettings />
             </Card>
           </TabsContent>
 
           <TabsContent value="paths">
-            <Card className="p-6">
+            <Card className="p-4">
               <PathSettings />
             </Card>
           </TabsContent>
 
           <TabsContent value="backup">
-            <Card className="p-6">
+            <Card className="p-4">
               <BackupSettings />
             </Card>
           </TabsContent>
 
           <TabsContent value="plugins">
-            <Card className="p-6">
+            <Card className="p-4">
               <PluginSettings />
             </Card>
           </TabsContent>

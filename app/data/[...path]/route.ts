@@ -10,14 +10,17 @@ import { existsSync } from "fs";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
     const pathManager = PathManager.getInstance();
     const dataDir = pathManager.getDataDir();
     
+    // Await params before accessing properties
+    const resolvedParams = await params;
+    
     // Construct file path
-    const filePath = join(dataDir, ...params.path);
+    const filePath = join(dataDir, ...resolvedParams.path);
     
     // Security check: ensure the resolved path is still within data directory
     if (!filePath.startsWith(dataDir)) {
