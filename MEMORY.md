@@ -1276,4 +1276,125 @@ Now properly displays player avatars and initials in overlay, matching host view
 
 ---
 
+## Quiz Overlay - Image Questions Display Fix (2025-10-22)
+
+**ISSUE**: Questions with images were not displaying properly in the overlay. Only 4 text answers appeared, without the question image.
+
+**ROOT CAUSE**: 
+- The overlay had two display modes: 
+  1. **Image Grid Mode**: 2x2 grid when OPTIONS are image URLs
+  2. **Text Bar Mode**: Horizontal bars for text options
+- For questions with `type: "image"` where the QUESTION has an image (`media` field) but OPTIONS are text (e.g., "A. Cat, B. Dog, C. Bird, D. Fish"), the system fell through to text bar mode without displaying the question image.
+- The condition `optionsAreImages && optionTexts.every(o => o.startsWith("http"))` was checking if options themselves were images, not if the question had an image.
+
+**SOLUTION**:
+1. **Separated concerns**: Created `optionsAreImageUrls` variable to specifically check if the options array contains URLs
+2. **Added question image display**: In text bar mode, now checks for `question.media` and displays the image above the answer options if present
+3. **Updated interface**: Added `media?: string | null` to `QuizQcmDisplayProps` 
+4. **Improved layout**: Centered layout with question image → question text → answer bars (vertically stacked)
+
+**DISPLAY LOGIC NOW**:
+- **Options are images** (`options: ["http://...", "http://...", ...]`) → 2x2 image grid
+- **Question has image** (`type: "image"`, `media: "http://..."`, `options: ["Cat", "Dog", ...]`) → Image + Text bars
+- **Text only** (`type: "qcm"`, no media) → Text bars only
+
+**FILES MODIFIED**:
+- `components/quiz/QuizQcmDisplay.tsx` - Added question image display in text bar mode, separated image detection logic
+- `components/quiz/QuizRenderer.tsx` - Fixed `optionsAreImages` detection to only check if options are URLs (not just if type is "image")
+
+**LESSON**: When building multi-mode displays, clearly distinguish between:
+1. Question metadata (text, image, type)
+2. Answer format (text options vs image options)
+
+Don't conflate "question with image" and "options are images" - they're different use cases. A question can have an image while options are text (most common), or both question and options can be images (rare), or neither (text-only QCM).
+
+---
+
+## Quiz Overlay - Image Display and Animation Enhancements (2025-10-22)
+
+**CONTEXT**: After fixing image questions display, user requested layout adjustments and fade animations.
+
+### Layout Refinements
+
+**ISSUE 1**: Question image was centered and too large, hiding players on screen and overlapping score panel.
+
+**SOLUTION**:
+- Moved score panel from bottom-left to top-left (`top-6 left-6`)
+- Repositioned question image to bottom-left (`bottom-10 left-8`)
+- Reduced image size from `max-w-2xl max-h-96` (896×384px) to `max-w-md max-h-80` (448×320px)
+- Aligned image at same Y-axis as question text and answer bars
+- Answer bars remain at bottom of screen (`bottom-10`)
+
+**FINAL LAYOUT**:
+```
+┌─────────────────────────────────────────────────┐
+│ SCORES (top-left)          TIMER (top-center)  │
+│                                                 │
+│                                                 │
+│           PLAYERS/PEOPLE (center area)          │
+│                                                 │
+│                                                 │
+│ IMAGE      QUESTION TEXT                        │
+│ (left)     ANSWER BARS (A/B/C/D)               │
+└─────────────────────────────────────────────────┘
+```
+
+### Fade Animations
+
+**REQUIREMENT**: Add sequenced fade-in/fade-out animations for question transitions.
+
+**IMPLEMENTATION**:
+
+1. **Fade-in Sequence** (new question):
+   - Question text: Appears immediately (50ms delay)
+   - Question image: Fades in after 1 second
+   - Answer options: Fade in after 3 seconds
+   - All use 700ms transition duration
+
+2. **Fade-out** (next question):
+   - When "Next Question" clicked, phase → "hiding"
+   - All elements (text, image, options) fade out simultaneously
+   - After 400ms, new question loads and fade-in sequence starts
+
+3. **Phase Independence**:
+   - Animations only trigger on question changes
+   - Lock/Reveal actions do NOT trigger re-animation
+   - Elements stay visible through phase transitions
+
+**TECHNICAL DETAILS**:
+
+- **React Hooks Order**: All hooks must be called before conditional returns (Rules of Hooks)
+- **Combined useEffect**: Single effect handles both fade-out (hiding phase) and fade-in (new question)
+- **Question Change Detection**: Uses `useMemo` to stringify question object for reliable change detection
+- **Early Return Prevention**: Returns early from useEffect during "hiding" to prevent fade-in timers from starting
+
+**STATE FLOW**:
+```
+User clicks "Next Question"
+  ↓
+phase = "hiding" (elements fade to opacity: 0)
+  ↓
+400ms delay (QuizRenderer transition)
+  ↓
+New question loads + phase = "accept_answers"
+  ↓
+questionId changes → triggers useEffect
+  ↓
+Fade-in sequence: text (50ms) → image (1s) → options (3s)
+```
+
+**FILES MODIFIED**:
+- `components/quiz/QuizQcmDisplay.tsx` - Added fade animations, repositioned elements
+- `components/quiz/QuizScorePanel.tsx` - Moved from bottom to top
+- `components/quiz/QuizRenderer.tsx` - Already had "hiding" phase logic in place
+
+**LESSONS**:
+1. **React Hooks Rules**: Never call hooks after conditional returns or inside conditions
+2. **Animation Timing**: Coordinate transitions between parent (QuizRenderer) and child (QuizQcmDisplay) components
+3. **Phase vs Question Changes**: Use separate triggers for different animation purposes (phase for fade-out, question ID for fade-in)
+4. **Layout Balance**: Consider all UI elements when positioning - scores, timer, image, answers, and most importantly, the live video feed of people
+5. **Early Returns in useEffect**: Can prevent unwanted side effects (timers) from running during transitional states
+
+---
+
 *Last updated: October 2025*
