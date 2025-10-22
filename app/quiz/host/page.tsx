@@ -162,12 +162,42 @@ export default function QuizHostPage() {
             const player = state.players.find(p => p.id === playerId);
             toast.success(`${player?.name || "Player"} assigned to ${option}`, { duration: 1500 });
           }}
+          onWinnerSelect={(playerId, isWinner) => {
+            actions.selectWinner(playerId, isWinner);
+            const player = state.players.find(p => p.id === playerId);
+            toast.success(`${player?.name || "Player"} ${isWinner ? 'selected as winner' : 'removed from winners'}`, { duration: 1500 });
+          }}
+          onZoomStart={() => {
+            actions.zoomStart();
+            toast.info("Zoom reveal started", { duration: 2000 });
+          }}
+          onZoomStop={() => {
+            actions.zoomStop();
+            toast.info("Zoom reveal paused", { duration: 1500 });
+          }}
+          onZoomResume={() => {
+            actions.zoomResume();
+            toast.info("Zoom reveal resumed", { duration: 1500 });
+          }}
+          onMysteryStart={(totalSquares) => {
+            actions.mysteryStart(totalSquares);
+            toast.info("Mystery reveal started", { duration: 2000 });
+          }}
+          onMysteryStop={() => {
+            actions.mysteryStop();
+            toast.info("Mystery reveal paused", { duration: 2000 });
+          }}
+          onMysteryResume={() => {
+            actions.mysteryResume();
+            toast.info("Mystery reveal resumed", { duration: 2000 });
+          }}
           playerChoices={state.playerChoices}
           viewerVotes={state.viewerVotes}
           viewerPercentages={state.viewerPercentages}
           correctAnswer={currentQuestion?.correct}
           questionFinished={state.questionFinished}
           selectedPlayerId={selectedPlayerId}
+          selectedWinners={state.selectedWinners}
         />
 
         <QuizPlayersPanel
@@ -176,10 +206,26 @@ export default function QuizHostPage() {
           viewerInputEnabled={state.viewerInputEnabled}
           selectedPlayerId={selectedPlayerId}
           onToggleViewerInput={actions.toggleViewerInput}
-          onQuickAnswer={(playerId, answer) => {
-            /* TODO: implement */
-          }}
           onPlayerSelect={setSelectedPlayerId}
+          onScoreUpdate={async (playerId: string, newScore: number) => {
+            try {
+              const currentScore = state.players.find(p => p.id === playerId)?.score || 0;
+              await fetch("http://localhost:3002/api/quiz/score/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ target: "player", id: playerId, delta: newScore - currentScore }),
+              });
+              // Don't reload session here - let the WebSocket handle updates
+            } catch (error) {
+              console.error("Failed to update score:", error);
+              throw error; // Re-throw to let the component handle it
+            }
+          }}
+          onScoreUpdateComplete={(updatedCount: number) => {
+            if (updatedCount > 0) {
+              toast.success(`Updated ${updatedCount} player score${updatedCount > 1 ? 's' : ''}`, { duration: 1500 });
+            }
+          }}
         />
       </div>
     </div>
