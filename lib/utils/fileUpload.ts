@@ -5,7 +5,7 @@ import { randomUUID } from "crypto";
 import { PathManager } from "../config/PathManager";
 
 export interface UploadOptions {
-  subfolder: "posters" | "guests";
+  subfolder: "posters" | "guests" | "quiz";
   allowedTypes: string[];
   maxSizeMB?: number;
 }

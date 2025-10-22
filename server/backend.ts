@@ -20,6 +20,8 @@ import { DatabaseService } from "../lib/services/DatabaseService";
 import { Logger } from "../lib/utils/Logger";
 import { PathManager } from "../lib/config/PathManager";
 import { AppConfig } from "../lib/config/AppConfig";
+import quizRouter from "./api/quiz";
+import quizBotRouter from "./api/quiz-bot";
 
 class BackendServer {
   private logger: Logger;
@@ -103,6 +105,10 @@ class BackendServer {
         res.status(500).json({ error: String(error) });
       }
     });
+
+    // Quiz API
+    this.app.use('/api/quiz', quizRouter);
+    this.app.use('/api/quiz-bot', quizBotRouter);
 
     // Overlays - Lower Third
     this.app.post('/api/overlays/lower', async (req, res) => {
@@ -228,6 +234,7 @@ class BackendServer {
           lower: this.wsHub.getChannelSubscribers('lower'),
           countdown: this.wsHub.getChannelSubscribers('countdown'),
           poster: this.wsHub.getChannelSubscribers('poster'),
+          quiz: this.wsHub.getChannelSubscribers('quiz'),
         }
       });
     });

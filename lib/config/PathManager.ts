@@ -57,6 +57,8 @@ export class PathManager {
       this.getAvatarsDir(),
       this.getLogsDir(),
       this.getBackupsDir(),
+      this.getQuizDir(),
+      this.getQuizSessionsDir(),
     ];
 
     for (const dir of dirs) {
@@ -135,6 +137,20 @@ export class PathManager {
    */
   getBackupsDir(): string {
     return join(this.dataDir, "backups");
+  }
+
+  /**
+   * Get the quiz directory
+   */
+  getQuizDir(): string {
+    return join(this.dataDir, "quiz");
+  }
+
+  /**
+   * Get the quiz sessions directory
+   */
+  getQuizSessionsDir(): string {
+    return join(this.getQuizDir(), "sessions");
   }
 
   /**
