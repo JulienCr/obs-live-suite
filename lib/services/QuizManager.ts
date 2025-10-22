@@ -5,6 +5,7 @@ import { QuizScoringService } from "./QuizScoringService";
 import { QuizStore } from "./QuizStore";
 import { Session, Question } from "../models/Quiz";
 import { QuizZoomController } from "./QuizZoomController";
+import { QuizMysteryImageController } from "./QuizMysteryImageController";
 import { QuizBuzzerService } from "./QuizBuzzerService";
 import { QuizTimer } from "./QuizTimer";
 
@@ -35,7 +36,18 @@ export class QuizManager {
     this.store = QuizStore.getInstance();
     const cfg = this.store.getSession()?.config || this.store.createDefaultSession().config;
     this.scoring = new QuizScoringService(cfg.closest_k);
-    this.zoom = new QuizZoomController({ steps: 20, intervalMs: 300 });
+    
+    // ===== ZOOM CONFIGURATION =====
+    // Easy to adjust: just set duration and max zoom level
+    // Steps and interval are auto-calculated for smooth 30fps animation
+    this.zoom = new QuizZoomController({ 
+      durationSeconds: 45,  // Total animation duration (e.g., 6 seconds)
+      maxZoom: 35,         // Max zoom level (26x zoom at start, 1x at end)
+      fps: 30,             // Frames per second (optional, defaults to 30)
+    });
+    // Calculated: 6 seconds * 30 fps = 180 steps, ~33ms interval
+    
+    this.mystery = new QuizMysteryImageController({ intervalMs: 60 });
     this.buzzer = new QuizBuzzerService({ lockMs: 300, steal: false, stealWindowMs: 4000 });
   }
 
@@ -62,6 +74,11 @@ export class QuizManager {
     const q = this.getCurrentQuestion();
     const sess = this.requireSession();
     
+    // Reset mystery reveal state
+    this.mystery.reset();
+    // Reset zoom state
+    this.zoom.reset();
+    
     // Clear player answers for new question
     sess.playerAnswers = {};
     this.store.setSession(sess);
@@ -80,7 +97,14 @@ export class QuizManager {
     }
     
     this.phase = "show_question";
-    await this.channel.publish(OverlayChannel.QUIZ, "question.show", { question_id: q.id });
+    
+    // Send zoom config with question so overlay can initialize with correct values
+    const zoomConfig = this.zoom.getInternalConfig();
+    await this.channel.publish(OverlayChannel.QUIZ, "question.show", { 
+      question_id: q.id,
+      zoom_steps: zoomConfig.steps,
+      zoom_maxZoom: zoomConfig.maxZoom
+    });
     
     this.phase = "accept_answers";
     await this.emitPhaseUpdate();
@@ -98,6 +122,25 @@ export class QuizManager {
   async reveal(): Promise<void> {
     const q = this.getCurrentQuestion();
     const sess = this.requireSession();
+    
+    // Stop the timer if it's still running (in case lock was skipped)
+    await this.timer.stop();
+    
+    // Stop any running mystery reveal
+    if (q.mode === "mystery_image") {
+      await this.mystery.stop();
+    }
+    
+    // Stop zoom and fully reveal image
+    if (q.mode === "image_zoombuzz" || (q.type === "closest" && q.media)) {
+      await this.zoom.stop();
+      // Send zoom completion event to set scale to 1x
+      const zoomConfig = this.zoom.getInternalConfig();
+      await this.channel.publish(OverlayChannel.QUIZ, "zoom.complete", { 
+        total: zoomConfig.steps,
+        maxZoom: zoomConfig.maxZoom
+      });
+    }
     
     // Transition to reveal phase
     this.phase = "reveal";
@@ -274,7 +317,18 @@ export class QuizManager {
   private zoom: QuizZoomController;
   async zoomStart(): Promise<void> { await this.zoom.start(); }
   async zoomStop(): Promise<void> { await this.zoom.stop(); }
+  async zoomResume(): Promise<void> { await this.zoom.resume(); }
   async zoomStep(delta: number): Promise<void> { await this.zoom.step(delta); }
+
+  // Mystery image controls
+  private mystery: QuizMysteryImageController;
+  async mysteryStart(totalSquares: number): Promise<void> { await this.mystery.start(totalSquares); }
+  async mysteryStop(): Promise<void> { await this.mystery.stop(); }
+  async mysteryResume(): Promise<void> { await this.mystery.resume(); }
+  async mysteryStep(count: number): Promise<void> { await this.mystery.step(count); }
+  getMysteryState(): { revealed: number; total: number; running: boolean } {
+    return this.mystery.getState();
+  }
 
   // Buzzer controls
   private buzzer: QuizBuzzerService;
@@ -376,6 +430,33 @@ export class QuizManager {
     sess.scorePanelVisible = newValue;
     this.store.setSession(sess);
     await this.channel.publish(OverlayChannel.QUIZ, "scorepanel.toggle", { visible: newValue });
+  }
+
+  /**
+   * Apply manual winners selection (closest/open questions)
+   * Adds full points to each selected player and broadcasts score updates.
+   */
+  async applyWinners(
+    playerIds: string[],
+    options?: { points?: number; remove?: boolean }
+  ): Promise<void> {
+    const sess = this.requireSession();
+    const q = this.getCurrentQuestion();
+    const basePoints = Number.isFinite(options?.points as number)
+      ? Number(options?.points)
+      : (q.points || 1);
+    const deltaPoints = options?.remove ? -basePoints : basePoints;
+
+    for (const playerId of playerIds) {
+      const newTotal = this.store.addScorePlayer(playerId, deltaPoints);
+      await this.channel.publish(OverlayChannel.QUIZ, "score.update", {
+        user_id: playerId,
+        delta: deltaPoints,
+        total: newTotal,
+      });
+    }
+
+    await this.updateLeaderboard(sess);
   }
 }
 
