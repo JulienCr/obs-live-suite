@@ -52,6 +52,17 @@ router.post("/question/reveal", async (_req, res) => {
   }
 });
 
+// Manually apply winners (closest/open questions)
+router.post("/question/winners", async (req, res) => {
+  try {
+    const { playerIds, points, remove } = req.body || {};
+    await manager.applyWinners(Array.isArray(playerIds) ? playerIds : [], { points: Number(points ?? NaN), remove: Boolean(remove) });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 router.post("/question/next", async (_req, res) => {
   try {
     await manager.nextQuestion();
@@ -122,8 +133,43 @@ router.post("/media/zoom/stop", async (_req, res) => {
   catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
+router.post("/media/zoom/resume", async (_req, res) => {
+  try { await manager.zoomResume(); res.json({ success: true }); }
+  catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
 router.post("/media/zoom/step", async (req, res) => {
   try { await manager.zoomStep(Number(req.body?.delta || 1)); res.json({ success: true }); }
+  catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// Mystery image controls
+router.post("/media/mystery/start", async (req, res) => {
+  try { 
+    const { totalSquares } = req.body || {};
+    await manager.mysteryStart(Number(totalSquares || 100)); 
+    res.json({ success: true }); 
+  }
+  catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.post("/media/mystery/stop", async (_req, res) => {
+  try { await manager.mysteryStop(); res.json({ success: true }); }
+  catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.post("/media/mystery/resume", async (_req, res) => {
+  try { await manager.mysteryResume(); res.json({ success: true }); }
+  catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.post("/media/mystery/step", async (req, res) => {
+  try { await manager.mysteryStep(Number(req.body?.count || 1)); res.json({ success: true }); }
+  catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.get("/media/mystery/state", async (_req, res) => {
+  try { res.json(manager.getMysteryState()); }
   catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
@@ -185,6 +231,22 @@ router.post("/score/update", async (req, res) => {
     let total = 0;
     if (target === "player") total = store.addScorePlayer(String(id), Number(delta || 0));
     else total = store.addScoreViewer(String(id), Number(delta || 0));
+
+    // Broadcast score update so host/overlay refresh without reload
+    try {
+      const { ChannelManager } = await import("../../lib/services/ChannelManager");
+      const { OverlayChannel } = await import("../../lib/models/OverlayEvents");
+      const channel = ChannelManager.getInstance();
+      await channel.publish(OverlayChannel.QUIZ, "score.update", {
+        user_id: String(id),
+        delta: Number(delta || 0),
+        total,
+      });
+    } catch (e) {
+      // Non-fatal: logging only
+      console.error("Failed to broadcast score.update", e);
+    }
+
     res.json({ success: true, total });
   } catch (error) {
     res.status(500).json({ error: String(error) });
@@ -326,7 +388,7 @@ router.post("/session/create", (req, res) => {
     const session = store.createDefaultSession();
     session.id = req.body.id || session.id;
     session.title = name || "Quiz Session";
-    session.phase = "idle";
+    // Note: phase is managed by QuizManager, not stored in session
     session.currentRoundIndex = 0;
     session.currentQuestionIndex = 0;
     session.rounds = rounds;
