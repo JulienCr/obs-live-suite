@@ -3,6 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PlayerAvatarChip } from "./PlayerAvatarChip";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface PlayerScore {
   id: string;
@@ -23,8 +27,9 @@ interface PlayersPanelProps {
   viewerInputEnabled: boolean;
   selectedPlayerId?: string | null;
   onToggleViewerInput: () => void;
-  onQuickAnswer: (playerId: string, answer: string) => void;
   onPlayerSelect?: (playerId: string | null) => void;
+  onScoreUpdate?: (playerId: string, newScore: number) => void;
+  onScoreUpdateComplete?: (updatedCount: number) => void;
 }
 
 export function QuizPlayersPanel({
@@ -33,18 +38,73 @@ export function QuizPlayersPanel({
   viewerInputEnabled,
   selectedPlayerId,
   onToggleViewerInput,
-  onQuickAnswer,
   onPlayerSelect,
+  onScoreUpdate,
+  onScoreUpdateComplete,
 }: PlayersPanelProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingScores, setEditingScores] = useState<Record<string, string>>({});
+
   const topViewers = viewers
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
+
+  const openScoreModal = () => {
+    const scores: Record<string, string> = {};
+    players.forEach(player => {
+      scores[player.id] = player.score.toString();
+    });
+    setEditingScores(scores);
+    setIsModalOpen(true);
+  };
+
+  const handleScoreUpdate = async () => {
+    if (!onScoreUpdate) return;
+    
+    const updates: Array<{ playerId: string; newScore: number }> = [];
+    
+    for (const [playerId, scoreStr] of Object.entries(editingScores)) {
+      const newScore = parseInt(scoreStr);
+      if (!isNaN(newScore)) {
+        const currentScore = players.find(p => p.id === playerId)?.score || 0;
+        if (newScore !== currentScore) {
+          updates.push({ playerId, newScore });
+        }
+      }
+    }
+    
+    try {
+      // Apply all updates at once
+      for (const update of updates) {
+        await onScoreUpdate(update.playerId, update.newScore);
+      }
+      
+      setIsModalOpen(false);
+      // Show success message
+      if (updates.length > 0 && onScoreUpdateComplete) {
+        onScoreUpdateComplete(updates.length);
+      }
+    } catch (error) {
+      console.error("Failed to update scores:", error);
+      // Keep modal open on error so user can retry
+    }
+  };
 
   return (
     <aside className="w-80 border-l bg-gray-50 overflow-y-auto">
       {/* Studio Players */}
       <div className="p-4 border-b bg-white">
-        <h3 className="font-semibold text-sm mb-3">Studio Players</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-sm">Studio Players</h3>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={openScoreModal}
+            className="text-xs h-6 px-2"
+          >
+            Edit Scores
+          </Button>
+        </div>
         <div className="space-y-3">
           {players.map((player) => (
             <div
@@ -73,26 +133,6 @@ export function QuizPlayersPanel({
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Quick Answer Buttons */}
-        <div className="mt-3 pt-3 border-t">
-          <p className="text-xs text-gray-500 mb-2">Quick Assign</p>
-          <div className="grid grid-cols-4 gap-1">
-            {["A", "B", "C", "D"].map((opt) => (
-              <Button
-                key={opt}
-                size="sm"
-                variant="outline"
-                className="text-xs h-7"
-                onClick={() => {
-                  /* TODO: implement */
-                }}
-              >
-                {opt}
-              </Button>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -141,6 +181,52 @@ export function QuizPlayersPanel({
       </div>
 
       {/* Event Log - Hidden until telemetry implemented */}
+      
+      {/* Score Edit Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Player Scores</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {players.map((player) => (
+              <div key={player.id} className="flex items-center gap-3">
+                <PlayerAvatarChip
+                  playerId={player.id}
+                  playerName={player.name}
+                  playerAvatar={player.avatar}
+                  size="sm"
+                  draggable={false}
+                />
+                <div className="flex-1">
+                  <Label htmlFor={`score-${player.id}`} className="text-sm font-medium">
+                    {player.name}
+                  </Label>
+                </div>
+                <Input
+                  id={`score-${player.id}`}
+                  type="number"
+                  value={editingScores[player.id] || ""}
+                  onChange={(e) => setEditingScores(prev => ({
+                    ...prev,
+                    [player.id]: e.target.value
+                  }))}
+                  className="w-20"
+                  min="0"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 pt-4">
+            <Button onClick={handleScoreUpdate} className="flex-1">
+              Update All Scores
+            </Button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

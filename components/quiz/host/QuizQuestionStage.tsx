@@ -6,6 +6,7 @@ import { Clock, Play, Pause, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlayerAvatarChip } from "./PlayerAvatarChip";
 import { useState } from "react";
+import * as React from "react";
 
 interface PlayerScore {
   id: string;
@@ -31,11 +32,19 @@ interface QuestionStageProps {
   onReveal: () => void;
   onResetQuestion: () => void;
   onPlayerAssign: (playerId: string, option: string) => void;
+  onWinnerSelect: (playerId: string, isWinner: boolean) => void; // New: for closest/open questions
+  onZoomStart?: () => void; // New: zoom controls
+  onZoomStop?: () => void;
+  onZoomResume?: () => void;
+  onMysteryStart?: (totalSquares: number) => void; // New: mystery image controls
+  onMysteryStop?: () => void;
+  onMysteryResume?: () => void;
   playerChoices: Record<string, string>; // playerId -> option
   viewerVotes: Record<string, number>; // option -> count
   viewerPercentages: Record<string, number>; // option -> percentage
   correctAnswer?: number | string; // The correct answer for this question
   questionFinished: boolean;
+  selectedWinners?: string[]; // New: array of winner player IDs
 }
 
 export function QuizQuestionStage({
@@ -55,13 +64,26 @@ export function QuizQuestionStage({
   onReveal,
   onResetQuestion,
   onPlayerAssign,
+  onWinnerSelect,
+  onZoomStart,
+  onZoomStop,
+  onZoomResume,
+  onMysteryStart,
+  onMysteryStop,
+  onMysteryResume,
   playerChoices,
   viewerVotes,
   viewerPercentages,
   correctAnswer,
   questionFinished,
+  selectedWinners = [],
 }: QuestionStageProps) {
   const [draggedPlayer, setDraggedPlayer] = useState<string | null>(null);
+  const [zoomRunning, setZoomRunning] = useState(false);
+  const [zoomStarted, setZoomStarted] = useState(false);
+  const [mysteryRunning, setMysteryRunning] = useState(false);
+  const [mysteryStarted, setMysteryStarted] = useState(false); // Track if ever started
+  const [mysteryTotalSquares, setMysteryTotalSquares] = useState<number>(0);
   
   if (!question) {
     return (
@@ -81,6 +103,36 @@ export function QuizQuestionStage({
   const isQcmMode =
     question.type === "qcm" ||
     (question.type === "image" && question.options && question.options.length > 0);
+  
+  const isZoomMode = question.type === "image" && question.mode === "image_zoombuzz";
+  const isMysteryImageMode = question.type === "image" && question.mode === "mystery_image";
+  
+  // Calculate grid size for mystery image when image loads
+  React.useEffect(() => {
+    if (isMysteryImageMode && question.media) {
+      const img = new Image();
+      img.onload = () => {
+        const squareSize = 20;
+        const cols = Math.ceil(img.naturalWidth / squareSize);
+        const rows = Math.ceil(img.naturalHeight / squareSize);
+        const total = cols * rows;
+        setMysteryTotalSquares(total);
+        console.log(`Mystery image grid calculated: ${cols}x${rows} = ${total} squares`);
+      };
+      img.onerror = () => {
+        console.error("Failed to load mystery image for grid calculation");
+        setMysteryTotalSquares(0);
+      };
+      img.src = question.media;
+    } else {
+      setMysteryTotalSquares(0);
+    }
+    // Reset state when question changes
+    setZoomRunning(false);
+    setZoomStarted(false);
+    setMysteryRunning(false);
+    setMysteryStarted(false);
+  }, [isMysteryImageMode, question.media]);
 
   return (
     <main className="flex-1 flex flex-col bg-white overflow-y-auto">
@@ -260,41 +312,256 @@ export function QuizQuestionStage({
 
           {/* Closest Mode */}
           {question.type === "closest" && (
-            <div className={cn(
-              "p-4 border rounded-lg",
-              (phase === "lock" || phase === "reveal") && typeof question.correct === "number" && "bg-green-50 border-green-400"
-            )}>
-              <label className="block text-sm font-medium mb-2">
-                Target Value
-              </label>
-              {(phase === "lock" || phase === "reveal") && typeof question.correct === "number" ? (
-                <div className="text-3xl font-bold text-green-700">
-                  {question.correct}
-                  <span className="ml-3 px-2 py-0.5 bg-green-600 text-white text-xs font-bold rounded-full align-middle">
-                    ✓ CORRECT ANSWER
-                  </span>
+            <div className="space-y-4">
+              <div className={cn(
+                "p-4 border rounded-lg",
+                (phase === "lock" || phase === "reveal") && typeof question.correct === "number" && "bg-green-50 border-green-400"
+              )}>
+                <label className="block text-sm font-medium mb-2">
+                  Target Value
+                </label>
+                {(phase === "lock" || phase === "reveal" || phase === "score_update") && typeof question.correct === "number" ? (
+                  <div className="text-3xl font-bold text-green-700">
+                    {question.correct}
+                    <span className="ml-3 px-2 py-0.5 bg-green-600 text-white text-xs font-bold rounded-full align-middle">
+                      ✓ CORRECT ANSWER
+                    </span>
+                  </div>
+                ) : (
+                  <input
+                    type="number"
+                    placeholder="Enter correct value"
+                    className="border rounded px-3 py-2 w-full"
+                    readOnly
+                  />
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  Viewers: {totalVotes} guesses
+                </p>
+              </div>
+
+              {/* Winner Selection for Closest Questions */}
+              {(phase === "reveal" || phase === "score_update") && (
+                <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                  <h4 className="font-semibold mb-3 text-blue-800">Select Winners</h4>
+                  <p className="text-sm text-blue-600 mb-3">
+                    Click on players to mark them as winners (multiple winners allowed), then Validate
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {players.map((player) => {
+                      const isWinner = selectedWinners.includes(player.id);
+                      return (
+                        <button
+                          key={player.id}
+                          onClick={() => onWinnerSelect(player.id, !isWinner)}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all",
+                            isWinner
+                              ? "bg-green-100 border-green-500 text-green-800"
+                              : "bg-white border-gray-300 text-gray-700 hover:border-blue-400"
+                          )}
+                        >
+                          <PlayerAvatarChip
+                            playerId={player.id}
+                            playerName={player.name}
+                            playerAvatar={player.avatar}
+                            size="sm"
+                            draggable={false}
+                          />
+                          <span className="font-medium">{player.name}</span>
+                          {isWinner && (
+                            <span className="text-green-600 font-bold">✓</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-3 text-sm text-green-600">
+                    Click a player to toggle winner status. Points are applied immediately.
+                  </p>
                 </div>
-              ) : (
-                <input
-                  type="number"
-                  placeholder="Enter correct value"
-                  className="border rounded px-3 py-2 w-full"
-                  readOnly
-                />
               )}
-              <p className="text-xs text-gray-500 mt-2">
-                Viewers: {totalVotes} guesses
-              </p>
+            </div>
+          )}
+
+          {/* Zoom Reveal Mode */}
+          {isZoomMode && (
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg bg-indigo-50 border-indigo-200">
+                <h4 className="font-semibold mb-2 text-indigo-800">Zoom Reveal Question</h4>
+                <p className="text-sm text-indigo-600">
+                  The image will gradually zoom out in the overlay.
+                  Use the controls below to start/pause the reveal.
+                </p>
+              </div>
+
+              {/* Winner Selection for Zoom Reveal Questions */}
+              {(phase === "reveal" || phase === "score_update") && (
+                <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                  <h4 className="font-semibold mb-3 text-blue-800">Select Winners</h4>
+                  <p className="text-sm text-blue-600 mb-3">
+                    Click on players who correctly identified the image (multiple winners allowed)
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {players.map((player) => {
+                      const isWinner = selectedWinners.includes(player.id);
+                      return (
+                        <button
+                          key={player.id}
+                          onClick={() => onWinnerSelect(player.id, !isWinner)}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all",
+                            isWinner
+                              ? "bg-green-100 border-green-500 text-green-800"
+                              : "bg-white border-gray-300 text-gray-700 hover:border-blue-400"
+                          )}
+                        >
+                          <PlayerAvatarChip
+                            playerId={player.id}
+                            playerName={player.name}
+                            playerAvatar={player.avatar}
+                            size="sm"
+                            draggable={false}
+                          />
+                          <span className="font-medium">{player.name}</span>
+                          {isWinner && (
+                            <span className="text-green-600 font-bold">✓</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedWinners.length > 0 && (
+                    <p className="text-sm text-green-600 mt-2">
+                      {selectedWinners.length} winner{selectedWinners.length > 1 ? 's' : ''} selected
+                    </p>
+                  )}
+                  <p className="mt-3 text-sm text-blue-600">
+                    Click a player to toggle winner status. Points are applied immediately.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Mystery Image Mode */}
+          {isMysteryImageMode && (
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg bg-purple-50 border-purple-200">
+                <h4 className="font-semibold mb-2 text-purple-800">Mystery Image Question</h4>
+                <p className="text-sm text-purple-600">
+                  The image will be revealed square by square in the overlay.
+                  Use the controls below to start/pause the reveal.
+                </p>
+                {mysteryTotalSquares > 0 && (
+                  <p className="text-xs text-purple-500 mt-2">
+                    Grid: {mysteryTotalSquares} squares total
+                  </p>
+                )}
+              </div>
+
+              {/* Winner Selection for Mystery Image Questions */}
+              {(phase === "reveal" || phase === "score_update") && (
+                <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                  <h4 className="font-semibold mb-3 text-blue-800">Select Winners</h4>
+                  <p className="text-sm text-blue-600 mb-3">
+                    Click on players who correctly identified the image (multiple winners allowed)
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {players.map((player) => {
+                      const isWinner = selectedWinners.includes(player.id);
+                      return (
+                        <button
+                          key={player.id}
+                          onClick={() => onWinnerSelect(player.id, !isWinner)}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all",
+                            isWinner
+                              ? "bg-green-100 border-green-500 text-green-800"
+                              : "bg-white border-gray-300 text-gray-700 hover:border-blue-400"
+                          )}
+                        >
+                          <PlayerAvatarChip
+                            playerId={player.id}
+                            playerName={player.name}
+                            playerAvatar={player.avatar}
+                            size="sm"
+                            draggable={false}
+                          />
+                          <span className="font-medium">{player.name}</span>
+                          {isWinner && (
+                            <span className="text-green-600 font-bold">✓</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedWinners.length > 0 && (
+                    <p className="text-sm text-green-600 mt-2">
+                      {selectedWinners.length} winner{selectedWinners.length > 1 ? 's' : ''} selected
+                    </p>
+                  )}
+                  <p className="mt-3 text-sm text-blue-600">
+                    Click a player to toggle winner status. Points are applied immediately.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
           {/* Open Mode */}
           {question.type === "open" && (
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-semibold mb-2">Open Answers (Viewers)</h4>
-              <p className="text-sm text-gray-600">
-                {totalVotes} responses received
-              </p>
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold mb-2">Open Answers (Viewers)</h4>
+                <p className="text-sm text-gray-600">
+                  {totalVotes} responses received
+                </p>
+              </div>
+
+              {/* Winner Selection for Open Questions */}
+              {(phase === "reveal" || phase === "score_update") && (
+                <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                  <h4 className="font-semibold mb-3 text-blue-800">Select Winners</h4>
+                  <p className="text-sm text-blue-600 mb-3">
+                    Click on players to mark them as winners (multiple winners allowed)
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {players.map((player) => {
+                      const isWinner = selectedWinners.includes(player.id);
+                      return (
+                        <button
+                          key={player.id}
+                          onClick={() => onWinnerSelect(player.id, !isWinner)}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all",
+                            isWinner
+                              ? "bg-green-100 border-green-500 text-green-800"
+                              : "bg-white border-gray-300 text-gray-700 hover:border-blue-400"
+                          )}
+                        >
+                          <PlayerAvatarChip
+                            playerId={player.id}
+                            playerName={player.name}
+                            playerAvatar={player.avatar}
+                            size="sm"
+                            draggable={false}
+                          />
+                          <span className="font-medium">{player.name}</span>
+                          {isWinner && (
+                            <span className="text-green-600 font-bold">✓</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedWinners.length > 0 && (
+                    <p className="text-sm text-green-600 mt-2">
+                      {selectedWinners.length} winner{selectedWinners.length > 1 ? 's' : ''} selected
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -334,6 +601,93 @@ export function QuizQuestionStage({
               </Button>
             </div>
           </div>
+
+          {/* Zoom Controls */}
+          {isZoomMode && onZoomStart && onZoomStop && onZoomResume && (
+            <div className="flex items-center gap-3 border-l pl-4">
+              <span className="text-sm font-medium text-gray-600">
+                Zoom Reveal:
+              </span>
+              <div className="flex gap-2">
+                {zoomRunning ? (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      onZoomStop();
+                      setZoomRunning(false);
+                    }}
+                  >
+                    <Pause className="w-3 h-3 mr-1" />
+                    Pause
+                  </Button>
+                ) : (
+                  <Button 
+                    size="sm" 
+                    variant="default"
+                    onClick={() => {
+                      if (zoomStarted) {
+                        onZoomResume();
+                      } else {
+                        onZoomStart();
+                        setZoomStarted(true);
+                      }
+                      setZoomRunning(true);
+                    }}
+                  >
+                    <Play className="w-3 h-3 mr-1" />
+                    {zoomStarted ? "Resume" : "Start"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Mystery Image Controls */}
+          {isMysteryImageMode && onMysteryStart && onMysteryStop && onMysteryResume && (
+            <div className="flex items-center gap-3 border-l pl-4">
+              <span className="text-sm font-medium text-gray-600">
+                Mystery Reveal {mysteryTotalSquares > 0 && `(${mysteryTotalSquares} squares)`}:
+              </span>
+              <div className="flex gap-2">
+                {mysteryRunning ? (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => {
+                      onMysteryStop();
+                      setMysteryRunning(false);
+                    }}
+                  >
+                    <Pause className="w-4 h-4 mr-1" />
+                    Pause
+                  </Button>
+                ) : (
+                  <Button 
+                    size="sm" 
+                    variant="default" 
+                    onClick={() => {
+                      if (mysteryStarted) {
+                        // Resume from where we paused
+                        onMysteryResume();
+                      } else {
+                        // First time - start from beginning
+                        const total = mysteryTotalSquares > 0 ? mysteryTotalSquares : 500;
+                        onMysteryStart(total);
+                        setMysteryStarted(true);
+                      }
+                      setMysteryRunning(true);
+                    }}
+                    className="bg-purple-600 hover:bg-purple-700"
+                    disabled={mysteryTotalSquares === 0}
+                  >
+                    <Play className="w-4 h-4 mr-1" />
+                    {mysteryStarted ? "Resume" : "Start"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Phase Actions */}
           <div className="flex items-center gap-3">

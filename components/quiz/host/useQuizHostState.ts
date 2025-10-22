@@ -30,6 +30,7 @@ interface QuizHostState {
   viewerVotes: Record<string, number>; // option -> count
   viewerPercentages: Record<string, number>; // option -> percentage
   questionFinished: boolean;
+  selectedWinners: string[]; // array of winner player IDs for closest/open questions
 }
 
 export function useQuizHostState() {
@@ -49,6 +50,7 @@ export function useQuizHostState() {
     viewerVotes: {},
     viewerPercentages: {},
     questionFinished: false,
+    selectedWinners: [],
   });
 
   const ws = useRef<WebSocket | null>(null);
@@ -190,13 +192,14 @@ export function useQuizHostState() {
           }));
           loadState();
         } else if (eventType === "question.change" && payload?.clear_assignments) {
-          // Question changed (nav prev/next/select) - clear assignments
+          // Question changed (nav prev/next/select) - clear assignments and winners
           setState((prev) => ({
             ...prev,
             playerChoices: {},
             viewerVotes: {},
             viewerPercentages: {},
             questionFinished: false,
+            selectedWinners: [],
           }));
         } else if (eventType === "scorepanel.toggle" && payload) {
           // Score panel visibility toggled
@@ -318,6 +321,53 @@ export function useQuizHostState() {
           console.error("Failed to unload session:", error);
         }
       },
+      selectWinner: async (playerId: string, isWinner: boolean) => {
+        // Locally toggle winner state
+        setState((prev) => ({
+          ...prev,
+          selectedWinners: isWinner
+            ? Array.from(new Set([...prev.selectedWinners, playerId]))
+            : prev.selectedWinners.filter((id) => id !== playerId),
+        }));
+
+        // Immediately apply or revert points on backend
+        try {
+          await fetch("http://localhost:3002/api/quiz/question/winners", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ playerIds: [playerId], remove: !isWinner }),
+          });
+          // Reload state to update scores in host view
+          setTimeout(loadState, 100);
+        } catch (error) {
+          console.error("Failed to apply winner points:", error);
+        }
+      },
+      resetWinners: () => {
+        setState((prev) => ({
+          ...prev,
+          selectedWinners: [],
+        }));
+      },
+      // Zoom controls
+      zoomStart: () => call("/media/zoom/start"),
+      zoomStop: () => call("/media/zoom/stop"),
+      zoomResume: () => call("/media/zoom/resume"),
+      // Mystery image controls
+      mysteryStart: async (totalSquares: number) => {
+        try {
+          await fetch("http://localhost:3002/api/quiz/media/mystery/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ totalSquares }),
+          });
+        } catch (error) {
+          console.error("Failed to start mystery reveal:", error);
+        }
+      },
+      mysteryStop: () => call("/media/mystery/stop"),
+      mysteryResume: () => call("/media/mystery/resume"),
+      mysteryStep: (count: number = 1) => call("/media/mystery/step", { count }),
     },
   };
 }
