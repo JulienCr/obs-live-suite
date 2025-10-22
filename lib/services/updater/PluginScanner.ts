@@ -105,24 +105,38 @@ export class PluginScanner {
     const plugins: CreatePluginInput[] = [];
 
     try {
-      const entries = readdirSync(directory);
+      const entries = readdirSync(directory, { withFileTypes: true });
 
       for (const entry of entries) {
-        const fullPath = join(directory, entry);
-        const stats = statSync(fullPath);
+        const fullPath = join(directory, entry.name);
+        
+        // Skip if we can't access the path (permission errors, broken symlinks)
+        let stats;
+        try {
+          stats = entry.isSymbolicLink() ? statSync(fullPath) : entry;
+        } catch (error: any) {
+          if (error.code === 'EPERM' || error.code === 'EACCES' || error.code === 'ENOENT') {
+            this.logger.debug(`Skipping inaccessible path: ${fullPath}`);
+            continue;
+          }
+          throw error;
+        }
 
         // Skip common non-plugin directories (32bit, 64bit on Windows)
-        if (stats.isDirectory() && (entry === "32bit" || entry === "64bit" || entry === "bin")) {
+        if (stats.isDirectory() && (entry.name === "32bit" || entry.name === "64bit" || entry.name === "bin")) {
           // Scan inside these directories for actual plugins (DLLs on Windows, dylibs on Mac)
           try {
-            const subEntries = readdirSync(fullPath);
+            const subEntries = readdirSync(fullPath, { withFileTypes: true });
             for (const subEntry of subEntries) {
-              const subPath = join(fullPath, subEntry);
-              const subStats = statSync(subPath);
+              const subPath = join(fullPath, subEntry.name);
+              
+              // Skip if we can't access the sub-path
+              if (!subEntry.isFile()) continue;
+              const subStats = subEntry;
               
               // On Windows, plugins are DLL files
-              if (subStats.isFile() && (subEntry.endsWith(".dll") || subEntry.endsWith(".so") || subEntry.endsWith(".dylib"))) {
-                const name = basename(subEntry, subEntry.match(/\.(dll|so|dylib)$/)?.[0] || "");
+              if (subStats.isFile() && (subEntry.name.endsWith(".dll") || subEntry.name.endsWith(".so") || subEntry.name.endsWith(".dylib"))) {
+                const name = basename(subEntry.name, subEntry.name.match(/\.(dll|so|dylib)$/)?.[0] || "");
                 const version = this.versionExtractor.extractFromPlugin(subPath);
 
                 plugins.push({
@@ -146,7 +160,7 @@ export class PluginScanner {
         // Handle regular plugin directories (for systems where plugins are in their own folders)
         if (stats.isDirectory()) {
           const version = this.versionExtractor.extractFromPlugin(fullPath);
-          const name = basename(entry);
+          const name = basename(entry.name);
 
           plugins.push({
             name,
@@ -174,13 +188,14 @@ export class PluginScanner {
     const scripts: CreatePluginInput[] = [];
 
     try {
-      const entries = readdirSync(directory);
+      const entries = readdirSync(directory, { withFileTypes: true });
 
       for (const entry of entries) {
-        if (entry.endsWith(".lua") || entry.endsWith(".py")) {
-          const fullPath = join(directory, entry);
+        if (!entry.isFile()) continue;
+        if (entry.name.endsWith(".lua") || entry.name.endsWith(".py")) {
+          const fullPath = join(directory, entry.name);
           const version = this.versionExtractor.extractFromScript(fullPath);
-          const name = basename(entry, entry.endsWith(".lua") ? ".lua" : ".py");
+          const name = basename(entry.name, entry.name.endsWith(".lua") ? ".lua" : ".py");
 
           scripts.push({
             name,

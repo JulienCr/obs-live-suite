@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { PluginScanner } from "@/lib/services/updater/PluginScanner";
 import { DatabaseService } from "@/lib/services/DatabaseService";
-import { randomUUID } from "crypto";
+ import { randomUUID } from "crypto";
 
 /**
  * POST /api/updater/scan
@@ -9,6 +8,8 @@ import { randomUUID } from "crypto";
  */
 export async function POST() {
   try {
+    // Dynamic import to avoid webpack bundling filesystem code during build
+    const { PluginScanner } = await import("@/lib/services/updater/PluginScanner");
     const scanner = new PluginScanner();
     const plugins = await scanner.scan();
 
