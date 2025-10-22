@@ -24,17 +24,23 @@ export async function register() {
       console.log('✓ Next.js server started (dev mode)');
       console.log('  Run "pnpm run backend" in a separate terminal for WebSocket/OBS services');
     } else {
-      // In production, initialize services here
-      const { ServerInit } = await import('./lib/init/ServerInit');
-      const serverInit = ServerInit.getInstance();
-      
-      if (!ServerInit.isInitialized()) {
-        try {
-          await serverInit.initialize();
-          console.log('✓ Server initialized successfully (production)');
-        } catch (error) {
-          console.error('✗ Server initialization failed:', error);
+      // In production, initialize services here only when explicitly enabled
+      // Prevents port conflicts when a separate backend process is managed by PM2
+      const runServices = process.env.SERVICES_IN_NEXT === 'true';
+      if (runServices) {
+        const { ServerInit } = await import('./lib/init/ServerInit');
+        const serverInit = ServerInit.getInstance();
+        
+        if (!ServerInit.isInitialized()) {
+          try {
+            await serverInit.initialize();
+            console.log('✓ Server initialized successfully (production)');
+          } catch (error) {
+            console.error('✗ Server initialization failed:', error);
+          }
         }
+      } else {
+        console.log('ℹ Skipping embedded services in Next (SERVICES_IN_NEXT != "true")');
       }
     }
   }
