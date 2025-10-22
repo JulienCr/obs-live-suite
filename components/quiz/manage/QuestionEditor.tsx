@@ -9,6 +9,7 @@ interface QuestionEditorProps {
 
 export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorProps) {
   const [type, setType] = useState<string>("qcm");
+  const [mode, setMode] = useState<string | undefined>(undefined);
   const [text, setText] = useState("");
   const [media, setMedia] = useState("");
   const [options, setOptions] = useState(["", "", "", ""]);
@@ -25,6 +26,7 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
           const q = data.questions?.find((x: any) => x.id === questionId);
           if (q) {
             setType(q.type || "qcm");
+            setMode(q.mode || undefined);
             setText(q.text || "");
             setMedia(q.media || "");
             setOptions(q.options || ["", "", "", ""]);
@@ -36,6 +38,7 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
     } else {
       // Reset for new question
       setType("qcm");
+      setMode(undefined);
       setText("");
       setMedia("");
       setOptions(["", "", "", ""]);
@@ -68,6 +71,7 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
   const handleSave = async () => {
     const payload: any = {
       type,
+      mode: mode || undefined,
       text,
       media: media || null,
       points,
@@ -116,11 +120,27 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
             className="w-full border rounded px-3 py-2"
           >
             <option value="qcm">QCM (Text Options)</option>
-            <option value="image">Image QCM</option>
+            <option value="image">Image Question</option>
             <option value="closest">Closest Number</option>
             <option value="open">Open Question</option>
           </select>
         </div>
+
+        {/* Mode (for image type) */}
+        {type === "image" && (
+          <div>
+            <label className="block text-sm font-medium mb-1">Image Mode</label>
+            <select
+              value={mode || ""}
+              onChange={(e) => setMode(e.target.value || undefined)}
+              className="w-full border rounded px-3 py-2"
+            >
+              <option value="">Standard Image QCM</option>
+              <option value="image_zoombuzz">Zoom Reveal (Progressive Dezoom)</option>
+              <option value="mystery_image">Mystery Image (Square Reveal)</option>
+            </select>
+          </div>
+        )}
 
         {/* Question Text */}
         <div>
