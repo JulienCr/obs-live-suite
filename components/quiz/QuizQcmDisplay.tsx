@@ -1,3 +1,5 @@
+import React from "react";
+
 interface QuizQcmDisplayProps {
   voteCounts?: Record<string, number>;
   votePercentages?: Record<string, number>;
@@ -7,6 +9,7 @@ interface QuizQcmDisplayProps {
     options?: string[];
     optionsAreImages?: boolean;
     correct?: number;
+    media?: string | null; // Question image URL
   };
   playerAssignments?: Record<string, string>; // playerId -> option
   players?: Array<{ id: string; name?: string; displayName?: string; avatar?: string; avatarUrl?: string }>;
@@ -33,16 +36,76 @@ if (typeof document !== 'undefined') {
 }
 
 export function QuizQcmDisplay({ voteCounts, votePercentages, phase, question, playerAssignments, players }: QuizQcmDisplayProps) {
-  // Hide during transition
-  if (phase === "idle" || phase === "hiding" || !question) return null;
+  // All hooks must be called before any conditional returns
+  const [showQuestion, setShowQuestion] = React.useState(false);
+  const [showImage, setShowImage] = React.useState(false);
+  const [showOptions, setShowOptions] = React.useState(false);
+  const [lastQuestion, setLastQuestion] = React.useState(question);
+
+  // Track the current question ID to detect real changes
+  const questionId = React.useMemo(() => {
+    return question ? JSON.stringify(question) : null;
+  }, [question]);
+
+  // Keep track of the last question for fade-out
+  React.useEffect(() => {
+    if (question) {
+      setLastQuestion(question);
+    }
+  }, [question]);
+
+  // Effect 1: Fade OUT when phase becomes "hiding" (next question) or "idle" (end)
+  React.useEffect(() => {
+    if (phase === "hiding" || phase === "idle") {
+      setShowQuestion(false);
+      setShowImage(false);
+      setShowOptions(false);
+    }
+  }, [phase]);
+
+  // Effect 2: Fade IN when question changes (new question loaded)
+  React.useEffect(() => {
+    // Don't start fade-in if we're hiding or no question
+    if (!question || phase === "idle" || phase === "hiding") {
+      return;
+    }
+
+    // Start fade-in sequence for new question
+    setShowQuestion(false);
+    setShowImage(false);
+    setShowOptions(false);
+
+    // Show question immediately
+    const questionTimer = setTimeout(() => setShowQuestion(true), 50);
+    
+    // Show image after 1s (if there's an image)
+    const imageTimer = setTimeout(() => setShowImage(true), 1000);
+    
+    // Show options after 3s
+    const optionsTimer = setTimeout(() => setShowOptions(true), 3000);
+
+    return () => {
+      clearTimeout(questionTimer);
+      clearTimeout(imageTimer);
+      clearTimeout(optionsTimer);
+    };
+  }, [questionId]); // Only watch questionId, not phase!
+
+  // Keep rendering during "hiding" or "idle" to show fade-out animation
+  // Only return null if no question at all AND not in transition phases
+  if (!question && phase !== "hiding" && phase !== "idle") return null;
+
+  // Use current question or last question for fade-out
+  const displayQuestion = question || lastQuestion;
+  if (!displayQuestion) return null;
 
   const options = ["A", "B", "C", "D"];
   const colors = ["bg-blue-500", "bg-green-500", "bg-yellow-500", "bg-red-500"];
-  const questionText = question?.text || "";
-  const optionTexts = question?.options || options;
-  const optionsAreImages = question?.optionsAreImages || false;
+  const questionText = displayQuestion?.text || "";
+  const optionTexts = displayQuestion?.options || options;
+  const optionsAreImages = displayQuestion?.optionsAreImages || false;
   const isRevealed = phase === "reveal";
-  const correctIndex = question?.correct;
+  const correctIndex = displayQuestion?.correct;
   
   // Initialize vote data if not present
   const safeCounts = voteCounts || {};
@@ -60,16 +123,29 @@ export function QuizQcmDisplay({ voteCounts, votePercentages, phase, question, p
   // Helper to get player avatar
   const getPlayerAvatar = (p: any) => p.avatarUrl || p.avatar;
 
+  // Check if options themselves are images (not just question having an image)
+  const optionsAreImageUrls = optionsAreImages && optionTexts.every(o => typeof o === 'string' && o.startsWith("http"));
+
+  // Question media for image display
+  const questionMedia = displayQuestion?.media;
+  const hasQuestionImage = questionMedia && questionMedia.startsWith("http");
+
   // If options are images, show grid layout
-  if (optionsAreImages && optionTexts.every(o => o.startsWith("http"))) {
+  if (optionsAreImageUrls) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center p-12">
         {questionText && (
-          <div className="mb-8 text-white text-3xl font-bold text-center bg-black/70 px-8 py-4 rounded-lg">
+          <div 
+            className={`mb-8 text-white text-3xl font-bold text-center bg-black/70 px-8 py-4 rounded-lg transition-opacity duration-700 ${
+              showQuestion ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
             {questionText}
           </div>
         )}
-        <div className="grid grid-cols-2 gap-6 w-[900px]">
+        <div className={`grid grid-cols-2 gap-6 w-[900px] transition-opacity duration-700 ${
+          showOptions ? 'opacity-100' : 'opacity-0'
+        }`}>
           {options.map((opt, idx) => {
             const pct = safePercentages[opt] || 0;
             const count = safeCounts[opt] || 0;
@@ -134,14 +210,43 @@ export function QuizQcmDisplay({ voteCounts, votePercentages, phase, question, p
     );
   }
 
-  // Text options - bar display
+  // Text options - bar display (with optional question image on the left)
+  // questionMedia and hasQuestionImage already defined above
+
   return (
-    <div className="absolute bottom-32 left-1/2 -translate-x-1/2 w-[800px] space-y-3">
-      {questionText && (
-        <div className="mb-6 text-white text-2xl font-bold text-center bg-black/70 px-6 py-3 rounded-lg">
-          {questionText}
+    <div className="absolute inset-0">
+      {/* Question Image (if provided) - positioned on the left side, aligned with answers */}
+      {hasQuestionImage && (
+        <div 
+          className={`absolute bottom-10 left-8 rounded-lg overflow-hidden shadow-2xl z-10 transition-opacity duration-700 ${
+            showImage ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <img 
+            src={questionMedia} 
+            alt="Question" 
+            className="max-w-md max-h-80 object-contain"
+          />
         </div>
       )}
+      
+      {/* Question Text and Answer Options - positioned at bottom */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[800px]">
+        {/* Question Text - just above answers */}
+        {questionText && (
+          <div 
+            className={`mb-6 text-white text-2xl font-bold text-center bg-black/70 px-6 py-3 rounded-lg break-words transition-opacity duration-700 ${
+              showQuestion ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {questionText}
+          </div>
+        )}
+        
+        {/* Answer Options (Text Bars) */}
+        <div className={`space-y-3 transition-opacity duration-700 ${
+          showOptions ? 'opacity-100' : 'opacity-0'
+        }`}>
       {options.map((opt, idx) => {
         const pct = safePercentages[opt] || 0;
         const count = safeCounts[opt] || 0;
@@ -194,6 +299,8 @@ export function QuizQcmDisplay({ voteCounts, votePercentages, phase, question, p
           </div>
         );
       })}
+        </div>
+      </div>
     </div>
   );
 }

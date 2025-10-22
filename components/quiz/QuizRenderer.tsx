@@ -78,8 +78,9 @@ export function QuizRenderer() {
                     text: currentQ.text,
                     type: currentQ.type,
                     options: currentQ.options,
-                    optionsAreImages: currentQ.type === "image" && currentQ.options?.every((o: string) => o.startsWith("http")),
-                    media: currentQ.media,
+                    // Options are images only if all options are URLs
+                    optionsAreImages: currentQ.options?.every((o: string) => typeof o === 'string' && o.startsWith("http")),
+                    media: currentQ.media, // Question image URL (separate from options)
                     correct: currentQ.correct,
                   },
                   players: playersWithScores,
