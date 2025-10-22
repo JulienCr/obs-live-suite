@@ -25,6 +25,9 @@ export const quizEventTypeSchema = z.enum([
   "zoom.start",
   "zoom.step",
   "zoom.stop",
+  "mystery.start",
+  "mystery.step",
+  "mystery.stop",
   "buzzer.hit",
   "buzzer.lock",
   "buzzer.release",
@@ -110,6 +113,11 @@ export const zoomStepPayloadSchema = z.object({
   total: z.number().int().positive(),
 });
 
+export const mysteryStepPayloadSchema = z.object({
+  revealed_squares: z.number().int().nonnegative(),
+  total_squares: z.number().int().positive(),
+});
+
 export const buzzerHitPayloadSchema = z.object({
   buzzer_id: z.string(),
   player_id: z.string(),
@@ -155,6 +163,7 @@ export type LeaderboardPushPayload = z.infer<typeof leaderboardPushPayloadSchema
 export type MediaProgressPayload = z.infer<typeof mediaProgressPayloadSchema>;
 export type TimerTickPayload = z.infer<typeof timerTickPayloadSchema>;
 export type ZoomStepPayload = z.infer<typeof zoomStepPayloadSchema>;
+export type MysteryStepPayload = z.infer<typeof mysteryStepPayloadSchema>;
 export type BuzzerHitPayload = z.infer<typeof buzzerHitPayloadSchema>;
 export type AnswerSubmitPayload = z.infer<typeof answerSubmitPayloadSchema>;
 export type AnswerAssignPayload = z.infer<typeof answerAssignPayloadSchema>;

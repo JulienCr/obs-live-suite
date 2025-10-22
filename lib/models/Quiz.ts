@@ -10,6 +10,7 @@ export const quizModeSchema = z.enum([
   "image_simple",
   "image_qcm",
   "image_zoombuzz",
+  "mystery_image",
 ]);
 
 export const zoomConfigSchema = z.object({
@@ -33,7 +34,7 @@ export const questionSchema = z.object({
   type: z.enum(["qcm", "image", "closest", "open"]).default("qcm"),
   mode: quizModeSchema.optional(),
   text: z.string(),
-  media: z.string().url().nullable().default(null),
+  media: z.string().nullable().default(null), // Allow both URLs and relative paths
   options: z.array(z.string()).max(4).optional(),
   correct: z.union([z.number().int(), z.string(), z.object({ min: z.number(), max: z.number() })]).optional(),
   points: z.number().int().default(1),
