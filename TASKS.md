@@ -180,7 +180,22 @@
 - **Settings page with OBS, Backend, Paths, Backup, and Plugins tabs**
 - **Assets Library for managing posters and guests**
 - **Profiles system for managing different shows**
-- **Quiz System (COMPLETE - October 2025)**
+  - **Quiz System (COMPLETE - October 2025)**
+  - **Mystery Image Mode** - Progressive square-by-square reveal for images (mode: "mystery_image")
+    - 20px×20px squares revealed in random order
+    - Play/Pause/Resume controls in host panel
+    - Auto-reveals full image on answer reveal
+    - Manual winner selection after reveal (like closest/open modes)
+  - **Zoom Reveal Mode** - Progressive zoom-out reveal for images (mode: "image_zoombuzz")
+    - Manual Start/Pause/Resume controls in host panel
+    - Configurable duration and max zoom (currently: 45s, 35x zoom)
+    - Auto-calculated 30fps smooth animation
+    - Ease-out cubic easing for natural feel
+    - Medium-sized image container (600px × 450px)
+    - Clean transparent background (no dark overlay)
+    - Manual winner selection after reveal (like mystery/open modes)
+    - Auto-reveals to 1x zoom on answer reveal
+  - Mode selector in question editor (Standard / Zoom Reveal / Mystery Image)
   - **Question Manager** at `/quiz/manage` with tabs
     - Questions tab: Create/edit questions with CRUD operations
     - Session Builder tab: Compose full quiz shows

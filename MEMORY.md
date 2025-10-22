@@ -1397,4 +1397,307 @@ Fade-in sequence: text (50ms) → image (1s) → options (3s)
 
 ---
 
+## Quiz Mystery Image Mode (October 2025)
+
+**FEATURE**: Added progressive square-by-square reveal mode for image questions.
+
+**IMPLEMENTATION**:
+
+1. **Type vs Mode Architecture**: 
+   - Type: "image" (existing type, same as image_zoombuzz)
+   - Mode: "mystery_image" (new mode in quizModeSchema)
+   - This follows the same pattern as zoom reveal mode ("image_zoombuzz")
+
+2. **Square Grid System**:
+   - Images divided into 20px × 20px squares
+   - Grid calculated dynamically based on image natural dimensions
+   - Non-square images handled smartly (grid fills to cover entire image)
+   - Black overlay with border shows unrevealed squares
+   - Random reveal order generated using Fisher-Yates shuffle
+
+3. **Progressive Reveal Logic**:
+   - `QuizMysteryImageController` service manages reveal state
+   - WebSocket events: `mystery.start`, `mystery.step`, `mystery.stop`
+   - Default interval: 1000ms per square (configurable)
+   - Auto-stops when all squares revealed
+   - Manual step control available (reveal N squares at once)
+
+4. **Frontend Components**:
+   - `QuizMysteryImage.tsx` - Overlay display component
+   - Shows question text, progress bar, square count
+   - Supports buzzer winner indicator overlay
+   - Fade-in animation compatible with other quiz display modes
+
+5. **Backend Integration**:
+   - Added to `QuizManager` alongside zoom and buzzer controllers
+   - API endpoints: `/media/mystery/start`, `/stop`, `/step`, `/state`
+   - State persisted in controller (revealed count, total count, running status)
+
+6. **Host Controls**:
+   - Actions added to `useQuizHostState`: `mysteryStart`, `mysteryStop`, `mysteryStep`
+   - Start requires totalSquares parameter (can be pre-calculated or estimated)
+   - UI controls not yet added to host panel (available via actions)
+
+7. **Question Editor**:
+   - Mode selector added for type="image"
+   - Three modes available: Standard, Zoom Reveal, Mystery Image
+   - Mode saved to question bank and sessions
+
+**Key Technical Decisions**:
+- **Grid Rendering**: Used CSS Grid with dynamic columns/rows for performance
+- **Reveal Animation**: Opacity transition on individual squares (300ms)
+- **Image Loading**: Preloads image to get natural dimensions before calculating grid
+- **State Management**: Separate mystery state fields in QuizRenderer (revealedSquares, totalSquares)
+- **Square Size**: Fixed at 20px for consistent visibility across screen sizes
+
+**Usage Example**:
+```json
+{
+  "type": "image",
+  "mode": "mystery_image",
+  "text": "What is this landmark?",
+  "media": "https://example.com/mystery-landmark.jpg",
+  "correct": "Eiffel Tower",
+  "points": 25,
+  "time_s": 60
+}
+```
+
+**Files Created**:
+- `components/quiz/QuizMysteryImage.tsx` - Display component (~170 lines)
+- `lib/services/QuizMysteryImageController.ts` - Controller service (~100 lines)
+
+**Files Modified**:
+- `lib/models/Quiz.ts` - Added "mystery_image" to mode enum
+- `lib/models/QuizEvents.ts` - Added mystery.* events and payload schema
+- `lib/services/QuizManager.ts` - Integrated mystery controller
+- `components/quiz/QuizRenderer.tsx` - Added mystery mode detection and state handling
+- `components/quiz/host/useQuizHostState.ts` - Added mystery actions
+- `components/quiz/manage/QuestionEditor.tsx` - Added mode selector UI
+- `server/api/quiz.ts` - Added mystery control endpoints
+
+**Future Enhancements**:
+- Visual controls in host panel (Start/Stop buttons with square count input)
+- Reveal speed control (slow/medium/fast presets)
+- Pattern reveal options (sequential, spiral, random clusters)
+- Partial reveal hints (reveal N random squares immediately)
+- Click-to-reveal mode (host manually clicks squares)
+
+**Lesson**: When adding new question modes, follow the established pattern:
+1. Add mode to enum (don't create new type unless fundamentally different)
+2. Create dedicated controller service for complex logic
+3. Add WebSocket events for real-time sync
+4. Integrate into QuizRenderer with mode detection
+5. Add API endpoints and host actions
+6. Update question editor with mode selector
+
+**Bug Fixes (October 2025)**:
+1. **Grid calculation**: Host panel now calculates actual grid size from image dimensions instead of hardcoding 100 squares
+2. **Interval management**: Controller properly handles stop condition and continues until all squares revealed
+3. **State reset**: Mystery running state resets when question changes
+4. **Unique squares**: Fisher-Yates shuffle guarantees each square revealed exactly once (no duplicates)
+5. **Error handling**: Added image load error handling in host panel
+6. **Debug logging**: Added console logs to track reveal progress and diagnose issues
+7. **Pause/Resume**: Added proper resume functionality - pause preserves current position, resume continues from where paused
+
+**Key Fixes**:
+- **Grid calculation**: The hardcoded 100 squares was causing premature stops. Now the host panel:
+  - Loads the mystery image to get natural dimensions
+  - Calculates cols = ceil(width / 20), rows = ceil(height / 20)
+  - Sends actual total (e.g., 690 squares for 600×450 image) to controller
+  - Controller continues until all squares revealed
+
+- **Pause/Resume**: Initial implementation called `start()` on resume, which reset counter to 0. Fixed with:
+  - Added `resume()` method in `QuizMysteryImageController` that continues from current position
+  - Host panel tracks `mysteryStarted` flag to distinguish first start vs resume
+  - Button text changes: "Start" → "Resume" after first use
+  - Pause preserves `revealedSquares` counter
+  - Resume creates new interval starting from saved position
+
+**Winner Selection (October 2025)**:
+- Added manual winner selection for mystery_image mode (same as closest/open modes)
+- Winner selection UI appears in host panel after reveal
+- Host can click on player avatars to mark winners (multiple allowed)
+- Points applied immediately when toggling winner status
+- Green checkmark indicates selected winners
+- Uses existing `onWinnerSelect` callback and `selectedWinners` state
+- Purple-themed info box explains the mystery image mode
+- Shows grid size calculation in UI
+
+**Files Modified**:
+- `components/quiz/host/QuizQuestionStage.tsx` - Added mystery image content section with winner selection
+
+**Usage**: 
+1. Show question → Start reveal → Players guess
+2. When revealed, click "Reveal" button
+3. Winner selection UI appears in host panel
+4. Click players who guessed correctly
+5. Points awarded immediately
+
+**Validation Fix (October 2025)**:
+- **Issue**: Question creation failed with "Invalid url" error when `media` field contained a relative path
+- **Root cause**: Schema used `z.string().url()` which only accepts full URLs like `http://...`
+- **Fix**: Changed to `z.string().nullable()` to accept both:
+  - Full URLs: `http://localhost:3000/uploads/quiz/image.webp`
+  - Relative paths: `/data/uploads/quiz/052d61ed-d338-4d4d-8061-66b2716b94ee.webp`
+- **Files modified**: `lib/models/Quiz.ts` - Removed `.url()` validation from `media` field
+- **Impact**: Quiz image uploads now work with relative paths (as returned by upload API)
+
+**Zoom Reveal Mode Improvements (October 2025)**:
+- **Issue**: Zoom reveal mode (`image_zoombuzz`) had poor UX compared to mystery image mode:
+  - Auto-started without host control
+  - Dark full-screen background overwhelming
+  - Large image size
+  - Unnecessary UI elements (zoom percentage, buzzer prompt)
+- **Changes**:
+  1. **Overlay UI** (`components/quiz/QuizZoomReveal.tsx`):
+     - Removed dark `bg-black/80` background, now transparent
+     - Reduced image container to medium size (600px × 450px, matching mystery image)
+     - Positioned image at bottom with question text above (consistent with mystery image)
+     - Removed zoom level indicator overlay
+     - Removed "Press your buzzer to answer!" text
+     - Improved buzzer winner display with yellow theme
+  2. **Host Controls** (same as mystery image):
+     - Added Start/Pause/Resume buttons in host panel
+     - Added `zoomStart()`, `zoomStop()`, `zoomResume()` methods to `QuizZoomController`
+     - Added `reset()` method to clear state on question change
+     - Host can now manually control zoom progression
+  3. **Backend**:
+     - Added `/media/zoom/resume` API endpoint
+     - Integrated `zoom.reset()` in `QuizManager.showCurrentQuestion()`
+  4. **State Management**:
+     - Added `zoomRunning` and `zoomStarted` state to `QuizQuestionStage`
+     - Tracks pause/resume like mystery image mode
+
+**Files Modified**:
+- `components/quiz/QuizZoomReveal.tsx` - Redesigned overlay UI
+- `lib/services/QuizZoomController.ts` - Added resume() and reset() methods
+- `lib/services/QuizManager.ts` - Added zoomResume() and reset integration
+- `server/api/quiz.ts` - Added /media/zoom/resume endpoint
+- `components/quiz/host/useQuizHostState.ts` - Added zoom actions
+- `components/quiz/host/QuizQuestionStage.tsx` - Added zoom controls UI
+- `app/quiz/host/page.tsx` - Wired zoom controls with toast notifications
+
+**Zoom Animation Refinements (October 2025)**:
+- **Issue**: Zoom was too extreme (11x) and fade-in was coupled with zoom animation
+- **Changes**:
+  1. Reduced max zoom from 11x to 9x (more reasonable starting point)
+     - Formula changed: `scale = 1 + (100 - zoomLevel) * 8 / 100`
+     - At zoomLevel=0: scale=9x, at zoomLevel=100: scale=1x
+  2. Decoupled fade-in from zoom animation
+     - Fade-in now happens on "show question" (component mount) via Tailwind `animate-in fade-in duration-700`
+     - Zoom animation is pure transform, no opacity changes
+     - When clicking "Start", image only unzooms (no additional fade)
+- **Result**: Cleaner separation of concerns - appearance fade vs zoom reveal
+
+**Zoom Configuration System (October 2025)**:
+- **Goal**: Make zoom configuration intuitive - just set duration and max zoom
+- **Implementation**:
+  - Changed from `{ steps, intervalMs, maxZoom }` to `{ durationSeconds, maxZoom, fps? }`
+  - Auto-calculates steps and interval for smooth 30fps animation
+  - Formula: `steps = durationSeconds * fps`, `intervalMs = 1000 / fps`
+  
+- **Configuration in `lib/services/QuizManager.ts`**:
+  ```typescript
+  new QuizZoomController({ 
+    durationSeconds: 6,  // Total animation duration
+    maxZoom: 26,         // Max zoom (26x at start, 1x at end)
+    fps: 30,             // Frames per second (optional, default: 30)
+  });
+  // Auto-calculated: 6s * 30fps = 180 steps, 33ms interval
+  ```
+
+- **Examples**:
+  - Fast reveal (3s, 20x zoom): `{ durationSeconds: 3, maxZoom: 20 }`
+    → 90 steps, 33ms interval
+  - Slow reveal (10s, 30x zoom): `{ durationSeconds: 10, maxZoom: 30 }`
+    → 300 steps, 33ms interval
+
+- **Files Modified**:
+  - `lib/services/QuizZoomController.ts` - New config interface, auto-calculation logic
+  - `lib/services/QuizManager.ts` - Updated to use new config format
+  - `components/quiz/QuizRenderer.tsx` - Updated defaults (180 steps)
+  - `components/quiz/QuizZoomReveal.tsx` - Updated defaults and comments
+
+**Zoom Easing Function (October 2025)**:
+- **Issue**: Linear zoom felt like it was accelerating (perceptual artifact)
+- **Solution**: Applied ease-out cubic easing function
+  - Formula: `easedProgress = 1 - (1 - linearProgress)³`
+  - Makes dezoom **fast at start, slow at end**
+  - More natural feel as it approaches 1x zoom
+- **Effect**:
+  - First 50% of time: covers ~87% of zoom range (fast)
+  - Last 50% of time: covers ~13% of zoom range (slow, refined)
+  - Feels smoother and more controlled
+- **File**: `components/quiz/QuizZoomReveal.tsx`
+
+**Zoom Initial Configuration & Reveal Behavior (October 2025)**:
+- **Issue 1**: On question show, zoom started at default 27x (26+1), but after clicking start, jumped to 36x (35+1)
+  - Root cause: Config was hardcoded in component defaults, not passed from backend
+- **Solution**: Send zoom config with `question.show` event
+  - Backend sends `zoom_steps` and `zoom_maxZoom` in `question.show` payload
+  - Overlay initializes with correct values immediately
+  - Updated defaults to match current config (45s, 35x zoom)
+
+- **Issue 2**: On reveal answer, zoom continued running instead of showing full image
+- **Solution**: Auto-complete zoom on reveal
+  - Added `zoom.complete` event published on reveal
+  - Stops zoom animation immediately
+  - Sets scale to 1x (fully zoomed out)
+  - In component, detect `reveal` or `score_update` phase and force scale = 1
+
+- **Files Modified**:
+  - `lib/services/QuizManager.ts` - Send config with question.show, stop zoom on reveal
+  - `components/quiz/QuizRenderer.tsx` - Initialize from question.show payload, handle zoom.complete
+  - `components/quiz/QuizZoomReveal.tsx` - Updated defaults, force scale=1 on reveal phase
+
+**Zoom Reveal Winner Selection (October 2025)**:
+- **Feature**: Added manual winner selection for zoom reveal mode
+- **Implementation**: Same UI pattern as mystery image and open modes
+  - Indigo-themed info box explaining the zoom reveal mode
+  - Winner selection appears after clicking "Reveal"
+  - Click player avatars to toggle winner status (multiple allowed)
+  - Green checkmark indicates selected winners
+  - Points applied immediately via existing `onWinnerSelect` callback
+- **Files Modified**:
+  - `components/quiz/host/QuizQuestionStage.tsx` - Added zoom mode content section with winner selection UI
+- **Usage**:
+  1. Show question → Start zoom reveal
+  2. Players watch and guess as image zooms out
+  3. Click "Reveal" → Image fully revealed + winner selection UI appears
+  4. Click players who guessed correctly
+  5. Points awarded immediately
+
+**Quiz UI Improvements (October 2025)**:
+
+**1. Open Question Layout Update:**
+- **Changes**:
+  - Moved question text to bottom (matching zoom/mystery modes)
+  - Removed "Host will select the best answer" instruction text
+  - Winner display now centered in screen
+  - Viewer answers remain at bottom in scrolling box
+- **File**: `components/quiz/QuizOpenDisplay.tsx`
+
+**2. Timer Display for Untimed Questions:**
+- **Feature**: Hide countdown timer when question has no time limit (`time_s = 0`)
+- **Implementation**:
+  - Pass `time_s` from question data through QuizRenderer state
+  - QuizTimerDisplay checks `timeLimit === 0` and returns null
+  - Allows untimed questions for manual winner selection modes
+- **Files Modified**:
+  - `components/quiz/QuizRenderer.tsx` - Added `time_s` to currentQuestion state
+  - `components/quiz/QuizTimerDisplay.tsx` - Hide when `timeLimit === 0`
+
+**3. Winner Selection Bug Fix (Skip Lock):**
+- **Issue**: If host clicks "Reveal" without clicking "Lock" first, winner selection UI appeared briefly then disappeared
+- **Root Cause**: Timer kept running after reveal, causing unwanted phase transitions
+  - `lockAnswers()` calls `timer.pause()` but `reveal()` didn't stop timer
+  - Running timer would expire and trigger phase changes, hiding winner UI
+- **Solution**: Added `await this.timer.stop();` at start of `reveal()` method
+  - Ensures timer is stopped whether lock was clicked or not
+  - Winner selection UI now stays visible until manually dismissed
+- **File**: `lib/services/QuizManager.ts`
+
+---
+
 *Last updated: October 2025*
