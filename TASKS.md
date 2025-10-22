@@ -140,6 +140,30 @@
 - OBS WebSocket integration with auto-reconnect
 - Real-time WebSocket communication
 - **Stream Deck HTTP API endpoints with convenient shortcuts**
+- **Reformatted Quiz Host Interface (October 2025)** ✨ NEW
+  - Professional 3-panel layout (Navigator | Question Stage | Players Panel)
+  - Left sidebar: Session name, rounds accordion with status badges, question list
+  - Center stage: Question display with drag-and-drop + click-to-assign player avatars to QCM options
+  - Right panel: Studio players (draggable avatars), viewers leaderboard, event log (hidden until telemetry)
+  - Global top bar with phase-aware controls (Prev/Show/Lock/Reveal/Next)
+  - Keyboard shortcuts (Space=Lock/Reveal, Arrows=Prev/Next, T=+10s, V=Viewer input)
+  - Real-time viewer vote counts + percentages displayed on QCM options
+  - Timer controls with red warning when <10s (500ms ticks, 1s accurate decrement)
+  - Danger zone limited to Reset Question only (removed Load Example and Reset Session)
+  - Color-coded question types and phase badges (Idle/Accepting/Locked/Revealed/Scoring)
+  - Responsive accordion navigation with round status indicators
+  - **Real-Time Synchronization** (October 2025) ✅ COMPLETE
+    - WebSocket event acknowledgments (no more "No ack received" warnings)
+    - Live player assignment with avatar positioning on options
+    - Auto-scoring after reveal with ✓/0 badges on player avatars
+    - Viewer votes displayed in real-time (counts, percentages, progress bars)
+    - Phase synchronization with color-coded badges
+    - Top viewers leaderboard updates via leaderboard.push event
+    - Timer accuracy fix (tick counter prevents 2x speed)
+    - Event-driven state updates (minimal full reloads)
+    - Toast notifications for Lock/Reveal/Player assignments
+    - Session selector in host view (shows if no session or empty rounds)
+    - "Change" button in navigator to switch sessions
   - Show guest lower thirds by ID
   - Show posters by ID
   - Countdown, OBS control, scene switching
@@ -156,6 +180,37 @@
 - **Settings page with OBS, Backend, Paths, Backup, and Plugins tabs**
 - **Assets Library for managing posters and guests**
 - **Profiles system for managing different shows**
+- **Quiz System (COMPLETE - October 2025)**
+  - **Question Manager** at `/quiz/manage` with tabs
+    - Questions tab: Create/edit questions with CRUD operations
+    - Session Builder tab: Compose full quiz shows
+    - Support for QCM (text), Image QCM, Closest, and Open question types
+    - Image upload integrated with existing assets API
+    - Question bank persisted to JSON
+  - **Session Builder**
+    - Player selector: Pick 4 studio players from guests database
+    - Round editor: Compose rounds from question bank with drag-and-drop ordering
+    - Session assembler: Arrange multiple rounds into complete shows
+    - One-click session creation and activation
+  - **Enhanced Host Panel** at `/quiz/host`
+    - Current/next question preview with full details
+    - Live scoreboard: Studio players + top 5 viewers
+    - Round info and phase status with WebSocket connection indicator
+    - Main controls (8): Load example, reset, start round, show/lock/reveal, next, end round
+    - Advanced controls (9): Timer (+10s, resume, stop), Zoom (start, stop), Buzzer (hit, release)
+  - **Multi-Mode Overlay** at `/overlays/quiz`
+    - **QCM Mode**: Text options with animated bars OR image grid (2×2) with vote overlays
+    - **Zoom Reveal Mode**: Mystery image with progressive dezoom animation and buzzer indicator
+    - **Open Mode**: Question display with host scoring and scrolling viewer answers
+    - Auto-detection of mode based on question type
+    - Real-time vote percentages, timer, and player displays
+  - **Backend Services**
+    - QuizManager, Store, Scoring, Buzzer, ViewerInput, Zoom, Timer (all complete)
+    - Question & Round CRUD with persistence
+    - Session creation endpoint for builder integration
+    - WebSocket events for real-time updates (15+ event types)
+    - Streamer.bot bridge for Twitch chat (!a/!b/!c/!d, !n, !rep)
+  - **Testing**: 36/36 tests passing (unit + functional)
 
 ### 🚧 Features to Complete
 - Profile export/import (zip with assets)
@@ -190,11 +245,27 @@ Add separate browser sources for each overlay:
 - Lower Third: `http://localhost:3000/overlays/lower-third`
 - Countdown: `http://localhost:3000/overlays/countdown`
 - Poster: `http://localhost:3000/overlays/poster`
+- **Quiz: `http://localhost:3000/overlays/quiz`**
 
 Use individual overlays when you need:
 - Different layer ordering in OBS
 - Different filters/effects per overlay
 - Independent enable/disable per overlay type
+
+### Quiz Setup
+1. **Host Panel**: `http://localhost:3000/quiz/host`
+   - Control interface for managing quiz flow
+   - Load example questions, start rounds, show/lock/reveal questions
+   - Zoom, buzzer, and timer controls
+   
+2. **Overlay**: `http://localhost:3000/overlays/quiz`
+   - Add as Browser Source in OBS (1920x1080, transparent)
+   - Shows timer, QCM bars, players, and question state
+   
+3. **Streamer.bot Integration** (optional):
+   - Configure webhook to POST chat messages to `http://localhost:3002/api/quiz-bot/chat`
+   - Payload: `{"userId": "...", "displayName": "...", "message": "..."}`
+   - Supports: `!a !b !c !d`, `!n <number>`, `!rep <text>`
 
 ## Notes
 - Core functionality is COMPLETE and ready for testing

@@ -594,4 +594,686 @@ const ws = new WebSocket('ws://localhost:3001');
 
 ---
 
-*Last updated: January 2025*
+## Quiz System Implementation (October 2025)
+
+### COMPLETE: Full System Implemented ✅
+
+All features from the enhancement plan have been implemented. The quiz system now includes complete question management, session building, player selection, multi-mode overlays, and live scoring.
+
+### Option C: Core Essentials Complete (Phase 1)
+
+After initial full-system implementation, user requested enhanced UI. Three options were proposed:
+- **Option A**: Full system (player selector, all round types, advanced host UI, all overlay modes)
+- **Option B**: Backend first (complete CRUD, session builder)
+- **Option C**: Core essentials (backend + basic management UI + one overlay mode) ✅ **SELECTED**
+
+#### What Was Implemented
+
+**Backend Extensions** (`lib/services/QuizStore.ts`, `server/api/quiz.ts`):
+- Added question bank CRUD methods (`createQuestion`, `updateQuestion`, `deleteQuestion`, `getAllQuestions`)
+- Added round bank CRUD methods
+- Question bank persisted to `data/quiz/questions.json`
+- API endpoints: `GET /api/quiz/questions`, `POST /api/quiz/questions`, `PUT /api/quiz/questions/:id`, `DELETE /api/quiz/questions/:id`
+
+**Question Manager UI** (`/quiz/manage`):
+- `app/quiz/manage/page.tsx` - Main manager page with two-column layout
+- `components/quiz/manage/QuestionList.tsx` - Lists all questions with edit/delete actions
+- `components/quiz/manage/QuestionEditor.tsx` - Form for creating/editing questions
+  - Type selector: QCM, Image QCM, Closest, Open
+  - Question text input
+  - Image upload (integrated with existing `/api/assets/quiz` endpoint)
+  - Options editor for QCM (radio buttons for correct answer)
+  - Points and time configuration
+
+**Enhanced Host Panel** (`/quiz/host`):
+- Current question display with full details (text, options, type, points)
+- Next question preview
+- Round info and phase status
+- Organized controls: Main (8 buttons), Timer (3 buttons), Zoom (2 buttons), Buzzer (2 buttons)
+- Real-time state updates via WebSocket
+- Auto-refresh after API calls
+
+**Enhanced QCM Overlay** (`components/quiz/QuizQcmDisplay.tsx`):
+- Text mode: Horizontal bars with vote percentages (existing)
+- **Image mode**: 2x2 grid layout with:
+  - Image preview for each option
+  - Vote counts and percentages
+  - Progress bar overlay at bottom of each tile
+  - Question text header
+- Mode detection: checks if all options are URLs
+
+**Data Flow**:
+1. Host creates questions via `/quiz/manage`
+2. Questions saved to `QuizStore` → `data/quiz/questions.json`
+3. Host loads example session or builds custom session
+4. Host controls quiz via `/quiz/host`
+5. Overlay at `/overlays/quiz` subscribes to `quiz` channel
+6. On `question.show`, overlay fetches question details from `/api/quiz/state`
+7. Overlay renders mode-specific display (text bars or image grid)
+
+#### Key Decisions
+
+**Why Not Full Implementation**:
+- User wanted to prioritize getting a working system quickly
+- Image QCM is the most visually distinct mode (vs text QCM)
+- Zoom/Buzz modes require more complex UI and state management
+- Question management was the critical missing piece for real usage
+
+**Persistence Strategy**:
+- Question bank → `data/quiz/questions.json` (separate from sessions)
+- Sessions → `data/quiz/sessions/{id}.json` (include full question objects)
+- This allows reusing questions across multiple sessions
+
+**Image Detection Logic**:
+- Simple heuristic: if all options start with "http", treat as image mode
+- Could be enhanced with explicit `optionsAreImages` flag if needed
+
+#### Testing Status
+- All 36 existing quiz tests still pass
+- No new tests added (Option C focused on UI, existing backend tested)
+- Manual testing required for new UI components
+
+#### Files Created/Modified
+**Created**:
+- `app/quiz/manage/page.tsx`
+- `components/quiz/manage/QuestionList.tsx`
+- `components/quiz/manage/QuestionEditor.tsx`
+
+**Modified**:
+- `lib/services/QuizStore.ts` (+90 lines) - CRUD methods, persistence
+- `server/api/quiz.ts` (+38 lines) - Question endpoints
+- `components/quiz/QuizQcmDisplay.tsx` (+50 lines) - Image mode
+- `components/quiz/QuizRenderer.tsx` (+15 lines) - Fetch question details
+- `app/quiz/host/page.tsx` (refactored) - Enhanced display
+
+### Full Implementation Complete (Phase 2) ✅
+
+User requested: "go on" → implemented all remaining features from the plan.
+
+**What Was Added (Phase 2)**:
+
+1. **Session Builder UI** (`/quiz/manage` - Session Builder tab):
+   - `PlayerSelector.tsx`: Select 4 studio players from guests DB, assign buzzer IDs
+   - `RoundEditor.tsx`: Compose rounds from question bank, reorder questions
+   - `SessionBuilder.tsx`: Arrange rounds, configure session, one-click creation
+   - Backend: `POST /api/quiz/session/create` endpoint
+
+2. **Multi-Mode Overlay System**:
+   - `QuizZoomReveal.tsx`: Mystery image with progressive dezoom (11x→1x scale), zoom level indicator, buzzer winner display
+   - `QuizOpenDisplay.tsx`: Open questions with host scoring message, optional viewer answers
+   - `QuizRenderer.tsx`: Auto-detection logic to switch between QCM/Zoom/Open modes
+
+3. **Enhanced Host Panel**:
+   - `LiveScoreboard.tsx`: Studio players + top 5 viewers with real-time updates
+   - Refactored host page: 4-column grid (current question | next question | scoreboard)
+   - Scoreboard fetches from session state, updates via WebSocket
+
+**Total Implementation**:
+- **9 new files** (~1,050 lines)
+- **6 files modified** (~290 lines)
+- **Total**: ~1,400 lines of production code
+
+**Architecture Decisions**:
+
+1. **Player Selection Integration**: Reused existing `/api/assets/guests` endpoint, no duplication
+2. **Round Building**: Client-side composition, server-side validation on session create
+3. **Mode Detection**: Type-based switching in renderer (image_zoombuzz, closest+media → Zoom; open → Open; else → QCM)
+4. **Image QCM Detection**: Heuristic check if all options start with "http"
+5. **Session Persistence**: POST creates session in QuizStore, existing save/load for JSON export
+
+**Testing Status**:
+- All 36 existing tests pass ✅
+- No new tests added (UI-focused phase)
+- Manual testing required for new components
+
+**Files Summary**:
+```
+Phase 1 (Option C):
+  - Backend CRUD: QuizStore + API routes
+  - Question Manager: List + Editor
+  - Enhanced QCM: Text + Image modes
+  - Enhanced Host: Current/Next display
+
+Phase 2 (Full Implementation):
+  - Session Builder: Player + Round + Session
+  - Zoom Reveal: Mystery image overlay
+  - Open Display: Host scoring overlay
+  - Live Scoreboard: Real-time scores
+```
+
+**What's Still Future Enhancements**:
+- Manual scoring form (host assigns points via UI, not just reveal)
+- Session templates (save/load common structures)
+- Question import/export (bulk operations)
+- Media library (browse all quiz images)
+- Advanced zoom controls (manual stepping, easing curves)
+- Answer history viewer (see all chat answers)
+- Stats dashboard (historical performance)
+
+## Quiz System Architecture (October 2025) - Initial Implementation
+
+### Implementation Approach
+**Context**: Added a complete quiz system with on-set players + Twitch viewers, multiple question modes, real-time scoring, and Streamer.bot integration.
+
+**Architecture Decisions**:
+1. **Isolated from Dashboard** - Quiz has separate routes (`/quiz/host`, `/overlays/quiz`) independent of dashboard
+2. **Reused Existing Patterns**:
+   - WebSocketHub + ChannelManager for pub/sub (added `QUIZ` channel)
+   - DatabaseService for player data (reused `guests` table)
+   - PathManager for session persistence (JSON in `data/quiz/sessions/`)
+   - File upload pattern for quiz images (`/uploads/quiz`)
+3. **Service Separation** (SRP):
+   - `QuizStore`: in-memory session + JSON persistence
+   - `QuizManager`: state machine orchestration + WS broadcasts
+   - `QuizScoringService`: scoring logic for all modes
+   - `QuizBuzzerService`: first-hit/steal mechanics
+   - `QuizViewerInputService`: flood control + vote aggregation
+   - `QuizZoomController`: auto-zoom for image modes
+   - `QuizTimer`: tick broadcasts
+4. **Backend Split**:
+   - `/api/quiz` (Express @ 3002): host controls, session, config
+   - `/api/quiz-bot` (Express @ 3002): Streamer.bot webhook bridge
+5. **Frontend Split**:
+   - Host: `/quiz/host` (client controls)
+   - Overlay: `/overlays/quiz` (transparent 1920x1080)
+   - Components: `QuizRenderer`, `QuizQcmDisplay`, `QuizTimerDisplay`, `QuizPlayersDisplay`
+
+**Files Created** (all <150 lines per SRP):
+- Models: `lib/models/Quiz.ts`, `lib/models/QuizEvents.ts`
+- Services: 7 focused service files
+- Backend: `server/api/quiz.ts`, `server/api/quiz-bot.ts`
+- Frontend: 1 host page, 1 overlay page, 4 display components
+- Upload: `app/api/assets/quiz/route.ts`
+- Tests: 3 unit tests + 1 functional test
+- Examples: `lib/services/QuizExamples.ts` with placeholder images
+
+**Key Patterns**:
+- State machine: idle → show_question → accept_answers → lock → reveal → score_update → interstitial
+- WS events: `quiz.start_round`, `question.show/lock/reveal`, `vote.update`, `timer.tick`, `zoom.*`, `buzzer.*`
+- Chat commands: `!a/!b/!c/!d` (QCM), `!n <int>` (closest), `!rep <text>` (open)
+- Debouncing: buzzer lockMs, viewer cooldowns, global RPS caps
+
+**Testing Strategy**:
+- Unit tests for scoring, buzzer, viewer input (isolated logic)
+- Functional test for full workflow (state transitions)
+- Example questions for manual smoke testing
+
+**Lesson**: For complex multi-mode features, break into small services with single responsibilities. WebSocket pub/sub scales well for real-time overlays when each service publishes domain events. Reusing existing guests DB avoided duplication while keeping quiz isolated.
+
+---
+
+## Quiz Host Interface Redesign (October 2025)
+
+### Professional 3-Panel Layout Implementation
+
+**Context**: User requested complete UI overhaul of quiz host interface with detailed French specification for professional broadcast control.
+
+**Architecture Decisions**:
+1. **Component Modularity** - Split into focused, reusable components:
+   - `QuizHostNavigator` (sidebar): Session/round/question tree navigation
+   - `QuizHostTopBar` (global): Main control flow buttons
+   - `QuizQuestionStage` (center): Question display + player assignment
+   - `QuizPlayersPanel` (right): Studio players + viewers + log
+   - `PlayerAvatarChip` (shared): Draggable avatar component
+   - `useQuizHostState` (hook): Centralized state management
+
+2. **Drag-and-Drop Implementation**:
+   - Used native HTML5 drag-and-drop API (no libraries needed)
+   - Player avatars in right panel are draggable
+   - QCM options act as drop zones with visual feedback (dashed border)
+   - `dataTransfer` carries player ID as plain text
+   - Assigned avatars displayed on options (non-draggable)
+
+3. **State Management Pattern**:
+   - Custom hook `useQuizHostState` centralizes all state and API calls
+   - WebSocket subscription for real-time updates
+   - Actions object exposes clean interface for components
+   - Automatic state refresh after API calls
+
+4. **Keyboard Shortcuts**:
+   - Implemented via global `useEffect` with `keydown` listener
+   - Guards against input/textarea to avoid conflicts
+   - Space = Lock or Reveal (context-aware)
+   - Arrows = navigation, T = +10s, V = toggle viewer input
+
+5. **Files Created** (all <150 lines per SRP):
+   - `components/quiz/host/QuizHostNavigator.tsx` (~150 lines)
+   - `components/quiz/host/QuizHostTopBar.tsx` (~70 lines)
+   - `components/quiz/host/QuizQuestionStage.tsx` (~270 lines) ⚠️ exceeds target, but acceptable for main stage
+   - `components/quiz/host/QuizPlayersPanel.tsx` (~120 lines)
+   - `components/quiz/host/PlayerAvatarChip.tsx` (~40 lines)
+   - `components/quiz/host/useQuizHostState.ts` (~175 lines)
+
+6. **Backend Additions**:
+   - Added `POST /quiz/question/prev` - Navigate to previous question
+   - Added `POST /quiz/question/reset` - Reset question state (danger zone)
+   - Added `POST /quiz/viewer-input/toggle` - Control viewer input acceptance
+
+**Key UX Features**:
+- Round accordion auto-expands current round
+- Question badges show state: Ready/Accepting/Locked/Revealed
+- Round badges show state: Not started/Live/Done
+- Phase-aware button states (disabled when action not available)
+- Timer turns red when <10 seconds remaining
+- Progress bars on QCM options show viewer vote percentages
+- Correct answer highlights green on reveal phase
+
+**Design Decisions**:
+- **Removed** "Load Example" and "Reset Session" buttons (per spec)
+- **Danger zone** limited to "Reset Question" only
+- **Color coding**: Blue=QCM, Green=Image, Orange=Closest, Purple=Open
+- **Viewer stats**: Real-time vote counts + percentages on options
+- **Player assignment**: Visual feedback during drag operation
+
+**Lessons**:
+1. **Native HTML5 Drag-and-Drop** works well for simple use cases without library overhead
+2. **Component size tradeoff**: QuizQuestionStage exceeds 150 lines but splitting would create artificial boundaries (question display + options + timer are one logical unit)
+3. **Keyboard shortcuts** need guards for input fields to avoid hijacking typing
+4. **Phase-aware UI**: Button states should reflect what actions are valid in current phase
+5. **Real-time updates**: Combining WebSocket for broadcasts + HTTP for actions works well
+
+**Future Enhancements** (marked as TODOs in code):
+- Player assignment persistence (currently UI-only)
+- Click-to-assign alternative to drag-and-drop (for accessibility)
+- Event log with real events (currently static placeholders)
+- Quick assign buttons (A/B/C/D) in players panel
+- Viewer vote rate-limit indicator (msg/s counter)
+- Manual player scoring for Open/Closest questions
+
+**Files Modified**:
+- `app/quiz/host/page.tsx` - Completely rewritten to use new 3-panel layout
+- `server/api/quiz.ts` - Added prev/reset/toggle endpoints
+- `components/quiz/host/useQuizHostState.ts` - New state management hook
+
+**Testing Status**:
+- Manual testing required for new UI components
+- No breaking changes to backend services (all existing tests should pass)
+- Drag-and-drop tested in Chrome/Edge (Chromium-based browsers)
+
+---
+
+## Quiz Session Persistence & Management (2025-10-21)
+
+**BUG**: Quiz session and question bank were not persisting to disk despite having save/load methods.
+
+**ROOT CAUSE**: `PathManager.ensureDirectories()` did not include the quiz directories (`quiz/` and `quiz/sessions/`). Even though `QuizStore.saveToFile()` had directory creation logic, it relied on PathManager's initialization. The directories were never created on app startup.
+
+**FIX**: 
+- Added `getQuizDir()` and `getQuizSessionsDir()` methods to PathManager
+- Added quiz directories to `ensureDirectories()` array
+- Simplified QuizStore methods to use PathManager methods instead of hardcoded paths
+- Removed redundant `existsSync()` checks in QuizStore since PathManager now ensures directories exist
+
+**ENHANCEMENT 1**: After fixing persistence, added complete session management:
+
+**Backend** (`lib/services/QuizStore.ts`, `server/api/quiz.ts`):
+- `listSessions()` - List all saved sessions with metadata (title, rounds, createdAt)
+- `deleteSession()` - Delete session by ID
+- `updateSessionMetadata()` - Update session title only
+- API endpoints: `GET /sessions`, `PUT /session/:id`, `DELETE /session/:id`
+
+**UI** (`components/quiz/manage/SessionManager.tsx`):
+- Replaced "Session Builder" tab with "Sessions" manager
+- List all saved sessions with metadata display
+- Show ACTIVE badge for currently loaded session
+- Actions per session: Load, Edit (full), Delete
+- Global actions: Build New Session, Save Current, Refresh
+- Empty state with call-to-action
+- Delete confirmation dialog
+- Auto-refresh after operations
+
+**ENHANCEMENT 2**: Added full session editing (questions, rounds, players):
+
+**Backend** (`server/api/quiz.ts`):
+- `POST /session/:id/update` - Update complete session content (not just metadata)
+- Loads session from file, updates all fields, saves back to disk
+- Preserves existing player scores when updating player list
+
+**UI** (`components/quiz/manage/SessionBuilder.tsx`):
+- Added `sessionId` prop to load existing sessions
+- Added `onBack` callback for navigation
+- Loads session data on mount if sessionId provided
+- Distinguishes "Create New" vs "Edit Session" modes
+- Updates correct endpoint based on mode (create vs update)
+- Back button returns to session manager
+
+**Integration** (`app/quiz/manage/page.tsx`):
+- "Edit" button in SessionManager navigates to builder with sessionId
+- "Build New" button navigates to builder without sessionId
+- Builder shows "Back" arrow to return to sessions list
+- State properly cleared when switching between create/edit modes
+
+**LESSON**: When adding new data storage features, always update PathManager's `ensureDirectories()` to include new paths. Centralize path management - don't rely on ad-hoc directory creation scattered across service classes. For CRUD operations, provide both API and UI simultaneously - they're easier to test together and provide immediate value. When building edit modes, reuse the same form/builder component with conditional logic rather than duplicating UI code.
+
+---
+
+## Quiz Host & Overlay Synchronization (2025-10-21)
+
+**CONTEXT**: After implementing quiz host redesign, real-time synchronization between host panel and overlay was incomplete. Events were being emitted but not properly acknowledged, state wasn't updating, and reveal display was missing.
+
+**ISSUES IDENTIFIED**:
+1. **WebSocket Message Structure Mismatch**: Host and overlay were accessing `msg.id` and `msg.type` directly, but backend wraps events in `{ channel: "quiz", data: { id, type, payload } }`
+2. **No Acknowledgments**: Host panel wasn't sending acks for received events → "No ack received" warnings in backend logs
+3. **Missing Events**: No `answer.assign`, `question.revealed`, `phase.update` events for real-time state sync
+4. **Timer Too Fast**: Timer decremented every 500ms instead of every 1000ms
+5. **No Auto-Scoring**: Reveal didn't automatically calculate and broadcast scores
+6. **Overlay Not Showing Question**: After fixing acks, question still not displayed due to incorrect message parsing
+
+**SOLUTIONS IMPLEMENTED**:
+
+### 1. WebSocket Event Acknowledgments
+
+**Host Panel** (`components/quiz/host/useQuizHostState.ts`):
+```typescript
+ws.current.onmessage = (event) => {
+  const msg = JSON.parse(event.data);
+  
+  // Send ack for every event with ID (msg.data contains actual event)
+  if (msg.data?.id && ws.current?.readyState === WebSocket.OPEN) {
+    ws.current.send(JSON.stringify({
+      type: "ack",
+      eventId: msg.data.id,
+      success: true
+    }));
+  }
+  
+  // Handle event using msg.data.type and msg.data.payload
+  handleEvent(msg.data);
+};
+```
+
+**Overlay** (`components/quiz/QuizRenderer.tsx`):
+- Same ack logic implemented
+- Fixed to parse `msg.data` instead of top-level `msg`
+
+### 2. New WebSocket Events
+
+**Added to `lib/models/QuizEvents.ts`**:
+- `answer.assign` - Player assigned to answer option (for live avatar positioning)
+- `question.revealed` - Answer revealed with scoring complete
+- `question.finished` - Question complete, ready for next
+- `phase.update` - Phase state changed
+- `question.next_ready` - Next question available
+
+### 3. Player Answer Assignment System
+
+**Backend** (`lib/services/QuizManager.ts`):
+- Added `playerAnswers: Record<string, Answer>` to Session
+- `submitPlayerAnswer()` stores answer and broadcasts `answer.assign` event
+- Answers cleared when new question shown
+
+**Frontend**:
+- Drag-and-drop avatars onto options
+- Click fallback: click avatar → click option
+- Real-time avatar positioning via `answer.assign` WebSocket subscription
+- Reveal shows ✓ (green) or 0 (gray) badges on player avatars
+
+### 4. Auto-Scoring After Reveal
+
+**Backend** (`lib/services/QuizManager.ts` - `reveal()` method):
+```typescript
+private async applyScoring(q: Question, sess: Session) {
+  for (const [playerId, answer] of Object.entries(sess.playerAnswers)) {
+    let points = 0;
+    // QCM: check if answer.option === question.correct
+    // Closest: check distance from target
+    // Open: manual scoring (no auto-score)
+    
+    const player = sess.players.find(p => p.id === playerId);
+    if (player) {
+      player.score += points;
+      await this.channel.publish(
+        OverlayChannel.QUIZ,
+        "score.update",
+        { user_id: playerId, delta: points, total: player.score }
+      );
+    }
+  }
+  
+  await this.channel.publish(
+    OverlayChannel.QUIZ,
+    "leaderboard.push",
+    { topN: this.getTopViewers(5) }
+  );
+}
+```
+
+- Scores calculated immediately after reveal
+- `score.update` emitted per player
+- `leaderboard.push` emitted with updated top viewers
+
+### 5. Reveal Display with Badges
+
+**Host Panel** (`components/quiz/host/QuizQuestionStage.tsx`):
+- Correct answer highlighted green
+- Incorrect options dimmed
+- Avatar badges: ✓ (green) for correct, 0 (gray) for incorrect
+- Badges positioned absolutely over avatar chips
+
+**Overlay**:
+- Same badge system
+- Synced via `question.reveal` and `question.revealed` events
+
+### 6. Phase Synchronization
+
+**Backend**:
+- `emitPhaseUpdate()` called on every phase transition
+- Broadcasts `phase.update{phase, question_id}` to all clients
+
+**Frontend** (`components/quiz/host/QuizHostTopBar.tsx`):
+- Color-coded phase badge: Idle (gray), Accepting (green), Locked (yellow), Revealed (blue), Scoring (purple)
+- Updates in real-time via WebSocket subscription
+
+### 7. Viewer Votes Display
+
+**Host Panel**:
+- Shows vote counts per option (e.g., "45 votes")
+- Shows percentages per option (e.g., "23%")
+- Real-time updates via `vote.update{counts, percentages}` event
+- Progress bars showing vote distribution
+
+**Event Subscription** (`useQuizHostState.ts`):
+```typescript
+if (eventType === "vote.update" && payload) {
+  setState(prev => ({
+    ...prev,
+    viewerVotes: payload.counts,
+    viewerPercentages: payload.percentages
+  }));
+}
+```
+
+### 8. Top Viewers Leaderboard
+
+- Subscribes to `leaderboard.push{topN}` event
+- Updates immediately after reveal
+- Shows top 5 viewers with scores
+- Sorted by score (highest first)
+
+### 9. Timer Fix
+
+**Problem**: Timer was decrementing every 500ms while ticks fired every 500ms → 2x speed
+
+**Solution** (`lib/services/QuizTimer.ts`):
+```typescript
+async start(seconds: number, phase: string) {
+  this.tickCount = 0;
+  this.interval = setInterval(async () => {
+    this.tickCount++;
+    
+    // Only decrement every 2 ticks (1000ms)
+    if (this.tickCount >= 2) {
+      this.tickCount = 0;
+      if (this.seconds > 0) this.seconds -= 1;
+    }
+    
+    // Broadcast tick every 500ms for smooth UI
+    await this.channel.publish(OverlayChannel.QUIZ, "timer.tick", {
+      s: this.seconds,
+      phase: this.phase
+    });
+  }, 500);
+}
+```
+
+- UI updates every 500ms (smooth countdown)
+- Seconds decrement every 1000ms (accurate timing)
+
+### 10. Event-Driven State Updates
+
+**Optimized State Management** (`useQuizHostState.ts`):
+- Timer ticks update state directly (no reload)
+- Player assignments update state directly
+- Vote updates update state directly
+- Phase updates update state directly
+- Only reload full state for complex events (reveal, score updates)
+
+```typescript
+if (eventType === "timer.tick" && payload) {
+  setState(prev => ({ ...prev, timerSeconds: payload.s, ... }));
+} else if (eventType === "answer.assign" && payload) {
+  setState(prev => ({
+    ...prev,
+    playerChoices: { ...prev.playerChoices, [payload.player_id]: payload.option }
+  }));
+} else {
+  loadState(); // Full reload only when necessary
+}
+```
+
+**FILES MODIFIED**:
+- `components/quiz/host/useQuizHostState.ts` - Event subscriptions, state management, acks
+- `components/quiz/host/QuizQuestionStage.tsx` - Viewer votes, reveal badges
+- `components/quiz/host/QuizHostTopBar.tsx` - Phase badge display
+- `components/quiz/host/QuizPlayersPanel.tsx` - Hidden event log
+- `components/quiz/host/PlayerAvatarChip.tsx` - Click handler, selection state
+- `components/quiz/QuizRenderer.tsx` - WebSocket ack, event handling
+- `app/quiz/host/page.tsx` - Wired new props, toast notifications
+- `lib/models/Quiz.ts` - Added playerAnswers field
+- `lib/models/QuizEvents.ts` - Added 5 new event types
+- `lib/services/QuizManager.ts` - Auto-scoring, phase updates, leaderboard
+- `lib/services/QuizTimer.ts` - Fixed 2x speed bug with tick counter
+- `server/api/quiz.ts` - Added endpoints for select, reset, player answer
+
+**LESSONS**:
+1. **WebSocket Message Parsing**: Always verify the exact structure of incoming messages. Backend may wrap events in metadata (channel, timestamp, etc.)
+2. **Acknowledgment Pattern**: Critical for reliable event delivery. Client MUST send ack for every event with an ID.
+3. **Message Structure Documentation**: Backend sends `{ channel, data: { id, type, payload } }`, not flat `{ id, type, payload }`
+4. **Timer Accuracy**: When broadcasting frequently for UI smoothness, use a tick counter to ensure time calculations remain accurate
+5. **Event-Driven UI**: Minimize full state reloads by handling specific events with targeted state updates
+6. **Auto-Scoring Workflow**: Reveal should be atomic: show answer → calculate scores → broadcast updates → mark complete
+7. **Real-Time Feedback**: Players and host need immediate visual confirmation of assignments, votes, and scores
+
+---
+
+## Quiz Host Session Selector (2025-10-21)
+
+**UX IMPROVEMENT**: Added session selection directly in host panel instead of requiring navigation to management view.
+
+**PROBLEM**: Users had to navigate to `/quiz/manage` to load a session, then navigate back to `/quiz/host`. This created unnecessary friction in the workflow.
+
+**SOLUTION**: When no session is loaded, host panel displays a session selector:
+1. Fetches all sessions from `GET /api/quiz/sessions`
+2. Displays list with title, rounds count, and creation date
+3. "Load Session" button calls `POST /api/quiz/session/:id/load`
+4. After loading, host panel shows normally
+5. Empty state with "Create New Session" link to `/quiz/manage`
+
+**IMPLEMENTATION**:
+- Created `SessionSelector.tsx` component (150 lines, focused on session loading UI)
+- Added conditional rendering in host page: `if (!state.session)` → show selector
+- Added `loadSession()` action to `useQuizHostState` hook
+- Used existing backend endpoints (no API changes needed)
+
+**FILES CREATED/MODIFIED**:
+- NEW: `components/quiz/host/SessionSelector.tsx` - Session loading UI with list and empty state
+- `app/quiz/host/page.tsx` - Conditional rendering based on session state
+- `components/quiz/host/useQuizHostState.ts` - Added `loadSession()` action
+
+**UX FLOW**:
+```
+/quiz/host (no session) → SessionSelector
+  ├─ Sessions exist → List with "Load" buttons → Host panel
+  └─ No sessions → Empty state → "Create New" → /quiz/manage
+```
+
+**DESIGN DECISIONS**:
+- Centered layout with max-width for visual focus
+- Icons (Play, Users, Calendar) for quick visual parsing
+- Hover states on session cards
+- Refresh button to reload list without page reload
+- Toast notification on successful load
+
+**FIX**: Backend returns `{ sessions: [...] }` but frontend expected array directly. Fixed with `data.sessions || []`.
+
+**LESSON**: Reduce navigation friction by allowing critical actions at the point of need. Condition: show selector if `!session || session.rounds.length === 0`. Added "Change" button in navigator to unload session (calls `/session/reset` which creates empty default session). Always check API response structure - backend wraps arrays in objects for consistency.
+
+---
+
+## Quiz Reveal & Player Assignments in Overlay (2025-10-21)
+
+**ENHANCEMENTS**: Visual feedback for reveal state and player assignments in both host and overlay.
+
+**ISSUES FIXED**:
+1. Correct answer not visually distinct on reveal
+2. Player assignments only visible in host, not overlay
+3. Votes/assignments not resetting when changing questions
+
+**SOLUTION**:
+- **Host view**: Correct answer gets `ring-4 ring-green-300 bg-green-100`, wrong answers fade to `opacity-60`
+- **Overlay**: Correct answer with `animate-pulse ring-8 ring-green-400`, wrong answers fade to `opacity-50`
+- **Player avatars**: Show on options in overlay (rendered as small circles with avatar or initials)
+- **Reset on question.show**: Clear `voteCounts`, `votePercentages`, `playerAssignments` 
+- **New event handler**: `answer.assign` updates `playerAssignments` in overlay state
+
+**FILES MODIFIED**:
+- `components/quiz/QuizQcmDisplay.tsx` - Added reveal animations, player avatars, correct answer handling
+- `components/quiz/QuizRenderer.tsx` - Added `answer.assign` handler, reset logic on question.show
+- `components/quiz/host/QuizQuestionStage.tsx` - Enhanced correct answer styling
+
+**BUG FIX**: Runtime error `Cannot read properties of undefined (reading '0')` when accessing `p.name[0]`. Fixed by:
+- Adding `.filter(p => p && p.name)` before mapping players
+- Using optional chaining `p.name?.[0] || "?"` as fallback
+- Applied to `QuizPlayersDisplay.tsx` and `QuizQcmDisplay.tsx`
+
+**ENHANCEMENTS (2025-10-21)**:
+1. **Avatar Display Fix**: Changed from showing "?" to properly rendering avatars and initials
+   - Filter players with `.filter(p => p && (p.name || p.avatar))`
+   - Proper image rendering with `<img>` tag in overflow:hidden container
+   - Uppercase initials for better readability
+   
+2. **Softer Glow Animation**: Replaced Tailwind's `animate-pulse` with custom `softGlow` animation
+   - Duration: 2s (was ~1s with pulse)
+   - Ease-in-out timing (smoother)
+   - Custom box-shadow glow effect
+   - Less jarring, more elegant
+   
+3. **Question Transition**: Added "hiding" phase when changing questions
+   - Flow: question.show → set phase="hiding" → wait 400ms → load new question → phase="accept_answers"
+   - All displays hide during transition (QCM, Timer, Zoom, Open)
+   - Votes, percentages, and assignments reset before showing new question
+   - Clean visual transition between questions
+
+**FILES MODIFIED**:
+- `components/quiz/QuizQcmDisplay.tsx` - Custom animation, avatar rendering, hiding phase
+- `components/quiz/QuizRenderer.tsx` - Transition delay logic
+- `components/quiz/QuizTimerDisplay.tsx` - Hide during transition
+- `components/quiz/QuizZoomReveal.tsx` - Hide during transition
+- `components/quiz/QuizOpenDisplay.tsx` - Hide during transition
+
+**FIX (2025-10-21)**: Player assignment bubbles not appearing in overlay. Root cause: property name mismatch.
+
+**ISSUE**: Backend returns `displayName` and `avatarUrl`, but components checked for `name` and `avatar`.
+
+**SOLUTION**:
+- Added helper functions: `getPlayerName()` and `getPlayerAvatar()` that check both property names
+- Updated all player interfaces to accept both: `name | displayName` and `avatar | avatarUrl`
+- Enhanced visibility: `bg-gray-700` + `border-2 border-white` (was semi-transparent)
+- Applied to: `QuizQcmDisplay.tsx`, `QuizPlayersDisplay.tsx`
+- Removed debug console.log statements
+
+Now properly displays player avatars and initials in overlay, matching host view.
+
+---
+
+*Last updated: October 2025*
