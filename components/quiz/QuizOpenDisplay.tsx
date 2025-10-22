@@ -9,28 +9,22 @@ export function QuizOpenDisplay({ questionText, phase, topAnswers, winner }: Qui
   if (phase === "idle" || phase === "hiding") return null;
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center p-12">
-      {/* Question Text */}
+    <div className="absolute inset-0">
+      {/* Question Text at bottom */}
       {questionText && (
-        <div className="mb-8 text-white text-4xl font-bold text-center bg-black/70 px-8 py-6 rounded-lg max-w-4xl">
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white text-2xl font-bold text-center bg-black/70 px-6 py-3 rounded-lg max-w-3xl">
           {questionText}
         </div>
       )}
 
-      {/* Instructions or Winner */}
-      {phase === "accept_answers" && (
-        <div className="text-white text-2xl text-center bg-blue-600/90 px-8 py-4 rounded-lg">
-          Host will select the best answer
-        </div>
-      )}
-
+      {/* Winner Display */}
       {phase === "reveal" && winner && (
-        <div className="bg-green-600 text-white px-12 py-6 rounded-lg flex items-center gap-6 animate-pulse">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-green-600 text-white px-12 py-6 rounded-lg flex items-center gap-6 animate-pulse z-50">
           {winner.avatar && (
             <img src={winner.avatar} alt={winner.name} className="w-20 h-20 rounded-full border-4 border-white" />
           )}
           <div>
-            <div className="text-lg font-medium">WINNER</div>
+            <div className="text-lg font-medium">Gagnant</div>
             <div className="text-4xl font-bold">{winner.name}</div>
           </div>
         </div>

@@ -5,11 +5,13 @@ import { QuizTimerDisplay } from "./QuizTimerDisplay";
 import { QuizScorePanel } from "./QuizScorePanel";
 import { QuizZoomReveal } from "./QuizZoomReveal";
 import { QuizOpenDisplay } from "./QuizOpenDisplay";
+import { QuizMysteryImage } from "./QuizMysteryImage";
 
 interface QuizState {
   phase: string;
   questionId?: string;
   questionType?: string;
+  questionMode?: string;
   timerSeconds?: number;
   voteCounts?: Record<string, number>;
   votePercentages?: Record<string, number>;
@@ -17,14 +19,20 @@ interface QuizState {
   currentQuestion?: {
     text: string;
     type: string;
+    mode?: string;
     options?: string[];
     optionsAreImages?: boolean;
     media?: string;
     correct?: number;
+    time_s?: number;
   };
   playerAssignments?: Record<string, string>; // playerId -> option
   scorePanelVisible?: boolean;
   zoomLevel?: number;
+  zoomSteps?: number;
+  zoomMaxZoom?: number;
+  mysteryRevealedSquares?: number;
+  mysteryTotalSquares?: number;
   buzzerWinner?: { name: string; avatar?: string };
   topAnswers?: Array<{ userId: string; displayName: string; text: string }>;
   winner?: { name: string; avatar?: string };
@@ -74,17 +82,27 @@ export function QuizRenderer() {
                   phase: "accept_answers",
                   questionId: payload?.question_id,
                   questionType: currentQ.type,
+                  questionMode: currentQ.mode,
                   currentQuestion: {
                     text: currentQ.text,
                     type: currentQ.type,
+                    mode: currentQ.mode,
                     options: currentQ.options,
                     // Options are images only if all options are URLs
                     optionsAreImages: currentQ.options?.every((o: string) => typeof o === 'string' && o.startsWith("http")),
                     media: currentQ.media, // Question image URL (separate from options)
                     correct: currentQ.correct,
+                    time_s: currentQ.time_s,
                   },
                   players: playersWithScores,
                   scorePanelVisible: stateData.session?.scorePanelVisible !== undefined ? stateData.session.scorePanelVisible : prev.scorePanelVisible,
+                  // Reset mystery state for new question
+                  mysteryRevealedSquares: 0,
+                  mysteryTotalSquares: 0,
+                  // Initialize zoom config from question.show payload
+                  zoomLevel: 0,
+                  zoomSteps: payload?.zoom_steps || 180,
+                  zoomMaxZoom: payload?.zoom_maxZoom || 26,
                 }));
               }
             } catch (error) {
@@ -106,7 +124,41 @@ export function QuizRenderer() {
         setState((prev) => ({ ...prev, timerSeconds: payload?.s, phase: payload?.phase || prev.phase }));
         break;
       case "zoom.step":
-        setState((prev) => ({ ...prev, zoomLevel: payload?.cur_step || 0 }));
+        setState((prev) => ({ 
+          ...prev, 
+          zoomLevel: payload?.cur_step || 0,
+          zoomSteps: payload?.total || prev.zoomSteps,
+          zoomMaxZoom: payload?.maxZoom || prev.zoomMaxZoom
+        }));
+        break;
+      case "zoom.start":
+        setState((prev) => ({
+          ...prev,
+          zoomLevel: 0,
+          zoomSteps: payload?.steps || 600,
+          zoomMaxZoom: payload?.maxZoom || 35
+        }));
+        break;
+      case "zoom.complete":
+        // On reveal, set zoom to fully revealed (scale = 1x)
+        setState((prev) => ({
+          ...prev,
+          zoomLevel: payload?.total || prev.zoomSteps || 600,
+        }));
+        break;
+      case "mystery.step":
+        setState((prev) => ({ 
+          ...prev, 
+          mysteryRevealedSquares: payload?.revealed_squares || 0,
+          mysteryTotalSquares: payload?.total_squares || 0,
+        }));
+        break;
+      case "mystery.start":
+        setState((prev) => ({ 
+          ...prev, 
+          mysteryRevealedSquares: 0,
+          mysteryTotalSquares: payload?.total_squares || 0,
+        }));
         break;
       case "buzzer.hit":
         setState((prev) => ({ ...prev, buzzerWinner: payload?.player }));
@@ -234,22 +286,41 @@ export function QuizRenderer() {
     };
   }, [handleEvent]);
 
-  // Determine which display to show based on question type
+  // Determine which display to show based on question mode and type
   const renderDisplay = () => {
     const qType = state.currentQuestion?.type || state.questionType;
+    const qMode = state.currentQuestion?.mode || state.questionMode;
     
-    if (qType === "image_zoombuzz" || (qType === "closest" && state.currentQuestion?.media)) {
+    // Mystery image mode - progressive square reveal
+    if (qMode === "mystery_image") {
+      return (
+        <QuizMysteryImage
+          imageUrl={state.currentQuestion?.media || undefined}
+          questionText={state.currentQuestion?.text}
+          phase={state.phase}
+          revealedSquares={state.mysteryRevealedSquares}
+          totalSquares={state.mysteryTotalSquares}
+          buzzerWinner={state.buzzerWinner}
+        />
+      );
+    }
+    
+    // Zoom reveal mode
+    if (qMode === "image_zoombuzz" || (qType === "closest" && state.currentQuestion?.media)) {
       return (
         <QuizZoomReveal
           imageUrl={state.currentQuestion?.media}
           questionText={state.currentQuestion?.text}
           zoomLevel={state.zoomLevel}
+          zoomSteps={state.zoomSteps}
+          zoomMaxZoom={state.zoomMaxZoom}
           phase={state.phase}
           buzzerWinner={state.buzzerWinner}
         />
       );
     }
     
+    // Open question mode
     if (qType === "open") {
       return (
         <QuizOpenDisplay
@@ -276,7 +347,7 @@ export function QuizRenderer() {
 
   return (
     <div className="w-full h-full relative overflow-hidden" style={{ width: "1920px", height: "1080px", maxWidth: "100vw", maxHeight: "100vh" }}>
-      <QuizTimerDisplay seconds={state.timerSeconds} phase={state.phase} />
+      <QuizTimerDisplay seconds={state.timerSeconds} phase={state.phase} timeLimit={state.currentQuestion?.time_s} />
       {renderDisplay()}
       <QuizScorePanel players={state.players} visible={state.scorePanelVisible} />
     </div>

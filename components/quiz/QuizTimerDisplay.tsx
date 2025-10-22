@@ -1,10 +1,12 @@
 interface QuizTimerDisplayProps {
   seconds?: number;
   phase: string;
+  timeLimit?: number;
 }
 
-export function QuizTimerDisplay({ seconds, phase }: QuizTimerDisplayProps) {
-  if (phase === "idle" || phase === "hiding" || seconds === undefined) return null;
+export function QuizTimerDisplay({ seconds, phase, timeLimit }: QuizTimerDisplayProps) {
+  // Hide timer if: phase is idle/hiding, seconds undefined, or question has no time limit (time_s = 0)
+  if (phase === "idle" || phase === "hiding" || seconds === undefined || timeLimit === 0) return null;
 
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;

@@ -10,6 +10,7 @@ interface QuizQcmDisplayProps {
     optionsAreImages?: boolean;
     correct?: number;
     media?: string | null; // Question image URL
+    type?: "closest" | "qcm" | "text"; // Question type
   };
   playerAssignments?: Record<string, string>; // playerId -> option
   players?: Array<{ id: string; name?: string; displayName?: string; avatar?: string; avatarUrl?: string }>;
@@ -104,7 +105,7 @@ export function QuizQcmDisplay({ voteCounts, votePercentages, phase, question, p
   const questionText = displayQuestion?.text || "";
   const optionTexts = displayQuestion?.options || options;
   const optionsAreImages = displayQuestion?.optionsAreImages || false;
-  const isRevealed = phase === "reveal";
+  const isRevealed = phase === "reveal" || phase === "score_update";
   const correctIndex = displayQuestion?.correct;
   
   // Initialize vote data if not present
@@ -129,6 +130,48 @@ export function QuizQcmDisplay({ voteCounts, votePercentages, phase, question, p
   // Question media for image display
   const questionMedia = displayQuestion?.media;
   const hasQuestionImage = questionMedia && questionMedia.startsWith("http");
+
+  // For closest questions, don't show answer options - only show question and image
+  // Check if this is a closest question by looking at the question type from the parent
+  const isClosestQuestion = question?.type === "closest";
+  if (isClosestQuestion) {
+    return (
+      <div className="absolute inset-0">
+        {/* Question Image (if provided) - positioned on the left side */}
+        {hasQuestionImage && (
+          <div 
+            className={`absolute bottom-10 left-8 rounded-lg overflow-hidden shadow-2xl z-10 transition-opacity duration-700 ${
+              showImage ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <img 
+              src={questionMedia} 
+              alt="Question" 
+              className="max-w-md max-h-80 object-contain"
+            />
+          </div>
+        )}
+        
+        {/* Question Text - centered */}
+        {questionText && (
+          <div 
+            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-3xl font-bold text-center bg-black/70 px-8 py-4 rounded-lg break-words max-w-4xl transition-opacity duration-700 ${
+              showQuestion ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {questionText}
+          </div>
+        )}
+        
+        {/* Answer reveal - only show on reveal phase */}
+        {isRevealed && displayQuestion?.correct !== undefined && (
+          <div className="absolute bottom-32 left-1/2 -translate-x-1/2 text-white text-4xl font-bold text-center bg-green-600/90 px-8 py-4 rounded-lg">
+            Réponse : {displayQuestion.correct}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // If options are images, show grid layout
   if (optionsAreImageUrls) {
