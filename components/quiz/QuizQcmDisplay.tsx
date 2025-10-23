@@ -155,10 +155,10 @@ export function QuizQcmDisplay({ voteCounts, votePercentages, phase, question, p
           </div>
         )}
         
-        {/* Question Text - centered */}
+        {/* Question Text - positioned at bottom with 40px margin */}
         {questionText && (
           <div 
-            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-3xl font-bold text-center bg-black/70 px-8 py-4 rounded-lg break-words max-w-4xl transition-opacity duration-700 ${
+            className={`absolute bottom-[40px] left-1/2 -translate-x-1/2 text-white text-3xl font-bold text-center bg-black/70 px-8 py-4 rounded-lg break-words max-w-4xl transition-opacity duration-700 ${
               showQuestion ? 'opacity-100' : 'opacity-0'
             }`}
           >

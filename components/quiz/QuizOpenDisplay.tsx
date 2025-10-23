@@ -10,9 +10,9 @@ export function QuizOpenDisplay({ questionText, phase, topAnswers, winner }: Qui
 
   return (
     <div className="absolute inset-0">
-      {/* Question Text at bottom */}
+      {/* Question Text at bottom with 40px margin */}
       {questionText && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white text-2xl font-bold text-center bg-black/70 px-6 py-3 rounded-lg max-w-3xl">
+        <div className="absolute bottom-[40px] left-1/2 -translate-x-1/2 text-white text-2xl font-bold text-center bg-black/70 px-6 py-3 rounded-lg max-w-3xl">
           {questionText}
         </div>
       )}
