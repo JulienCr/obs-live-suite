@@ -4,6 +4,7 @@ import { QuestionList } from "@/components/quiz/manage/QuestionList";
 import { QuestionEditor } from "@/components/quiz/manage/QuestionEditor";
 import { SessionManager } from "@/components/quiz/manage/SessionManager";
 import { SessionBuilder } from "@/components/quiz/manage/SessionBuilder";
+import { BulkQuestionImport } from "@/components/quiz/manage/BulkQuestionImport";
 
 type TabType = "questions" | "sessions" | "builder";
 
@@ -11,6 +12,7 @@ export default function QuizManagePage() {
   const [activeTab, setActiveTab] = useState<TabType>("questions");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
 
   return (
@@ -53,20 +55,26 @@ export default function QuizManagePage() {
       {activeTab === "questions" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Questions</h2>
-              <button
-                onClick={() => { setIsCreating(true); setEditingId(null); }}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                + New Question
-              </button>
-            </div>
-            <QuestionList onEdit={(id) => { setEditingId(id); setIsCreating(false); }} />
+            <h2 className="text-xl font-semibold mb-4">Questions</h2>
+            <QuestionList 
+              onEdit={(id) => { setEditingId(id); setIsCreating(false); setIsImporting(false); }}
+              onImport={() => { setIsImporting(true); setIsCreating(false); setEditingId(null); }}
+              onNewQuestion={() => { setIsCreating(true); setEditingId(null); setIsImporting(false); }}
+            />
           </div>
 
           <div>
-            {(isCreating || editingId) && (
+            {isImporting && (
+              <BulkQuestionImport
+                onSuccess={() => { 
+                  setIsImporting(false); 
+                  // Trigger reload by toggling creating state
+                  window.location.reload();
+                }}
+                onCancel={() => setIsImporting(false)}
+              />
+            )}
+            {(isCreating || editingId) && !isImporting && (
               <QuestionEditor
                 questionId={editingId}
                 onSave={() => { setIsCreating(false); setEditingId(null); }}

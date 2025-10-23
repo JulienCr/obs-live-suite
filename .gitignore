@@ -63,3 +63,4 @@ next-env.d.ts
 .turbo
 
 .cursor/rules/mcp.json
+_work/

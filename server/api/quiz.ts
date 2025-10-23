@@ -381,6 +381,41 @@ router.delete("/questions/:id", (req, res) => {
   }
 });
 
+// Bulk import questions
+router.post("/questions/bulk", (req, res) => {
+  try {
+    const { questions } = req.body;
+    
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ error: "Invalid request: 'questions' array is required" });
+    }
+
+    const imported: any[] = [];
+    const errors: any[] = [];
+
+    questions.forEach((q, idx) => {
+      try {
+        const question = store.createQuestion(q);
+        imported.push(question);
+      } catch (error) {
+        errors.push({ row: idx + 1, error: String(error) });
+      }
+    });
+
+    if (errors.length > 0) {
+      return res.status(400).json({ 
+        error: "Some questions failed to import", 
+        imported: imported.length,
+        errors 
+      });
+    }
+
+    res.json({ success: true, imported: imported.length, questions: imported });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 // Session creation from builder
 router.post("/session/create", (req, res) => {
   try {
@@ -456,11 +491,11 @@ router.post("/session/:id/update", async (req, res) => {
       session.scores.players = newScores;
     }
     
+    // Update in memory first (so saveToFile saves the updated version)
+    store.setSession(session);
+    
     // Save to disk
     await store.saveToFile(id);
-    
-    // Update in memory
-    store.setSession(session);
     
     res.json({ success: true, session });
   } catch (error) {

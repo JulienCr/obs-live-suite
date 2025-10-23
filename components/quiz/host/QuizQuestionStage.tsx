@@ -210,6 +210,19 @@ export function QuizQuestionStage({
             </div>
           )}
 
+          {/* Notes - show when locked or revealed */}
+          {(phase === "lock" || phase === "reveal" || phase === "score_update") && question.notes && (
+            <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <span className="text-lg">📝</span>
+                <div>
+                  <div className="font-semibold text-gray-800 mb-2">Notes :</div>
+                  <div className="text-gray-700 text-sm">{question.notes}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* QCM Options */}
           {isQcmMode && question.options && (
             <div className="space-y-3">

@@ -56,6 +56,14 @@ This file documents key decisions, mistakes, and dead-ends encountered during de
 * Mystery image: 20px grid, Fisher‑Yates order, start/pause/resume/step; persist revealed count.
 * Untimed questions: hide the timer when `time_s=0`.
 * **Question Explanations**: Added optional `explanation` field to Question model. Shows only in host view during lock/reveal phases. Use blue info box styling for consistency with other host-only information.
+* **Question Notes**: Added optional `notes` field to Question model. Shows in host view below explanation during lock/reveal phases. Use gray info box styling. Useful for sources, metadata, categories. Editable in QuestionEditor, imported via bulk import.
+* **Closest Question Values**: The `correct` field accepts `z.number()` (not `.int()`) to support float values like 2.72, 0.047. QCM questions still use integer indices (0-3).
+* **Bulk Import Duplicate Detection**: BulkQuestionImport checks for duplicate question IDs both in the import file and against existing questions in the database. Duplicates are shown as warnings and automatically skipped during import. Prevents importing the same question twice. Visual indicators: 30% opacity, strikethrough text, yellow "Duplicate - Will Skip" badge in preview. Uses both ID matching and text content matching (case-insensitive, trimmed).
+* **Question List Features**: QuestionList includes search bar (searches text and notes), type filter dropdown, pagination (20 items per page), and adjacent "New Question" + "Bulk Import" buttons. Filters reset pagination to page 1. Shows filtered count vs total count.
+* **Round Editor Question Selector**: RoundEditor's "Add Questions" section includes search bar and type filter (no pagination). Automatically hides questions that are already added to the round. Shows available count vs already added count.
+* **Question Type Color Coding**: Question types have distinct badge colors - QCM (blue), Closest (purple), Open (green), Image (yellow). Applied in QuestionList and RoundEditor using shared `getQuestionTypeColor` utility.
+* **Player Selector (Session Builder)**: PlayerSelector includes search bar for filtering guests by name or subtitle. Automatically hides already-selected guests from the available list. Shows all guests with no pagination. Displays count of available vs selected guests.
+* **Session Update Bug Fix**: Fixed critical bug where editing a loaded session wouldn't update the file. The `/session/:id/update` endpoint now calls `setSession()` BEFORE `saveToFile()` to ensure both memory and disk are updated with the same data.
 
 ## Stream Deck
 

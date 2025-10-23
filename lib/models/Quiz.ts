@@ -36,7 +36,7 @@ export const questionSchema = z.object({
   text: z.string(),
   media: z.string().nullable().default(null), // Allow both URLs and relative paths
   options: z.array(z.string()).max(4).optional(),
-  correct: z.union([z.number().int(), z.string(), z.object({ min: z.number(), max: z.number() })]).optional(),
+  correct: z.union([z.number(), z.string(), z.object({ min: z.number(), max: z.number() })]).optional(),
   points: z.number().int().default(1),
   tie_break: z.boolean().default(false),
   time_s: z.number().int().positive().default(20),

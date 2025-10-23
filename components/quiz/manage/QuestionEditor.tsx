@@ -16,6 +16,8 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
   const [correct, setCorrect] = useState<number>(0);
   const [points, setPoints] = useState(10);
   const [timeS, setTimeS] = useState(20);
+  const [explanation, setExplanation] = useState("");
+  const [notes, setNotes] = useState("");
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -33,6 +35,8 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
             setCorrect(typeof q.correct === "number" ? q.correct : 0);
             setPoints(q.points || 10);
             setTimeS(q.time_s || 20);
+            setExplanation(q.explanation || "");
+            setNotes(q.notes || "");
           }
         });
     } else {
@@ -45,6 +49,8 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
       setCorrect(0);
       setPoints(10);
       setTimeS(20);
+      setExplanation("");
+      setNotes("");
     }
   }, [questionId]);
 
@@ -77,6 +83,8 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
       points,
       time_s: timeS,
       tie_break: false,
+      explanation: explanation || undefined,
+      notes: notes || undefined,
     };
 
     if (type === "qcm" || type === "image") {
@@ -220,6 +228,32 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
               className="w-full border rounded px-3 py-2"
             />
           </div>
+        </div>
+
+        {/* Explanation */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Explanation (optional)</label>
+          <textarea
+            value={explanation}
+            onChange={(e) => setExplanation(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+            rows={3}
+            placeholder="Explanation shown to host after lock/reveal"
+          />
+          <p className="text-xs text-gray-500 mt-1">💡 Visible to host only during lock/reveal phases</p>
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Notes (optional)</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+            rows={2}
+            placeholder="Internal notes, sources, or metadata"
+          />
+          <p className="text-xs text-gray-500 mt-1">📝 For reference only, shown below explanation</p>
         </div>
 
         {/* Actions */}

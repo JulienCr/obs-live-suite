@@ -239,6 +239,47 @@
     - Shows in QuizQuestionStage host interface with blue info box styling
     - Only visible to host, not shown to viewers/overlay audience
     - Test coverage added for explanation field functionality
+  - **Bulk Question Import Feature** ✨ NEW (October 2025)
+    - Import multiple quiz questions from CSV or JSON files
+    - BulkQuestionImport component with file upload UI
+    - CSV parser with support for all question types (QCM, closest, open, image)
+    - JSON import supporting array format or `{questions: [...]}` structure
+    - Validation and preview before import with error detection
+    - Duplicate detection: checks both ID and text content (case-insensitive)
+    - Visual duplicate indicators: 30% opacity, strikethrough, yellow badge
+    - Automatically skips duplicates during import
+    - Downloadable templates (CSV and XLSX) with examples and instructions
+    - XLSX template with Instructions sheet explaining all fields
+    - API endpoint `/api/quiz/questions/bulk` for batch question creation
+    - Supports all question fields: type, text, options, correct, points, time, media, explanation, notes, mode
+    - Float support for closest questions (e.g., 2.72, 0.047)
+  - **Question Manager Enhancements** ✨ NEW (October 2025)
+    - Search bar: searches question text and notes
+    - Type filter dropdown: filter by question type (qcm, closest, open, image)
+    - Pagination: 20 questions per page with smart page controls
+    - Adjacent action buttons: "New Question" + "Bulk Import" on same row
+    - Shows filtered count vs total count
+    - Filters automatically reset pagination to page 1
+  - **Session Builder Round Editor** ✨ NEW (October 2025)
+    - Search and filter in "Add Questions" section (no pagination)
+    - Automatically hides questions already added to current round
+    - Shows count of available vs already added questions
+    - Smart empty states for different scenarios
+    - Color-coded question type badges
+  - **Question Type Color Coding** ✨ NEW (October 2025)
+    - Distinct badge colors for each question type:
+      - QCM: Blue (bg-blue-100 text-blue-800)
+      - Closest: Purple (bg-purple-100 text-purple-800)
+      - Open: Green (bg-green-100 text-green-800)
+      - Image: Yellow (bg-yellow-100 text-yellow-800)
+    - Applied consistently in QuestionList and RoundEditor
+    - Shared utility function `getQuestionTypeColor` in lib/utils
+  - **Player Selector (Session Builder)** ✨ NEW (October 2025)
+    - Search bar: filters guests by name or subtitle
+    - Automatically hides already-selected guests (cleaner than showing disabled)
+    - Shows all guests with no limit or pagination
+    - Results counter: shows available vs selected count
+    - Smart empty states for different scenarios
 
 ### 🚧 Features to Complete
 - Profile export/import (zip with assets)

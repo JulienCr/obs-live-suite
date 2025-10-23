@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 interface Guest {
   id: string;
@@ -24,6 +24,7 @@ interface PlayerSelectorProps {
 export function PlayerSelector({ selectedPlayers, onChange }: PlayerSelectorProps) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetch("/api/assets/guests")
@@ -60,6 +61,23 @@ export function PlayerSelector({ selectedPlayers, onChange }: PlayerSelectorProp
   const updateBuzzerId = (playerId: string, buzzerId: string) => {
     onChange(selectedPlayers.map(p => p.id === playerId ? { ...p, buzzerId } : p));
   };
+
+  // Filter guests: hide already selected, apply search
+  const filteredGuests = useMemo(() => {
+    const selectedIds = new Set(selectedPlayers.map(p => p.id));
+    let filtered = guests.filter(g => !selectedIds.has(g.id));
+
+    // Search by name or subtitle
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(g => 
+        g.displayName.toLowerCase().includes(query) ||
+        (g.subtitle && g.subtitle.toLowerCase().includes(query))
+      );
+    }
+
+    return filtered;
+  }, [guests, selectedPlayers, searchQuery]);
 
   if (loading) return <div className="text-gray-500">Loading guests...</div>;
 
@@ -104,44 +122,59 @@ export function PlayerSelector({ selectedPlayers, onChange }: PlayerSelectorProp
 
       <div className="border rounded-lg p-4 bg-white">
         <h3 className="font-semibold mb-3">Available Guests</h3>
+
+        {/* Search Bar */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Search guests..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Results Count */}
+        <div className="text-sm text-gray-600 mb-3">
+          {filteredGuests.length} guest(s) available
+          {selectedPlayers.length > 0 && ` (${selectedPlayers.length} already selected)`}
+        </div>
+        
         <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
           {guests.length === 0 && (
             <div className="text-sm text-gray-400">No guests found. Create guests in the Assets page.</div>
           )}
-          {guests.map(guest => {
-            const isSelected = selectedPlayers.some(p => p.id === guest.id);
-            return (
-              <button
-                key={guest.id}
-                onClick={() => togglePlayer(guest)}
-                disabled={isSelected}
-                className={`flex items-center gap-3 p-2 rounded text-left transition ${
-                  isSelected 
-                    ? "bg-gray-100 cursor-not-allowed opacity-50" 
-                    : "bg-gray-50 hover:bg-gray-100"
-                }`}
+          {filteredGuests.length === 0 && guests.length > 0 && (
+            <div className="text-sm text-gray-400">
+              {selectedPlayers.length === guests.length 
+                ? 'All guests have been selected.' 
+                : 'No guests match your search.'}
+            </div>
+          )}
+          {filteredGuests.map(guest => (
+            <button
+              key={guest.id}
+              onClick={() => togglePlayer(guest)}
+              className="flex items-center gap-3 p-2 rounded text-left bg-gray-50 hover:bg-gray-100 transition"
+            >
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 overflow-hidden"
+                style={{ backgroundColor: guest.accentColor || "#3b82f6" }}
               >
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 overflow-hidden"
-                  style={{ backgroundColor: guest.accentColor || "#3b82f6" }}
-                >
-                  {guest.avatarUrl ? (
-                    <img src={guest.avatarUrl} alt={guest.displayName} className="w-full h-full object-cover" />
-                  ) : (
-                    guest.displayName.charAt(0).toUpperCase()
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium">{guest.displayName}</div>
-                  {guest.subtitle && <div className="text-xs text-gray-500">{guest.subtitle}</div>}
-                </div>
-                {isSelected && <span className="text-xs text-green-600 font-medium">✓ Selected</span>}
-              </button>
-            );
-          })}
+                {guest.avatarUrl ? (
+                  <img src={guest.avatarUrl} alt={guest.displayName} className="w-full h-full object-cover" />
+                ) : (
+                  guest.displayName.charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-medium">{guest.displayName}</div>
+                {guest.subtitle && <div className="text-xs text-gray-500">{guest.subtitle}</div>}
+              </div>
+            </button>
+          ))}
         </div>
       </div>
     </div>
   );
 }
-
