@@ -1,6 +1,5 @@
 "use client";
 
-import { LowerThirdCard } from "./cards/LowerThirdCard";
 import { CountdownCard } from "./cards/CountdownCard";
 import { PosterCard } from "./cards/PosterCard";
 import { GuestsCard } from "./cards/GuestsCard";
@@ -14,7 +13,6 @@ export function OverlayControlPanel() {
       <GuestsCard />
       <CountdownCard />
       <PosterCard />
-      <LowerThirdCard />
     </div>
   );
 }

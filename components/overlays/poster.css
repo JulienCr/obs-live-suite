@@ -4,7 +4,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.3);
+  background: transparent;
 }
 
 .poster-container.poster-hiding {
@@ -17,12 +17,13 @@
   left: 0;
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .poster-media {
+  position: absolute;
+  left: 30px;
+  top: 50%;
+  transform: translate(0%, -50%);
   max-width: 90%;
   max-height: 90%;
   object-fit: contain;

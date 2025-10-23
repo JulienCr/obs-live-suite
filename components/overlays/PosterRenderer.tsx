@@ -220,26 +220,20 @@ export function PosterRenderer() {
   }
 
   const renderPoster = (posterData: PosterData, className: string) => {
-    // Calculate horizontal position as percentage of screen width
-    // Center = 50%, offsetX in pixels from 0-1920
-    const horizontalPercent = posterData.offsetX !== undefined 
-      ? (posterData.offsetX / 1920) * 100 
-      : 50; // Default to center (50%)
+    console.log("[PosterRenderer] Rendering with offsetX:", posterData.offsetX, "- FORCING LEFT ALIGNMENT");
     
-    console.log("[PosterRenderer] Rendering with offsetX:", posterData.offsetX, "horizontalPercent:", horizontalPercent);
-    
-    // Apply positioning to the media element itself
-    const mediaStyle: React.CSSProperties = posterData.offsetX !== undefined ? {
+    // Always use left alignment with 30px margin, ignoring theme offsetX
+    const mediaStyle: React.CSSProperties = {
       position: 'absolute',
-      left: `${horizontalPercent}%`,
+      left: '30px',
       top: '50%',
-      transform: 'translate(-50%, -50%)',
+      transform: 'translate(0%, -50%)',
       maxWidth: '90%',
       height: '90%',
       objectFit: 'contain',
       boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
       borderRadius: '8px',
-    } : {};
+    };
     
     return (
       <div 
@@ -248,7 +242,6 @@ export function PosterRenderer() {
       >
         {posterData.isVideo ? (
           <video
-            className={posterData.offsetX !== undefined ? '' : 'poster-media'}
             style={mediaStyle}
             src={posterData.fileUrl}
             autoPlay
@@ -259,7 +252,6 @@ export function PosterRenderer() {
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            className={posterData.offsetX !== undefined ? '' : 'poster-media'}
             style={mediaStyle}
             src={posterData.fileUrl}
             alt="Poster"

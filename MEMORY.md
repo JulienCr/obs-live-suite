@@ -83,6 +83,12 @@ This file documents key decisions, mistakes, and dead-ends encountered during de
 * Don’t place hooks after effects that depend on them.
 * Don’t use `any`.
 
+## Development Environment
+
+* **Server Status**: Development server (pnpm dev) is already running in background
+* **Access**: Server available at localhost:3000
+* **Important**: Do not attempt to start pnpm dev again as it will cause conflicts
+
 ## Future
 
 * DB migrations for schema changes.
@@ -94,4 +100,4 @@ This file documents key decisions, mistakes, and dead-ends encountered during de
 
 ---
 
-*Last updated: October 2025*
+*Last updated: January 2025*

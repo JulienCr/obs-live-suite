@@ -69,53 +69,53 @@ export function GuestsCard() {
             No guests yet. Add guests in Assets.
           </div>
         ) : (
-          <div className="space-y-2">
-            {guests.slice(0, 5).map((guest) => (
+          <div 
+            className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto pr-2"
+            style={{
+              scrollbarWidth: "thin",
+              scrollbarColor: "hsl(var(--muted)) transparent"
+            }}
+          >
+            {guests.map((guest) => (
               <div
                 key={guest.id}
-                className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+                onClick={() => handleQuickLowerThird(guest)}
+                title={`Show ${guest.displayName} lower third`}
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 overflow-hidden"
-                    style={{ backgroundColor: guest.accentColor }}
-                  >
-                    {guest.avatarUrl ? (
-                      <img
-                        src={guest.avatarUrl}
-                        alt={guest.displayName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      guest.displayName.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">
-                      {guest.displayName}
-                    </div>
-                    {guest.subtitle && (
-                      <div className="text-xs text-muted-foreground truncate">
-                        {guest.subtitle}
-                      </div>
-                    )}
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 overflow-hidden"
+                  style={{ backgroundColor: guest.accentColor }}
+                >
+                  {guest.avatarUrl ? (
+                    <img
+                      src={guest.avatarUrl}
+                      alt={guest.displayName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    guest.displayName.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm truncate">
+                    {guest.displayName}
                   </div>
                 </div>
                 <Button
                   size="sm"
-                  onClick={() => handleQuickLowerThird(guest)}
+                  variant="ghost"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-6 w-6 p-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleQuickLowerThird(guest);
+                  }}
                   title="Show Lower Third (8s)"
-                  className="flex-shrink-0"
                 >
                   <Zap className="w-3 h-3" />
                 </Button>
               </div>
             ))}
-            {guests.length > 5 && (
-              <div className="text-xs text-center text-muted-foreground pt-2">
-                + {guests.length - 5} more in Assets
-              </div>
-            )}
           </div>
         )}
       </CardContent>
