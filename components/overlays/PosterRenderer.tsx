@@ -8,6 +8,7 @@ interface PosterData {
   fileUrl: string;
   isVideo: boolean;
   offsetX?: number; // Horizontal offset from center (960px = center)
+  aspectRatio?: number; // width/height ratio
 }
 
 interface PosterState {
@@ -35,6 +36,29 @@ export function PosterRenderer() {
   const fadeOutTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const crossFadeTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
+  // Function to detect aspect ratio of media
+  const detectAspectRatio = useCallback((fileUrl: string, isVideo: boolean): Promise<number> => {
+    return new Promise((resolve) => {
+      if (isVideo) {
+        const video = document.createElement('video');
+        video.onloadedmetadata = () => {
+          const aspectRatio = video.videoWidth / video.videoHeight;
+          resolve(aspectRatio);
+        };
+        video.onerror = () => resolve(1); // Default to square if error
+        video.src = fileUrl;
+      } else {
+        const img = new Image();
+        img.onload = () => {
+          const aspectRatio = img.naturalWidth / img.naturalHeight;
+          resolve(aspectRatio);
+        };
+        img.onerror = () => resolve(1); // Default to square if error
+        img.src = fileUrl;
+      }
+    });
+  }, []);
+
   const handleEvent = useCallback((data: { type: string; payload?: PosterShowPayload; id: string }) => {
     if (hideTimeout.current) {
       clearTimeout(hideTimeout.current);
@@ -54,52 +78,57 @@ export function PosterRenderer() {
             data.payload.fileUrl.endsWith(".webm") ||
             data.payload.fileUrl.endsWith(".mov");
 
-          const newPoster: PosterData = {
-            fileUrl: data.payload.fileUrl,
-            isVideo,
-            offsetX: data.payload.theme?.layout?.x, // Extract horizontal offset from theme
-          };
-          
-          console.log("[PosterRenderer] Received theme data:", data.payload.theme);
-          console.log("[PosterRenderer] Offset X:", newPoster.offsetX);
+          // Detect aspect ratio asynchronously
+          detectAspectRatio(data.payload.fileUrl, isVideo).then((aspectRatio) => {
+            const newPoster: PosterData = {
+              fileUrl: data.payload!.fileUrl,
+              isVideo,
+              offsetX: data.payload!.theme?.layout?.x, // Extract horizontal offset from theme
+              aspectRatio,
+            };
+            
+            console.log("[PosterRenderer] Received theme data:", data.payload!.theme);
+            console.log("[PosterRenderer] Offset X:", newPoster.offsetX);
+            console.log("[PosterRenderer] Aspect ratio:", aspectRatio, isVideo ? "(video)" : "(image)");
 
-          setState((prev) => {
-            // Cross-fade: move current to previous if there's a current poster
-            if (prev.visible && prev.current) {
-              // Clear previous after cross-fade completes
-              crossFadeTimeout.current = setTimeout(() => {
-                setState((s) => ({ ...s, previous: null }));
-              }, 500); // Match fade duration
+            setState((prev) => {
+              // Cross-fade: move current to previous if there's a current poster
+              if (prev.visible && prev.current) {
+                // Clear previous after cross-fade completes
+                crossFadeTimeout.current = setTimeout(() => {
+                  setState((s) => ({ ...s, previous: null }));
+                }, 500); // Match fade duration
+                
+                return {
+                  visible: true,
+                  hiding: false,
+                  current: newPoster,
+                  previous: prev.current,
+                  transition: data.payload!.transition,
+                };
+              }
               
+              // No current poster, just show the new one
               return {
                 visible: true,
                 hiding: false,
                 current: newPoster,
-                previous: prev.current,
+                previous: null,
                 transition: data.payload!.transition,
               };
-            }
-            
-            // No current poster, just show the new one
-            return {
-              visible: true,
-              hiding: false,
-              current: newPoster,
-              previous: null,
-              transition: data.payload!.transition,
-            };
-          });
+            });
 
-          if (data.payload.duration) {
-            hideTimeout.current = setTimeout(() => {
-              // Start fade out animation
-              setState((prev) => ({ ...prev, hiding: true }));
-              // After fade completes, fully hide
-              fadeOutTimeout.current = setTimeout(() => {
-                setState((prev) => ({ ...prev, visible: false, hiding: false, current: null, previous: null }));
-              }, 500); // Match fade duration
-            }, data.payload.duration * 1000);
-          }
+            if (data.payload!.duration) {
+              hideTimeout.current = setTimeout(() => {
+                // Start fade out animation
+                setState((prev) => ({ ...prev, hiding: true }));
+                // After fade completes, fully hide
+                fadeOutTimeout.current = setTimeout(() => {
+                  setState((prev) => ({ ...prev, visible: false, hiding: false, current: null, previous: null }));
+                }, 500); // Match fade duration
+              }, data.payload!.duration * 1000);
+            }
+          });
         }
         break;
       case "hide":
@@ -221,18 +250,35 @@ export function PosterRenderer() {
 
   const renderPoster = (posterData: PosterData, className: string) => {
     console.log("[PosterRenderer] Rendering with offsetX:", posterData.offsetX, "- FORCING LEFT ALIGNMENT");
+    console.log("[PosterRenderer] Aspect ratio:", posterData.aspectRatio);
     
-    // Always use left alignment with 30px margin, ignoring theme offsetX
+    // Determine if this is a landscape image (aspect ratio > 1.2)
+    const isLandscape = posterData.aspectRatio && posterData.aspectRatio > 1.2;
+    
+    // Apply different constraints and positioning based on aspect ratio
     const mediaStyle: React.CSSProperties = {
       position: 'absolute',
-      left: '30px',
-      top: '50%',
-      transform: 'translate(0%, -50%)',
-      maxWidth: '90%',
-      height: '90%',
       objectFit: 'contain',
       boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
       borderRadius: '8px',
+      // Different positioning and sizing for landscape vs portrait
+      ...(isLandscape ? {
+        // Landscape: bottom left positioning
+        left: '30px',
+        bottom: '30px',
+        top: 'auto',
+        transform: 'none',
+        maxWidth: '35%', // Much smaller width for landscape - max 35% of canvas
+        maxHeight: '40%', // Smaller height since it's at bottom
+      } : {
+        // Portrait/Square: center left positioning (original)
+        left: '30px',
+        top: '50%',
+        bottom: 'auto',
+        transform: 'translate(0%, -50%)',
+        maxWidth: '90%', // Original width for portrait/square
+        maxHeight: '90%', // Original height for portrait/square
+      }),
     };
     
     return (
