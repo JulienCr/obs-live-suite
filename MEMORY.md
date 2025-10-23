@@ -55,6 +55,7 @@ This file documents key decisions, mistakes, and dead-ends encountered during de
 * Zoom config: `{ durationSeconds, maxZoom, fps=30 }` with ease‑out cubic.
 * Mystery image: 20px grid, Fisher‑Yates order, start/pause/resume/step; persist revealed count.
 * Untimed questions: hide the timer when `time_s=0`.
+* **Question Explanations**: Added optional `explanation` field to Question model. Shows only in host view during lock/reveal phases. Use blue info box styling for consistency with other host-only information.
 
 ## Stream Deck
 
@@ -64,6 +65,11 @@ This file documents key decisions, mistakes, and dead-ends encountered during de
   * Property Inspector runs in Chromium → `fetch`, browser WS.
   * Use `sendToPlugin` / `sendToPropertyInspector`; persist via `setSettings`.
 * Convenience HTTP routes exist for quick wiring (ID‑based actions), but keep parity with enum types.
+* **Dynamic button images**: Use `setImage()` with base64 data URIs or SVG strings.
+  * Fetch images from URLs and convert to base64 for display
+  * Generate fallback SVG avatars with initials for missing images
+  * Update images on `onWillAppear`, `onDidReceiveSettings` events
+  * Cache guest/poster data to minimize API calls
 
 ## Plugin Scanner / Updater
 

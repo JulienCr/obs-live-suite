@@ -11,6 +11,7 @@ interface QuizQcmDisplayProps {
     correct?: number;
     media?: string | null; // Question image URL
     type?: "closest" | "qcm" | "text"; // Question type
+    explanation?: string; // Optional explanation for host view
   };
   playerAssignments?: Record<string, string>; // playerId -> option
   players?: Array<{ id: string; name?: string; displayName?: string; avatar?: string; avatarUrl?: string }>;
@@ -106,7 +107,9 @@ export function QuizQcmDisplay({ voteCounts, votePercentages, phase, question, p
   const optionTexts = displayQuestion?.options || options;
   const optionsAreImages = displayQuestion?.optionsAreImages || false;
   const isRevealed = phase === "reveal" || phase === "score_update";
+  const isLocked = phase === "lock" || phase === "reveal" || phase === "score_update";
   const correctIndex = displayQuestion?.correct;
+  const explanation = displayQuestion?.explanation;
   
   // Initialize vote data if not present
   const safeCounts = voteCounts || {};
@@ -169,6 +172,14 @@ export function QuizQcmDisplay({ voteCounts, votePercentages, phase, question, p
             Réponse : {displayQuestion.correct}
           </div>
         )}
+        
+        {/* Explanation - show when locked or revealed */}
+        {isLocked && explanation && (
+          <div className="absolute top-32 left-1/2 -translate-x-1/2 text-white text-lg text-center bg-blue-600/90 px-6 py-3 rounded-lg max-w-4xl">
+            <div className="font-semibold mb-2">💡 Explication :</div>
+            <div className="text-base">{explanation}</div>
+          </div>
+        )}
       </div>
     );
   }
@@ -184,6 +195,16 @@ export function QuizQcmDisplay({ voteCounts, votePercentages, phase, question, p
             }`}
           >
             {questionText}
+          </div>
+        )}
+        
+        {/* Explanation - show when locked or revealed */}
+        {isLocked && explanation && (
+          <div className={`mb-6 text-white text-lg text-center bg-blue-600/90 px-6 py-3 rounded-lg max-w-4xl mx-auto transition-opacity duration-700 ${
+            showQuestion ? 'opacity-100' : 'opacity-0'
+          }`}>
+            <div className="font-semibold mb-2">💡 Explication :</div>
+            <div className="text-base">{explanation}</div>
           </div>
         )}
         <div className={`grid grid-cols-2 gap-6 w-[900px] transition-opacity duration-700 ${
@@ -283,6 +304,16 @@ export function QuizQcmDisplay({ voteCounts, votePercentages, phase, question, p
             }`}
           >
             {questionText}
+          </div>
+        )}
+        
+        {/* Explanation - show when locked or revealed */}
+        {isLocked && explanation && (
+          <div className={`mb-4 text-white text-lg text-center bg-blue-600/90 px-6 py-3 rounded-lg max-w-4xl mx-auto transition-opacity duration-700 ${
+            showQuestion ? 'opacity-100' : 'opacity-0'
+          }`}>
+            <div className="font-semibold mb-2">💡 Explication :</div>
+            <div className="text-base">{explanation}</div>
           </div>
         )}
         

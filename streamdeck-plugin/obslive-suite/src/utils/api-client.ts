@@ -10,7 +10,8 @@ export interface Guest {
 	id: string;
 	displayName: string;
 	subtitle?: string;
-	[key: string]: string | undefined;
+	avatarUrl?: string | null;
+	[key: string]: string | undefined | null;
 }
 
 export interface Poster {

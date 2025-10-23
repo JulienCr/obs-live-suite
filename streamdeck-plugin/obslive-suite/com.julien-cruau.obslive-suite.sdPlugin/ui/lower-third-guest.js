@@ -96,12 +96,17 @@ function saveSettings() {
 			duration: parseInt(document.getElementById('duration').value) || 8
 		};
 
+		console.log('[Guest PI] Saving settings:', payload);
+
 		websocket.send(JSON.stringify({
 			action: actionInfo.action,
 			event: 'setSettings',
 			context: uuid,
 			payload: payload
 		}));
+
+		// Settings are saved and will trigger onDidReceiveSettings in plugin
+		// which will update the button image automatically
 	}
 }
 

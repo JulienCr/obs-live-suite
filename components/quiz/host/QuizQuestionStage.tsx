@@ -197,6 +197,19 @@ export function QuizQuestionStage({
             </div>
           )}
 
+          {/* Explanation - show when locked or revealed */}
+          {(phase === "lock" || phase === "reveal" || phase === "score_update") && question.explanation && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <span className="text-lg">💡</span>
+                <div>
+                  <div className="font-semibold text-blue-800 mb-2">Explication :</div>
+                  <div className="text-blue-700">{question.explanation}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* QCM Options */}
           {isQcmMode && question.options && (
             <div className="space-y-3">

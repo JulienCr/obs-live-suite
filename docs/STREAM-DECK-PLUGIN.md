@@ -46,12 +46,18 @@ See: [STREAM-DECK-SETUP.md](./STREAM-DECK-SETUP.md)
    - Updates every second via WebSocket
    - Multiple buttons stay in sync
 
-3. **Property Inspectors**
+3. **Guest Avatar Display** ✨ NEW
+   - Button shows selected guest's avatar image
+   - Automatic image fetching and display
+   - Fallback to initials if no avatar available
+   - Visual confirmation of selected guest
+
+4. **Property Inspectors**
    - Visual configuration for each action
    - Preset buttons for common values
    - Auto-save settings
 
-4. **WebSocket Integration**
+5. **WebSocket Integration**
    - Real-time countdown updates
    - Auto-reconnect on disconnect
    - Low latency (<1ms overhead)
@@ -92,8 +98,14 @@ Creates `dist/com.obslive.suite.streamDeckPlugin` for sharing.
 2. Click to open property inspector
 3. Click "Refresh Guest List"
 4. Select guest from dropdown
-5. Set duration and side
-6. Press button to display
+5. **Button automatically shows guest's avatar** 🎨
+6. Set duration and side
+7. Press button to display
+
+**Avatar Display**:
+- If guest has avatar: Shows actual photo
+- If no avatar: Shows initials in colored circle
+- Updates instantly when changing selection
 
 ### Start Countdown with Live Display
 
@@ -281,6 +293,12 @@ For remote OBS Live Suite instances:
 - **Community**: [Link to community forum if available]
 
 ## Version History
+
+### 1.1.0 (October 2025)
+- ✨ NEW: Guest avatar display on buttons
+- Automatic image fetching from backend
+- Fallback to initials for guests without avatars
+- Real-time button image updates
 
 ### 1.0.0 (October 2025)
 - Initial release

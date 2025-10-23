@@ -10,6 +10,12 @@
   - Poster: Show (dropdown), Control (hide/next/previous)
 - ✅ WebSocket integration for live countdown timer display on buttons
 - ✅ Dynamic dropdowns populated from API (/api/assets/guests, /api/assets/posters)
+- ✅ **Guest Avatar Display on Buttons** ✨ NEW (October 23, 2025)
+  - Button shows selected guest's avatar image automatically
+  - Image fetching and conversion to base64 for Stream Deck
+  - Fallback to initials avatar if no image available
+  - Real-time updates when guest selection changes
+  - Visual confirmation before pressing button
 - ✅ Comprehensive documentation: README, SETUP, QUICKSTART guides
 - ✅ Build and packaging scripts (npm run package)
 - ✅ Install/uninstall utilities for local development
@@ -226,6 +232,13 @@
     - WebSocket events for real-time updates (15+ event types)
     - Streamer.bot bridge for Twitch chat (!a/!b/!c/!d, !n, !rep)
   - **Testing**: 36/36 tests passing (unit + functional)
+  - **Question Explanation Feature** ✨ NEW (January 2025)
+    - Added optional `explanation` field to Question model
+    - Explanation displays in host view when question is locked or revealed
+    - Shows in QuizQcmDisplay overlay during lock/reveal/score_update phases
+    - Shows in QuizQuestionStage host interface with blue info box styling
+    - Only visible to host, not shown to viewers/overlay audience
+    - Test coverage added for explanation field functionality
 
 ### 🚧 Features to Complete
 - Profile export/import (zip with assets)

@@ -1,5 +1,6 @@
 {
     "scripts": {
+        "link": "streamdeck link com.julien-cruau.obslive-suite",
         "build": "rollup -c",
         "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.julien-cruau.obslive-suite\""
     },

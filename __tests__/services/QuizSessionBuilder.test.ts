@@ -231,6 +231,23 @@ describe("QuizSessionBuilder", () => {
       expect(question.correct).toBeUndefined();
     });
 
+    it("should handle questions with explanation field", () => {
+      const question = store.createQuestion({
+        type: "qcm",
+        text: "What is the capital of France?",
+        options: ["London", "Paris", "Berlin", "Madrid"],
+        correct: 1,
+        points: 10,
+        tie_break: false,
+        time_s: 20,
+        explanation: "Paris has been the capital of France since the 12th century.",
+      });
+
+      expect(question.explanation).toBe("Paris has been the capital of France since the 12th century.");
+      expect(question.type).toBe("qcm");
+      expect(question.correct).toBe(1);
+    });
+
     it("should maintain score integrity when creating session", () => {
       const players = [
         { id: "p1", name: "Player 1", avatar: null, buzzerId: "b1" },

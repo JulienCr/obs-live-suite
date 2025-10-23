@@ -29,6 +29,7 @@ class BackendServer {
   private channelManager: ChannelManager;
   private obsManager: OBSConnectionManager;
   private app: express.Application;
+  private httpServer: any | null = null;
   private httpPort: number;
   private initialized = false;
 
@@ -274,7 +275,7 @@ class BackendServer {
 
       // 4. Start HTTP API server
       await new Promise<void>((resolve) => {
-        this.app.listen(this.httpPort, () => {
+        this.httpServer = this.app.listen(this.httpPort, () => {
           this.logger.info(`✓ HTTP API listening on port ${this.httpPort}`);
           resolve();
         });
@@ -292,6 +293,17 @@ class BackendServer {
     this.logger.info("Stopping backend server...");
 
     try {
+      // Close HTTP server
+      if (this.httpServer) {
+        await new Promise<void>((resolve) => {
+          this.httpServer.close(() => {
+            this.logger.info("✓ HTTP server closed");
+            resolve();
+          });
+        });
+        this.httpServer = null;
+      }
+
       this.wsHub.stop();
       await this.obsManager.disconnect();
       const db = DatabaseService.getInstance();

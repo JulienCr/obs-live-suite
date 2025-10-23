@@ -41,6 +41,7 @@ export const questionSchema = z.object({
   tie_break: z.boolean().default(false),
   time_s: z.number().int().positive().default(20),
   notes: z.string().optional(),
+  explanation: z.string().optional(), // Optional explanation field for host view
   guest_target: z.enum(["single", "all", "none"]).optional(),
   zoom: zoomConfigSchema.optional(),
   buzz: buzzConfigSchema.optional(),
