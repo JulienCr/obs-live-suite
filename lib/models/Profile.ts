@@ -51,7 +51,20 @@ export type CreateProfileInput = z.infer<typeof createProfileSchema>;
 /**
  * Update profile input schema
  */
-export const updateProfileSchema = profileSchema.partial().required({ id: true });
+export const updateProfileSchema = z.object({
+  name: z.string().min(1, "Profile name is required").max(100).optional(),
+  description: z.string().max(500).nullable().optional(),
+  themeId: z.string().uuid().optional(),
+  dskSourceName: z.string().optional(),
+  defaultScene: z.string().nullable().optional(),
+  posterRotation: z.array(posterRotationSchema).optional(),
+  audioSettings: z.object({
+    countdownCueEnabled: z.boolean().optional(),
+    countdownCueAt: z.number().int().optional(),
+    actionSoundsEnabled: z.boolean().optional(),
+  }).optional(),
+  isActive: z.boolean().optional(),
+});
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 

@@ -254,7 +254,7 @@ export function ProfileManager() {
           <Folder className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">No profiles yet</p>
           <p className="text-sm text-muted-foreground">
-            Click "New Profile" to create one
+            Click &ldquo;New Profile&rdquo; to create one
           </p>
         </div>
       ) : (

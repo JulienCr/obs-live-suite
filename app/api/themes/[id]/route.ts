@@ -54,10 +54,10 @@ export async function PUT(
     db.updateTheme(params.id, theme.toJSON());
 
     return NextResponse.json({ theme: theme.toJSON() }, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[API] Failed to update theme:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to update theme" },
+      { error: error instanceof Error ? error.message : "Failed to update theme" },
       { status: 400 }
     );
   }
@@ -79,7 +79,7 @@ export async function DELETE(
     }
 
     // Check if theme is in use by any profile
-    const profiles = db.getAllProfiles() as any[];
+    const profiles = db.getAllProfiles();
     const inUse = profiles.some((p) => p.themeId === params.id);
 
     if (inUse) {

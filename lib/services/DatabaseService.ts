@@ -1,6 +1,20 @@
 import Database from "better-sqlite3";
 import { PathManager } from "../config/PathManager";
 import { Logger } from "../utils/Logger";
+import {
+  DbGuest,
+  DbGuestInput,
+  DbGuestUpdate,
+  DbPoster,
+  DbPosterInput,
+  DbPosterUpdate,
+  DbProfile,
+  DbProfileInput,
+  DbProfileUpdate,
+  DbTheme,
+  DbThemeInput,
+  DbThemeUpdate,
+} from "../models/Database";
 
 /**
  * DatabaseService handles SQLite database connections and operations
@@ -37,7 +51,7 @@ export class DatabaseService {
   private runMigrations(): void {
     // Check if layout columns exist in themes table
     try {
-      const tableInfo = this.db.prepare("PRAGMA table_info(themes)").all() as any[];
+      const tableInfo = this.db.prepare("PRAGMA table_info(themes)").all() as Array<{ name: string }>;
       const hasLowerThirdLayout = tableInfo.some((col) => col.name === "lowerThirdLayout");
       const hasCountdownLayout = tableInfo.some((col) => col.name === "countdownLayout");
       const hasPosterLayout = tableInfo.some((col) => col.name === "posterLayout");
@@ -202,10 +216,10 @@ export class DatabaseService {
   /**
    * Get all guests
    */
-  getAllGuests(): unknown[] {
+  getAllGuests(): DbGuest[] {
     const stmt = this.db.prepare("SELECT * FROM guests ORDER BY displayName ASC");
-    const rows = stmt.all();
-    return rows.map((row: any) => ({
+    const rows = stmt.all() as Array<Omit<DbGuest, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }>;
+    return rows.map((row) => ({
       ...row,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
@@ -215,9 +229,9 @@ export class DatabaseService {
   /**
    * Get guest by ID
    */
-  getGuestById(id: string): unknown | null {
+  getGuestById(id: string): DbGuest | null {
     const stmt = this.db.prepare("SELECT * FROM guests WHERE id = ?");
-    const row = stmt.get(id) as any;
+    const row = stmt.get(id) as (Omit<DbGuest, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }) | undefined;
     if (!row) return null;
     return {
       ...row,
@@ -229,7 +243,8 @@ export class DatabaseService {
   /**
    * Create a new guest
    */
-  createGuest(guest: any): void {
+  createGuest(guest: DbGuestInput): void {
+    const now = new Date();
     console.log("[DB] Creating guest with data:", {
       id: guest.id,
       displayName: guest.displayName,
@@ -248,8 +263,8 @@ export class DatabaseService {
       guest.subtitle || null,
       guest.accentColor,
       guest.avatarUrl || null,
-      guest.createdAt.toISOString(),
-      guest.updatedAt.toISOString()
+      (guest.createdAt || now).toISOString(),
+      (guest.updatedAt || now).toISOString()
     );
     
     console.log("[DB] Guest created successfully");
@@ -258,9 +273,9 @@ export class DatabaseService {
   /**
    * Update a guest
    */
-  updateGuest(id: string, updates: any): void {
+  updateGuest(id: string, updates: DbGuestUpdate): void {
     // Get existing guest to merge with updates
-    const existing = this.getGuestById(id) as any;
+    const existing = this.getGuestById(id);
     if (!existing) {
       throw new Error(`Guest with id ${id} not found`);
     }
@@ -304,10 +319,10 @@ export class DatabaseService {
   /**
    * Get all posters
    */
-  getAllPosters(): unknown[] {
+  getAllPosters(): DbPoster[] {
     const stmt = this.db.prepare("SELECT * FROM posters ORDER BY createdAt DESC");
-    const rows = stmt.all();
-    return rows.map((row: any) => ({
+    const rows = stmt.all() as Array<Omit<DbPoster, 'tags' | 'profileIds' | 'metadata' | 'createdAt' | 'updatedAt'> & { tags: string; profileIds: string; metadata: string | null; createdAt: string; updatedAt: string }>;
+    return rows.map((row) => ({
       ...row,
       tags: JSON.parse(row.tags || "[]"),
       profileIds: JSON.parse(row.profileIds || "[]"),
@@ -320,9 +335,9 @@ export class DatabaseService {
   /**
    * Get poster by ID
    */
-  getPosterById(id: string): unknown | null {
+  getPosterById(id: string): DbPoster | null {
     const stmt = this.db.prepare("SELECT * FROM posters WHERE id = ?");
-    const row = stmt.get(id) as any;
+    const row = stmt.get(id) as (Omit<DbPoster, 'tags' | 'profileIds' | 'metadata' | 'createdAt' | 'updatedAt'> & { tags: string; profileIds: string; metadata: string | null; createdAt: string; updatedAt: string }) | undefined;
     if (!row) return null;
     return {
       ...row,
@@ -337,7 +352,8 @@ export class DatabaseService {
   /**
    * Create a new poster
    */
-  createPoster(poster: any): void {
+  createPoster(poster: DbPosterInput): void {
+    const now = new Date();
     const stmt = this.db.prepare(`
       INSERT INTO posters (id, title, fileUrl, type, duration, tags, profileIds, metadata, createdAt, updatedAt)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -351,15 +367,15 @@ export class DatabaseService {
       JSON.stringify(poster.tags || []),
       JSON.stringify(poster.profileIds || []),
       poster.metadata ? JSON.stringify(poster.metadata) : null,
-      poster.createdAt.toISOString(),
-      poster.updatedAt.toISOString()
+      (poster.createdAt || now).toISOString(),
+      (poster.updatedAt || now).toISOString()
     );
   }
 
   /**
    * Update a poster
    */
-  updatePoster(id: string, updates: any): void {
+  updatePoster(id: string, updates: DbPosterUpdate): void {
     const stmt = this.db.prepare(`
       UPDATE posters
       SET title = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, updatedAt = ?
@@ -391,10 +407,10 @@ export class DatabaseService {
   /**
    * Get all profiles
    */
-  getAllProfiles(): unknown[] {
+  getAllProfiles(): DbProfile[] {
     const stmt = this.db.prepare("SELECT * FROM profiles ORDER BY isActive DESC, name ASC");
-    const rows = stmt.all();
-    return rows.map((row: any) => ({
+    const rows = stmt.all() as Array<Omit<DbProfile, 'isActive' | 'posterRotation' | 'audioSettings' | 'createdAt' | 'updatedAt'> & { isActive: number; posterRotation: string; audioSettings: string; createdAt: string; updatedAt: string }>;
+    return rows.map((row) => ({
       ...row,
       isActive: Boolean(row.isActive),
       posterRotation: JSON.parse(row.posterRotation || "[]"),
@@ -407,9 +423,9 @@ export class DatabaseService {
   /**
    * Get profile by ID
    */
-  getProfileById(id: string): unknown | null {
+  getProfileById(id: string): DbProfile | null {
     const stmt = this.db.prepare("SELECT * FROM profiles WHERE id = ?");
-    const row = stmt.get(id) as any;
+    const row = stmt.get(id) as (Omit<DbProfile, 'isActive' | 'posterRotation' | 'audioSettings' | 'createdAt' | 'updatedAt'> & { isActive: number; posterRotation: string; audioSettings: string; createdAt: string; updatedAt: string }) | undefined;
     if (!row) return null;
     return {
       ...row,
@@ -424,9 +440,9 @@ export class DatabaseService {
   /**
    * Get active profile
    */
-  getActiveProfile(): unknown | null {
+  getActiveProfile(): DbProfile | null {
     const stmt = this.db.prepare("SELECT * FROM profiles WHERE isActive = 1 LIMIT 1");
-    const row = stmt.get() as any;
+    const row = stmt.get() as (Omit<DbProfile, 'isActive' | 'posterRotation' | 'audioSettings' | 'createdAt' | 'updatedAt'> & { isActive: number; posterRotation: string; audioSettings: string; createdAt: string; updatedAt: string }) | undefined;
     if (!row) return null;
     return {
       ...row,
@@ -441,7 +457,8 @@ export class DatabaseService {
   /**
    * Create a new profile
    */
-  createProfile(profile: any): void {
+  createProfile(profile: DbProfileInput): void {
+    const now = new Date();
     const stmt = this.db.prepare(`
       INSERT INTO profiles (id, name, description, themeId, dskSourceName, defaultScene, posterRotation, audioSettings, isActive, createdAt, updatedAt)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -456,15 +473,15 @@ export class DatabaseService {
       JSON.stringify(profile.posterRotation || []),
       JSON.stringify(profile.audioSettings || {}),
       profile.isActive ? 1 : 0,
-      profile.createdAt.toISOString(),
-      profile.updatedAt.toISOString()
+      (profile.createdAt || now).toISOString(),
+      (profile.updatedAt || now).toISOString()
     );
   }
 
   /**
    * Update a profile
    */
-  updateProfile(id: string, updates: any): void {
+  updateProfile(id: string, updates: DbProfileUpdate): void {
     const stmt = this.db.prepare(`
       UPDATE profiles
       SET name = ?, description = ?, themeId = ?, dskSourceName = ?, defaultScene = ?, posterRotation = ?, audioSettings = ?, isActive = ?, updatedAt = ?
@@ -508,10 +525,10 @@ export class DatabaseService {
   /**
    * Get all themes
    */
-  getAllThemes(): unknown[] {
+  getAllThemes(): DbTheme[] {
     const stmt = this.db.prepare("SELECT * FROM themes ORDER BY isGlobal DESC, name ASC");
-    const rows = stmt.all();
-    return rows.map((row: any) => ({
+    const rows = stmt.all() as Array<Omit<DbTheme, 'colors' | 'lowerThirdFont' | 'lowerThirdLayout' | 'countdownFont' | 'countdownLayout' | 'posterLayout' | 'isGlobal' | 'createdAt' | 'updatedAt'> & { colors: string; lowerThirdFont: string; lowerThirdLayout: string; countdownFont: string; countdownLayout: string; posterLayout: string; isGlobal: number; createdAt: string; updatedAt: string }>;
+    return rows.map((row) => ({
       ...row,
       colors: JSON.parse(row.colors),
       lowerThirdFont: JSON.parse(row.lowerThirdFont),
@@ -528,9 +545,9 @@ export class DatabaseService {
   /**
    * Get theme by ID
    */
-  getThemeById(id: string): unknown | null {
+  getThemeById(id: string): DbTheme | null {
     const stmt = this.db.prepare("SELECT * FROM themes WHERE id = ?");
-    const row = stmt.get(id) as any;
+    const row = stmt.get(id) as (Omit<DbTheme, 'colors' | 'lowerThirdFont' | 'lowerThirdLayout' | 'countdownFont' | 'countdownLayout' | 'posterLayout' | 'isGlobal' | 'createdAt' | 'updatedAt'> & { colors: string; lowerThirdFont: string; lowerThirdLayout: string; countdownFont: string; countdownLayout: string; posterLayout: string; isGlobal: number; createdAt: string; updatedAt: string }) | undefined;
     if (!row) return null;
     return {
       ...row,
@@ -549,7 +566,8 @@ export class DatabaseService {
   /**
    * Create a new theme
    */
-  createTheme(theme: any): void {
+  createTheme(theme: DbThemeInput): void {
+    const now = new Date();
     const stmt = this.db.prepare(`
       INSERT INTO themes (id, name, colors, lowerThirdTemplate, lowerThirdFont, lowerThirdLayout, countdownStyle, countdownFont, countdownLayout, posterLayout, isGlobal, createdAt, updatedAt)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -566,15 +584,15 @@ export class DatabaseService {
       JSON.stringify(theme.countdownLayout || { x: 960, y: 540, scale: 1 }),
       JSON.stringify(theme.posterLayout || { x: 960, y: 540, scale: 1 }),
       theme.isGlobal ? 1 : 0,
-      theme.createdAt.toISOString(),
-      theme.updatedAt.toISOString()
+      (theme.createdAt || now).toISOString(),
+      (theme.updatedAt || now).toISOString()
     );
   }
 
   /**
    * Update a theme
    */
-  updateTheme(id: string, updates: any): void {
+  updateTheme(id: string, updates: DbThemeUpdate): void {
     const stmt = this.db.prepare(`
       UPDATE themes
       SET name = ?, colors = ?, lowerThirdTemplate = ?, lowerThirdFont = ?, lowerThirdLayout = ?, countdownStyle = ?, countdownFont = ?, countdownLayout = ?, posterLayout = ?, isGlobal = ?, updatedAt = ?

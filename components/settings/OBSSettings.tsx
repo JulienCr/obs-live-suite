@@ -318,7 +318,7 @@ export function OBSSettings() {
             <ol className="list-decimal list-inside mt-2 space-y-1">
               <li>Open OBS Studio</li>
               <li>Go to Tools → obs-websocket Settings</li>
-              <li>Check "Enable WebSocket server"</li>
+              <li>Check &ldquo;Enable WebSocket server&rdquo;</li>
               <li>
                 Note the Server Port (default: 4455) and Password (if enabled)
               </li>
@@ -329,7 +329,7 @@ export function OBSSettings() {
             <strong>Configuration Priority:</strong>
             <p className="mt-1">
               Settings saved here take priority over .env file. 
-              Use "Clear & Use .env" to revert to environment variables.
+              Use &ldquo;Clear & Use .env&rdquo; to revert to environment variables.
             </p>
           </div>
         </AlertDescription>

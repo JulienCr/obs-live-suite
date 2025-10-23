@@ -109,7 +109,7 @@ export function BackupSettings() {
         <Alert>
           <FileJson className="w-4 h-4" />
           <AlertDescription className="text-sm">
-            <strong>What's included:</strong>
+            <strong>What&apos;s included:</strong>
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li>OBS WebSocket URL (password excluded for security)</li>
               <li>Backend server URL</li>

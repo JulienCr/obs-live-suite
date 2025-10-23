@@ -260,7 +260,7 @@ export function GuestManager() {
           <User className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">No guests yet</p>
           <p className="text-sm text-muted-foreground">
-            Click "Add Guest" to get started
+            Click &ldquo;Add Guest&rdquo; to get started
           </p>
         </div>
       ) : (

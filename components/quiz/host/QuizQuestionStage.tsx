@@ -108,7 +108,14 @@ export function QuizQuestionStage({
   const isMysteryImageMode = question.type === "image" && question.mode === "mystery_image";
   
   // Calculate grid size for mystery image when image loads
+  // Hook called unconditionally, with conditional logic inside
   React.useEffect(() => {
+    // Reset state when question changes
+    setZoomRunning(false);
+    setZoomStarted(false);
+    setMysteryRunning(false);
+    setMysteryStarted(false);
+    
     if (isMysteryImageMode && question.media) {
       const img = new Image();
       img.onload = () => {
@@ -127,11 +134,6 @@ export function QuizQuestionStage({
     } else {
       setMysteryTotalSquares(0);
     }
-    // Reset state when question changes
-    setZoomRunning(false);
-    setZoomStarted(false);
-    setMysteryRunning(false);
-    setMysteryStarted(false);
   }, [isMysteryImageMode, question.media]);
 
   return (
@@ -171,7 +173,7 @@ export function QuizQuestionStage({
               <span className="text-lg">ℹ️</span>
               <p className="font-medium">
                 This question is loaded but <strong>not visible</strong> to viewers yet.
-                Click <strong>"Show Question"</strong> in the top bar to display it.
+                Click <strong>&ldquo;Show Question&rdquo;</strong> in the top bar to display it.
               </p>
             </div>
           </div>

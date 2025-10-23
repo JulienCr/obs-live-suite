@@ -232,7 +232,7 @@ export function SessionBuilder({ sessionId, onBack }: SessionBuilderProps) {
         </div>
 
         {rounds.length === 0 && (
-          <div className="text-sm text-gray-400">No rounds added yet. Click "Add Round" to create one.</div>
+          <div className="text-sm text-gray-400">No rounds added yet. Click &ldquo;Add Round&rdquo; to create one.</div>
         )}
 
         <div className="space-y-3">

@@ -155,7 +155,7 @@ export function PosterManager() {
           <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">No posters yet</p>
           <p className="text-sm text-muted-foreground">
-            Click "Add Poster" to get started
+            Click &ldquo;Add Poster&rdquo; to get started
           </p>
         </div>
       ) : (

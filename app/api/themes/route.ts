@@ -39,10 +39,10 @@ export async function POST(request: NextRequest) {
     db.createTheme(theme.toJSON());
 
     return NextResponse.json({ theme: theme.toJSON() }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[API] Failed to create theme:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to create theme" },
+      { error: error instanceof Error ? error.message : "Failed to create theme" },
       { status: 400 }
     );
   }

@@ -3,6 +3,7 @@ import { DatabaseService } from "@/lib/services/DatabaseService";
 import { BackendClient } from "@/lib/utils/BackendClient";
 import { LowerThirdEventType, OverlayChannel } from "@/lib/models/OverlayEvents";
 import { enrichLowerThirdPayload } from "@/lib/utils/themeEnrichment";
+import { DbGuest } from "@/lib/models/Database";
 
 /**
  * POST /api/actions/lower/guest/[id]
@@ -15,7 +16,7 @@ export async function POST(
   try {
     const { id } = await params;
     const db = DatabaseService.getInstance();
-    const guest = db.getGuestById(id) as any;
+    const guest = db.getGuestById(id);
 
     if (!guest) {
       return NextResponse.json(

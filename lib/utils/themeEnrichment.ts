@@ -5,6 +5,7 @@
 
 import { DatabaseService } from "../services/DatabaseService";
 import { Theme } from "../models/Theme";
+import { DbProfile } from "../models/Database";
 
 export interface LowerThirdThemeData {
   colors: Theme["colors"];
@@ -32,7 +33,7 @@ export interface PosterThemeData {
 export function getActiveTheme(db?: DatabaseService): Theme | null {
   try {
     const dbInstance = db || DatabaseService.getInstance();
-    const activeProfile = dbInstance.getActiveProfile() as any;
+    const activeProfile = dbInstance.getActiveProfile();
     
     if (!activeProfile || !activeProfile.themeId) {
       console.log("[ThemeEnrichment] No active profile or themeId found");
@@ -104,7 +105,7 @@ export function getPosterThemeData(theme: Theme | null): PosterThemeData | undef
  * @param db DatabaseService instance (optional)
  * @returns Enriched payload with theme data
  */
-export function enrichLowerThirdPayload<T extends Record<string, any>>(
+export function enrichLowerThirdPayload<T extends Record<string, unknown>>(
   payload: T,
   db?: DatabaseService
 ): T & { theme?: LowerThirdThemeData } {
@@ -123,7 +124,7 @@ export function enrichLowerThirdPayload<T extends Record<string, any>>(
  * @param db DatabaseService instance (optional)
  * @returns Enriched payload with theme data
  */
-export function enrichCountdownPayload<T extends Record<string, any>>(
+export function enrichCountdownPayload<T extends Record<string, unknown>>(
   payload: T,
   db?: DatabaseService
 ): T & { theme?: CountdownThemeData } {
@@ -142,7 +143,7 @@ export function enrichCountdownPayload<T extends Record<string, any>>(
  * @param db DatabaseService instance (optional)
  * @returns Enriched payload with theme data
  */
-export function enrichPosterPayload<T extends Record<string, any>>(
+export function enrichPosterPayload<T extends Record<string, unknown>>(
   payload: T,
   db?: DatabaseService
 ): T & { theme?: PosterThemeData } {

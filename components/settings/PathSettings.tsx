@@ -1,24 +1,73 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, FolderOpen, Info } from "lucide-react";
+import { Plus, X, FolderOpen, Info, ExternalLink } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+
+interface DataPaths {
+  dataDir: string;
+  databasePath: string;
+  profilesDir: string;
+  assetsDir: string;
+  postersDir: string;
+  avatarsDir: string;
+  logsDir: string;
+  backupsDir: string;
+  quizDir: string;
+}
 
 /**
- * OBS plugin scan paths configuration
+ * OBS plugin scan paths and data directory configuration
  */
 export function PathSettings() {
   const [customPaths, setCustomPaths] = useState<string[]>([]);
   const [newPath, setNewPath] = useState("");
+  const [dataPaths, setDataPaths] = useState<DataPaths | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const defaultPaths = [
     "C:\\Program Files\\obs-studio\\obs-plugins",
     "%APPDATA%\\obs-studio\\plugins",
   ];
+
+  useEffect(() => {
+    fetchDataPaths();
+  }, []);
+
+  const fetchDataPaths = async () => {
+    try {
+      const response = await fetch("/api/settings/paths");
+      if (response.ok) {
+        const paths = await response.json();
+        setDataPaths(paths);
+      }
+    } catch (error) {
+      console.error("Failed to fetch data paths:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openFolder = async (path: string) => {
+    try {
+      const response = await fetch("/api/settings/open-folder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      });
+      
+      if (!response.ok) {
+        console.error("Failed to open folder");
+      }
+    } catch (error) {
+      console.error("Failed to open folder:", error);
+    }
+  };
 
   const addPath = () => {
     if (newPath && !customPaths.includes(newPath)) {
@@ -43,7 +92,75 @@ export function PathSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold mb-2">OBS Plugin Scan Paths</h2>
+        <h2 className="text-2xl font-semibold mb-2">Paths Configuration</h2>
+        <p className="text-sm text-muted-foreground">
+          View data directories and configure OBS plugin scan paths
+        </p>
+      </div>
+
+      {/* Data Directory Paths */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Data Directory</h3>
+          <p className="text-sm text-muted-foreground mb-3">
+            Current storage locations for application data
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="text-sm text-muted-foreground">Loading paths...</div>
+        ) : dataPaths ? (
+          <div className="space-y-2">
+            {Object.entries(dataPaths).map(([key, path]) => {
+              const labels: Record<string, string> = {
+                dataDir: "Data Directory",
+                databasePath: "Database (SQLite)",
+                profilesDir: "Profiles",
+                assetsDir: "Assets",
+                postersDir: "Posters",
+                avatarsDir: "Avatars",
+                logsDir: "Logs",
+                backupsDir: "Backups",
+                quizDir: "Quiz Sessions",
+              };
+
+              return (
+                <div
+                  key={key}
+                  className="flex items-center gap-2 p-3 border rounded hover:bg-accent/50 transition-colors"
+                >
+                  <FolderOpen className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-muted-foreground mb-1">
+                      {labels[key]}
+                    </div>
+                    <div className="font-mono text-sm truncate" title={path}>
+                      {path}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openFolder(path)}
+                    className="flex-shrink-0"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <Alert>
+            <AlertDescription>Failed to load data paths</AlertDescription>
+          </Alert>
+        )}
+      </div>
+
+      <Separator />
+
+      <div>
+        <h3 className="text-lg font-semibold mb-2">OBS Plugin Scan Paths</h3>
         <p className="text-sm text-muted-foreground">
           Configure where to scan for OBS plugins and scripts
         </p>

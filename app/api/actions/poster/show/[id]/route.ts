@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { enrichPosterPayload } from "@/lib/utils/themeEnrichment";
+import { DbPoster } from "@/lib/models/Database";
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 
@@ -15,7 +16,7 @@ export async function POST(
   try {
     const { id } = await params;
     const db = DatabaseService.getInstance();
-    const poster = db.getPosterById(id) as any;
+    const poster = db.getPosterById(id);
 
     if (!poster) {
       return NextResponse.json(

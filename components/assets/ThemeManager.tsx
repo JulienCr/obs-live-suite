@@ -78,7 +78,7 @@ export function ThemeManager() {
     try {
       const response = await fetch("/api/profiles");
       const data = await response.json();
-      const activeProfile = data.profiles?.find((p: any) => p.isActive);
+      const activeProfile = data.profiles?.find((p: { isActive: boolean; themeId: string }) => p.isActive);
       if (activeProfile) {
         setActiveProfileThemeId(activeProfile.themeId);
       }
@@ -247,8 +247,8 @@ export function ThemeManager() {
       setIsCreating(false);
       setEditingTheme(null);
       await loadThemes();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save theme");
     }
   };
 
@@ -269,8 +269,8 @@ export function ThemeManager() {
       }
 
       await loadThemes();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete theme");
     }
   };
 
@@ -281,7 +281,7 @@ export function ThemeManager() {
       // Get active profile
       const profilesResponse = await fetch("/api/profiles");
       const profilesData = await profilesResponse.json();
-      const activeProfile = profilesData.profiles?.find((p: any) => p.isActive);
+      const activeProfile = profilesData.profiles?.find((p: { isActive: boolean; id: string }) => p.isActive);
       
       if (!activeProfile) {
         throw new Error("No active profile found. Please create a profile first.");
@@ -308,9 +308,10 @@ export function ThemeManager() {
       if (confirm("Theme applied! Click OK to preview the lower third, or Cancel to continue editing.")) {
         await testLowerThird();
       }
-    } catch (err: any) {
-      setError(err.message);
-      alert(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to apply theme";
+      setError(message);
+      alert(message);
     }
   };
 

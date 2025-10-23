@@ -101,7 +101,7 @@ export function CountdownCard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [style, format, position, scale, color, fontFamily, fontSize, fontWeight, shadow]);
 
-  const sendCountdownUpdate = async (updatePayload: any) => {
+  const sendCountdownUpdate = async (updatePayload: Record<string, unknown>) => {
     try {
       console.log("[Frontend] Sending countdown update:", updatePayload);
       const response = await fetch("/api/overlays/countdown", {

@@ -1,0 +1,182 @@
+
+> obs-live-suite@0.1.0 build:direct D:\dev\obs-tools
+> next build
+
+   Ôû▓ Next.js 15.5.6
+   - Environments: .env
+
+   Creating an optimized production build ...
+(node:16752) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ Ô£ô Compiled successfully in 4.5s
+   Linting and checking validity of types ...
+
+Failed to compile.
+
+./app/api/actions/lower/guest/[id]/route.ts
+6:10  Warning: 'DbGuest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/actions/poster/show/[id]/route.ts
+4:10  Warning: 'DbPoster' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/assets/guests/route.ts
+16:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/assets/guests/[id]/route.ts
+61:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/assets/posters/route.ts
+16:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+43:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/assets/posters/[id]/route.ts
+25:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+53:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+74:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/profiles/route.ts
+16:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/profiles/[id]/activate/route.ts
+18:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/profiles/[id]/route.ts
+25:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+46:12  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/assets/page.tsx
+27:15  Warning: Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images.  jsx-a11y/alt-text
+
+./app/quiz/host/page.tsx
+79:30  Warning: 'player' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/assets/AvatarUploader.tsx
+119:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/assets/GuestManager.tsx
+279:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/assets/OverlayCanvas.tsx
+160:6  Warning: React Hook useEffect has missing dependencies: 'countdownLayout', 'lowerThirdLayout', 'onCountdownLayoutChange', and 'onLowerThirdLayoutChange'. Either include them or remove the dependency array. If 'onLowerThirdLayoutChange' changes too often, find the parent component that defines it and wrap that definition in useCallback.  react-hooks/exhaustive-deps
+
+./components/assets/PosterManager.tsx
+170:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/assets/ThemeManager.tsx
+18:10  Warning: 'LowerThirdPreview' is defined but never used.  @typescript-eslint/no-unused-vars
+18:29  Warning: 'CountdownPreview' is defined but never used.  @typescript-eslint/no-unused-vars
+70:14  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+149:6  Warning: React Hook useEffect has a missing dependency: 'sendLivePreviewToOBS'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+168:6  Warning: React Hook useEffect has a missing dependency: 'sendLivePreviewToOBS'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/assets/ThemePreviews.tsx
+20:51  Warning: 'template' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/dashboard/cards/GuestsCard.tsx
+84:23  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/dashboard/cards/PosterCard.tsx
+5:10  Warning: 'Button' is defined but never used.  @typescript-eslint/no-unused-vars
+7:15  Warning: 'EyeOff' is defined but never used.  @typescript-eslint/no-unused-vars
+122:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/dashboard/DashboardHeader.tsx
+114:17  Warning: Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images.  jsx-a11y/alt-text
+
+./components/overlays/CountdownRenderer.tsx
+57:68  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/overlays/LowerThirdDisplay.tsx
+98:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/overlays/LowerThirdRenderer.tsx
+273:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/profiles/ProfileManager.tsx
+45:6  Warning: React Hook useEffect has a missing dependency: 'fetchThemes'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/quiz/host/LiveScoreboard.tsx
+37:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/quiz/host/QuizHostNavigator.tsx
+3:26  Warning: 'Question' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/quiz/host/QuizPlayersPanel.tsx
+7:60  Warning: 'DialogTrigger' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/quiz/host/QuizQuestionStage.tsx
+3:20  Warning: 'Player' is defined but never used.  @typescript-eslint/no-unused-vars
+77:3  Warning: 'correctAnswer' is defined but never used.  @typescript-eslint/no-unused-vars
+78:3  Warning: 'questionFinished' is defined but never used.  @typescript-eslint/no-unused-vars
+112:3  Error: React Hook "React.useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+192:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/quiz/manage/PlayerSelector.tsx
+78:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+129:21  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/quiz/manage/QuestionEditor.tsx
+26:46  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+64:14  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+72:20  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+104:14  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+170:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/quiz/manage/SessionBuilder.tsx
+68:45  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/quiz/QuizMysteryImage.tsx
+112:9  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+149:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/quiz/QuizOpenDisplay.tsx
+24:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/quiz/QuizPlayersDisplay.tsx
+25:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/quiz/QuizQcmDisplay.tsx
+93:6  Warning: React Hook React.useEffect has missing dependencies: 'phase' and 'question'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+122:29  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+125:31  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+147:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+210:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+225:35  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+268:11  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+330:29  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/quiz/QuizRenderer.tsx
+48:48  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+73:86  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+223:79  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/quiz/QuizZoomReveal.tsx
+63:11  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+77:15  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/settings/BackendSettings.tsx
+9:33  Warning: 'Loader2' is defined but never used.  @typescript-eslint/no-unused-vars
+32:6  Warning: React Hook useEffect has a missing dependency: 'checkHealth'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/settings/BackupSettings.tsx
+8:20  Warning: 'Upload' is defined but never used.  @typescript-eslint/no-unused-vars
+46:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/settings/OBSSettings.tsx
+167:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/settings/PluginSettings.tsx
+74:13  Warning: 'data' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/services/QuizStore.ts
+2:31  Warning: 'mkdir' is defined but never used.  @typescript-eslint/no-unused-vars
+46:42  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/services/updater/PluginScanner.ts
+117:25  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/utils/themeEnrichment.ts
+8:10  Warning: 'DbProfile' is defined but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+ÔÇëELIFECYCLEÔÇë Command failed with exit code 1.

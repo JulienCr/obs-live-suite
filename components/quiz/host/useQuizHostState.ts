@@ -63,7 +63,7 @@ export function useQuizHostState() {
       const timer = data.timer;
 
       if (session) {
-        const playersWithScores = (session.players || []).map((p: any) => ({
+        const playersWithScores = (session.players || []).map((p: { id: string; displayName: string; avatarUrl?: string }) => ({
           id: p.id,
           name: p.displayName,
           avatar: p.avatarUrl,
@@ -171,7 +171,7 @@ export function useQuizHostState() {
           if (payload.topN && Array.isArray(payload.topN)) {
             setState((prev) => ({
               ...prev,
-              viewers: payload.topN.map((v: any) => ({
+            viewers: payload.topN.map((v: { id: string; name: string; score: number }) => ({
                 userId: v.id,
                 displayName: v.name,
                 score: v.score,
@@ -231,7 +231,7 @@ export function useQuizHostState() {
     };
   }, [connect, loadState]);
 
-  const call = async (path: string, body?: any) => {
+  const call = async (path: string, body?: Record<string, unknown>) => {
     try {
       await fetch("http://localhost:3002/api/quiz" + path, {
         method: "POST",

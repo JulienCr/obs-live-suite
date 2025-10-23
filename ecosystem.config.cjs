@@ -16,6 +16,7 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '300M',
+      windowsHide: true,
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
@@ -39,6 +40,7 @@ module.exports = {
       max_memory_restart: '500M',
       max_restarts: 3,
       min_uptime: '5s',
+      windowsHide: true,
       env: {
         // Fallback to dev if no build is present
         NODE_ENV: 'production',
