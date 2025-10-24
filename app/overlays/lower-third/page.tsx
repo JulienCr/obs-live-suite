@@ -4,7 +4,7 @@ import { LowerThirdRenderer } from "@/components/overlays/LowerThirdRenderer";
 
 /**
  * Lower third overlay page for OBS Browser Source
- * Connects directly to backend WebSocket on port 3001
+ * Connects directly to backend WebSocket on port 3003
  */
 export default function LowerThirdOverlayPage() {
   return (

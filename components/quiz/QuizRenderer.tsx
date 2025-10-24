@@ -248,7 +248,7 @@ export function QuizRenderer() {
       if (ws.current?.readyState === WebSocket.OPEN || ws.current?.readyState === WebSocket.CONNECTING) {
         try { ws.current.close(); } catch {}
       }
-      const url = `ws://${window.location.hostname}:3001`;
+      const url = `ws://${window.location.hostname}:3003`;
       ws.current = new WebSocket(url);
       ws.current.onopen = () => {
         if (!isMounted) return;
@@ -338,7 +338,10 @@ export function QuizRenderer() {
         voteCounts={state.voteCounts}
         votePercentages={state.votePercentages}
         phase={state.phase}
-        question={state.currentQuestion}
+        question={state.currentQuestion ? {
+          ...state.currentQuestion,
+          type: state.currentQuestion.type as "closest" | "qcm" | "text" | undefined
+        } : undefined}
         playerAssignments={state.playerAssignments}
         players={state.players}
       />

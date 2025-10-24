@@ -127,7 +127,7 @@ export function BackendSettings() {
         <Label>WebSocket URL (for overlays)</Label>
         <Input
           type="text"
-          value="ws://localhost:3001"
+          value="ws://localhost:3003"
           disabled
           className="bg-muted"
         />
@@ -160,7 +160,7 @@ export function BackendSettings() {
             <div>pnpm run backend</div>
           </div>
           <p className="mt-2">
-            The backend runs on port 3002 (HTTP API) and port 3001 (WebSocket).
+            The backend runs on port 3002 (HTTP API) and port 3003 (WebSocket).
           </p>
         </AlertDescription>
       </Alert>

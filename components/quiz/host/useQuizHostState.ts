@@ -107,7 +107,7 @@ export function useQuizHostState() {
       } catch {}
     }
 
-    const url = `ws://${window.location.hostname}:3001`;
+    const url = `ws://${window.location.hostname}:3003`;
     ws.current = new WebSocket(url);
 
     ws.current.onopen = () => {

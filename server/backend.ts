@@ -326,7 +326,7 @@ const server = new BackendServer();
 
 server.start().then(() => {
   console.log("\n✓ Backend server is running");
-  console.log("  - WebSocket: ws://localhost:3001");
+  console.log("  - WebSocket: ws://localhost:3003");
   console.log("  - HTTP API: http://localhost:3002");
   console.log("  - OBS: Connected");
   console.log("");

@@ -171,7 +171,7 @@ export function PosterRenderer() {
         }
       }
 
-      const wsUrl = `ws://${window.location.hostname}:3001`;
+      const wsUrl = `ws://${window.location.hostname}:3003`;
       ws.current = new WebSocket(wsUrl);
 
       ws.current.onopen = () => {
