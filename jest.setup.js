@@ -4,7 +4,7 @@ import '@testing-library/jest-dom'
 process.env.OBS_WEBSOCKET_URL = 'ws://localhost:4455'
 process.env.OBS_WEBSOCKET_PASSWORD = 'test_password'
 process.env.APP_PORT = '3000'
-process.env.WEBSOCKET_PORT = '3001'
+process.env.WEBSOCKET_PORT = '3003'
 
 // Suppress act() warnings in tests
 // These are expected in async component tests and don't affect functionality

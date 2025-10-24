@@ -25,7 +25,7 @@ describe('AppConfig', () => {
     });
 
     it('should get WebSocket port', () => {
-      expect(appConfig.websocketPort).toBe(3001);
+      expect(appConfig.websocketPort).toBe(3003);
     });
 
     it('should get application host', () => {

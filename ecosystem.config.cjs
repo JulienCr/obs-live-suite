@@ -19,7 +19,7 @@ module.exports = {
       windowsHide: true,
       env: {
         NODE_ENV: 'production',
-        PORT: 3001,
+        PORT: 3003,
         APPDATA: APPDATA_DIR,
       },
       error_file: './.pm2/logs/backend-error.log',

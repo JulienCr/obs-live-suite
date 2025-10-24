@@ -32,7 +32,7 @@ const envSchema = z.object({
   OBS_WEBSOCKET_PASSWORD: z.string().optional(),
   APP_PORT: z.string().default("3000"),
   APP_HOST: z.string().default("localhost"),
-  WEBSOCKET_PORT: z.string().default("3001"),
+  WEBSOCKET_PORT: z.string().default("3003"),
   STREAMDECK_ENABLED: z.string().default("true"),
   STREAMDECK_BASE_URL: z.string().default("http://localhost:3000"),
   CSRF_SECRET: z.string().optional(),
