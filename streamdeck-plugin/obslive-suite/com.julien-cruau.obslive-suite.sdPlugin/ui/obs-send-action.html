@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>OBS Send Action</title>
+	<link rel="stylesheet" href="shared-styles.css">
+	<style>
+		.category-label {
+			font-size: 11px;
+			color: #999;
+			padding: 8px 8px 4px 8px;
+			font-weight: 600;
+			text-transform: uppercase;
+		}
+		.test-button {
+			background-color: #0e99cd;
+			color: white;
+			border: none;
+			padding: 8px 16px;
+			border-radius: 4px;
+			cursor: pointer;
+			width: 100%;
+			margin-top: 8px;
+		}
+		.test-button:hover {
+			background-color: #0d8cbd;
+		}
+		.test-result {
+			padding: 8px;
+			margin-top: 8px;
+			border-radius: 4px;
+			font-size: 12px;
+			display: none;
+		}
+		.test-result.success {
+			background-color: #1e5631;
+			color: #90ee90;
+		}
+		.test-result.error {
+			background-color: #5e1e1e;
+			color: #ffaaaa;
+		}
+		.json-textarea {
+			font-family: 'Courier New', monospace;
+			font-size: 12px;
+			min-height: 100px;
+			resize: vertical;
+		}
+		.help-text {
+			font-size: 11px;
+			color: #999;
+			margin-top: 4px;
+		}
+		.examples {
+			margin-top: 8px;
+		}
+		.example-button {
+			background-color: #2d2d2d;
+			color: #ccc;
+			border: 1px solid #444;
+			padding: 4px 8px;
+			border-radius: 3px;
+			cursor: pointer;
+			font-size: 11px;
+			margin: 2px;
+		}
+		.example-button:hover {
+			background-color: #3d3d3d;
+		}
+	</style>
+</head>
+<body>
+	<div class="sdpi-wrapper">
+		<!-- Connection Settings -->
+		<details open>
+			<summary class="sdpi-item-label">Connection Settings</summary>
+			
+			<div class="sdpi-item">
+				<div class="sdpi-item-label">OBS Password</div>
+				<input class="sdpi-item-value" type="password" id="password" placeholder="Optional (if OBS requires auth)">
+			</div>
+
+			<div class="sdpi-item">
+				<button class="test-button" id="testConnection">Test OBS Connection</button>
+				<div id="testResult" class="test-result"></div>
+			</div>
+		</details>
+
+		<!-- Request Configuration -->
+		<details open>
+			<summary class="sdpi-item-label">Request Configuration</summary>
+			
+			<div class="sdpi-item">
+				<div class="sdpi-item-label">Request Type Mode</div>
+				<select class="sdpi-item-value" id="requestTypeMode">
+					<option value="predefined">Predefined (Common Requests)</option>
+					<option value="custom">Custom (Plugin/Advanced)</option>
+				</select>
+			</div>
+
+			<div class="sdpi-item" id="predefinedRequestContainer">
+				<div class="sdpi-item-label">Request Type</div>
+				<select class="sdpi-item-value" id="requestType">
+					<option value="">-- Select Request Type --</option>
+				</select>
+			</div>
+
+			<div class="sdpi-item" id="customRequestContainer" style="display: none;">
+				<div class="sdpi-item-label">Custom Request Type</div>
+				<input class="sdpi-item-value" type="text" id="customRequestType" placeholder="e.g., MyPluginCustomRequest">
+				<div class="help-text">Enter the exact request type name from OBS plugin</div>
+			</div>
+
+			<div class="sdpi-item">
+				<div class="sdpi-item-label">Request Data (JSON)</div>
+				<textarea class="sdpi-item-value json-textarea" id="requestData" placeholder='{"key": "value"}'></textarea>
+				<div class="help-text">Enter request parameters as JSON object</div>
+			</div>
+
+			<div class="sdpi-item">
+				<div class="sdpi-item-label">Quick Examples</div>
+				<div class="examples">
+					<button class="example-button" data-example="setScene">Set Scene</button>
+					<button class="example-button" data-example="toggleStream">Toggle Stream</button>
+					<button class="example-button" data-example="toggleRecord">Toggle Record</button>
+					<button class="example-button" data-example="muteSource">Mute Source</button>
+					<button class="example-button" data-example="showHideSource">Show/Hide Source</button>
+					<button class="example-button" data-example="customEvent">Custom Event</button>
+				</div>
+			</div>
+		</details>
+
+		<!-- Info -->
+		<div class="sdpi-item">
+			<div class="sdpi-item-label info-text">
+				Send custom WebSocket commands to OBS (localhost:4455).<br>
+				Configure the request type and data, then press the button to execute.<br><br>
+				<strong>Common Use Cases:</strong><br>
+				• Switch scenes<br>
+				• Start/stop streaming/recording<br>
+				• Mute/unmute sources<br>
+				• Show/hide scene items<br>
+				• Trigger custom events<br><br>
+				<strong>Vendor Plugin Support:</strong><br>
+				Includes predefined requests for:<br>
+				• <strong>Downstream Keyer</strong> - Advanced scene keying and transitions<br><br>
+				<strong>Custom Mode:</strong><br>
+				Use "Custom" mode for other OBS plugins (Advanced Scene Switcher, Move Transition, etc.).
+			</div>
+		</div>
+	</div>
+
+	<script src="obs-send-action.js"></script>
+</body>
+</html>
+

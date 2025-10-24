@@ -4,10 +4,12 @@
 
 ### October 2025 - Native Stream Deck Plugin ✅
 - ✅ Created complete Stream Deck plugin in `streamdeck-plugin/` directory
-- ✅ Implemented 8 actions with property inspectors:
+- ✅ Implemented 10 actions with property inspectors:
   - Lower Third: Show Guest (dropdown), Custom (text inputs), Hide
   - Countdown: Start (presets), Control (pause/resume/reset), Add Time
   - Poster: Show (dropdown), Control (hide/next/previous)
+  - OBS: Send Action (custom WebSocket commands)
+  - DSK: Set Scene (Downstream Keyer scene selection with toggle state)
 - ✅ WebSocket integration for live countdown timer display on buttons
 - ✅ Dynamic dropdowns populated from API (/api/assets/guests, /api/assets/posters)
 - ✅ **Guest Avatar Display on Buttons** ✨ (October 23, 2025)
@@ -16,13 +18,34 @@
   - Fallback to initials avatar if no image available
   - Real-time updates when guest selection changes
   - Visual confirmation before pressing button
-- ✅ **Auto-Update Button Names and Icons** ✨ NEW (October 24, 2025)
+- ✅ **Auto-Update Button Names and Icons** ✨ (October 24, 2025)
   - Guest buttons: Auto-update title with guest display name
   - Poster buttons: Auto-update title with poster title
   - Poster buttons: Auto-update icon with poster image thumbnail
   - Fallback icon generation (first letter of poster title) for videos/youtube
   - Consistent behavior across guest and poster actions
   - Caching system to minimize API calls
+- ✅ **OBS Send Action** ✨ (October 24, 2025)
+  - Direct WebSocket connection to OBS (localhost:4455)
+  - Send custom OBS WebSocket v5 commands
+  - Flexible property inspector with dropdown of 35+ common requests
+  - Organized by category: Scenes, Sources, Streaming, Recording, Filters, etc.
+  - **Vendor Plugin Support**: Downstream Keyer (9 requests)
+  - Custom mode for any OBS plugin with WebSocket extensions
+  - JSON editor for request parameters with auto-fill hints
+  - Quick example templates (Set Scene, Toggle Stream, Mute Source, etc.)
+  - Optional password authentication support
+  - Test connection button with OBS version display
+  - Full OBS WebSocket v5 protocol support with authentication
+  - Automatic vendor request detection and wrapping in CallVendorRequest
+- ✅ **DSK Set Scene Action** ✨ NEW (October 24, 2025)
+  - Dedicated Downstream Keyer scene selection action
+  - Dynamic dropdown lists: DSK names and available scenes
+  - Toggle button state: lights up when selected scene is active
+  - Auto-refresh scene lists when DSK changes
+  - Shows currently active scene with "(Active)" indicator
+  - One-click scene switching
+  - State management: inactive (state 0) / active (state 1)
 - ✅ Comprehensive documentation: README, SETUP, QUICKSTART guides
 - ✅ Build and packaging scripts (npm run package)
 - ✅ Install/uninstall utilities for local development

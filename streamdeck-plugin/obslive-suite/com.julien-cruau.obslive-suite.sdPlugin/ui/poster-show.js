@@ -56,7 +56,7 @@ function showError(message) {
 
 function populatePosters(posters) {
 	const select = document.getElementById('posterId');
-	const currentValue = select.value;
+	const savedValue = settings.posterId || '';
 
 	select.innerHTML = '<option value="">Select a poster...</option>';
 
@@ -67,7 +67,7 @@ function populatePosters(posters) {
 		select.appendChild(option);
 	});
 
-	select.value = currentValue;
+	select.value = savedValue;
 }
 
 function requestPosterList() {

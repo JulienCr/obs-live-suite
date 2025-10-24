@@ -138,6 +138,38 @@
 					"TitleAlignment": "middle"
 				}
 			]
+		},
+		{
+			"Name": "OBS Send Action",
+			"UUID": "com.julien-cruau.obslive-suite.obs.sendaction",
+			"Icon": "imgs/actions/obs-send/icon",
+			"Tooltip": "Send custom WebSocket command to OBS",
+			"PropertyInspectorPath": "ui/obs-send-action.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/obs-send/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "DSK Set Scene",
+			"UUID": "com.julien-cruau.obslive-suite.dsk.setscene",
+			"Icon": "imgs/actions/dsk-scene/icon",
+			"Tooltip": "Set Downstream Keyer scene with toggle state",
+			"PropertyInspectorPath": "ui/dsk-set-scene.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/dsk-scene/key-off",
+					"TitleAlignment": "middle"
+				},
+				{
+					"Image": "imgs/actions/dsk-scene/key-on",
+					"TitleAlignment": "middle"
+				}
+			]
 		}
 	]
 }

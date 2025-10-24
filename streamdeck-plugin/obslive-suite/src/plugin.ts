@@ -14,6 +14,8 @@ import { CountdownControl } from "./actions/countdown-control";
 import { CountdownAddTime } from "./actions/countdown-addtime";
 import { PosterShow } from "./actions/poster-show";
 import { PosterControl } from "./actions/poster-control";
+import { OBSSendAction } from "./actions/obs-send-action";
+import { DSKSetScene } from "./actions/dsk-set-scene";
 
 // Import WebSocket manager
 import { wsManager } from "./utils/websocket-manager";
@@ -30,8 +32,10 @@ streamDeck.actions.registerAction(new CountdownControl());
 streamDeck.actions.registerAction(new CountdownAddTime());
 streamDeck.actions.registerAction(new PosterShow());
 streamDeck.actions.registerAction(new PosterControl());
+streamDeck.actions.registerAction(new OBSSendAction());
+streamDeck.actions.registerAction(new DSKSetScene());
 
-streamDeck.logger.info("OBS Live Suite plugin loaded - 8 actions registered");
+streamDeck.logger.info("OBS Live Suite plugin loaded - 10 actions registered");
 
 // Connect WebSocket for real-time updates
 wsManager.connect();

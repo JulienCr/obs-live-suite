@@ -82,6 +82,32 @@ This file documents key decisions, mistakes, and dead-ends encountered during de
   * For posters: show poster image/fallback icon and title
   * Track action instances in a Map to update specific buttons
   * Clear both image and title when no selection (`undefined` resets to default)
+* **OBS WebSocket Client**: Direct connection to OBS WebSocket v5 (port 4455).
+  * Use `obs-websocket-client.ts` utility for WebSocket communication
+  * Supports OBS WebSocket v5 protocol with authentication (SHA-256 challenge-response)
+  * Request/response pattern with opcode 6 (Request) and opcode 7 (RequestResponse)
+  * Timeout requests after 10 seconds
+  * Track pending requests in a Map with unique request IDs
+  * Handle Hello (op 0), Identified (op 2), RequestResponse (op 7) opcodes
+  * Only attempt connection once per action instance to avoid spam
+  * **Vendor Plugin Support**: Include predefined requests for OBS plugins that extend WebSocket API
+  * Downstream Keyer vendor requests: get/select/add/remove scenes, set tie, transitions, exclude scenes
+  * Custom mode allows users to send any vendor-specific request type not in predefined list
+  * **Automatic Vendor Request Detection**: Requests with lowercase+underscores (e.g., `dsk_select_scene`) are automatically wrapped in `CallVendorRequest` with proper vendor name
+  * Vendor name mapping: `dsk_*` → "downstream-keyer"; generic pattern extracts prefix before first underscore
+* **DSK Set Scene Action**: Dedicated action for Downstream Keyer scene selection.
+  * Fetches DSK list via `get_downstream_keyers` request
+  * Fetches scenes per DSK via `get_downstream_keyer` request (returns scenes array and current_scene)
+  * Dynamically populates dropdowns based on OBS data
+  * Uses `setState(0/1)` for button visual feedback: 0=inactive, 1=active
+  * Compares selected scene with current DSK scene to determine button state
+  * Sends `dsk_select_scene` request on button press to switch scenes
+  * **CRITICAL**: Vendor requests return **nested** `responseData.responseData` structure
+  * **CRITICAL**: Vendor response contains full object structure, not just strings:
+    - `downstream_keyers` is array of objects with `name`, `scene`, `scenes[]` properties
+    - `scenes` is array of objects with `name` property, NOT array of strings
+    - Current scene property is `scene`, NOT `current_scene`
+  * Must map object arrays to extract names: `downstream_keyers.map(dsk => dsk.name)`, `scenes.map(s => s.name)`
 
 ## Plugin Scanner / Updater
 

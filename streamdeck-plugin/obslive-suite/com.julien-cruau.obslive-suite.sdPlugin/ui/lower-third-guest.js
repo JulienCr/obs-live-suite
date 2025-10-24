@@ -58,7 +58,7 @@ function showError(message) {
 
 function populateGuests(guests) {
 	const select = document.getElementById('guestId');
-	const currentValue = select.value;
+	const savedValue = settings.guestId || '';
 
 	select.innerHTML = '<option value="">Select a guest...</option>';
 
@@ -69,7 +69,7 @@ function populateGuests(guests) {
 		select.appendChild(option);
 	});
 
-	select.value = currentValue;
+	select.value = savedValue;
 }
 
 function requestGuestList() {
