@@ -147,7 +147,7 @@ Creates `dist/com.obslive.suite.streamDeckPlugin` for sharing.
 **Problem**: Button shows static time
 
 **Solution**:
-1. Check WebSocket on port 3001
+1. Check WebSocket on port 3003
 2. Verify countdown started in OBS Live Suite
 3. Check Stream Deck logs for errors
 4. Restart plugin and OBS Live Suite
@@ -203,7 +203,7 @@ The plugin uses existing OBS Live Suite APIs:
 ### Backend APIs (port 3002)
 - `/api/overlays/countdown` - Control countdown
 
-### WebSocket (port 3001)
+### WebSocket (port 3003)
 - Channel: `countdown`
 - Events: `set`, `start`, `pause`, `reset`, `tick`
 
@@ -259,7 +259,7 @@ For remote OBS Live Suite instances:
    ```javascript
    const API_BASE_URL = 'http://your-server:3000';
    const BACKEND_URL = 'http://your-server:3002';
-   const WS_URL = 'ws://your-server:3001';
+   const WS_URL = 'ws://your-server:3003';
    ```
 3. Reinstall plugin
 

@@ -6,7 +6,7 @@
 
 1. **Server Startup** ✓
    - Port 3000: Next.js app running
-   - Port 3001: WebSocket hub running
+   - Port 3003: WebSocket hub running
    - Dashboard loads with all UI elements
    - All components render correctly
 
@@ -57,7 +57,7 @@
 **Problem**: Functional tests try to start real servers causing port conflicts
 
 **Issues**:
-- Multiple tests trying to bind port 3001
+- Multiple tests trying to bind port 3003
 - Database file in use during cleanup
 - Tests not cleaning up properly
 

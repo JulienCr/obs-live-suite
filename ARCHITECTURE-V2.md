@@ -84,7 +84,7 @@
 **Before (Bad):**
 ```javascript
 // Browser directly connects to WebSocket
-const ws = new WebSocket('ws://localhost:3001');
+const ws = new WebSocket('ws://localhost:3003');
 ```
 
 **After (Good):**

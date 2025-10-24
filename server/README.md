@@ -19,11 +19,11 @@ The solution: Run stateful services in a **separate Node.js process**.
 │   (Port 3000)   │         │   (Port 3002)    │
 └─────────────────┘         └──────────────────┘
                                      │
-                                     ├─ WebSocket (Port 3001)
+                                     ├─ WebSocket (Port 3003)
                                      ├─ OBS Connection
                                      └─ Database
 
-       Browser ─────WebSocket──────→ Port 3001
+       Browser ─────WebSocket──────→ Port 3003
 ```
 
 ## Running

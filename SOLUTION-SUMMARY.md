@@ -2,7 +2,7 @@
 
 ## Problem Identified
 
-**Root Cause:** Next.js dev mode uses multiple worker processes for HMR (Hot Module Replacement). Each process tried to start its own WebSocket server on port 3001, causing:
+**Root Cause:** Next.js dev mode uses multiple worker processes for HMR (Hot Module Replacement). Each process tried to start its own WebSocket server on port 3003, causing:
 - `EADDRINUSE: address already in use` errors
 - Connection/disconnection cycles
 - Unstable WebSocket connections
@@ -17,20 +17,20 @@
 │   Next.js UI     │ ──────────────────────────→ │  Backend Server    │
 │   (Port 3000)    │                             │   (Port 3002)      │
 │                  │                             │                    │
-│  - UI Rendering  │                             │  - WebSocket (3001)│
+│  - UI Rendering  │                             │  - WebSocket (3003)│
 │  - API Routes    │                             │  - OBS Connection  │
 │  - SSR           │                             │  - Database        │
 └──────────────────┘                             └────────────────────┘
          ↑                                                   ↑
          │                                                   │
          └────────── Browser WebSocket ─────────────────────┘
-                        (Port 3001)
+                        (Port 3003)
 ```
 
 ### 📁 **New Files Created**
 
 1. **`server/backend.ts`** - Standalone backend server
-   - Runs WebSocket hub (port 3001)
+   - Runs WebSocket hub (port 3003)
    - Manages OBS connection
    - Exposes HTTP API (port 3002)
 
@@ -126,7 +126,7 @@ WebSocket statistics
 ## Testing Checklist
 
 - [x] Backend starts successfully (port 3002)
-- [x] WebSocket server running (port 3001)
+- [x] WebSocket server running (port 3003)
 - [x] Next.js communicates with backend
 - [x] Browser connects to WebSocket
 - [x] No EADDRINUSE errors

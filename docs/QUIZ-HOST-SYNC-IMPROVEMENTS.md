@@ -272,7 +272,7 @@ Backend                     Host Panel                 Overlay
 ## Configuration
 
 ### WebSocket Connection
-- **Port**: 3001
+- **Port**: 3003
 - **Protocol**: ws://
 - **Channel**: "quiz"
 - **Reconnect**: 3 seconds on disconnect

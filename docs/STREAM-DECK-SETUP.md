@@ -421,7 +421,7 @@ Scene: http://localhost:3002/api/obs/scene
 
 - **3000**: Next.js frontend (dashboard, overlays, main API)
 - **3002**: Backend HTTP API (poster, countdown controls, OBS controls)
-- **3001**: Backend WebSocket (overlay real-time updates)
+- **3003**: Backend WebSocket (overlay real-time updates)
 
 Most Stream Deck buttons should use port **3000** (frontend) for simplicity. Use port **3002** (backend) only for advanced features like poster control and direct countdown manipulation.
 

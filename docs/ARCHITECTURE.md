@@ -32,7 +32,7 @@ graph TB
 ### API Layer
 - **Next.js API Routes**: RESTful endpoints
 - **Server Actions**: Real-time data mutations
-- **WebSocket Upgrade**: Handled separately on port 3001
+- **WebSocket Upgrade**: Handled separately on port 3003
 
 ### Business Logic Layer
 - **Managers**: ProfileManager, SettingsManager
@@ -146,6 +146,6 @@ WebSocket used instead of Server Actions for lower latency and better browser so
 
 - PM2 for process management
 - Database auto-initialization
-- WebSocket server on separate port (3001)
+- WebSocket server on separate port (3003)
 - OBS connection with auto-reconnect
 

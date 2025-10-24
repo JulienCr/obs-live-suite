@@ -20,12 +20,12 @@ Une fois démarré, les 3 serveurs doivent être actifs:
 
 ```bash
 # Vérifier les ports
-netstat -ano | Select-String "3000|3001|3002"
+netstat -ano | Select-String "3000|3002|3003"
 ```
 
 Vous devriez voir:
 - ✅ Port 3000: Next.js Frontend
-- ✅ Port 3001: Backend WebSocket
+- ✅ Port 3003: Backend WebSocket
 - ✅ Port 3002: Backend HTTP API
 
 ## Test de la route

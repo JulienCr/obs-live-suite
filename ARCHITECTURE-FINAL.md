@@ -12,7 +12,7 @@
 
 ### Layer 1: Browser (Client-Side)
 - **Overlay Components** (`LowerThirdRenderer`, `CountdownRenderer`, `PosterRenderer`)
-- Connect to: `ws://localhost:3001` (WebSocketHub in Backend)
+- Connect to: `ws://localhost:3003` (WebSocketHub in Backend)
 - Purpose: Receive overlay display events
 
 ### Layer 2: Next.js (Frontend + API Proxies)
@@ -23,7 +23,7 @@
 
 ### Layer 3: Standalone Backend Server
 - **Ports**:
-  - `3001`: WebSocket Hub (for overlay events)
+  - `3003`: WebSocket Hub (for overlay events)
   - `3002`: HTTP API (for Next.js proxies)
 - **Services**:
   - `WebSocketHub`: Manages client connections and channels
@@ -43,7 +43,7 @@
 
 ```mermaid
 graph TB
-    Browser[Browser - Overlays] -->|ws://localhost:3001| WSHub[WebSocket Hub<br/>Port 3001]
+    Browser[Browser - Overlays] -->|ws://localhost:3003| WSHub[WebSocket Hub<br/>Port 3003]
     NextJS[Next.js API Routes<br/>Port 3000] -->|http://localhost:3002| BackendAPI[Backend HTTP API<br/>Port 3002]
     BackendAPI -->|Publishes| WSHub
     Backend[Backend Server] -->|ws://localhost:4455| OBS[OBS Studio<br/>Port 4455]
@@ -122,7 +122,7 @@ pnpm dev
 ```
 
 This runs concurrently:
-- Backend server (port 3001/3002)
+- Backend server (port 3003/3002)
 - Next.js dev server (port 3000)
 
 ### Backend Only
@@ -157,7 +157,7 @@ Tests mock WebSocket properly with:
 | Service | Port | Protocol | Purpose |
 |---------|------|----------|---------|
 | Next.js Frontend | 3000 | HTTP | Web UI |
-| WebSocket Hub | 3001 | WebSocket | Overlay events |
+| WebSocket Hub | 3003 | WebSocket | Overlay events |
 | Backend HTTP API | 3002 | HTTP | API for Next.js |
 | OBS Studio | 4455 | WebSocket | OBS control |
 
@@ -189,7 +189,7 @@ pnpm test
 ## 🎓 Lessons Learned
 
 1. **Overlays are NOT connecting to OBS directly**
-   - They connect to WebSocketHub (port 3001)
+   - They connect to WebSocketHub (port 3003)
    - WebSocketHub is part of the backend
    - Only the backend connects to OBS (port 4455)
 

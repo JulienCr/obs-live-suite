@@ -303,7 +303,7 @@ pnpm test quiz-workflow
 ## Troubleshooting
 
 ### Overlay not updating
-- Check WebSocket connection at ws://localhost:3001
+- Check WebSocket connection at ws://localhost:3003
 - Verify backend is running on port 3002
 - Check browser console for errors
 
