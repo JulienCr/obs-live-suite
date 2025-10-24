@@ -6,7 +6,7 @@ This file documents key decisions, mistakes, and dead-ends encountered during de
 
 * **Ownership**: Backend owns services. Next.js serves UI only.
 
-  * Backend: **WS 3001**, **HTTP 3002**
+  * Backend: **WS 3003**, **HTTP 3002**
   * Next.js: **HTTP 3000**, **no WS**, **no init**
 * **Startup**: Use `instrumentation.ts` to run server‑side init once.
 * **Singletons**: Guard with a process‑safe lock (ServiceEnsurer). Never lazy‑start network servers in API routes.
@@ -73,11 +73,15 @@ This file documents key decisions, mistakes, and dead-ends encountered during de
   * Property Inspector runs in Chromium → `fetch`, browser WS.
   * Use `sendToPlugin` / `sendToPropertyInspector`; persist via `setSettings`.
 * Convenience HTTP routes exist for quick wiring (ID‑based actions), but keep parity with enum types.
-* **Dynamic button images**: Use `setImage()` with base64 data URIs or SVG strings.
+* **Dynamic button images and titles**: Use `setImage()` and `setTitle()` to update button appearance.
   * Fetch images from URLs and convert to base64 for display
-  * Generate fallback SVG avatars with initials for missing images
-  * Update images on `onWillAppear`, `onDidReceiveSettings` events
+  * Generate fallback SVG avatars with initials/letters for missing images
+  * Update images and titles on `onWillAppear`, `onDidReceiveSettings` events
   * Cache guest/poster data to minimize API calls
+  * For guests: show avatar and display name
+  * For posters: show poster image/fallback icon and title
+  * Track action instances in a Map to update specific buttons
+  * Clear both image and title when no selection (`undefined` resets to default)
 
 ## Plugin Scanner / Updater
 

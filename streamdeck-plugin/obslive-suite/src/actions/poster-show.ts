@@ -3,12 +3,33 @@
  * Displays a poster from the database
  */
 
-import streamDeck, { action, KeyDownEvent, SingletonAction, WillAppearEvent, SendToPluginEvent, JsonValue, PropertyInspectorDidAppearEvent } from "@elgato/streamdeck";
-import { APIClient } from "../utils/api-client";
+import streamDeck, { action, KeyDownEvent, SingletonAction, WillAppearEvent, WillDisappearEvent, SendToPluginEvent, JsonValue, PropertyInspectorDidAppearEvent, Action, DidReceiveSettingsEvent } from "@elgato/streamdeck";
+import { APIClient, Poster } from "../utils/api-client";
+import { getPosterImage } from "../utils/image-helper";
 
 @action({ UUID: "com.julien-cruau.obslive-suite.poster.show" })
 export class PosterShow extends SingletonAction<PosterSettings> {
 	private currentlyShownPosterId: string | null = null;
+	private actionInstances: Map<string, Action<PosterSettings>> = new Map();
+	private postersCache: Poster[] = [];
+
+	override async onWillAppear(ev: WillAppearEvent<PosterSettings>): Promise<void> {
+		// Track this action instance
+		this.actionInstances.set(ev.action.id, ev.action);
+
+		// Update button image and title with current poster selection
+		await this.updateButtonDisplay(ev.action, ev.payload.settings);
+	}
+
+	override onWillDisappear(ev: WillDisappearEvent<PosterSettings>): void | Promise<void> {
+		// Remove this action instance
+		this.actionInstances.delete(ev.action.id);
+	}
+
+	override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<PosterSettings>): Promise<void> {
+		// Update button display when settings change
+		await this.updateButtonDisplay(ev.action, ev.payload.settings);
+	}
 
 	override async onPropertyInspectorDidAppear(ev: PropertyInspectorDidAppearEvent<PosterSettings>): Promise<void> {
 		console.log("[Poster Show] Property Inspector appeared");
@@ -59,6 +80,9 @@ export class PosterShow extends SingletonAction<PosterSettings> {
 			const posters = await APIClient.getPosters();
 			console.log("[Poster Show] Fetched posters:", posters.length);
 
+			// Cache posters for button image updates
+			this.postersCache = posters;
+
 			if (posters.length === 0) {
 				console.log("[Poster Show] No posters found, sending error");
 				await streamDeck.ui.current?.sendToPropertyInspector({
@@ -78,6 +102,51 @@ export class PosterShow extends SingletonAction<PosterSettings> {
 				event: "apiError",
 				message: `API error: ${(error as Error).message}`,
 			});
+		}
+	}
+
+	/**
+	 * Update button image and title with poster data
+	 */
+	private async updateButtonDisplay(actionInstance: Action<PosterSettings>, settings: PosterSettings): Promise<void> {
+		const { posterId } = settings;
+
+		if (!posterId) {
+			// No poster selected, clear image and title to default
+			if (actionInstance.isKey()) {
+				await actionInstance.setImage(undefined);
+				await actionInstance.setTitle(undefined);
+			}
+			return;
+		}
+
+		try {
+			// Find poster in cache or fetch
+			let poster = this.postersCache.find((p) => p.id === posterId);
+			
+			if (!poster) {
+				// Not in cache, fetch fresh list
+				const posters = await APIClient.getPosters();
+				this.postersCache = posters;
+				poster = posters.find((p) => p.id === posterId);
+			}
+
+			if (!poster) {
+				console.warn(`[Poster Show] Poster not found: ${posterId}`);
+				return;
+			}
+
+			// Fetch and set poster image
+			console.log(`[Poster Show] Fetching image for ${poster.title}...`);
+			const posterImageUri = await getPosterImage(poster.fileUrl, poster.type, poster.title);
+			
+			if (actionInstance.isKey()) {
+				await actionInstance.setImage(posterImageUri);
+				await actionInstance.setTitle(poster.title);
+				console.log(`[Poster Show] Image and title set for ${poster.title}`);
+			}
+		} catch (error) {
+			console.error("[Poster Show] Failed to update button display:", error);
 		}
 	}
 }

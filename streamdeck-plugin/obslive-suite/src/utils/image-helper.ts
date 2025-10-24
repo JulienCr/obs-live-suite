@@ -113,3 +113,51 @@ export async function getGuestAvatar(avatarUrl: string | null | undefined, displ
 	}
 }
 
+/**
+ * Generate a simple SVG icon for poster with title
+ */
+export function generatePosterFallbackIcon(title: string, color: string = "#8b5cf6"): string {
+	// Use first letter of title as icon
+	const letter = title[0]?.toUpperCase() || "P";
+
+	const svg = `
+		<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
+			<rect width="144" height="144" fill="${color}" rx="8"/>
+			<text
+				x="50%"
+				y="50%"
+				font-family="Arial, sans-serif"
+				font-size="60"
+				font-weight="bold"
+				fill="white"
+				text-anchor="middle"
+				dominant-baseline="central"
+			>${letter}</text>
+		</svg>
+	`.trim();
+
+	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg)}`;
+}
+
+/**
+ * Fetch poster image or generate fallback
+ */
+export async function getPosterImage(fileUrl: string | null | undefined, posterType: string, title: string, baseUrl: string = "http://127.0.0.1:3000"): Promise<string> {
+	// If no file URL or not an image type, generate fallback
+	if (!fileUrl || posterType !== "image") {
+		return generatePosterFallbackIcon(title);
+	}
+
+	try {
+		// Convert relative paths to absolute URLs
+		const fullUrl = fileUrl.startsWith("http") ? fileUrl : `${baseUrl}${fileUrl}`;
+		
+		// Try to fetch the actual poster image
+		return await fetchImageAsBase64(fullUrl);
+	} catch (error) {
+		console.warn(`[Image Helper] Failed to fetch poster from ${fileUrl}:`, error);
+		// Fallback to icon if fetch fails
+		return generatePosterFallbackIcon(title);
+	}
+}
+

@@ -10,12 +10,19 @@
   - Poster: Show (dropdown), Control (hide/next/previous)
 - ✅ WebSocket integration for live countdown timer display on buttons
 - ✅ Dynamic dropdowns populated from API (/api/assets/guests, /api/assets/posters)
-- ✅ **Guest Avatar Display on Buttons** ✨ NEW (October 23, 2025)
+- ✅ **Guest Avatar Display on Buttons** ✨ (October 23, 2025)
   - Button shows selected guest's avatar image automatically
   - Image fetching and conversion to base64 for Stream Deck
   - Fallback to initials avatar if no image available
   - Real-time updates when guest selection changes
   - Visual confirmation before pressing button
+- ✅ **Auto-Update Button Names and Icons** ✨ NEW (October 24, 2025)
+  - Guest buttons: Auto-update title with guest display name
+  - Poster buttons: Auto-update title with poster title
+  - Poster buttons: Auto-update icon with poster image thumbnail
+  - Fallback icon generation (first letter of poster title) for videos/youtube
+  - Consistent behavior across guest and poster actions
+  - Caching system to minimize API calls
 - ✅ Comprehensive documentation: README, SETUP, QUICKSTART guides
 - ✅ Build and packaging scripts (npm run package)
 - ✅ Install/uninstall utilities for local development

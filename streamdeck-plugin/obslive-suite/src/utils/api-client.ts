@@ -17,6 +17,8 @@ export interface Guest {
 export interface Poster {
 	id: string;
 	title: string;
+	fileUrl: string;
+	type: "image" | "video" | "youtube";
 	[key: string]: string | undefined;
 }
 

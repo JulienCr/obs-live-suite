@@ -94,15 +94,16 @@ export class LowerThirdGuest extends SingletonAction<GuestSettings> {
 	}
 
 	/**
-	 * Update button image with guest avatar
+	 * Update button image and title with guest data
 	 */
 	private async updateButtonImage(actionInstance: Action<GuestSettings>, settings: GuestSettings): Promise<void> {
 		const { guestId } = settings;
 
 		if (!guestId) {
-			// No guest selected, clear image to default
+			// No guest selected, clear image and title to default
 			if (actionInstance.isKey()) {
 				await actionInstance.setImage(undefined);
+				await actionInstance.setTitle(undefined);
 			}
 			return;
 		}
@@ -129,7 +130,8 @@ export class LowerThirdGuest extends SingletonAction<GuestSettings> {
 			
 			if (actionInstance.isKey()) {
 				await actionInstance.setImage(avatarDataUri);
-				console.log(`[Lower Guest] Avatar set for ${guest.displayName}`);
+				await actionInstance.setTitle(guest.displayName);
+				console.log(`[Lower Guest] Avatar and title set for ${guest.displayName}`);
 			}
 		} catch (error) {
 			console.error("[Lower Guest] Failed to update button image:", error);
