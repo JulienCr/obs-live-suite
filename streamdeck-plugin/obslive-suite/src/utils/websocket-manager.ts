@@ -22,7 +22,7 @@ export class WebSocketManager {
 	private ws: WebSocket | null = null;
 	private reconnectTimeout: NodeJS.Timeout | null = null;
 	private readonly reconnectDelay = 3000;
-	private readonly wsUrl = "ws://127.0.0.1:3001";
+	private readonly wsUrl = "ws://127.0.0.1:3003";
 	private countdownCallbacks: Set<CountdownCallback> = new Set();
 	private countdownState: CountdownState = {
 		running: false,
