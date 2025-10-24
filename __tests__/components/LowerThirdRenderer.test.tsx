@@ -66,7 +66,7 @@ describe('LowerThirdRenderer', () => {
 
   it('should connect to WebSocket on mount', () => {
     render(<LowerThirdRenderer />);
-    expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:3001');
+    expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:3003');
   });
 
   it('should display lower third when show event is received', async () => {

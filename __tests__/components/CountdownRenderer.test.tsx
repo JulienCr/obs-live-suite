@@ -64,7 +64,7 @@ describe('CountdownRenderer', () => {
 
   it('should connect to WebSocket on mount', () => {
     render(<CountdownRenderer />);
-    expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:3001');
+    expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:3003');
   });
 
   it('should display countdown when set event is received', async () => {
