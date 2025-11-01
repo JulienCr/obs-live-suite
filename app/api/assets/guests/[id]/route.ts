@@ -19,8 +19,8 @@ export async function PATCH(
     const cleanedBody = {
       id: params.id, // Add the ID from URL params
       ...body,
-      subtitle: body.subtitle === "" ? null : body.subtitle,
-      avatarUrl: body.avatarUrl === "" ? null : body.avatarUrl,
+      ...(body.subtitle !== undefined && { subtitle: body.subtitle === "" ? null : body.subtitle }),
+      ...(body.avatarUrl !== undefined && { avatarUrl: body.avatarUrl === "" ? null : body.avatarUrl }),
     };
     
     console.log("[PATCH Guest] Cleaned body:", cleanedBody);

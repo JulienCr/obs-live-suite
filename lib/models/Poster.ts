@@ -21,6 +21,7 @@ export const posterSchema = z.object({
   tags: z.array(z.string()).default([]),
   profileIds: z.array(z.string().uuid()).default([]),
   metadata: z.record(z.unknown()).optional(),
+  isEnabled: z.boolean().default(true),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });
@@ -122,6 +123,29 @@ export class PosterModel {
    */
   removeFromProfile(profileId: string): void {
     this.data.profileIds = this.data.profileIds.filter((id) => id !== profileId);
+    this.data.updatedAt = new Date();
+  }
+
+  /**
+   * Check if poster is enabled
+   */
+  isEnabledPoster(): boolean {
+    return this.data.isEnabled;
+  }
+
+  /**
+   * Enable poster
+   */
+  enable(): void {
+    this.data.isEnabled = true;
+    this.data.updatedAt = new Date();
+  }
+
+  /**
+   * Disable poster
+   */
+  disable(): void {
+    this.data.isEnabled = false;
     this.data.updatedAt = new Date();
   }
 

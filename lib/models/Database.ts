@@ -8,6 +8,7 @@ export interface DbGuest {
   subtitle: string | null;
   accentColor: string;
   avatarUrl: string | null;
+  isEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,6 +22,7 @@ export interface DbPoster {
   tags: string[];
   profileIds: string[];
   metadata?: Record<string, unknown>;
+  isEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

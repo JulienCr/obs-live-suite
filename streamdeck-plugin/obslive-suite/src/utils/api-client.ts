@@ -11,7 +11,8 @@ export interface Guest {
 	displayName: string;
 	subtitle?: string;
 	avatarUrl?: string | null;
-	[key: string]: string | undefined | null;
+	isEnabled: boolean;
+	[key: string]: string | boolean | undefined | null;
 }
 
 export interface Poster {
@@ -19,7 +20,8 @@ export interface Poster {
 	title: string;
 	fileUrl: string;
 	type: "image" | "video" | "youtube";
-	[key: string]: string | undefined;
+	isEnabled: boolean;
+	[key: string]: string | boolean | undefined;
 }
 
 /**
@@ -92,12 +94,14 @@ async function request<T>(url: string, options: { method?: string; body?: string
  */
 export class APIClient {
 	/**
-	 * Fetch all guests from the database
+	 * Fetch all guests from the database (only enabled guests)
 	 */
 	static async getGuests(): Promise<Guest[]> {
 		try {
 			const data = await request<{ guests: Guest[] }>(`${API_CONFIG.nextjs}/api/assets/guests`);
-			return Array.isArray(data.guests) ? data.guests : [];
+			const guests = Array.isArray(data.guests) ? data.guests : [];
+			// Filter to show only enabled guests in Stream Deck dropdowns
+			return guests.filter((guest) => guest.isEnabled !== false);
 		} catch (error) {
 			console.error("[API] Failed to fetch guests:", error);
 			return [];
@@ -105,12 +109,14 @@ export class APIClient {
 	}
 
 	/**
-	 * Fetch all posters from the database
+	 * Fetch all posters from the database (only enabled posters)
 	 */
 	static async getPosters(): Promise<Poster[]> {
 		try {
 			const data = await request<{ posters: Poster[] }>(`${API_CONFIG.nextjs}/api/assets/posters`);
-			return Array.isArray(data.posters) ? data.posters : [];
+			const posters = Array.isArray(data.posters) ? data.posters : [];
+			// Filter to show only enabled posters in Stream Deck dropdowns
+			return posters.filter((poster) => poster.isEnabled !== false);
 		} catch (error) {
 			console.error("[API] Failed to fetch posters:", error);
 			return [];

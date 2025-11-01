@@ -40,17 +40,21 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
-    const updates = updatePosterSchema.parse(body);
-    
+    const updates = updatePosterSchema.parse({
+      ...body,
+      id: params.id,
+    });
+
     const db = DatabaseService.getInstance();
     db.updatePoster(params.id, {
       ...updates,
       updatedAt: new Date(),
     });
-    
+
     const poster = db.getPosterById(params.id);
     return NextResponse.json({ poster });
   } catch (error) {
+    console.error("Failed to update poster:", error);
     return NextResponse.json(
       { error: "Failed to update poster" },
       { status: 400 }

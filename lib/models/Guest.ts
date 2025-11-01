@@ -9,6 +9,7 @@ export const guestSchema = z.object({
   subtitle: z.string().max(200).optional(),
   accentColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color").default("#3b82f6"),
   avatarUrl: z.string().optional().nullable(),
+  isEnabled: z.boolean().default(true),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });
@@ -79,6 +80,29 @@ export class GuestModel {
    */
   getAvatarUrl(): string | undefined {
     return this.data.avatarUrl;
+  }
+
+  /**
+   * Check if guest is enabled
+   */
+  isEnabledGuest(): boolean {
+    return this.data.isEnabled;
+  }
+
+  /**
+   * Enable guest
+   */
+  enable(): void {
+    this.data.isEnabled = true;
+    this.data.updatedAt = new Date();
+  }
+
+  /**
+   * Disable guest
+   */
+  disable(): void {
+    this.data.isEnabled = false;
+    this.data.updatedAt = new Date();
   }
 
   /**

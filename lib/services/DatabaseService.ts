@@ -84,6 +84,38 @@ export class DatabaseService {
       this.logger.error("Migration error:", error);
       // If themes table doesn't exist yet, that's fine - it will be created
     }
+
+    // Check if isEnabled column exists in guests table
+    try {
+      const guestTableInfo = this.db.prepare("PRAGMA table_info(guests)").all() as Array<{ name: string }>;
+      const hasIsEnabled = guestTableInfo.some((col) => col.name === "isEnabled");
+
+      if (!hasIsEnabled) {
+        this.logger.info("Adding isEnabled column to guests table");
+        this.db.exec(`
+          ALTER TABLE guests ADD COLUMN isEnabled INTEGER NOT NULL DEFAULT 1;
+        `);
+        this.logger.info("Guests table migration completed");
+      }
+    } catch (error) {
+      this.logger.error("Migration error for guests table:", error);
+    }
+
+    // Check if isEnabled column exists in posters table
+    try {
+      const posterTableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
+      const hasIsEnabled = posterTableInfo.some((col) => col.name === "isEnabled");
+
+      if (!hasIsEnabled) {
+        this.logger.info("Adding isEnabled column to posters table");
+        this.db.exec(`
+          ALTER TABLE posters ADD COLUMN isEnabled INTEGER NOT NULL DEFAULT 1;
+        `);
+        this.logger.info("Posters table migration completed");
+      }
+    } catch (error) {
+      this.logger.error("Migration error for posters table:", error);
+    }
   }
 
   /**
@@ -97,6 +129,7 @@ export class DatabaseService {
         subtitle TEXT,
         accentColor TEXT NOT NULL,
         avatarUrl TEXT,
+        isEnabled INTEGER NOT NULL DEFAULT 1,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       );
@@ -110,6 +143,7 @@ export class DatabaseService {
         tags TEXT NOT NULL,
         profileIds TEXT NOT NULL,
         metadata TEXT,
+        isEnabled INTEGER NOT NULL DEFAULT 1,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       );
@@ -218,9 +252,10 @@ export class DatabaseService {
    */
   getAllGuests(): DbGuest[] {
     const stmt = this.db.prepare("SELECT * FROM guests ORDER BY displayName ASC");
-    const rows = stmt.all() as Array<Omit<DbGuest, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }>;
+    const rows = stmt.all() as Array<Omit<DbGuest, 'isEnabled' | 'createdAt' | 'updatedAt'> & { isEnabled: number; createdAt: string; updatedAt: string }>;
     return rows.map((row) => ({
       ...row,
+      isEnabled: row.isEnabled === 1,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     }));
@@ -231,10 +266,11 @@ export class DatabaseService {
    */
   getGuestById(id: string): DbGuest | null {
     const stmt = this.db.prepare("SELECT * FROM guests WHERE id = ?");
-    const row = stmt.get(id) as (Omit<DbGuest, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }) | undefined;
+    const row = stmt.get(id) as (Omit<DbGuest, 'isEnabled' | 'createdAt' | 'updatedAt'> & { isEnabled: number; createdAt: string; updatedAt: string }) | undefined;
     if (!row) return null;
     return {
       ...row,
+      isEnabled: row.isEnabled === 1,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     };
@@ -251,11 +287,12 @@ export class DatabaseService {
       subtitle: guest.subtitle,
       accentColor: guest.accentColor,
       avatarUrl: guest.avatarUrl,
+      isEnabled: guest.isEnabled,
     });
-    
+
     const stmt = this.db.prepare(`
-      INSERT INTO guests (id, displayName, subtitle, accentColor, avatarUrl, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO guests (id, displayName, subtitle, accentColor, avatarUrl, isEnabled, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       guest.id,
@@ -263,10 +300,11 @@ export class DatabaseService {
       guest.subtitle || null,
       guest.accentColor,
       guest.avatarUrl || null,
+      guest.isEnabled ? 1 : 0,
       (guest.createdAt || now).toISOString(),
       (guest.updatedAt || now).toISOString()
     );
-    
+
     console.log("[DB] Guest created successfully");
   }
 
@@ -286,6 +324,7 @@ export class DatabaseService {
       subtitle: updates.subtitle !== undefined ? updates.subtitle : existing.subtitle,
       accentColor: updates.accentColor !== undefined ? updates.accentColor : existing.accentColor,
       avatarUrl: updates.avatarUrl !== undefined ? updates.avatarUrl : existing.avatarUrl,
+      isEnabled: updates.isEnabled !== undefined ? updates.isEnabled : existing.isEnabled,
       updatedAt: updates.updatedAt || new Date(),
     };
 
@@ -293,7 +332,7 @@ export class DatabaseService {
 
     const stmt = this.db.prepare(`
       UPDATE guests
-      SET displayName = ?, subtitle = ?, accentColor = ?, avatarUrl = ?, updatedAt = ?
+      SET displayName = ?, subtitle = ?, accentColor = ?, avatarUrl = ?, isEnabled = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
@@ -301,6 +340,7 @@ export class DatabaseService {
       merged.subtitle || null,
       merged.accentColor,
       merged.avatarUrl || null,
+      merged.isEnabled ? 1 : 0,
       merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
       id
     );
@@ -321,12 +361,13 @@ export class DatabaseService {
    */
   getAllPosters(): DbPoster[] {
     const stmt = this.db.prepare("SELECT * FROM posters ORDER BY createdAt DESC");
-    const rows = stmt.all() as Array<Omit<DbPoster, 'tags' | 'profileIds' | 'metadata' | 'createdAt' | 'updatedAt'> & { tags: string; profileIds: string; metadata: string | null; createdAt: string; updatedAt: string }>;
+    const rows = stmt.all() as Array<Omit<DbPoster, 'tags' | 'profileIds' | 'metadata' | 'isEnabled' | 'createdAt' | 'updatedAt'> & { tags: string; profileIds: string; metadata: string | null; isEnabled: number; createdAt: string; updatedAt: string }>;
     return rows.map((row) => ({
       ...row,
       tags: JSON.parse(row.tags || "[]"),
       profileIds: JSON.parse(row.profileIds || "[]"),
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+      isEnabled: row.isEnabled === 1,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     }));
@@ -337,13 +378,14 @@ export class DatabaseService {
    */
   getPosterById(id: string): DbPoster | null {
     const stmt = this.db.prepare("SELECT * FROM posters WHERE id = ?");
-    const row = stmt.get(id) as (Omit<DbPoster, 'tags' | 'profileIds' | 'metadata' | 'createdAt' | 'updatedAt'> & { tags: string; profileIds: string; metadata: string | null; createdAt: string; updatedAt: string }) | undefined;
+    const row = stmt.get(id) as (Omit<DbPoster, 'tags' | 'profileIds' | 'metadata' | 'isEnabled' | 'createdAt' | 'updatedAt'> & { tags: string; profileIds: string; metadata: string | null; isEnabled: number; createdAt: string; updatedAt: string }) | undefined;
     if (!row) return null;
     return {
       ...row,
       tags: JSON.parse(row.tags || "[]"),
       profileIds: JSON.parse(row.profileIds || "[]"),
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+      isEnabled: row.isEnabled === 1,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     };
@@ -355,8 +397,8 @@ export class DatabaseService {
   createPoster(poster: DbPosterInput): void {
     const now = new Date();
     const stmt = this.db.prepare(`
-      INSERT INTO posters (id, title, fileUrl, type, duration, tags, profileIds, metadata, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO posters (id, title, fileUrl, type, duration, tags, profileIds, metadata, isEnabled, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       poster.id,
@@ -367,6 +409,7 @@ export class DatabaseService {
       JSON.stringify(poster.tags || []),
       JSON.stringify(poster.profileIds || []),
       poster.metadata ? JSON.stringify(poster.metadata) : null,
+      poster.isEnabled ? 1 : 0,
       (poster.createdAt || now).toISOString(),
       (poster.updatedAt || now).toISOString()
     );
@@ -376,20 +419,40 @@ export class DatabaseService {
    * Update a poster
    */
   updatePoster(id: string, updates: DbPosterUpdate): void {
+    // Get existing poster to merge with updates
+    const existing = this.getPosterById(id);
+    if (!existing) {
+      throw new Error(`Poster with id ${id} not found`);
+    }
+
+    // Merge existing data with updates
+    const merged = {
+      title: updates.title !== undefined ? updates.title : existing.title,
+      fileUrl: updates.fileUrl !== undefined ? updates.fileUrl : existing.fileUrl,
+      type: updates.type !== undefined ? updates.type : existing.type,
+      duration: updates.duration !== undefined ? updates.duration : existing.duration,
+      tags: updates.tags !== undefined ? updates.tags : existing.tags,
+      profileIds: updates.profileIds !== undefined ? updates.profileIds : existing.profileIds,
+      metadata: updates.metadata !== undefined ? updates.metadata : existing.metadata,
+      isEnabled: updates.isEnabled !== undefined ? updates.isEnabled : existing.isEnabled,
+      updatedAt: updates.updatedAt || new Date(),
+    };
+
     const stmt = this.db.prepare(`
       UPDATE posters
-      SET title = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, updatedAt = ?
+      SET title = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, isEnabled = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
-      updates.title,
-      updates.fileUrl,
-      updates.type,
-      updates.duration || null,
-      JSON.stringify(updates.tags || []),
-      JSON.stringify(updates.profileIds || []),
-      updates.metadata ? JSON.stringify(updates.metadata) : null,
-      updates.updatedAt.toISOString(),
+      merged.title,
+      merged.fileUrl,
+      merged.type,
+      merged.duration || null,
+      JSON.stringify(merged.tags || []),
+      JSON.stringify(merged.profileIds || []),
+      merged.metadata ? JSON.stringify(merged.metadata) : null,
+      merged.isEnabled ? 1 : 0,
+      merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
       id
     );
   }

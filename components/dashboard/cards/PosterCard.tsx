@@ -11,6 +11,7 @@ interface Poster {
   title: string;
   fileUrl: string;
   type: string;
+  isEnabled: boolean;
 }
 
 /**
@@ -29,7 +30,9 @@ export function PosterCard() {
     try {
       const res = await fetch("/api/assets/posters");
       const data = await res.json();
-      setPosters(data.posters || []);
+      // Filter to show only enabled posters
+      const enabledPosters = (data.posters || []).filter((p: Poster) => p.isEnabled);
+      setPosters(enabledPosters);
     } catch (error) {
       console.error("Failed to fetch posters:", error);
     } finally {

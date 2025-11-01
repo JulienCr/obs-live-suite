@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { AvatarUploader } from "./AvatarUploader";
-import { Plus, Trash2, Edit, User, Zap } from "lucide-react";
+import { Plus, Trash2, Edit, User, Zap, Power, PowerOff } from "lucide-react";
 
 interface Guest {
   id: string;
@@ -14,6 +15,7 @@ interface Guest {
   subtitle?: string;
   accentColor: string;
   avatarUrl?: string;
+  isEnabled: boolean;
   createdAt: string;
 }
 
@@ -122,9 +124,22 @@ export function GuestManager() {
     });
   };
 
+  const handleToggleEnabled = async (id: string, currentState: boolean) => {
+    try {
+      await fetch(`/api/assets/guests/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isEnabled: !currentState }),
+      });
+      fetchGuests();
+    } catch (error) {
+      console.error("Failed to toggle guest:", error);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this guest?")) return;
-    
+
     try {
       await fetch(`/api/assets/guests/${id}`, { method: "DELETE" });
       fetchGuests();
@@ -268,7 +283,9 @@ export function GuestManager() {
           {guests.map((guest) => (
             <div
               key={guest.id}
-              className="border rounded-lg p-4 flex items-center justify-between"
+              className={`border rounded-lg p-4 flex items-center justify-between ${
+                !guest.isEnabled ? "opacity-50" : ""
+              }`}
             >
               <div className="flex items-center gap-4">
                 <div
@@ -285,8 +302,13 @@ export function GuestManager() {
                     guest.displayName.charAt(0).toUpperCase()
                   )}
                 </div>
-                <div>
-                  <h3 className="font-medium">{guest.displayName}</h3>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium">{guest.displayName}</h3>
+                    <Badge variant={guest.isEnabled ? "default" : "secondary"} className="text-xs">
+                      {guest.isEnabled ? "Enabled" : "Disabled"}
+                    </Badge>
+                  </div>
                   {guest.subtitle && (
                     <p className="text-sm text-muted-foreground">
                       {guest.subtitle}
@@ -300,12 +322,30 @@ export function GuestManager() {
                   size="sm"
                   onClick={() => handleQuickLowerThird(guest)}
                   title="Show Lower Third (8s auto-hide)"
+                  disabled={!guest.isEnabled}
                 >
                   <Zap className="w-3 h-3 mr-2" />
                   Quick LT
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant={guest.isEnabled ? "outline" : "default"}
+                  size="sm"
+                  onClick={() => handleToggleEnabled(guest.id, guest.isEnabled)}
+                >
+                  {guest.isEnabled ? (
+                    <>
+                      <PowerOff className="w-3 h-3 mr-2" />
+                      Disable
+                    </>
+                  ) : (
+                    <>
+                      <Power className="w-3 h-3 mr-2" />
+                      Enable
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => handleEdit(guest)}
                 >

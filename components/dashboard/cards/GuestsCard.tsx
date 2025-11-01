@@ -11,6 +11,7 @@ interface Guest {
   subtitle?: string;
   accentColor: string;
   avatarUrl?: string;
+  isEnabled: boolean;
 }
 
 /**
@@ -28,7 +29,9 @@ export function GuestsCard() {
     try {
       const res = await fetch("/api/assets/guests");
       const data = await res.json();
-      setGuests(data.guests || []);
+      // Filter to show only enabled guests
+      const enabledGuests = (data.guests || []).filter((g: Guest) => g.isEnabled);
+      setGuests(enabledGuests);
     } catch (error) {
       console.error("Failed to fetch guests:", error);
     } finally {
