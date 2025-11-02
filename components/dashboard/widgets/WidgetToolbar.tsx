@@ -1,21 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, RotateCcw } from "lucide-react";
+import { Plus, RotateCcw, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddWidgetDialog } from "./AddWidgetDialog";
 import { Widget } from "@/lib/models/Widget";
 
 interface WidgetToolbarProps {
   widgets: Widget[];
+  isLocked: boolean;
   onAddWidget: (type: string, size: string) => void;
   onResetLayout: () => void;
+  onToggleLock: () => void;
 }
 
 export function WidgetToolbar({
   widgets,
+  isLocked,
   onAddWidget,
   onResetLayout,
+  onToggleLock,
 }: WidgetToolbarProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
@@ -35,15 +39,37 @@ export function WidgetToolbar({
         <div>
           <h2 className="text-xl font-semibold">Dashboard Widgets</h2>
           <p className="text-sm text-muted-foreground">
-            Customize your dashboard by adding, removing, and arranging widgets
+            {isLocked
+              ? "Dashboard is locked. Click unlock to customize."
+              : "Customize your dashboard by adding, removing, and arranging widgets"
+            }
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant={isLocked ? "default" : "outline"}
+            size="sm"
+            onClick={onToggleLock}
+            title={isLocked ? "Unlock dashboard to edit" : "Lock dashboard to prevent changes"}
+          >
+            {isLocked ? (
+              <>
+                <Lock className="h-4 w-4 mr-2" />
+                Unlock
+              </>
+            ) : (
+              <>
+                <Unlock className="h-4 w-4 mr-2" />
+                Lock
+              </>
+            )}
+          </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleResetLayout}
             title="Reset to default layout"
+            disabled={isLocked}
           >
             <RotateCcw className="h-4 w-4 mr-2" />
             Reset
@@ -52,6 +78,7 @@ export function WidgetToolbar({
             variant="default"
             size="sm"
             onClick={() => setIsAddDialogOpen(true)}
+            disabled={isLocked}
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Widget

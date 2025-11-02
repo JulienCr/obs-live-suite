@@ -20,13 +20,14 @@ import { WidgetCard } from "./WidgetCard";
 
 interface WidgetGridProps {
   widgets: Widget[];
+  isLocked: boolean;
   onRemove: (id: string) => void;
   onResize: (id: string, size: string) => void;
   onChangeHeight: (id: string, height: string) => void;
   onReorder: (widgets: Widget[]) => void;
 }
 
-export function WidgetGrid({ widgets, onRemove, onResize, onChangeHeight, onReorder }: WidgetGridProps) {
+export function WidgetGrid({ widgets, isLocked, onRemove, onResize, onChangeHeight, onReorder }: WidgetGridProps) {
   // Configure drag sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -74,6 +75,24 @@ export function WidgetGrid({ widgets, onRemove, onResize, onChangeHeight, onReor
     );
   }
 
+  // If locked, don't use DndContext - just render widgets
+  if (isLocked) {
+    return (
+      <div className="grid grid-cols-12 gap-6">
+        {visibleWidgets.map((widget) => (
+          <WidgetCard
+            key={widget.id}
+            widget={widget}
+            isLocked={isLocked}
+            onRemove={onRemove}
+            onResize={onResize}
+            onChangeHeight={onChangeHeight}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <DndContext
       sensors={sensors}
@@ -89,6 +108,7 @@ export function WidgetGrid({ widgets, onRemove, onResize, onChangeHeight, onReor
             <WidgetCard
               key={widget.id}
               widget={widget}
+              isLocked={isLocked}
               onRemove={onRemove}
               onResize={onResize}
               onChangeHeight={onChangeHeight}

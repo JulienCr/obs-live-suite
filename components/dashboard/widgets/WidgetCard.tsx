@@ -11,12 +11,13 @@ import { getWidget } from "@/lib/widgets/registry";
 
 interface WidgetCardProps {
   widget: Widget;
+  isLocked: boolean;
   onRemove: (id: string) => void;
   onResize: (id: string, size: string) => void;
   onChangeHeight: (id: string, height: string) => void;
 }
 
-export function WidgetCard({ widget, onRemove, onResize, onChangeHeight }: WidgetCardProps) {
+export function WidgetCard({ widget, isLocked, onRemove, onResize, onChangeHeight }: WidgetCardProps) {
   const {
     attributes,
     listeners,
@@ -24,7 +25,7 @@ export function WidgetCard({ widget, onRemove, onResize, onChangeHeight }: Widge
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: widget.id });
+  } = useSortable({ id: widget.id, disabled: isLocked });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -81,62 +82,64 @@ export function WidgetCard({ widget, onRemove, onResize, onChangeHeight }: Widge
       )}
     >
       <Card className={cn("relative h-full group", heightClass, heightClass && "overflow-auto")}>
-        {/* Widget controls overlay */}
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {/* Width controls */}
-          <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-sm border rounded-md p-0.5">
-            {sizeOptions.map((option) => (
-              <Button
-                key={option.value}
-                variant={widget.size === option.value ? "default" : "ghost"}
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() => onResize(widget.id, option.value)}
-                title={option.label}
-              >
-                <option.icon className="h-3 w-3" />
-              </Button>
-            ))}
+        {/* Widget controls overlay - hidden when locked */}
+        {!isLocked && (
+          <div className="absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Width controls */}
+            <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-sm border rounded-md p-0.5">
+              {sizeOptions.map((option) => (
+                <Button
+                  key={option.value}
+                  variant={widget.size === option.value ? "default" : "ghost"}
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => onResize(widget.id, option.value)}
+                  title={option.label}
+                >
+                  <option.icon className="h-3 w-3" />
+                </Button>
+              ))}
+            </div>
+
+            {/* Height controls */}
+            <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-sm border rounded-md p-0.5">
+              {heightOptions.map((option) => (
+                <Button
+                  key={option.value}
+                  variant={(widget.height || WidgetHeight.AUTO) === option.value ? "default" : "ghost"}
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => onChangeHeight(widget.id, option.value)}
+                  title={option.label}
+                >
+                  <option.icon className="h-3 w-3" />
+                </Button>
+              ))}
+            </div>
+
+            {/* Drag handle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 cursor-grab active:cursor-grabbing bg-background/95 backdrop-blur-sm border"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="h-4 w-4" />
+            </Button>
+
+            {/* Remove button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 hover:bg-destructive hover:text-destructive-foreground bg-background/95 backdrop-blur-sm border"
+              onClick={() => onRemove(widget.id)}
+              title="Remove widget"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-
-          {/* Height controls */}
-          <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-sm border rounded-md p-0.5">
-            {heightOptions.map((option) => (
-              <Button
-                key={option.value}
-                variant={(widget.height || WidgetHeight.AUTO) === option.value ? "default" : "ghost"}
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() => onChangeHeight(widget.id, option.value)}
-                title={option.label}
-              >
-                <option.icon className="h-3 w-3" />
-              </Button>
-            ))}
-          </div>
-
-          {/* Drag handle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0 cursor-grab active:cursor-grabbing bg-background/95 backdrop-blur-sm border"
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="h-4 w-4" />
-          </Button>
-
-          {/* Remove button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0 hover:bg-destructive hover:text-destructive-foreground bg-background/95 backdrop-blur-sm border"
-            onClick={() => onRemove(widget.id)}
-            title="Remove widget"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+        )}
 
         {/* Widget content */}
         <Component
