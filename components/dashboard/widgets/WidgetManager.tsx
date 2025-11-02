@@ -7,6 +7,8 @@ import {
   saveLayout,
   addWidget as addWidgetToLayout,
   resetLayout,
+  removeWidget as removeWidgetFromLayout,
+  updateWidget as updateWidgetInLayout,
 } from "@/lib/utils/widgetStorage";
 import { WidgetGrid } from "./WidgetGrid";
 import { WidgetToolbar } from "./WidgetToolbar";
@@ -33,6 +35,30 @@ export function WidgetManager() {
     setWidgets((current) => addWidgetToLayout(current, type, size));
   };
 
+  const handleRemoveWidget = (id: string) => {
+    setWidgets((current) => removeWidgetFromLayout(current, id));
+  };
+
+  const handleResizeWidget = (id: string, size: string) => {
+    setWidgets((current) =>
+      updateWidgetInLayout(current, id, {
+        size: size as typeof Widget.prototype.size,
+      })
+    );
+  };
+
+  const handleChangeHeight = (id: string, height: string) => {
+    setWidgets((current) =>
+      updateWidgetInLayout(current, id, {
+        height: height as typeof Widget.prototype.height,
+      })
+    );
+  };
+
+  const handleReorderWidgets = (reorderedWidgets: Widget[]) => {
+    setWidgets(reorderedWidgets);
+  };
+
   const handleResetLayout = () => {
     const defaultLayout = resetLayout();
     setWidgets(defaultLayout);
@@ -49,7 +75,13 @@ export function WidgetManager() {
         onAddWidget={handleAddWidget}
         onResetLayout={handleResetLayout}
       />
-      <WidgetGrid />
+      <WidgetGrid
+        widgets={widgets}
+        onRemove={handleRemoveWidget}
+        onResize={handleResizeWidget}
+        onChangeHeight={handleChangeHeight}
+        onReorder={handleReorderWidgets}
+      />
     </div>
   );
 }

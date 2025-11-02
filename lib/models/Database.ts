@@ -34,7 +34,11 @@ export interface DbProfile {
   themeId: string;
   dskSourceName: string;
   defaultScene: string | null;
-  posterRotation: string[];
+  posterRotation: Array<{
+    posterId: string;
+    duration: number;
+    order: number;
+  }>;
   audioSettings: Record<string, unknown>;
   isActive: boolean;
   createdAt: Date;

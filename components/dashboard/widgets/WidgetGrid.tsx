@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -17,33 +16,17 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Widget } from "@/lib/models/Widget";
-import {
-  loadLayout,
-  saveLayout,
-  updateWidget,
-  removeWidget as removeWidgetFromLayout,
-  reorderWidgets,
-} from "@/lib/utils/widgetStorage";
 import { WidgetCard } from "./WidgetCard";
 
-export function WidgetGrid() {
-  const [widgets, setWidgets] = useState<Widget[]>([]);
-  const [mounted, setMounted] = useState(false);
+interface WidgetGridProps {
+  widgets: Widget[];
+  onRemove: (id: string) => void;
+  onResize: (id: string, size: string) => void;
+  onChangeHeight: (id: string, height: string) => void;
+  onReorder: (widgets: Widget[]) => void;
+}
 
-  // Load layout on mount
-  useEffect(() => {
-    const layout = loadLayout();
-    setWidgets(layout);
-    setMounted(true);
-  }, []);
-
-  // Save layout whenever widgets change
-  useEffect(() => {
-    if (mounted) {
-      saveLayout(widgets);
-    }
-  }, [widgets, mounted]);
-
+export function WidgetGrid({ widgets, onRemove, onResize, onChangeHeight, onReorder }: WidgetGridProps) {
   // Configure drag sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -60,49 +43,26 @@ export function WidgetGrid() {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      setWidgets((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
+      const oldIndex = widgets.findIndex((item) => item.id === active.id);
+      const newIndex = widgets.findIndex((item) => item.id === over.id);
 
-        const reordered = arrayMove(items, oldIndex, newIndex);
+      const reordered = arrayMove(widgets, oldIndex, newIndex);
 
-        // Update order property for all widgets
-        return reordered.map((widget, index) => ({
-          ...widget,
-          order: index,
-          updatedAt: new Date(),
-        }));
-      });
+      // Update order property for all widgets
+      const updated = reordered.map((widget, index) => ({
+        ...widget,
+        order: index,
+        updatedAt: new Date(),
+      }));
+
+      onReorder(updated);
     }
-  };
-
-  const handleRemoveWidget = (id: string) => {
-    setWidgets((current) => removeWidgetFromLayout(current, id));
-  };
-
-  const handleResizeWidget = (id: string, size: string) => {
-    setWidgets((current) =>
-      updateWidget(current, id, {
-        size: size as typeof Widget.prototype.size,
-      })
-    );
   };
 
   // Filter visible widgets and sort by order
   const visibleWidgets = widgets
     .filter((w) => w.isVisible)
     .sort((a, b) => a.order - b.order);
-
-  if (!mounted) {
-    // Prevent hydration mismatch
-    return (
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 text-center text-muted-foreground py-8">
-          Loading widgets...
-        </div>
-      </div>
-    );
-  }
 
   if (visibleWidgets.length === 0) {
     return (
@@ -129,8 +89,9 @@ export function WidgetGrid() {
             <WidgetCard
               key={widget.id}
               widget={widget}
-              onRemove={handleRemoveWidget}
-              onResize={handleResizeWidget}
+              onRemove={onRemove}
+              onResize={onResize}
+              onChangeHeight={onChangeHeight}
             />
           ))}
         </div>

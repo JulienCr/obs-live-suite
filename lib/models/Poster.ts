@@ -17,7 +17,7 @@ export const posterSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
   fileUrl: z.string().min(1, "File URL is required"),
   type: z.nativeEnum(PosterType),
-  duration: z.number().int().positive().optional(),
+  duration: z.number().int().positive().nullable().default(null),
   tags: z.array(z.string()).default([]),
   profileIds: z.array(z.string().uuid()).default([]),
   metadata: z.record(z.unknown()).optional(),
@@ -90,7 +90,7 @@ export class PosterModel {
   /**
    * Get duration (for videos)
    */
-  getDuration(): number | undefined {
+  getDuration(): number | null {
     return this.data.duration;
   }
 

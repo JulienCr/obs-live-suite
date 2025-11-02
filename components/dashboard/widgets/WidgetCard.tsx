@@ -2,20 +2,21 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, X, Maximize2, Minimize2, Square } from "lucide-react";
+import { GripVertical, X, Maximize2, Minimize2, Square, ChevronsUpDown, ChevronsDown, ChevronsUp, ListEnd } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
-import { Widget, WidgetSize } from "@/lib/models/Widget";
+import { Widget, WidgetSize, WidgetHeight } from "@/lib/models/Widget";
 import { getWidget } from "@/lib/widgets/registry";
 
 interface WidgetCardProps {
   widget: Widget;
   onRemove: (id: string) => void;
   onResize: (id: string, size: string) => void;
+  onChangeHeight: (id: string, height: string) => void;
 }
 
-export function WidgetCard({ widget, onRemove, onResize }: WidgetCardProps) {
+export function WidgetCard({ widget, onRemove, onResize, onChangeHeight }: WidgetCardProps) {
   const {
     attributes,
     listeners,
@@ -46,11 +47,27 @@ export function WidgetCard({ widget, onRemove, onResize }: WidgetCardProps) {
     [WidgetSize.LARGE]: "col-span-12",
   }[widget.size];
 
+  // Determine height class based on height setting
+  const heightClass = {
+    [WidgetHeight.AUTO]: "",
+    [WidgetHeight.COMPACT]: "max-h-48",
+    [WidgetHeight.NORMAL]: "max-h-96",
+    [WidgetHeight.TALL]: "max-h-[600px]",
+  }[widget.height || WidgetHeight.AUTO];
+
   // Size options for the widget
   const sizeOptions = [
-    { value: WidgetSize.SMALL, icon: Minimize2, label: "Small" },
-    { value: WidgetSize.MEDIUM, icon: Square, label: "Medium" },
-    { value: WidgetSize.LARGE, icon: Maximize2, label: "Large" },
+    { value: WidgetSize.SMALL, icon: Minimize2, label: "Small Width" },
+    { value: WidgetSize.MEDIUM, icon: Square, label: "Medium Width" },
+    { value: WidgetSize.LARGE, icon: Maximize2, label: "Large Width" },
+  ];
+
+  // Height options for the widget
+  const heightOptions = [
+    { value: WidgetHeight.AUTO, icon: ListEnd, label: "Auto Height" },
+    { value: WidgetHeight.COMPACT, icon: ChevronsDown, label: "Compact" },
+    { value: WidgetHeight.NORMAL, icon: ChevronsUpDown, label: "Normal" },
+    { value: WidgetHeight.TALL, icon: ChevronsUp, label: "Tall" },
   ];
 
   return (
@@ -63,10 +80,10 @@ export function WidgetCard({ widget, onRemove, onResize }: WidgetCardProps) {
         isDragging && "opacity-50 z-50"
       )}
     >
-      <Card className="relative h-full group">
+      <Card className={cn("relative h-full group", heightClass, heightClass && "overflow-auto")}>
         {/* Widget controls overlay */}
         <div className="absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {/* Size controls */}
+          {/* Width controls */}
           <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-sm border rounded-md p-0.5">
             {sizeOptions.map((option) => (
               <Button
@@ -75,6 +92,22 @@ export function WidgetCard({ widget, onRemove, onResize }: WidgetCardProps) {
                 size="sm"
                 className="h-6 w-6 p-0"
                 onClick={() => onResize(widget.id, option.value)}
+                title={option.label}
+              >
+                <option.icon className="h-3 w-3" />
+              </Button>
+            ))}
+          </div>
+
+          {/* Height controls */}
+          <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-sm border rounded-md p-0.5">
+            {heightOptions.map((option) => (
+              <Button
+                key={option.value}
+                variant={(widget.height || WidgetHeight.AUTO) === option.value ? "default" : "ghost"}
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => onChangeHeight(widget.id, option.value)}
                 title={option.label}
               >
                 <option.icon className="h-3 w-3" />

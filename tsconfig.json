@@ -39,7 +39,7 @@
     ".pm2",
     "**/*.test.ts",
     "**/*.test.tsx",
-    "streamdeck-plugin/**/node_modules"
+    "streamdeck-plugin"
   ]
 }
 

@@ -12,6 +12,18 @@ export const WidgetSize = {
 export type WidgetSizeType = typeof WidgetSize[keyof typeof WidgetSize];
 
 /**
+ * Widget height enum
+ */
+export const WidgetHeight = {
+  AUTO: "auto",
+  COMPACT: "compact",
+  NORMAL: "normal",
+  TALL: "tall",
+} as const;
+
+export type WidgetHeightType = typeof WidgetHeight[keyof typeof WidgetHeight];
+
+/**
  * Widget grid size configuration
  */
 export const widgetGridSizeSchema = z.object({
@@ -29,6 +41,7 @@ export const widgetSchema = z.object({
   id: z.string().uuid(),
   type: z.string().min(1),
   size: z.enum([WidgetSize.SMALL, WidgetSize.MEDIUM, WidgetSize.LARGE]).default(WidgetSize.MEDIUM),
+  height: z.enum([WidgetHeight.AUTO, WidgetHeight.COMPACT, WidgetHeight.NORMAL, WidgetHeight.TALL]).default(WidgetHeight.AUTO),
   order: z.number().int().min(0).default(0),
   isVisible: z.boolean().default(true),
   settings: z.record(z.unknown()).optional(),
@@ -91,6 +104,13 @@ export class WidgetModel {
   }
 
   /**
+   * Get widget height
+   */
+  getHeight(): WidgetHeightType {
+    return this.data.height;
+  }
+
+  /**
    * Get widget order
    */
   getOrder(): number {
@@ -116,6 +136,14 @@ export class WidgetModel {
    */
   resize(size: WidgetSizeType): void {
     this.data.size = size;
+    this.data.updatedAt = new Date();
+  }
+
+  /**
+   * Set widget height
+   */
+  setHeight(height: WidgetHeightType): void {
+    this.data.height = height;
     this.data.updatedAt = new Date();
   }
 
