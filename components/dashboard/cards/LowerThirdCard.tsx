@@ -6,11 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Timer } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
+
+interface LowerThirdCardProps {
+  size?: string;
+  className?: string;
+  settings?: Record<string, unknown>;
+}
 
 /**
  * LowerThirdCard - Control card for lower third overlays
  */
-export function LowerThirdCard() {
+export function LowerThirdCard({ size, className, settings }: LowerThirdCardProps = {}) {
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [side, setSide] = useState<"left" | "right">("left");
@@ -76,7 +83,7 @@ export function LowerThirdCard() {
   };
 
   return (
-    <Card>
+    <Card className={cn(className)}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Lower Third

@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Eye, EyeOff } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 
 interface Poster {
   id: string;
@@ -14,10 +15,16 @@ interface Poster {
   isEnabled: boolean;
 }
 
+interface PosterCardProps {
+  size?: string;
+  className?: string;
+  settings?: Record<string, unknown>;
+}
+
 /**
  * PosterCard - Thumbnail gallery for quick poster triggering
  */
-export function PosterCard() {
+export function PosterCard({ size, className, settings }: PosterCardProps = {}) {
   const [activePoster, setActivePoster] = useState<string | null>(null);
   const [posters, setPosters] = useState<Poster[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +97,7 @@ export function PosterCard() {
   };
 
   return (
-    <Card>
+    <Card className={cn(className)}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Posters
