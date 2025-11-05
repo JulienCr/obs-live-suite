@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { PosterUploader } from "./PosterUploader";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Trash2, Upload, Power, PowerOff } from "lucide-react";
 
 interface Poster {
   id: string;
@@ -14,6 +14,7 @@ interface Poster {
   fileUrl: string;
   type: "image" | "video" | "youtube";
   tags: string[];
+  isEnabled: boolean;
   createdAt: string;
 }
 
@@ -73,9 +74,22 @@ export function PosterManager() {
     }
   };
 
+  const handleToggleEnabled = async (id: string, currentState: boolean) => {
+    try {
+      await fetch(`/api/assets/posters/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isEnabled: !currentState }),
+      });
+      fetchPosters();
+    } catch (error) {
+      console.error("Failed to toggle poster:", error);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this poster?")) return;
-    
+
     try {
       await fetch(`/api/assets/posters/${id}`, { method: "DELETE" });
       fetchPosters();
@@ -163,7 +177,9 @@ export function PosterManager() {
           {posters.map((poster) => (
             <div
               key={poster.id}
-              className="border rounded-lg overflow-hidden group relative"
+              className={`border rounded-lg overflow-hidden group relative ${
+                !poster.isEnabled ? "opacity-50" : ""
+              }`}
             >
               <div className="aspect-video bg-muted relative overflow-hidden">
                 {poster.type === "image" ? (
@@ -196,7 +212,12 @@ export function PosterManager() {
                 )}
               </div>
               <div className="p-4">
-                <h3 className="font-medium truncate">{poster.title}</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium truncate">{poster.title}</h3>
+                  <Badge variant={poster.isEnabled ? "default" : "secondary"} className="text-xs">
+                    {poster.isEnabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                </div>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge variant="outline" className="text-xs">
                     {poster.type}
@@ -207,15 +228,35 @@ export function PosterManager() {
                     </Badge>
                   ))}
                 </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="w-full mt-3"
-                  onClick={() => handleDelete(poster.id)}
-                >
-                  <Trash2 className="w-3 h-3 mr-2" />
-                  Delete
-                </Button>
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    variant={poster.isEnabled ? "outline" : "default"}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleToggleEnabled(poster.id, poster.isEnabled)}
+                  >
+                    {poster.isEnabled ? (
+                      <>
+                        <PowerOff className="w-3 h-3 mr-2" />
+                        Disable
+                      </>
+                    ) : (
+                      <>
+                        <Power className="w-3 h-3 mr-2" />
+                        Enable
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleDelete(poster.id)}
+                  >
+                    <Trash2 className="w-3 h-3 mr-2" />
+                    Delete
+                  </Button>
+                </div>
               </div>
             </div>
           ))}

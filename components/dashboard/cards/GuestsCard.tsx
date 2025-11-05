@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Zap } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 
 interface Guest {
   id: string;
@@ -11,12 +12,19 @@ interface Guest {
   subtitle?: string;
   accentColor: string;
   avatarUrl?: string;
+  isEnabled: boolean;
+}
+
+interface GuestsCardProps {
+  size?: string;
+  className?: string;
+  settings?: Record<string, unknown>;
 }
 
 /**
  * GuestsCard displays guests with quick lower third buttons
  */
-export function GuestsCard() {
+export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +36,9 @@ export function GuestsCard() {
     try {
       const res = await fetch("/api/assets/guests");
       const data = await res.json();
-      setGuests(data.guests || []);
+      // Filter to show only enabled guests
+      const enabledGuests = (data.guests || []).filter((g: Guest) => g.isEnabled);
+      setGuests(enabledGuests);
     } catch (error) {
       console.error("Failed to fetch guests:", error);
     } finally {
@@ -54,7 +64,7 @@ export function GuestsCard() {
   };
 
   return (
-    <Card>
+    <Card className={cn(className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="w-5 h-5" />

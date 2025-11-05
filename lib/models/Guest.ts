@@ -6,9 +6,10 @@ import { z } from "zod";
 export const guestSchema = z.object({
   id: z.string().uuid(),
   displayName: z.string().min(1, "Display name is required").max(100),
-  subtitle: z.string().max(200).optional(),
+  subtitle: z.string().max(200).nullable().default(null),
   accentColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color").default("#3b82f6"),
-  avatarUrl: z.string().optional().nullable(),
+  avatarUrl: z.string().nullable().default(null),
+  isEnabled: z.boolean().default(true),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });
@@ -63,7 +64,7 @@ export class GuestModel {
   /**
    * Get subtitle
    */
-  getSubtitle(): string | undefined {
+  getSubtitle(): string | null {
     return this.data.subtitle;
   }
 
@@ -77,8 +78,31 @@ export class GuestModel {
   /**
    * Get avatar URL
    */
-  getAvatarUrl(): string | undefined {
+  getAvatarUrl(): string | null {
     return this.data.avatarUrl;
+  }
+
+  /**
+   * Check if guest is enabled
+   */
+  isEnabledGuest(): boolean {
+    return this.data.isEnabled;
+  }
+
+  /**
+   * Enable guest
+   */
+  enable(): void {
+    this.data.isEnabled = true;
+    this.data.updatedAt = new Date();
+  }
+
+  /**
+   * Disable guest
+   */
+  disable(): void {
+    this.data.isEnabled = false;
+    this.data.updatedAt = new Date();
   }
 
   /**

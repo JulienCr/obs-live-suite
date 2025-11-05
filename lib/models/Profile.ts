@@ -17,10 +17,10 @@ export type PosterRotation = z.infer<typeof posterRotationSchema>;
 export const profileSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1, "Profile name is required").max(100),
-  description: z.string().max(500).optional(),
+  description: z.string().max(500).nullable().default(null),
   themeId: z.string().uuid(),
   dskSourceName: z.string().default("Habillage"),
-  defaultScene: z.string().optional(),
+  defaultScene: z.string().nullable().default(null),
   posterRotation: z.array(posterRotationSchema).default([]),
   audioSettings: z.object({
     countdownCueEnabled: z.boolean().default(true),

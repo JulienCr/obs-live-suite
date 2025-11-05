@@ -8,11 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Play, Pause, RotateCcw, Plus, Settings } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
+
+interface CountdownCardProps {
+  size?: string;
+  className?: string;
+  settings?: Record<string, unknown>;
+}
 
 /**
  * CountdownCard - Control card for countdown timer
  */
-export function CountdownCard() {
+export function CountdownCard({ size, className, settings }: CountdownCardProps = {}) {
   const [minutes, setMinutes] = useState(5);
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -225,7 +232,7 @@ export function CountdownCard() {
   };
 
   return (
-    <Card>
+    <Card className={cn(className)}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Countdown
