@@ -559,7 +559,7 @@ export class DatabaseService {
       JSON.stringify(updates.posterRotation || []),
       JSON.stringify(updates.audioSettings || {}),
       updates.isActive ? 1 : 0,
-      updates.updatedAt.toISOString(),
+      (updates.updatedAt || new Date()).toISOString(),
       id
     );
   }
@@ -672,7 +672,7 @@ export class DatabaseService {
       JSON.stringify(updates.countdownLayout || { x: 960, y: 540, scale: 1 }),
       JSON.stringify(updates.posterLayout || { x: 960, y: 540, scale: 1 }),
       updates.isGlobal ? 1 : 0,
-      updates.updatedAt.toISOString(),
+      (updates.updatedAt || new Date()).toISOString(),
       id
     );
   }

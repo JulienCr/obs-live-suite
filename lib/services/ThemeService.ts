@@ -128,6 +128,7 @@ export class ThemeService {
           weight: 900,
         },
         countdownLayout: { x: 960, y: 540, scale: 1 },
+        posterLayout: { x: 960, y: 540, scale: 1 },
         isGlobal: true,
       },
       {
@@ -154,6 +155,7 @@ export class ThemeService {
           weight: 900,
         },
         countdownLayout: { x: 1780, y: 40, scale: 1 },
+        posterLayout: { x: 960, y: 540, scale: 1 },
         isGlobal: true,
       },
       {
@@ -180,6 +182,7 @@ export class ThemeService {
           weight: 900,
         },
         countdownLayout: { x: 960, y: 40, scale: 1 },
+        posterLayout: { x: 960, y: 540, scale: 1 },
         isGlobal: true,
       },
       {
@@ -206,6 +209,7 @@ export class ThemeService {
           weight: 900,
         },
         countdownLayout: { x: 960, y: 540, scale: 1 },
+        posterLayout: { x: 960, y: 540, scale: 1 },
         isGlobal: true,
       },
       {
@@ -232,6 +236,7 @@ export class ThemeService {
           weight: 900,
         },
         countdownLayout: { x: 1780, y: 40, scale: 1 },
+        posterLayout: { x: 960, y: 540, scale: 1 },
         isGlobal: true,
       },
     ];
