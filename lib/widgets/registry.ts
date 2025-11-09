@@ -1,10 +1,11 @@
-import { Users, Clock, Image, MessageSquare } from "lucide-react";
+import { Users, Clock, Image, MessageSquare, Video } from "lucide-react";
 import { WidgetMetadata, WidgetRegistry } from "./types";
 import { WidgetSize } from "@/lib/models/Widget";
 import { GuestsCard } from "@/components/dashboard/cards/GuestsCard";
 import { CountdownCard } from "@/components/dashboard/cards/CountdownCard";
 import { PosterCard } from "@/components/dashboard/cards/PosterCard";
 import { LowerThirdCard } from "@/components/dashboard/cards/LowerThirdCard";
+import { MediaCard } from "@/components/dashboard/cards/MediaCard";
 
 /**
  * Central widget registry
@@ -106,4 +107,19 @@ registerWidget({
   },
   allowMultiple: false,
   component: LowerThirdCard,
+});
+
+registerWidget({
+  type: "media",
+  name: "Media Overlay",
+  description: "Fullscreen media player with YouTube, MP4, and images",
+  icon: Video,
+  defaultSize: WidgetSize.MEDIUM,
+  gridSizes: {
+    small: { cols: 4, minCols: 4, maxCols: 6 },
+    medium: { cols: 6, minCols: 4, maxCols: 8 },
+    large: { cols: 12, minCols: 8, maxCols: 12 },
+  },
+  allowMultiple: false,
+  component: MediaCard,
 });
