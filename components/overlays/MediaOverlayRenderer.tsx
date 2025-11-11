@@ -137,6 +137,9 @@ export function MediaOverlayRenderer({ instance }: MediaOverlayRendererProps) {
         setIsOn(payload.on);
         if (!payload.on) {
           cleanup();
+        } else {
+          // When turning on, refresh state to ensure we have current items
+          fetchState();
         }
         break;
 
@@ -276,8 +279,31 @@ export function MediaOverlayRenderer({ instance }: MediaOverlayRendererProps) {
     }, 2000);
   };
 
-  if (!isOn || !currentItem) {
+  // Debug logging
+  useEffect(() => {
+    console.log(`[Media ${instance}] State:`, {
+      isOn,
+      itemsCount: items.length,
+      currentIndex,
+      hasCurrentItem: !!currentItem,
+      currentItemId: currentItem?.id,
+    });
+  }, [isOn, items.length, currentIndex, currentItem?.id, instance]);
+
+  // Don't render if turned off
+  if (!isOn) {
     return <div className="w-screen h-screen bg-transparent" />;
+  }
+
+  // Show message if on but no items
+  if (!currentItem || items.length === 0) {
+    return (
+      <div className="w-screen h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-2xl font-bold opacity-50">
+          No media items in playlist
+        </div>
+      </div>
+    );
   }
 
   return (
