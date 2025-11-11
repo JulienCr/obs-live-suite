@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import {
   DockviewReact,
   DockviewReadyEvent,
@@ -15,6 +15,7 @@ import { GuestsPanel } from "./panels/GuestsPanel";
 import { PosterPanel } from "./panels/PosterPanel";
 import { MacrosPanel } from "./panels/MacrosPanel";
 import { EventLogPanel } from "./panels/EventLogPanel";
+import { DockviewContext } from "./DockviewContext";
 
 const LAYOUT_KEY = "obs-live-suite-dockview-layout";
 
@@ -29,9 +30,11 @@ const components = {
 
 export function DashboardShell() {
   const apiRef = useRef<DockviewReadyEvent["api"] | null>(null);
+  const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);
 
   const onReady = useCallback((event: DockviewReadyEvent) => {
     apiRef.current = event.api;
+    setApi(event.api);
 
     // Try to restore saved layout
     const saved = localStorage.getItem(LAYOUT_KEY);
@@ -111,12 +114,14 @@ export function DashboardShell() {
   }, []);
 
   return (
-    <div style={{ height: "100vh", width: "100vw" }}>
-      <DockviewReact
-        components={components}
-        onReady={onReady}
-        className="dockview-theme-dark"
-      />
-    </div>
+    <DockviewContext.Provider value={{ api }}>
+      <div style={{ height: "100vh", width: "100vw" }}>
+        <DockviewReact
+          components={components}
+          onReady={onReady}
+          className="dockview-theme-dark"
+        />
+      </div>
+    </DockviewContext.Provider>
   );
 }
