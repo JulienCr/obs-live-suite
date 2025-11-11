@@ -99,11 +99,15 @@ export function DashboardShell() {
       // Ignore if setSize API has changed
       console.warn("Failed to set panel size:", err);
     }
+  }, []);
 
-    // Save layout on any change
-    const disposable = event.api.onDidLayoutChange(() => {
+  // Set up layout change listener to persist layout
+  useEffect(() => {
+    if (!apiRef.current) return;
+
+    const disposable = apiRef.current.onDidLayoutChange(() => {
       try {
-        const json = event.api.toJSON();
+        const json = apiRef.current!.toJSON();
         localStorage.setItem(LAYOUT_KEY, JSON.stringify(json));
       } catch (err) {
         console.error("Failed to save layout", err);
