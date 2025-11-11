@@ -8,40 +8,23 @@ import {
 } from "dockview-react";
 // Note: Dockview CSS is imported globally in app/globals.css
 
-// Sample panels
-function ExplorerPanel(props: IDockviewPanelProps) {
-  return (
-    <div className="panel-explorer" style={{ padding: "1rem" }}>
-      <h3>Explorer</h3>
-      <p>Asset navigation, scenes, overlays...</p>
-    </div>
-  );
-}
-
-function EditorPanel(props: IDockviewPanelProps) {
-  return (
-    <div className="panel-editor" style={{ padding: "1rem" }}>
-      <h3>Main Editor</h3>
-      <p>Widget controls, live editing...</p>
-    </div>
-  );
-}
-
-function ConsolePanel(props: IDockviewPanelProps) {
-  return (
-    <div className="panel-console" style={{ padding: "1rem" }}>
-      <h3>Console / Event Log</h3>
-      <p>System events, logs, status...</p>
-    </div>
-  );
-}
+// Import widget panels
+import { LowerThirdPanel } from "./panels/LowerThirdPanel";
+import { CountdownPanel } from "./panels/CountdownPanel";
+import { GuestsPanel } from "./panels/GuestsPanel";
+import { PosterPanel } from "./panels/PosterPanel";
+import { MacrosPanel } from "./panels/MacrosPanel";
+import { EventLogPanel } from "./panels/EventLogPanel";
 
 const LAYOUT_KEY = "obs-live-suite-dockview-layout";
 
 const components = {
-  explorer: ExplorerPanel,
-  editor: EditorPanel,
-  console: ConsolePanel,
+  lowerThird: LowerThirdPanel,
+  countdown: CountdownPanel,
+  guests: GuestsPanel,
+  poster: PosterPanel,
+  macros: MacrosPanel,
+  eventLog: EventLogPanel,
 };
 
 export function DashboardShell() {
@@ -61,30 +44,58 @@ export function DashboardShell() {
       }
     }
 
-    // Default layout: 3-panel IDE-style
-    const explorer = event.api.addPanel({
-      id: "explorer",
-      component: "explorer",
-      title: "Explorer",
-      position: { direction: "left" },
+    // Default layout: Main widgets area + Bottom panels
+    // Main area with widget panels in tabs
+    const lowerThird = event.api.addPanel({
+      id: "lowerThird",
+      component: "lowerThird",
+      title: "Lower Third",
     });
 
-    const editor = event.api.addPanel({
-      id: "editor",
-      component: "editor",
-      title: "Main Editor",
+    const countdown = event.api.addPanel({
+      id: "countdown",
+      component: "countdown",
+      title: "Countdown",
+      position: { referencePanel: lowerThird, direction: "within" },
     });
 
-    const consolePanel = event.api.addPanel({
-      id: "console",
-      component: "console",
-      title: "Console",
-      position: { referencePanel: editor, direction: "below" },
+    const guests = event.api.addPanel({
+      id: "guests",
+      component: "guests",
+      title: "Guests",
+      position: { referencePanel: lowerThird, direction: "within" },
     });
 
-    // Set initial sizes
-    explorer.api.setSize({ size: 250 });
-    consolePanel.api.setSize({ size: 200 });
+    const poster = event.api.addPanel({
+      id: "poster",
+      component: "poster",
+      title: "Poster",
+      position: { referencePanel: lowerThird, direction: "within" },
+    });
+
+    // Bottom panel for Macros
+    const macros = event.api.addPanel({
+      id: "macros",
+      component: "macros",
+      title: "Macros",
+      position: { referencePanel: lowerThird, direction: "below" },
+    });
+
+    // Event Log next to Macros in bottom area
+    const eventLog = event.api.addPanel({
+      id: "eventLog",
+      component: "eventLog",
+      title: "Event Log",
+      position: { referencePanel: macros, direction: "within" },
+    });
+
+    // Set initial sizes for bottom panel (height in pixels)
+    try {
+      macros.api.setSize({ height: 250 });
+    } catch (err) {
+      // Ignore if setSize API has changed
+      console.warn("Failed to set panel size:", err);
+    }
 
     // Save layout on any change
     const disposable = event.api.onDidLayoutChange(() => {

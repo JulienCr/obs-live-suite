@@ -12,29 +12,42 @@ interface Command {
 }
 
 const COMMANDS: Command[] = [
+  // Navigation
   {
-    id: "toggle-explorer",
-    label: "Toggle Explorer Panel",
-    keywords: ["panel", "sidebar", "explorer"],
-    action: () => console.log("Toggle Explorer"),
+    id: "nav-dashboard",
+    label: "Go to Dashboard",
+    keywords: ["navigate", "home", "main"],
+    action: () => (window.location.href = "/dashboard"),
   },
   {
-    id: "toggle-console",
-    label: "Toggle Console",
-    keywords: ["panel", "console", "log"],
-    action: () => console.log("Toggle Console"),
+    id: "nav-assets",
+    label: "Go to Assets",
+    keywords: ["navigate", "assets", "images", "media", "upload"],
+    action: () => (window.location.href = "/assets"),
   },
   {
-    id: "settings",
-    label: "Open Settings",
-    keywords: ["preferences", "config"],
+    id: "nav-settings",
+    label: "Go to Settings",
+    keywords: ["navigate", "preferences", "config", "configure"],
     action: () => (window.location.href = "/settings"),
   },
   {
-    id: "assets",
-    label: "Open Assets",
-    keywords: ["assets", "images", "media"],
-    action: () => (window.location.href = "/assets"),
+    id: "nav-profiles",
+    label: "Go to Profiles",
+    keywords: ["navigate", "profiles", "guests", "people"],
+    action: () => (window.location.href = "/profiles"),
+  },
+  {
+    id: "nav-quiz-manage",
+    label: "Go to Quiz Management",
+    keywords: ["navigate", "quiz", "questions", "manage"],
+    action: () => (window.location.href = "/quiz/manage"),
+  },
+  {
+    id: "nav-quiz-host",
+    label: "Go to Quiz Host",
+    keywords: ["navigate", "quiz", "host", "control"],
+    action: () => (window.location.href = "/quiz/host"),
   },
 ];
 
@@ -102,7 +115,7 @@ export function CommandPalette() {
       onItemSelect={handleItemSelect}
       onClose={() => setIsOpen(false)}
       resetOnSelect
-      placeholder="Type a command or search... (Cmd/Ctrl+P)"
+      inputProps={{ placeholder: "Type a command or search... (Cmd/Ctrl+P)" }}
     />
   );
 }
