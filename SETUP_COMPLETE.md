@@ -204,11 +204,15 @@ Already enabled via `bp5-dark` class on `<body>`.
 ## 🔍 Debugging Tips
 
 ### CSS Not Loading?
-Check `app/globals.css` has Blueprint imports at top.
+Check `app/globals.css` has Blueprint imports at top:
+```css
+@import "dockview-react/dist/styles/dockview.css";
+```
+(Note: It's `dist/styles/dockview.css`, not `dist/styles.css`)
 
 ### Dockview Not Rendering?
 - Check `height: 100vh` on parent container
-- Verify `dockview-react/dist/styles.css` imported
+- Verify Dockview CSS imported in `app/globals.css`
 
 ### Command Palette Not Opening?
 - Check console for JS errors

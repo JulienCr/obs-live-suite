@@ -24,7 +24,12 @@ Migrating from Next.js + Radix-UI + Tailwind to Blueprint.js + Dockview while pr
 ## Installation
 
 ```bash
-pnpm add @blueprintjs/core @blueprintjs/icons @blueprintjs/popover2 dockview-core dockview-react
+pnpm add @blueprintjs/core @blueprintjs/icons @blueprintjs/popover2 @blueprintjs/select dockview-core dockview-react
+```
+
+**Note:** After installation, import Dockview CSS in `app/globals.css`:
+```css
+@import "dockview-react/dist/styles/dockview.css";
 ```
 
 ## Architecture
