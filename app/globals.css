@@ -5,7 +5,7 @@
 @import "@blueprintjs/select/lib/css/blueprint-select.css";
 
 /* Dockview styles */
-@import "dockview-react/dist/styles.css";
+@import "dockview-react/dist/styles/dockview.css";
 
 /* Tailwind - keep minimal utilities only */
 @tailwind base;

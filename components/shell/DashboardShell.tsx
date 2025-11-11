@@ -6,7 +6,7 @@ import {
   DockviewReadyEvent,
   IDockviewPanelProps,
 } from "dockview-react";
-import "dockview-react/dist/styles.css";
+// Note: Dockview CSS is imported globally in app/globals.css
 
 // Sample panels
 function ExplorerPanel(props: IDockviewPanelProps) {
