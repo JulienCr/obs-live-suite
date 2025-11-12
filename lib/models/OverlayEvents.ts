@@ -8,6 +8,8 @@ export enum OverlayChannel {
   COUNTDOWN = "countdown",
   POSTER = "poster",
   QUIZ = "quiz",
+  MEDIA_A = "media:A",
+  MEDIA_B = "media:B",
   SYSTEM = "system",
 }
 

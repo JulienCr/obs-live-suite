@@ -22,6 +22,22 @@ import { PathManager } from "../lib/config/PathManager";
 import { AppConfig } from "../lib/config/AppConfig";
 import quizRouter from "./api/quiz";
 import quizBotRouter from "./api/quiz-bot";
+import { randomUUID } from "crypto";
+import {
+  MediaInstance,
+  MediaEventType,
+  addMediaItemRequestSchema,
+  updateMediaItemRequestSchema,
+  reorderMediaItemsRequestSchema,
+  toggleMediaRequestSchema,
+  muteMediaRequestSchema,
+} from "../lib/models/Media";
+import {
+  detectMediaType,
+  extractYouTubeId,
+  getYouTubeThumbnail,
+  generateMediaTitle,
+} from "../lib/utils/media";
 
 class BackendServer {
   private logger: Logger;
@@ -168,6 +184,273 @@ class BackendServer {
         await this.channelManager.publish(channel, type, payload);
         res.json({ success: true });
       } catch (error) {
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // ==================== MEDIA OVERLAY API ====================
+
+    // Helper to get channel for instance
+    const getMediaChannel = (instance: string) => {
+      if (instance === 'A') return OverlayChannel.MEDIA_A;
+      if (instance === 'B') return OverlayChannel.MEDIA_B;
+      throw new Error('Invalid instance');
+    };
+
+    // Get media playlist state
+    this.app.get('/api/media/:instance/state', async (req, res) => {
+      try {
+        const instance = req.params.instance as MediaInstance;
+        if (instance !== 'A' && instance !== 'B') {
+          return res.status(400).json({ error: 'Invalid instance' });
+        }
+
+        const db = DatabaseService.getInstance();
+        const playlist = db.getMediaPlaylistByInstance(instance);
+
+        if (!playlist) {
+          return res.status(404).json({ error: 'Playlist not found' });
+        }
+
+        const currentItem = playlist.items[playlist.index] || null;
+
+        res.json({
+          playlist,
+          currentItem,
+        });
+      } catch (error) {
+        this.logger.error('Error getting media state:', error);
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // Add media item
+    this.app.post('/api/media/:instance/items', async (req, res) => {
+      try {
+        const instance = req.params.instance as MediaInstance;
+        if (instance !== 'A' && instance !== 'B') {
+          return res.status(400).json({ error: 'Invalid instance' });
+        }
+
+        const body = addMediaItemRequestSchema.parse(req.body);
+        const { url } = body;
+
+        // Detect media type
+        const type = detectMediaType(url);
+        if (!type) {
+          return res.status(400).json({ error: 'Unsupported media type' });
+        }
+
+        // Generate metadata
+        const id = randomUUID();
+        const title = generateMediaTitle(url, type);
+        let thumb: string | undefined;
+
+        if (type === 'youtube') {
+          const videoId = extractYouTubeId(url);
+          if (videoId) {
+            thumb = getYouTubeThumbnail(videoId);
+          }
+        }
+
+        // Get playlist
+        const db = DatabaseService.getInstance();
+        const playlist = db.getMediaPlaylistByInstance(instance);
+        if (!playlist) {
+          return res.status(404).json({ error: 'Playlist not found' });
+        }
+
+        // Create item
+        const item = {
+          id,
+          url,
+          type,
+          title,
+          thumb,
+        };
+
+        db.createMediaItem(playlist.id, item);
+
+        // Broadcast to overlay
+        const channel = getMediaChannel(instance);
+        await this.channelManager.publish(channel, MediaEventType.ADD_ITEM, { item });
+
+        res.json({ success: true, item });
+      } catch (error) {
+        this.logger.error('Error adding media item:', error);
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // Update media item
+    this.app.patch('/api/media/:instance/items/:id', async (req, res) => {
+      try {
+        const instance = req.params.instance as MediaInstance;
+        const itemId = req.params.id;
+
+        if (instance !== 'A' && instance !== 'B') {
+          return res.status(400).json({ error: 'Invalid instance' });
+        }
+
+        const updates = updateMediaItemRequestSchema.parse(req.body);
+
+        // Update in database
+        const db = DatabaseService.getInstance();
+        db.updateMediaItem(itemId, updates);
+
+        // Broadcast to overlay
+        const channel = getMediaChannel(instance);
+        await this.channelManager.publish(channel, MediaEventType.UPDATE_ITEM, {
+          id: itemId,
+          updates,
+        });
+
+        res.json({ success: true });
+      } catch (error) {
+        this.logger.error('Error updating media item:', error);
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // Delete media item
+    this.app.delete('/api/media/:instance/items/:id', async (req, res) => {
+      try {
+        const instance = req.params.instance as MediaInstance;
+        const itemId = req.params.id;
+
+        if (instance !== 'A' && instance !== 'B') {
+          return res.status(400).json({ error: 'Invalid instance' });
+        }
+
+        // Delete from database
+        const db = DatabaseService.getInstance();
+        db.deleteMediaItem(itemId);
+
+        // Broadcast to overlay
+        const channel = getMediaChannel(instance);
+        await this.channelManager.publish(channel, MediaEventType.REMOVE_ITEM, {
+          id: itemId,
+        });
+
+        res.json({ success: true });
+      } catch (error) {
+        this.logger.error('Error deleting media item:', error);
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // Reorder media items
+    this.app.post('/api/media/:instance/reorder', async (req, res) => {
+      try {
+        const instance = req.params.instance as MediaInstance;
+        if (instance !== 'A' && instance !== 'B') {
+          return res.status(400).json({ error: 'Invalid instance' });
+        }
+
+        const body = reorderMediaItemsRequestSchema.parse(req.body);
+        const { order } = body;
+
+        // Get playlist
+        const db = DatabaseService.getInstance();
+        const playlist = db.getMediaPlaylistByInstance(instance);
+        if (!playlist) {
+          return res.status(404).json({ error: 'Playlist not found' });
+        }
+
+        // Reorder in database
+        db.reorderMediaItems(playlist.id, order);
+
+        // Broadcast to overlay
+        const channel = getMediaChannel(instance);
+        await this.channelManager.publish(channel, MediaEventType.REORDER, { order });
+
+        res.json({ success: true });
+      } catch (error) {
+        this.logger.error('Error reordering media items:', error);
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // Toggle media overlay on/off
+    this.app.post('/api/media/:instance/toggle', async (req, res) => {
+      try {
+        const instance = req.params.instance as MediaInstance;
+        if (instance !== 'A' && instance !== 'B') {
+          return res.status(400).json({ error: 'Invalid instance' });
+        }
+
+        const body = toggleMediaRequestSchema.parse(req.body);
+        const { on } = body;
+
+        // Update in database
+        const db = DatabaseService.getInstance();
+        db.updateMediaPlaylist(instance, { on });
+
+        // Broadcast to overlay
+        const channel = getMediaChannel(instance);
+        await this.channelManager.publish(channel, MediaEventType.TOGGLE, { on });
+
+        res.json({ success: true });
+      } catch (error) {
+        this.logger.error('Error toggling media:', error);
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // Next media item
+    this.app.post('/api/media/:instance/next', async (req, res) => {
+      try {
+        const instance = req.params.instance as MediaInstance;
+        if (instance !== 'A' && instance !== 'B') {
+          return res.status(400).json({ error: 'Invalid instance' });
+        }
+
+        // Get current playlist
+        const db = DatabaseService.getInstance();
+        const playlist = db.getMediaPlaylistByInstance(instance);
+        if (!playlist) {
+          return res.status(404).json({ error: 'Playlist not found' });
+        }
+
+        // Calculate next index (wrap around)
+        const nextIndex = playlist.items.length > 0 ? (playlist.index + 1) % playlist.items.length : 0;
+
+        // Update in database
+        db.updateMediaPlaylist(instance, { index: nextIndex });
+
+        // Broadcast to overlay
+        const channel = getMediaChannel(instance);
+        await this.channelManager.publish(channel, MediaEventType.NEXT, {});
+
+        res.json({ success: true, nextIndex });
+      } catch (error) {
+        this.logger.error('Error moving to next media:', error);
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
+    // Mute/unmute media
+    this.app.post('/api/media/:instance/mute', async (req, res) => {
+      try {
+        const instance = req.params.instance as MediaInstance;
+        if (instance !== 'A' && instance !== 'B') {
+          return res.status(400).json({ error: 'Invalid instance' });
+        }
+
+        const body = muteMediaRequestSchema.parse(req.body);
+        const { muted } = body;
+
+        // Update in database
+        const db = DatabaseService.getInstance();
+        db.updateMediaPlaylist(instance, { muted });
+
+        // Broadcast to overlay
+        const channel = getMediaChannel(instance);
+        await this.channelManager.publish(channel, MediaEventType.MUTE, { muted });
+
+        res.json({ success: true });
+      } catch (error) {
+        this.logger.error('Error muting media:', error);
         res.status(500).json({ error: String(error) });
       }
     });
