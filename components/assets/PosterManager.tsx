@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { TagInput } from "@/components/ui/tag-input";
 import { PosterUploader } from "./PosterUploader";
-import { Plus, Trash2, Upload, Power, PowerOff } from "lucide-react";
+import { Plus, Trash2, Upload, Power, PowerOff, Edit } from "lucide-react";
 
 interface Poster {
   id: string;
@@ -28,6 +28,10 @@ export function PosterManager() {
   const [showUploader, setShowUploader] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showImageReplacer, setShowImageReplacer] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     fileUrl: "",
@@ -62,29 +66,88 @@ export function PosterManager() {
     }
   };
 
+  // Filter posters by search query and selected tags
+  const filteredPosters = useMemo(() => {
+    let filtered = posters;
+
+    // Text search by title
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((p) =>
+        p.title.toLowerCase().includes(query)
+      );
+    }
+
+    // Tag filter (AND logic - poster must have ALL selected tags)
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter((p) =>
+        selectedTags.every((tag) =>
+          p.tags.some((pt) => pt.toLowerCase() === tag.toLowerCase())
+        )
+      );
+    }
+
+    return filtered;
+  }, [posters, searchQuery, selectedTags]);
+
   const handleUploadComplete = (url: string, type: "image" | "video" | "youtube") => {
     setFormData({ ...formData, fileUrl: url, type });
     setShowUploader(false);
+    setShowImageReplacer(false);
     setShowForm(true);
   };
 
-  const handleCreate = async () => {
-    try {
-      const res = await fetch("/api/assets/posters", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+  const handleEdit = (poster: Poster) => {
+    setEditingId(poster.id);
+    setFormData({
+      title: poster.title,
+      fileUrl: poster.fileUrl,
+      type: poster.type,
+      tags: poster.tags,
+    });
+    setShowForm(true);
+    setShowUploader(false);
+    setShowImageReplacer(false);
+  };
 
-      if (res.ok) {
-        fetchPosters();
-        fetchTagSuggestions(); // Refresh autocomplete with new tags
-        setShowForm(false);
-        setShowUploader(false);
-        setFormData({ title: "", fileUrl: "", type: "image", tags: [] });
+  const handleSubmit = async () => {
+    try {
+      if (editingId) {
+        // Update existing poster
+        const res = await fetch(`/api/assets/posters/${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (res.ok) {
+          fetchPosters();
+          fetchTagSuggestions(); // Refresh autocomplete with new tags
+          setShowForm(false);
+          setEditingId(null);
+          setShowUploader(false);
+          setShowImageReplacer(false);
+          setFormData({ title: "", fileUrl: "", type: "image", tags: [] });
+        }
+      } else {
+        // Create new poster
+        const res = await fetch("/api/assets/posters", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+
+        if (res.ok) {
+          fetchPosters();
+          fetchTagSuggestions(); // Refresh autocomplete with new tags
+          setShowForm(false);
+          setShowUploader(false);
+          setShowImageReplacer(false);
+          setFormData({ title: "", fileUrl: "", type: "image", tags: [] });
+        }
       }
     } catch (error) {
-      console.error("Failed to create poster:", error);
+      console.error("Failed to save poster:", error);
     }
   };
 
@@ -125,11 +188,56 @@ export function PosterManager() {
             Manage images and videos for your shows
           </p>
         </div>
-        <Button onClick={() => setShowUploader(true)}>
+        <Button
+          onClick={() => {
+            setEditingId(null);
+            setShowForm(false);
+            setShowImageReplacer(false);
+            setFormData({ title: "", fileUrl: "", type: "image", tags: [] });
+            setShowUploader(true);
+          }}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Add Poster
         </Button>
       </div>
+
+      {/* Filter Bar */}
+      <div className="flex gap-3">
+        <div className="flex-1">
+          <Input
+            placeholder="Search posters by title..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="w-64">
+          <TagInput
+            value={selectedTags}
+            onChange={setSelectedTags}
+            suggestions={tagSuggestions}
+            placeholder="Filter by tags..."
+          />
+        </div>
+        {(searchQuery || selectedTags.length > 0) && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSearchQuery("");
+              setSelectedTags([]);
+            }}
+          >
+            Clear Filters
+          </Button>
+        )}
+      </div>
+
+      {/* Results Count */}
+      {filteredPosters.length !== posters.length && (
+        <div className="text-sm text-muted-foreground">
+          Showing {filteredPosters.length} of {posters.length} posters
+        </div>
+      )}
 
       {/* Upload Step */}
       {showUploader && (
@@ -139,15 +247,73 @@ export function PosterManager() {
         />
       )}
 
-      {/* Title Form (after upload) */}
+      {/* Create/Edit Form */}
       {showForm && formData.fileUrl && (
         <div className="border rounded-lg p-4 space-y-4">
-          <div className="flex items-center gap-2">
-            <Badge>{formData.type}</Badge>
-            <span className="text-sm text-muted-foreground truncate">
-              {formData.fileUrl}
-            </span>
-          </div>
+          <h3 className="font-medium text-lg">
+            {editingId ? "Edit Poster" : "Upload Poster"}
+          </h3>
+
+          {/* Current Image Preview (Edit Mode Only) */}
+          {editingId && !showImageReplacer && (
+            <div className="space-y-2">
+              <Label>Current Image/Video</Label>
+              <div className="border rounded-lg overflow-hidden bg-muted">
+                <div className="aspect-video relative">
+                  {formData.type === "image" ? (
+                    <img
+                      src={formData.fileUrl}
+                      alt={formData.title}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : formData.type === "youtube" ? (
+                    <iframe
+                      src={formData.fileUrl}
+                      title={formData.title}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video
+                      src={formData.fileUrl}
+                      className="w-full h-full object-contain"
+                      controls
+                    />
+                  )}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowImageReplacer(true)}
+              >
+                <Upload className="w-3 h-3 mr-2" />
+                Change Image/Video
+              </Button>
+            </div>
+          )}
+
+          {/* Image Replacer (Edit Mode Only, when showImageReplacer is true) */}
+          {editingId && showImageReplacer && (
+            <div className="space-y-2">
+              <Label>Upload New Image/Video</Label>
+              <PosterUploader
+                onUpload={handleUploadComplete}
+                onCancel={() => setShowImageReplacer(false)}
+              />
+            </div>
+          )}
+
+          {/* File Info (Create Mode Only) */}
+          {!editingId && (
+            <div className="flex items-center gap-2">
+              <Badge>{formData.type}</Badge>
+              <span className="text-sm text-muted-foreground truncate">
+                {formData.fileUrl}
+              </span>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="title">Poster Title</Label>
@@ -171,13 +337,15 @@ export function PosterManager() {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={handleCreate} disabled={!formData.title}>
-              Save Poster
+            <Button onClick={handleSubmit} disabled={!formData.title}>
+              {editingId ? "Update Poster" : "Save Poster"}
             </Button>
             <Button
               variant="outline"
               onClick={() => {
                 setShowForm(false);
+                setEditingId(null);
+                setShowImageReplacer(false);
                 setFormData({ title: "", fileUrl: "", type: "image", tags: [] });
               }}
             >
@@ -188,17 +356,23 @@ export function PosterManager() {
       )}
 
       {/* Posters Grid */}
-      {posters.length === 0 ? (
+      {filteredPosters.length === 0 ? (
         <div className="text-center py-12 border-2 border-dashed rounded-lg">
           <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">No posters yet</p>
+          <p className="text-muted-foreground">
+            {posters.length === 0
+              ? "No posters yet"
+              : "No posters match your filters"}
+          </p>
           <p className="text-sm text-muted-foreground">
-            Click &ldquo;Add Poster&rdquo; to get started
+            {posters.length === 0
+              ? 'Click "Add Poster" to get started'
+              : "Try adjusting your search or filters"}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {posters.map((poster) => (
+          {filteredPosters.map((poster) => (
             <div
               key={poster.id}
               className={`border rounded-lg overflow-hidden group relative ${
@@ -253,6 +427,15 @@ export function PosterManager() {
                   ))}
                 </div>
                 <div className="flex gap-2 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleEdit(poster)}
+                  >
+                    <Edit className="w-3 h-3 mr-2" />
+                    Edit
+                  </Button>
                   <Button
                     variant={poster.isEnabled ? "outline" : "default"}
                     size="sm"
