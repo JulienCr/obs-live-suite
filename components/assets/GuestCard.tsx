@@ -1,0 +1,145 @@
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Zap, Edit, Power, PowerOff, Trash2 } from "lucide-react";
+
+interface Guest {
+  id: string;
+  displayName: string;
+  subtitle?: string;
+  accentColor: string;
+  avatarUrl?: string;
+  isEnabled: boolean;
+  createdAt?: string;
+}
+
+interface GuestCardProps {
+  guest: Guest;
+  variant?: "enabled" | "disabled";
+  onQuickLowerThird?: (guest: Guest) => void;
+  onEdit?: (guest: Guest) => void;
+  onToggleEnabled?: (guest: Guest) => void;
+  onDelete?: (guest: Guest) => void;
+}
+
+/**
+ * Reusable guest card component with avatar and quick actions
+ */
+export function GuestCard({
+  guest,
+  variant = "enabled",
+  onQuickLowerThird,
+  onEdit,
+  onToggleEnabled,
+  onDelete,
+}: GuestCardProps) {
+  const isEnabled = variant === "enabled";
+
+  return (
+    <div
+      className={`group relative border rounded-lg p-3 hover:shadow-md transition-all ${
+        !isEnabled ? "opacity-60" : ""
+      }`}
+    >
+      {/* Avatar and Info */}
+      <div className="flex flex-col items-center space-y-2">
+        <div
+          className="w-16 h-16 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden ring-2 ring-offset-2 ring-offset-background"
+          style={{ 
+            backgroundColor: guest.accentColor,
+            ringColor: guest.accentColor + "40"
+          }}
+        >
+          {guest.avatarUrl ? (
+            <img
+              src={guest.avatarUrl}
+              alt={guest.displayName}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-xl">
+              {guest.displayName.charAt(0).toUpperCase()}
+            </span>
+          )}
+        </div>
+
+        <div className="text-center w-full">
+          <h3 className="font-medium text-sm truncate px-1" title={guest.displayName}>
+            {guest.displayName}
+          </h3>
+          {guest.subtitle && (
+            <p className="text-xs text-muted-foreground truncate px-1" title={guest.subtitle}>
+              {guest.subtitle}
+            </p>
+          )}
+        </div>
+
+        {/* Status Badge */}
+        <Badge variant={isEnabled ? "default" : "secondary"} className="text-xs">
+          {isEnabled ? "Active" : "Disabled"}
+        </Badge>
+      </div>
+
+      {/* Quick Actions - Show on hover */}
+      <div className="mt-3 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Quick LT Button - Primary action for enabled guests */}
+        {isEnabled && onQuickLowerThird && (
+          <Button
+            size="sm"
+            className="w-full"
+            onClick={() => onQuickLowerThird(guest)}
+            title="Show Lower Third (8s auto-hide)"
+          >
+            <Zap className="w-3 h-3 mr-2" />
+            Quick LT
+          </Button>
+        )}
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-3 gap-1">
+          {onEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit(guest)}
+              title="Edit"
+              className="px-2"
+            >
+              <Edit className="w-3 h-3" />
+            </Button>
+          )}
+          
+          {onToggleEnabled && (
+            <Button
+              variant={isEnabled ? "outline" : "default"}
+              size="sm"
+              onClick={() => onToggleEnabled(guest)}
+              title={isEnabled ? "Disable" : "Enable"}
+              className="px-2"
+            >
+              {isEnabled ? (
+                <PowerOff className="w-3 h-3" />
+              ) : (
+                <Power className="w-3 h-3" />
+              )}
+            </Button>
+          )}
+          
+          {onDelete && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => onDelete(guest)}
+              title="Delete"
+              className="px-2"
+            >
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+

@@ -6,8 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AvatarUploader } from "./AvatarUploader";
-import { Plus, Trash2, Edit, User, Zap, Power, PowerOff } from "lucide-react";
+import { VirtualizedGuestGrid } from "./VirtualizedGuestGrid";
+import { Plus, User, ChevronDown, ChevronUp, Users } from "lucide-react";
 
 interface Guest {
   id: string;
@@ -16,17 +19,20 @@ interface Guest {
   accentColor: string;
   avatarUrl?: string;
   isEnabled: boolean;
-  createdAt: string;
+  createdAt?: string;
 }
 
 /**
- * Guest management component
+ * Guest management component with virtualized grids and search
  */
 export function GuestManager() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showDisabled, setShowDisabled] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
   const [formData, setFormData] = useState({
     displayName: "",
     subtitle: "",
@@ -65,12 +71,7 @@ export function GuestManager() {
           fetchGuests();
           setShowForm(false);
           setEditingId(null);
-          setFormData({
-            displayName: "",
-            subtitle: "",
-            accentColor: "#3b82f6",
-            avatarUrl: "",
-          });
+          resetForm();
         }
       } else {
         // Create new guest
@@ -86,12 +87,7 @@ export function GuestManager() {
           console.log("[GuestManager] Guest created successfully:", result);
           fetchGuests();
           setShowForm(false);
-          setFormData({
-            displayName: "",
-            subtitle: "",
-            accentColor: "#3b82f6",
-            avatarUrl: "",
-          });
+          resetForm();
         } else {
           const error = await res.json();
           console.error("[GuestManager] Failed to create guest:", error);
@@ -116,6 +112,10 @@ export function GuestManager() {
   const handleCancelEdit = () => {
     setShowForm(false);
     setEditingId(null);
+    resetForm();
+  };
+
+  const resetForm = () => {
     setFormData({
       displayName: "",
       subtitle: "",
@@ -124,12 +124,12 @@ export function GuestManager() {
     });
   };
 
-  const handleToggleEnabled = async (id: string, currentState: boolean) => {
+  const handleToggleEnabled = async (guest: Guest) => {
     try {
-      await fetch(`/api/assets/guests/${id}`, {
+      await fetch(`/api/assets/guests/${guest.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isEnabled: !currentState }),
+        body: JSON.stringify({ isEnabled: !guest.isEnabled }),
       });
       fetchGuests();
     } catch (error) {
@@ -137,11 +137,11 @@ export function GuestManager() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this guest?")) return;
+  const handleDelete = async (guest: Guest) => {
+    if (!confirm(`Delete ${guest.displayName}?`)) return;
 
     try {
-      await fetch(`/api/assets/guests/${id}`, { method: "DELETE" });
+      await fetch(`/api/assets/guests/${guest.id}`, { method: "DELETE" });
       fetchGuests();
     } catch (error) {
       console.error("Failed to delete guest:", error);
@@ -150,12 +150,11 @@ export function GuestManager() {
 
   const handleQuickLowerThird = async (guest: Guest) => {
     try {
-      // Use the same endpoint as Stream Deck plugin (has theme enrichment)
       await fetch(`/api/actions/lower/guest/${guest.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          duration: 8, // Auto-hide after 8 seconds
+          duration: 8,
         }),
       });
     } catch (error) {
@@ -163,32 +162,140 @@ export function GuestManager() {
     }
   };
 
+  const handleEnableFromSearch = async (guestId: string) => {
+    try {
+      await fetch(`/api/assets/guests/${guestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isEnabled: true }),
+      });
+      fetchGuests();
+      setSearchOpen(false);
+      setSearchValue("");
+    } catch (error) {
+      console.error("Failed to enable guest:", error);
+    }
+  };
+
+  // Split guests by enabled status
+  const enabledGuests = guests.filter(g => g.isEnabled);
+  const disabledGuests = guests.filter(g => !g.isEnabled);
+
+  // Filter guests for search (show all, prioritize disabled)
+  const filteredGuestsForSearch = guests.filter(guest => {
+    const search = searchValue.toLowerCase();
+    return (
+      guest.displayName.toLowerCase().includes(search) ||
+      (guest.subtitle && guest.subtitle.toLowerCase().includes(search))
+    );
+  }).sort((a, b) => {
+    // Disabled guests first in search results
+    if (!a.isEnabled && b.isEnabled) return -1;
+    if (a.isEnabled && !b.isEnabled) return 1;
+    return 0;
+  });
+
   if (loading) {
     return <div>Loading guests...</div>;
   }
 
   return (
     <div className="space-y-6">
+      {/* Header with Stats and Actions */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">Guests</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage guest profiles for lower thirds
-          </p>
+          <h2 className="text-2xl font-semibold flex items-center gap-2">
+            <Users className="w-6 h-6" />
+            Guests
+          </h2>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-sm text-muted-foreground">
+              {enabledGuests.length} active · {guests.length} total
+            </p>
+          </div>
         </div>
         <Button onClick={() => {
           setEditingId(null);
-          setFormData({
-            displayName: "",
-            subtitle: "",
-            accentColor: "#3b82f6",
-            avatarUrl: "",
-          });
+          resetForm();
           setShowForm(!showForm);
         }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Guest
         </Button>
+      </div>
+
+      {/* Search Bar - Enable Disabled Guests */}
+      <div className="space-y-2">
+        <Label htmlFor="guest-search">Enable a Guest</Label>
+        <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={searchOpen}
+              className="w-full justify-between"
+            >
+              <span className="text-muted-foreground">
+                Search to enable a disabled guest...
+              </span>
+              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-full p-0" align="start">
+            <Command shouldFilter={false}>
+              <CommandInput
+                placeholder="Search by name or subtitle..."
+                value={searchValue}
+                onValueChange={setSearchValue}
+              />
+              <CommandList>
+                <CommandEmpty>No guests found.</CommandEmpty>
+                <CommandGroup heading="Guests">
+                  {filteredGuestsForSearch.map((guest) => (
+                    <CommandItem
+                      key={guest.id}
+                      value={guest.displayName}
+                      onSelect={() => {
+                        if (!guest.isEnabled) {
+                          handleEnableFromSearch(guest.id);
+                        } else {
+                          setSearchOpen(false);
+                        }
+                      }}
+                      className="flex items-center gap-3"
+                    >
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold overflow-hidden flex-shrink-0"
+                        style={{ backgroundColor: guest.accentColor }}
+                      >
+                        {guest.avatarUrl ? (
+                          <img
+                            src={guest.avatarUrl}
+                            alt={guest.displayName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          guest.displayName.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{guest.displayName}</div>
+                        {guest.subtitle && (
+                          <div className="text-xs text-muted-foreground truncate">
+                            {guest.subtitle}
+                          </div>
+                        )}
+                      </div>
+                      <Badge variant={guest.isEnabled ? "default" : "secondary"} className="text-xs">
+                        {guest.isEnabled ? "Active" : "Disabled"}
+                      </Badge>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Create/Edit Form */}
@@ -269,103 +376,63 @@ export function GuestManager() {
         </Alert>
       )}
 
-      {/* Guests List */}
-      {guests.length === 0 ? (
-        <div className="text-center py-12 border-2 border-dashed rounded-lg">
-          <User className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">No guests yet</p>
-          <p className="text-sm text-muted-foreground">
-            Click &ldquo;Add Guest&rdquo; to get started
-          </p>
+      {/* Active Guests Grid */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium">Active Guests</h3>
+          <Badge variant="default">{enabledGuests.length}</Badge>
         </div>
-      ) : (
-        <div className="space-y-2">
-          {guests.map((guest) => (
-            <div
-              key={guest.id}
-              className={`border rounded-lg p-4 flex items-center justify-between ${
-                !guest.isEnabled ? "opacity-50" : ""
-              }`}
-            >
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden"
-                  style={{ backgroundColor: guest.accentColor }}
-                >
-                  {guest.avatarUrl ? (
-                    <img
-                      src={guest.avatarUrl}
-                      alt={guest.displayName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    guest.displayName.charAt(0).toUpperCase()
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium">{guest.displayName}</h3>
-                    <Badge variant={guest.isEnabled ? "default" : "secondary"} className="text-xs">
-                      {guest.isEnabled ? "Enabled" : "Disabled"}
-                    </Badge>
-                  </div>
-                  {guest.subtitle && (
-                    <p className="text-sm text-muted-foreground">
-                      {guest.subtitle}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => handleQuickLowerThird(guest)}
-                  title="Show Lower Third (8s auto-hide)"
-                  disabled={!guest.isEnabled}
-                >
-                  <Zap className="w-3 h-3 mr-2" />
-                  Quick LT
-                </Button>
-                <Button
-                  variant={guest.isEnabled ? "outline" : "default"}
-                  size="sm"
-                  onClick={() => handleToggleEnabled(guest.id, guest.isEnabled)}
-                >
-                  {guest.isEnabled ? (
-                    <>
-                      <PowerOff className="w-3 h-3 mr-2" />
-                      Disable
-                    </>
-                  ) : (
-                    <>
-                      <Power className="w-3 h-3 mr-2" />
-                      Enable
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit(guest)}
-                >
-                  <Edit className="w-3 h-3 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDelete(guest.id)}
-                >
-                  <Trash2 className="w-3 h-3 mr-2" />
-                  Delete
-                </Button>
-              </div>
+        
+        {enabledGuests.length === 0 ? (
+          <div className="text-center py-12 border-2 border-dashed rounded-lg">
+            <User className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">No active guests</p>
+            <p className="text-sm text-muted-foreground">
+              Add a guest or enable one using the search above
+            </p>
+          </div>
+        ) : (
+          <VirtualizedGuestGrid
+            guests={enabledGuests}
+            variant="enabled"
+            onQuickLowerThird={handleQuickLowerThird}
+            onEdit={handleEdit}
+            onToggleEnabled={handleToggleEnabled}
+            onDelete={handleDelete}
+          />
+        )}
+      </div>
+
+      {/* Disabled Guests Section (Collapsible) */}
+      {disabledGuests.length > 0 && (
+        <div className="space-y-3 pt-4 border-t">
+          <Button
+            variant="ghost"
+            onClick={() => setShowDisabled(!showDisabled)}
+            className="w-full justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-medium">Disabled Guests</h3>
+              <Badge variant="secondary">{disabledGuests.length}</Badge>
             </div>
-          ))}
+            {showDisabled ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </Button>
+
+          {showDisabled && (
+            <VirtualizedGuestGrid
+              guests={disabledGuests}
+              variant="disabled"
+              onEdit={handleEdit}
+              onToggleEnabled={handleToggleEnabled}
+              onDelete={handleDelete}
+            />
+          )}
         </div>
       )}
     </div>
   );
 }
-
