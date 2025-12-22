@@ -9,6 +9,7 @@ interface PosterData {
   isVideo: boolean;
   offsetX?: number; // Horizontal offset from center (960px = center)
   aspectRatio?: number; // width/height ratio
+  side: "left" | "right";
 }
 
 interface PosterState {
@@ -17,6 +18,7 @@ interface PosterState {
   current: PosterData | null;
   previous: PosterData | null;
   transition: "fade" | "slide" | "cut" | "blur";
+  side: "left" | "right";
 }
 
 /**
@@ -29,6 +31,7 @@ export function PosterRenderer() {
     current: null,
     previous: null,
     transition: "fade",
+    side: "left",
   });
 
   const ws = useRef<WebSocket | null>(null);
@@ -85,11 +88,13 @@ export function PosterRenderer() {
               isVideo,
               offsetX: data.payload!.theme?.layout?.x, // Extract horizontal offset from theme
               aspectRatio,
+              side: data.payload!.side || "left",
             };
-            
+
             console.log("[PosterRenderer] Received theme data:", data.payload!.theme);
             console.log("[PosterRenderer] Offset X:", newPoster.offsetX);
             console.log("[PosterRenderer] Aspect ratio:", aspectRatio, isVideo ? "(video)" : "(image)");
+            console.log("[PosterRenderer] Side:", newPoster.side);
 
             setState((prev) => {
               // Cross-fade: move current to previous if there's a current poster
@@ -105,6 +110,7 @@ export function PosterRenderer() {
                   current: newPoster,
                   previous: prev.current,
                   transition: data.payload!.transition,
+                  side: newPoster.side,
                 };
               }
               
@@ -115,6 +121,7 @@ export function PosterRenderer() {
                 current: newPoster,
                 previous: null,
                 transition: data.payload!.transition,
+                side: newPoster.side,
               };
             });
 
@@ -249,13 +256,14 @@ export function PosterRenderer() {
   }
 
   const renderPoster = (posterData: PosterData, className: string) => {
-    console.log("[PosterRenderer] Rendering with offsetX:", posterData.offsetX, "- FORCING LEFT ALIGNMENT");
+    console.log("[PosterRenderer] Rendering with side:", posterData.side);
     console.log("[PosterRenderer] Aspect ratio:", posterData.aspectRatio);
-    
+
     // Determine if this is a landscape image (aspect ratio > 1.2)
     const isLandscape = posterData.aspectRatio && posterData.aspectRatio > 1.2;
-    
-    // Apply different constraints and positioning based on aspect ratio
+    const isLeftSide = posterData.side === "left";
+
+    // Apply different constraints and positioning based on aspect ratio AND side
     const mediaStyle: React.CSSProperties = {
       position: 'absolute',
       objectFit: 'contain',
@@ -263,16 +271,28 @@ export function PosterRenderer() {
       borderRadius: '8px',
       // Different positioning and sizing for landscape vs portrait
       ...(isLandscape ? {
-        // Landscape: bottom left positioning
-        left: '30px',
+        // Landscape: bottom corner positioning
+        ...(isLeftSide ? {
+          left: '30px',
+          right: 'auto',
+        } : {
+          left: 'auto',
+          right: '30px',
+        }),
         bottom: '30px',
         top: 'auto',
         transform: 'none',
         maxWidth: '35%', // Much smaller width for landscape - max 35% of canvas
         maxHeight: '40%', // Smaller height since it's at bottom
       } : {
-        // Portrait/Square: center left positioning (original)
-        left: '30px',
+        // Portrait/Square: center side positioning
+        ...(isLeftSide ? {
+          left: '30px',
+          right: 'auto',
+        } : {
+          left: 'auto',
+          right: '30px',
+        }),
         top: '50%',
         bottom: 'auto',
         transform: 'translate(0%, -50%)',

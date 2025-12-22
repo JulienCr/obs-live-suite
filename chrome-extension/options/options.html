@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OBS-Suite Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>OBS-Suite Settings</h1>
+      <p>Configure your OBS Live Suite connection</p>
+    </header>
+
+    <main>
+      <div class="form-group">
+        <label for="serverUrl">Server URL</label>
+        <input
+          type="text"
+          id="serverUrl"
+          placeholder="http://localhost:3000"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p class="help-text">
+          Enter the URL where your OBS Live Suite is running.<br>
+          Default: <code>http://localhost:3000</code>
+        </p>
+      </div>
+
+      <div class="button-group">
+        <button id="saveBtn" class="btn btn-primary">Save Settings</button>
+        <button id="testBtn" class="btn btn-secondary">Test Connection</button>
+      </div>
+
+      <div id="statusMessage" class="status-message hidden"></div>
+
+      <div class="info-box">
+        <h3>How to use OBS-Suite</h3>
+        <ol>
+          <li>Make sure your OBS Live Suite application is running</li>
+          <li>Enter the server URL above (default is localhost:3000)</li>
+          <li>Click "Test Connection" to verify</li>
+          <li>Right-click any image on any webpage</li>
+          <li>Select "OBS-Suite" → "Show as Left/Right Poster"</li>
+          <li>The image will appear on your OBS overlay!</li>
+        </ol>
+      </div>
+    </main>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
