@@ -163,6 +163,11 @@ class BackendServer {
           case "hide": type = "hide"; break;
           case "next": type = "next"; break;
           case "previous": type = "previous"; break;
+          case "play": type = "play"; break;
+          case "pause": type = "pause"; break;
+          case "seek": type = "seek"; break;
+          case "mute": type = "mute"; break;
+          case "unmute": type = "unmute"; break;
           default: return res.status(400).json({ error: "Invalid action" });
         }
         await this.channelManager.publish(channel, type, payload);
