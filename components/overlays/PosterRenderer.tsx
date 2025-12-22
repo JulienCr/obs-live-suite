@@ -6,7 +6,7 @@ import "./poster.css";
 
 interface PosterData {
   fileUrl: string;
-  isVideo: boolean;
+  type: "image" | "video" | "youtube";
   offsetX?: number; // Horizontal offset from center (960px = center)
   aspectRatio?: number; // width/height ratio
   side: "left" | "right";
@@ -34,15 +34,35 @@ export function PosterRenderer() {
     side: "left",
   });
 
+  const [playbackState, setPlaybackState] = useState({
+    isPlaying: false,
+    isMuted: true,
+    currentTime: 0,
+    duration: 0,
+  });
+
+  const [youtubePlayerReady, setYoutubePlayerReady] = useState(false);
+  const youtubeStateRef = useRef({
+    currentTime: 0,
+    duration: 900,
+    isPlaying: true,
+    isMuted: true,
+  });
+
   const ws = useRef<WebSocket | null>(null);
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const fadeOutTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const crossFadeTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const youtubeRef = useRef<HTMLIFrameElement | null>(null);
 
   // Function to detect aspect ratio of media
-  const detectAspectRatio = useCallback((fileUrl: string, isVideo: boolean): Promise<number> => {
+  const detectAspectRatio = useCallback((fileUrl: string, type: "image" | "video" | "youtube"): Promise<number> => {
     return new Promise((resolve) => {
-      if (isVideo) {
+      if (type === "youtube") {
+        // YouTube videos are always 16:9
+        resolve(16 / 9);
+      } else if (type === "video") {
         const video = document.createElement('video');
         video.onloadedmetadata = () => {
           const aspectRatio = video.videoWidth / video.videoHeight;
@@ -76,25 +96,24 @@ export function PosterRenderer() {
     switch (data.type) {
       case "show":
         if (data.payload) {
-          const isVideo =
+          // Use type from payload or fallback to extension detection
+          const mediaType: "image" | "video" | "youtube" = data.payload.type || (
             data.payload.fileUrl.endsWith(".mp4") ||
             data.payload.fileUrl.endsWith(".webm") ||
-            data.payload.fileUrl.endsWith(".mov");
+            data.payload.fileUrl.endsWith(".mov")
+              ? "video"
+              : "image"
+          );
 
           // Detect aspect ratio asynchronously
-          detectAspectRatio(data.payload.fileUrl, isVideo).then((aspectRatio) => {
+          detectAspectRatio(data.payload.fileUrl, mediaType).then((aspectRatio) => {
             const newPoster: PosterData = {
               fileUrl: data.payload!.fileUrl,
-              isVideo,
+              type: mediaType,
               offsetX: data.payload!.theme?.layout?.x, // Extract horizontal offset from theme
               aspectRatio,
               side: data.payload!.side || "left",
             };
-
-            console.log("[PosterRenderer] Received theme data:", data.payload!.theme);
-            console.log("[PosterRenderer] Offset X:", newPoster.offsetX);
-            console.log("[PosterRenderer] Aspect ratio:", aspectRatio, isVideo ? "(video)" : "(image)");
-            console.log("[PosterRenderer] Side:", newPoster.side);
 
             setState((prev) => {
               // Cross-fade: move current to previous if there's a current poster
@@ -139,12 +158,104 @@ export function PosterRenderer() {
         }
         break;
       case "hide":
+        // Stop video/YouTube before hiding
+        if (videoRef.current) {
+          videoRef.current.pause();
+          videoRef.current.currentTime = 0;
+        }
+        if (youtubeRef.current) {
+          youtubeRef.current.contentWindow?.postMessage(
+            '{"event":"command","func":"stopVideo","args":""}',
+            '*'
+          );
+        }
+        
+        // Reset YouTube state
+        youtubeStateRef.current = {
+          currentTime: 0,
+          duration: 900,
+          isPlaying: false,
+          isMuted: true,
+        };
+        
         // Start fade out animation
         setState((prev) => ({ ...prev, hiding: true }));
-        // After fade completes, fully hide
+        // After fade completes, fully hide and clean up
         fadeOutTimeout.current = setTimeout(() => {
           setState((prev) => ({ ...prev, visible: false, hiding: false, current: null, previous: null }));
+          
+          // Clean up refs
+          if (videoRef.current) {
+            videoRef.current.src = '';
+            videoRef.current.load();
+          }
         }, 500); // Match fade duration
+        break;
+      case "play":
+        if (videoRef.current) {
+          videoRef.current.play();
+        }
+        if (youtubeRef.current) {
+          youtubeRef.current.contentWindow?.postMessage(
+            '{"event":"command","func":"playVideo","args":""}',
+            '*'
+          );
+          youtubeStateRef.current.isPlaying = true;
+        }
+        setPlaybackState(prev => ({ ...prev, isPlaying: true }));
+        break;
+      case "pause":
+        if (videoRef.current) {
+          videoRef.current.pause();
+        }
+        if (youtubeRef.current) {
+          youtubeRef.current.contentWindow?.postMessage(
+            '{"event":"command","func":"pauseVideo","args":""}',
+            '*'
+          );
+          youtubeStateRef.current.isPlaying = false;
+        }
+        setPlaybackState(prev => ({ ...prev, isPlaying: false }));
+        break;
+      case "seek":
+        const seekTime = (data.payload as any)?.time || 0;
+        if (videoRef.current) {
+          videoRef.current.currentTime = seekTime;
+        }
+        if (youtubeRef.current) {
+          youtubeRef.current.contentWindow?.postMessage(
+            `{"event":"command","func":"seekTo","args":[${seekTime}, true]}`,
+            '*'
+          );
+          youtubeStateRef.current.currentTime = seekTime;
+        }
+        setPlaybackState(prev => ({ ...prev, currentTime: seekTime }));
+        break;
+      case "mute":
+        if (videoRef.current) {
+          videoRef.current.muted = true;
+        }
+        if (youtubeRef.current) {
+          youtubeRef.current.contentWindow?.postMessage(
+            '{"event":"command","func":"mute","args":""}',
+            '*'
+          );
+          youtubeStateRef.current.isMuted = true;
+        }
+        setPlaybackState(prev => ({ ...prev, isMuted: true }));
+        break;
+      case "unmute":
+        if (videoRef.current) {
+          videoRef.current.muted = false;
+        }
+        if (youtubeRef.current) {
+          youtubeRef.current.contentWindow?.postMessage(
+            '{"event":"command","func":"unMute","args":""}',
+            '*'
+          );
+          youtubeStateRef.current.isMuted = false;
+        }
+        setPlaybackState(prev => ({ ...prev, isMuted: false }));
         break;
     }
 
@@ -186,7 +297,6 @@ export function PosterRenderer() {
           ws.current?.close();
           return;
         }
-        console.log("[Poster] Connected to WebSocket");
         ws.current?.send(
           JSON.stringify({
             type: "subscribe",
@@ -217,12 +327,9 @@ export function PosterRenderer() {
         // Only auto-reconnect on unexpected disconnections
         // Code 1000 = normal closure, 1001 = going away (page navigation)
         if (isMounted && event.code !== 1000 && event.code !== 1001) {
-          console.log("[Poster] WebSocket closed unexpectedly, reconnecting in 3s...");
           reconnectTimeout = setTimeout(() => {
             connect();
           }, 3000);
-        } else {
-          console.log("[Poster] WebSocket closed normally");
         }
       };
     };
@@ -251,17 +358,174 @@ export function PosterRenderer() {
     };
   }, [handleEvent]);
 
+  // Send playback state updates for video/youtube
+  useEffect(() => {
+    if (!state.current || (state.current.type !== "video" && state.current.type !== "youtube")) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (state.current?.type === "video" && videoRef.current) {
+        // For local videos, use standard HTML5 video API
+        const currentTime = videoRef.current.currentTime || 0;
+        const duration = videoRef.current.duration || 0;
+        const isPlaying = !videoRef.current.paused;
+        const isMuted = videoRef.current.muted;
+
+        // Update state and send to backend
+        setPlaybackState({ currentTime, duration, isPlaying, isMuted });
+
+        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+          ws.current.send(JSON.stringify({
+            type: "state",
+            channel: "poster",
+            data: { currentTime, duration, isPlaying, isMuted }
+          }));
+        }
+      }
+      // For YouTube, state will be updated by message listener
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [state.current]);
+
+  // Listen to YouTube player messages and send state updates
+  useEffect(() => {
+    if (!state.current || state.current.type !== "youtube") {
+      return;
+    }
+
+    // Initialize from ref or defaults
+    const currentYouTubeState = youtubeStateRef.current;
+
+    // Send initial state immediately
+    setPlaybackState(currentYouTubeState);
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({
+        type: "state",
+        channel: "poster",
+        data: currentYouTubeState
+      }));
+    }
+
+    const handleYouTubeMessage = (event: MessageEvent) => {
+      // Only process messages from YouTube
+      if (typeof event.data !== 'string') return;
+      
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.event === "onReady") {
+          setYoutubePlayerReady(true);
+          
+          // Subscribe to state changes
+          if (youtubeRef.current) {
+            youtubeRef.current.contentWindow?.postMessage(
+              '{"event":"listening","id":"poster-overlay","channel":"widget"}',
+              '*'
+            );
+          }
+        } else if (data.event === "infoDelivery" && data.info) {
+          const info = data.info;
+          
+          // Update ref with real YouTube data
+          if (info.currentTime !== undefined) youtubeStateRef.current.currentTime = info.currentTime;
+          if (info.duration !== undefined) youtubeStateRef.current.duration = info.duration;
+          if (info.playerState !== undefined) youtubeStateRef.current.isPlaying = info.playerState === 1;
+          if (info.muted !== undefined) youtubeStateRef.current.isMuted = info.muted;
+        }
+      } catch (e) {
+        // Ignore non-JSON messages
+      }
+    };
+
+    // Send state updates periodically
+    const stateInterval = setInterval(() => {
+      // Increment local time if playing
+      if (youtubeStateRef.current.isPlaying) {
+        youtubeStateRef.current.currentTime += 1;
+      }
+      
+      setPlaybackState({...youtubeStateRef.current});
+
+      if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+        ws.current.send(JSON.stringify({
+          type: "state",
+          channel: "poster",
+          data: youtubeStateRef.current
+        }));
+      }
+    }, 1000);
+
+    window.addEventListener("message", handleYouTubeMessage);
+    
+    return () => {
+      window.removeEventListener("message", handleYouTubeMessage);
+      clearInterval(stateInterval);
+    };
+  }, [state.current]);
+
   if (!state.visible && !state.hiding) {
     return null;
   }
 
   const renderPoster = (posterData: PosterData, className: string) => {
-    console.log("[PosterRenderer] Rendering with side:", posterData.side);
-    console.log("[PosterRenderer] Aspect ratio:", posterData.aspectRatio);
-
-    // Determine if this is a landscape image (aspect ratio > 1.2)
-    const isLandscape = posterData.aspectRatio && posterData.aspectRatio > 1.2;
     const isLeftSide = posterData.side === "left";
+
+    // YouTube has special positioning: always centered vertically, 50% width
+    if (posterData.type === "youtube") {
+      // Add YouTube parameters to force autoplay and hide UI
+      const youtubeUrl = new URL(posterData.fileUrl);
+      youtubeUrl.searchParams.set('autoplay', '1');
+      youtubeUrl.searchParams.set('mute', '1');
+      youtubeUrl.searchParams.set('controls', '0');
+      youtubeUrl.searchParams.set('showinfo', '0');
+      youtubeUrl.searchParams.set('rel', '0');
+      youtubeUrl.searchParams.set('modestbranding', '1');
+      youtubeUrl.searchParams.set('playsinline', '1');
+      youtubeUrl.searchParams.set('loop', '1');
+      youtubeUrl.searchParams.set('enablejsapi', '1');
+      
+      const youtubeStyle: React.CSSProperties = {
+        position: 'absolute',
+        objectFit: 'contain',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
+        borderRadius: '8px',
+        // Centered vertically, 50% width, left or right positioning
+        ...(isLeftSide ? {
+          left: '30px',
+          right: 'auto',
+        } : {
+          left: 'auto',
+          right: '30px',
+        }),
+        top: '50%',
+        transform: 'translate(0%, -50%)',
+        width: '50%',
+        aspectRatio: '16 / 9', // YouTube is always 16:9
+        border: 'none',
+      };
+
+      return (
+        <div 
+          key={posterData.fileUrl} 
+          className={className}
+        >
+          <iframe
+            ref={youtubeRef}
+            style={youtubeStyle}
+            src={youtubeUrl.toString()}
+            title="YouTube video"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            aria-label="Poster YouTube video"
+          />
+        </div>
+      );
+    }
+
+    // For images and videos: existing logic
+    const isLandscape = posterData.aspectRatio && posterData.aspectRatio > 1.2;
 
     // Apply different constraints and positioning based on aspect ratio AND side
     const mediaStyle: React.CSSProperties = {
@@ -306,8 +570,9 @@ export function PosterRenderer() {
         key={posterData.fileUrl} 
         className={className}
       >
-        {posterData.isVideo ? (
+        {posterData.type === "video" ? (
           <video
+            ref={videoRef}
             style={mediaStyle}
             src={posterData.fileUrl}
             autoPlay
