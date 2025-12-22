@@ -191,6 +191,14 @@ export class WebSocketHub {
           this.logger.debug(`Received ack from ${clientId}`);
           break;
 
+        case "state":
+          // Broadcast state updates to all clients subscribed to the channel
+          if (message.channel && message.data) {
+            this.broadcast(message.channel, message.data);
+            this.logger.debug(`Broadcasting state update for channel ${message.channel}`);
+          }
+          break;
+
         default:
           this.logger.warn(`Unknown message type: ${message.type}`);
       }
