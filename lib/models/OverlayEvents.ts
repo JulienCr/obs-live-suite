@@ -93,6 +93,7 @@ export const posterShowPayloadSchema = z.object({
   fileUrl: z.string(),
   transition: z.enum(["fade", "slide", "cut", "blur"]).default("fade"),
   duration: z.number().int().positive().optional(),
+  side: z.enum(["left", "right"]).default("left"),
   theme: z.object({
     layout: z.object({
       x: z.number(),
