@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { TagInput } from "@/components/ui/tag-input";
 import { PosterUploader } from "./PosterUploader";
 import { Plus, Trash2, Upload, Power, PowerOff } from "lucide-react";
 
@@ -26,6 +27,7 @@ export function PosterManager() {
   const [loading, setLoading] = useState(true);
   const [showUploader, setShowUploader] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     title: "",
     fileUrl: "",
@@ -35,6 +37,7 @@ export function PosterManager() {
 
   useEffect(() => {
     fetchPosters();
+    fetchTagSuggestions();
   }, []);
 
   const fetchPosters = async () => {
@@ -46,6 +49,16 @@ export function PosterManager() {
       console.error("Failed to fetch posters:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTagSuggestions = async () => {
+    try {
+      const res = await fetch("/api/assets/tags");
+      const data = await res.json();
+      setTagSuggestions(data.tags || []);
+    } catch (error) {
+      console.error("Failed to fetch tags:", error);
     }
   };
 
@@ -62,9 +75,10 @@ export function PosterManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      
+
       if (res.ok) {
         fetchPosters();
+        fetchTagSuggestions(); // Refresh autocomplete with new tags
         setShowForm(false);
         setShowUploader(false);
         setFormData({ title: "", fileUrl: "", type: "image", tags: [] });
@@ -143,6 +157,16 @@ export function PosterManager() {
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="Enter a title for this poster"
               autoFocus
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="tags">Tags</Label>
+            <TagInput
+              value={formData.tags}
+              onChange={(tags) => setFormData({ ...formData, tags })}
+              suggestions={tagSuggestions}
+              placeholder="Add tags..."
             />
           </div>
 

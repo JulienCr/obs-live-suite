@@ -21,6 +21,7 @@ export async function POST(request: Request) {
       subfolder: "posters",
       allowedTypes: [
         "image/jpeg",
+        "image/jpg",   // Accept both jpg and jpeg
         "image/png",
         "image/gif",
         "image/webp",
