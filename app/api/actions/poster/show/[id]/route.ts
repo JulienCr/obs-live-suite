@@ -29,9 +29,10 @@ export async function POST(
     const basePayload = {
       posterId: id,
       fileUrl: poster.fileUrl,
+      type: poster.type as "image" | "video" | "youtube",
       transition: 'fade' as const,
     };
-    
+
     const enrichedPayload = enrichPosterPayload(basePayload, db);
     console.log("[PosterAction] Publishing with theme:", !!enrichedPayload.theme);
 
@@ -49,7 +50,7 @@ export async function POST(
       return NextResponse.json(data, { status: response.status });
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       poster: {
         id: poster.id,
