@@ -17,6 +17,8 @@ import { Plus, Trash2, Upload, ChevronDown, ChevronUp, Image as ImageIcon, Video
 interface Poster {
   id: string;
   title: string;
+  description?: string;
+  source?: string;
   fileUrl: string;
   type: "image" | "video" | "youtube";
   tags: string[];
@@ -38,14 +40,16 @@ export function PosterManager() {
   const [showDisabled, setShowDisabled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  
+
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<"all" | "image" | "video" | "youtube">("all");
-  
+
   const [formData, setFormData] = useState({
     title: "",
+    description: "",
+    source: "",
     fileUrl: "",
     type: "image" as "image" | "video" | "youtube",
     tags: [] as string[],
@@ -142,8 +146,33 @@ export function PosterManager() {
     return { enabled, total, byType };
   }, [posters, enabledPosters]);
 
-  const handleUploadComplete = (url: string, type: "image" | "video" | "youtube") => {
-    setFormData({ ...formData, fileUrl: url, type });
+  const handleUploadComplete = async (url: string, type: "image" | "video" | "youtube") => {
+    let title = "";
+    let source = "";
+
+    // Auto-fetch metadata for YouTube
+    if (type === "youtube") {
+      try {
+        const res = await fetch(`/api/utils/metadata?url=${encodeURIComponent(url)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.title) title = data.title;
+          if (data.author_name && data.title) {
+            source = `${data.author_name} | ${data.title}`;
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch metadata:", error);
+      }
+    }
+
+    setFormData({
+      ...formData,
+      fileUrl: url,
+      type,
+      title: title || formData.title, // Only overwrite if we got a title
+      source: source || formData.source
+    });
     setShowUploader(false);
     setShowImageReplacer(false);
     setShowForm(true);
@@ -153,6 +182,8 @@ export function PosterManager() {
     setEditingId(poster.id);
     setFormData({
       title: poster.title,
+      description: poster.description || "",
+      source: poster.source || "",
       fileUrl: poster.fileUrl,
       type: poster.type,
       tags: poster.tags,
@@ -201,7 +232,8 @@ export function PosterManager() {
     setEditingId(null);
     setShowUploader(false);
     setShowImageReplacer(false);
-    setFormData({ title: "", fileUrl: "", type: "image", tags: [] });
+    setShowImageReplacer(false);
+    setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [] });
   };
 
   const handleToggleEnabled = async (poster: Poster) => {
@@ -328,7 +360,7 @@ export function PosterManager() {
             setEditingId(null);
             setShowForm(false);
             setShowImageReplacer(false);
-            setFormData({ title: "", fileUrl: "", type: "image", tags: [] });
+            setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [] });
             setShowUploader(true);
           }}
         >
@@ -555,6 +587,27 @@ export function PosterManager() {
               placeholder="Enter a title for this poster"
               autoFocus
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="source">Source (Optional)</Label>
+              <Input
+                id="source"
+                value={formData.source}
+                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                placeholder="Owner | Title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Free text description"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

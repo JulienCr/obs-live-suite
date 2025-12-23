@@ -108,6 +108,7 @@ export const posterShowPayloadSchema = z.object({
       scale: z.number(),
     }),
   }).optional(),
+  source: z.string().optional(),
 });
 
 export type PosterShowPayload = z.infer<typeof posterShowPayloadSchema>;

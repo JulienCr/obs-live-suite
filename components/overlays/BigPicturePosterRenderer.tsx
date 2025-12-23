@@ -53,34 +53,7 @@ export function BigPicturePosterRenderer() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const youtubeRef = useRef<HTMLIFrameElement | null>(null);
 
-  // Function to detect aspect ratio of media
-  const detectAspectRatio = useCallback(
-    (fileUrl: string, type: "image" | "video" | "youtube"): Promise<number> => {
-      return new Promise((resolve) => {
-        if (type === "youtube") {
-          // YouTube videos are always 16:9
-          resolve(16 / 9);
-        } else if (type === "video") {
-          const video = document.createElement("video");
-          video.onloadedmetadata = () => {
-            const aspectRatio = video.videoWidth / video.videoHeight;
-            resolve(aspectRatio);
-          };
-          video.onerror = () => resolve(1); // Default to square if error
-          video.src = fileUrl;
-        } else {
-          const img = new Image();
-          img.onload = () => {
-            const aspectRatio = img.naturalWidth / img.naturalHeight;
-            resolve(aspectRatio);
-          };
-          img.onerror = () => resolve(1); // Default to square if error
-          img.src = fileUrl;
-        }
-      });
-    },
-    []
-  );
+
 
   const handleEvent = useCallback(
     (data: {
@@ -105,65 +78,60 @@ export function BigPicturePosterRenderer() {
             const mediaType: "image" | "video" | "youtube" =
               data.payload.type ||
               (data.payload.fileUrl.endsWith(".mp4") ||
-              data.payload.fileUrl.endsWith(".webm") ||
-              data.payload.fileUrl.endsWith(".mov")
+                data.payload.fileUrl.endsWith(".webm") ||
+                data.payload.fileUrl.endsWith(".mov")
                 ? "video"
                 : "image");
 
-            // Detect aspect ratio asynchronously
-            detectAspectRatio(data.payload.fileUrl, mediaType).then(
-              (aspectRatio) => {
-                const newPoster: PosterData = {
-                  fileUrl: data.payload!.fileUrl,
-                  type: mediaType,
-                  aspectRatio,
+            const newPoster: PosterData = {
+              fileUrl: data.payload!.fileUrl,
+              type: mediaType,
+              aspectRatio: 1, // Aspect ratio is not used in "center" positioning mode
+            };
+
+            setState((prev) => {
+              // Cross-fade: move current to previous if there's a current poster
+              if (prev.visible && prev.current) {
+                // Clear previous after cross-fade completes
+                crossFadeTimeout.current = setTimeout(() => {
+                  setState((s) => ({ ...s, previous: null }));
+                }, 500); // Match fade duration
+
+                return {
+                  visible: true,
+                  hiding: false,
+                  current: newPoster,
+                  previous: prev.current,
+                  transition: data.payload!.transition || "fade",
                 };
-
-                setState((prev) => {
-                  // Cross-fade: move current to previous if there's a current poster
-                  if (prev.visible && prev.current) {
-                    // Clear previous after cross-fade completes
-                    crossFadeTimeout.current = setTimeout(() => {
-                      setState((s) => ({ ...s, previous: null }));
-                    }, 500); // Match fade duration
-
-                    return {
-                      visible: true,
-                      hiding: false,
-                      current: newPoster,
-                      previous: prev.current,
-                      transition: data.payload!.transition,
-                    };
-                  }
-
-                  // No current poster, just show the new one
-                  return {
-                    visible: true,
-                    hiding: false,
-                    current: newPoster,
-                    previous: null,
-                    transition: data.payload!.transition,
-                  };
-                });
-
-                if (data.payload!.duration) {
-                  hideTimeout.current = setTimeout(() => {
-                    // Start fade out animation
-                    setState((prev) => ({ ...prev, hiding: true }));
-                    // After fade completes, fully hide
-                    fadeOutTimeout.current = setTimeout(() => {
-                      setState((prev) => ({
-                        ...prev,
-                        visible: false,
-                        hiding: false,
-                        current: null,
-                        previous: null,
-                      }));
-                    }, 500); // Match fade duration
-                  }, data.payload!.duration * 1000);
-                }
               }
-            );
+
+              // No current poster, just show the new one
+              return {
+                visible: true,
+                hiding: false,
+                current: newPoster,
+                previous: null,
+                transition: data.payload!.transition || "fade",
+              };
+            });
+
+            if (data.payload!.duration) {
+              hideTimeout.current = setTimeout(() => {
+                // Start fade out animation
+                setState((prev) => ({ ...prev, hiding: true }));
+                // After fade completes, fully hide
+                fadeOutTimeout.current = setTimeout(() => {
+                  setState((prev) => ({
+                    ...prev,
+                    visible: false,
+                    hiding: false,
+                    current: null,
+                    previous: null,
+                  }));
+                }, 500); // Match fade duration
+              }, data.payload!.duration * 1000);
+            }
           }
           break;
         case "hide":
@@ -286,7 +254,7 @@ export function BigPicturePosterRenderer() {
         );
       }
     },
-    [detectAspectRatio]
+    []
   );
 
   useEffect(() => {

@@ -142,6 +142,10 @@
 - ✅ Added component tests for overlay renderers
 - ✅ Added API route tests for type safety
 - ✅ Configured Jest with jsdom environment
+- ✅ **Fixed BigPicture Poster Display** (December 2025)
+  - Removed redundant asynchronous aspect ratio detection
+  - Fixed issue where images wouldn't appear due to pre-loading failures
+  - Improved display latency for big picture mode
 
 ## Implementation Status: Core MVP Complete! 🎉
 

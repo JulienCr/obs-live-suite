@@ -44,6 +44,8 @@ This file documents key decisions, mistakes, and dead-ends encountered during de
 * On question change: transient `hiding` phase → fade out → load → staged fade in (text → image → options).
 * Reveal: stop zoom; set scale=1; compute scores; emit `score.update`, `leaderboard.push`.
 * Player assignment: emit `answer.assign`; show badges ✓ / 0 on reveal.
+* **BigPicture Rendering**: Avoid unnecessary async pre-loading (e.g., `new Image().onload`) when layout doesn't depend on aspect ratio (`object-fit: contain`). It adds latency and potential points of failure.
+* **CSS Absolute Positioning**: When using `position: absolute` with percentage-based positioning (`left: 50%`), the parent MUST have explicit dimensions (`width: 100%; height: 100%;`). Without dimensions, percentage calculations have no reference and elements won't display.
 
 ## Quiz System (essentials)
 

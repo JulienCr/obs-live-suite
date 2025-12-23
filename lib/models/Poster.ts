@@ -15,6 +15,8 @@ export enum PosterType {
 export const posterSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1, "Title is required").max(200),
+  description: z.string().optional(),
+  source: z.string().optional(),
   fileUrl: z.string().min(1, "File URL is required"),
   type: z.nativeEnum(PosterType),
   duration: z.number().int().positive().nullable().default(null),
@@ -71,6 +73,20 @@ export class PosterModel {
    */
   getTitle(): string {
     return this.data.title;
+  }
+
+  /**
+   * Get description
+   */
+  getDescription(): string | undefined {
+    return this.data.description;
+  }
+
+  /**
+   * Get source
+   */
+  getSource(): string | undefined {
+    return this.data.source;
   }
 
   /**

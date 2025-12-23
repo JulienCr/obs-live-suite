@@ -78,16 +78,30 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
 
     // Extract YouTube video ID
     let videoId = "";
-    try {
-      const url = new URL(youtubeUrl);
-      if (url.hostname.includes("youtube.com")) {
-        videoId = url.searchParams.get("v") || "";
-      } else if (url.hostname === "youtu.be") {
-        videoId = url.pathname.slice(1);
+
+    // Helper to extract ID from URL object
+    const getIdFromUrl = (urlObj: URL) => {
+      if (urlObj.hostname.includes("youtube.com")) {
+        return urlObj.searchParams.get("v") || "";
+      } else if (urlObj.hostname === "youtu.be") {
+        return urlObj.pathname.slice(1);
       }
+      return "";
+    };
+
+    try {
+      // Try parsing as is
+      const url = new URL(youtubeUrl);
+      videoId = getIdFromUrl(url);
     } catch {
-      // Not a valid URL, might be just the ID
-      videoId = youtubeUrl;
+      // Try parsing with https:// prefix
+      try {
+        const url = new URL(`https://${youtubeUrl}`);
+        videoId = getIdFromUrl(url);
+      } catch {
+        // Not a URL, treat as just the ID
+        videoId = youtubeUrl;
+      }
     }
 
     if (!videoId) {

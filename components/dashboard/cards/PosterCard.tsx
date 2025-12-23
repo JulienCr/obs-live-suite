@@ -13,6 +13,7 @@ interface Poster {
   title: string;
   fileUrl: string;
   type: string;
+  source?: string;
   isEnabled: boolean;
 }
 
@@ -81,31 +82,31 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
         const expectedChannel = displayMode === "bigpicture" ? "poster-bigpicture" : "poster";
         if (message.channel === expectedChannel && message.data) {
           const data = message.data;
-          
+
           // Merge with existing state, only updating valid values
           setPlaybackState(prev => {
             const newState = { ...prev };
-            
+
             // Only update currentTime if valid and not seeking
             if (!isNaN(data.currentTime) && isFinite(data.currentTime) && localSeekTime === null) {
               newState.currentTime = data.currentTime;
             }
-            
+
             // Only update duration if valid
             if (!isNaN(data.duration) && isFinite(data.duration) && data.duration > 0) {
               newState.duration = data.duration;
             }
-            
+
             // Update playing state (boolean, always safe)
             if (typeof data.isPlaying === 'boolean') {
               newState.isPlaying = data.isPlaying;
             }
-            
+
             // Update muted state (boolean, always safe)
             if (typeof data.isMuted === 'boolean') {
               newState.isMuted = data.isMuted;
             }
-            
+
             return newState;
           });
         }
@@ -221,6 +222,7 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
         posterId: poster.id,
         fileUrl: poster.fileUrl,
         type: poster.type,
+        source: poster.source,
         transition: "fade",
       };
 
@@ -336,9 +338,8 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
           <CardTitle className="flex items-center justify-between">
             Posters
             <div
-              className={`w-3 h-3 rounded-full ${
-                activePoster ? "bg-green-500" : "bg-gray-300"
-              }`}
+              className={`w-3 h-3 rounded-full ${activePoster ? "bg-green-500" : "bg-gray-300"
+                }`}
             />
           </CardTitle>
         </CardHeader>
@@ -355,11 +356,10 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
                 {posters.map((poster) => (
                   <div
                     key={poster.id}
-                    className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                      activePoster === poster.id
+                    className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${activePoster === poster.id
                         ? "border-green-500 ring-2 ring-green-500 ring-offset-2"
                         : "border-border hover:border-primary"
-                    }`}
+                      }`}
                     title={poster.title}
                     onClick={() => handleCardClick(poster)}
                   >
