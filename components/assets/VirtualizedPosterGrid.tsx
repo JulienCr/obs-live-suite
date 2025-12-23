@@ -20,6 +20,9 @@ interface VirtualizedPosterGridProps {
   onEdit?: (poster: Poster) => void;
   onToggleEnabled?: (poster: Poster) => void;
   onDelete?: (poster: Poster) => void;
+  selectedIds?: Set<string>;
+  onToggleSelection?: (id: string) => void;
+  isBulkDeleting?: boolean;
   estimatedItemHeight?: number;
   className?: string;
 }
@@ -34,6 +37,9 @@ export function VirtualizedPosterGrid({
   onEdit,
   onToggleEnabled,
   onDelete,
+  selectedIds,
+  onToggleSelection,
+  isBulkDeleting,
   estimatedItemHeight = 280,
   className = "",
 }: VirtualizedPosterGridProps) {
@@ -148,6 +154,10 @@ export function VirtualizedPosterGrid({
                     onEdit={onEdit}
                     onToggleEnabled={onToggleEnabled}
                     onDelete={onDelete}
+                    isSelected={selectedIds?.has(poster.id)}
+                    onToggleSelection={onToggleSelection}
+                    isBulkDeleting={isBulkDeleting}
+                    showSelectionCheckbox={selectedIds !== undefined}
                   />
                 ))}
               </div>

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Edit, Power, PowerOff, Trash2, Play, Image as ImageIcon } from "lucide-react";
 
 interface Poster {
@@ -21,6 +22,10 @@ interface PosterCardProps {
   onEdit?: (poster: Poster) => void;
   onToggleEnabled?: (poster: Poster) => void;
   onDelete?: (poster: Poster) => void;
+  isSelected?: boolean;
+  onToggleSelection?: (id: string) => void;
+  isBulkDeleting?: boolean;
+  showSelectionCheckbox?: boolean;
 }
 
 /**
@@ -32,6 +37,10 @@ export function PosterCard({
   onEdit,
   onToggleEnabled,
   onDelete,
+  isSelected = false,
+  onToggleSelection,
+  isBulkDeleting = false,
+  showSelectionCheckbox = false,
 }: PosterCardProps) {
   const isEnabled = variant === "enabled";
   const [isLoaded, setIsLoaded] = useState(false);
@@ -92,6 +101,26 @@ export function PosterCard({
         !isEnabled ? "opacity-60" : ""
       }`}
     >
+      {/* Selection checkbox - top left */}
+      {showSelectionCheckbox && onToggleSelection && (
+        <div
+          className={`absolute top-2 left-2 z-10 ${
+            isSelected
+              ? "opacity-100"
+              : "opacity-0 group-hover:opacity-100"
+          } transition-opacity`}
+        >
+          <div className="bg-background/90 backdrop-blur-sm rounded-md p-1 shadow-md">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => onToggleSelection(poster.id)}
+              onClick={(e) => e.stopPropagation()}
+              disabled={isBulkDeleting}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Media Preview */}
       <div className="aspect-video bg-muted relative overflow-hidden">
         {poster.type === "image" ? (
