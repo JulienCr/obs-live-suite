@@ -18,5 +18,6 @@
     "ask": [
       "Bash(pnpm dev:*)"
     ]
-  }
+  },
+  "outputStyle": "default"
 }
