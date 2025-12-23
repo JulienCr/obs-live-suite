@@ -15,6 +15,13 @@ import {
   DbThemeInput,
   DbThemeUpdate,
 } from "../models/Database";
+import {
+  MediaItem,
+  MediaPlaylist,
+  MediaInstance,
+  CreateMediaItemInput,
+  UpdateMediaItemInput,
+} from "../models/Media";
 
 /**
  * DatabaseService handles SQLite database connections and operations
@@ -224,18 +231,51 @@ export class DatabaseService {
         updatedAt TEXT NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS media_playlists (
+        id TEXT PRIMARY KEY,
+        instance TEXT NOT NULL UNIQUE,
+        on INTEGER NOT NULL DEFAULT 0,
+        muted INTEGER NOT NULL DEFAULT 1,
+        currentIndex INTEGER NOT NULL DEFAULT 0,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS media_items (
+        id TEXT PRIMARY KEY,
+        playlistId TEXT NOT NULL,
+        url TEXT NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT,
+        thumb TEXT,
+        start TEXT,
+        end TEXT,
+        zoom REAL,
+        panX REAL,
+        panY REAL,
+        position INTEGER NOT NULL,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        FOREIGN KEY (playlistId) REFERENCES media_playlists(id) ON DELETE CASCADE
+      );
+
       CREATE INDEX IF NOT EXISTS idx_guests_displayName ON guests(displayName);
       CREATE INDEX IF NOT EXISTS idx_posters_profileIds ON posters(profileIds);
       CREATE INDEX IF NOT EXISTS idx_profiles_isActive ON profiles(isActive);
       CREATE INDEX IF NOT EXISTS idx_presets_profileId ON presets(profileId);
       CREATE INDEX IF NOT EXISTS idx_macros_profileId ON macros(profileId);
       CREATE INDEX IF NOT EXISTS idx_plugins_updateStatus ON plugins(updateStatus);
+      CREATE INDEX IF NOT EXISTS idx_media_items_playlistId ON media_items(playlistId);
+      CREATE INDEX IF NOT EXISTS idx_media_items_position ON media_items(position);
     `);
 
     this.logger.info("Database tables initialized");
-    
+
     // Run migrations after tables are created
     this.runMigrations();
+
+    // Initialize media playlists
+    this.initializeMediaPlaylists();
   }
 
   /**
@@ -725,6 +765,245 @@ export class DatabaseService {
       settings[row.key] = row.value;
     }
     return settings;
+  }
+
+  // ==================== MEDIA PLAYLISTS ====================
+
+  /**
+   * Initialize media playlists for instances A and B
+   */
+  initializeMediaPlaylists(): void {
+    const { randomUUID } = require('crypto');
+    const now = new Date().toISOString();
+
+    // Check if playlists exist
+    const existingA = this.getMediaPlaylistByInstance(MediaInstance.A);
+    const existingB = this.getMediaPlaylistByInstance(MediaInstance.B);
+
+    // Create playlist A if not exists (enabled by default)
+    if (!existingA) {
+      const stmt = this.db.prepare(`
+        INSERT INTO media_playlists (id, instance, on, muted, currentIndex, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(randomUUID(), MediaInstance.A, 1, 1, 0, now, now);
+      this.logger.info("Created media playlist A");
+    }
+
+    // Create playlist B if not exists (disabled by default)
+    if (!existingB) {
+      const stmt = this.db.prepare(`
+        INSERT INTO media_playlists (id, instance, on, muted, currentIndex, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(randomUUID(), MediaInstance.B, 0, 1, 0, now, now);
+      this.logger.info("Created media playlist B");
+    }
+  }
+
+  /**
+   * Get media playlist by instance (A or B)
+   */
+  getMediaPlaylistByInstance(instance: MediaInstance): MediaPlaylist | null {
+    const stmt = this.db.prepare("SELECT * FROM media_playlists WHERE instance = ?");
+    const row = stmt.get(instance) as any;
+    if (!row) return null;
+
+    // Get items for this playlist
+    const items = this.getMediaItemsByPlaylistId(row.id);
+
+    return {
+      id: row.id,
+      instance: row.instance as MediaInstance,
+      on: row.on === 1,
+      muted: row.muted === 1,
+      items,
+      index: row.currentIndex,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    };
+  }
+
+  /**
+   * Update media playlist
+   */
+  updateMediaPlaylist(
+    instance: MediaInstance,
+    updates: { on?: boolean; muted?: boolean; index?: number }
+  ): void {
+    const playlist = this.getMediaPlaylistByInstance(instance);
+    if (!playlist) {
+      throw new Error(`Media playlist ${instance} not found`);
+    }
+
+    const merged = {
+      on: updates.on !== undefined ? updates.on : playlist.on,
+      muted: updates.muted !== undefined ? updates.muted : playlist.muted,
+      currentIndex: updates.index !== undefined ? updates.index : playlist.index,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const stmt = this.db.prepare(`
+      UPDATE media_playlists
+      SET on = ?, muted = ?, currentIndex = ?, updatedAt = ?
+      WHERE instance = ?
+    `);
+    stmt.run(merged.on ? 1 : 0, merged.muted ? 1 : 0, merged.currentIndex, merged.updatedAt, instance);
+  }
+
+  // ==================== MEDIA ITEMS ====================
+
+  /**
+   * Get all media items for a playlist
+   */
+  getMediaItemsByPlaylistId(playlistId: string): MediaItem[] {
+    const stmt = this.db.prepare(
+      "SELECT * FROM media_items WHERE playlistId = ? ORDER BY position ASC"
+    );
+    const rows = stmt.all(playlistId) as any[];
+    return rows.map((row) => ({
+      id: row.id,
+      url: row.url,
+      type: row.type,
+      title: row.title || undefined,
+      thumb: row.thumb || undefined,
+      start: row.start || undefined,
+      end: row.end || undefined,
+      zoom: row.zoom || undefined,
+      pan: row.panX !== null && row.panY !== null ? { x: row.panX, y: row.panY } : undefined,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    }));
+  }
+
+  /**
+   * Get media item by ID
+   */
+  getMediaItemById(id: string): MediaItem | null {
+    const stmt = this.db.prepare("SELECT * FROM media_items WHERE id = ?");
+    const row = stmt.get(id) as any;
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      url: row.url,
+      type: row.type,
+      title: row.title || undefined,
+      thumb: row.thumb || undefined,
+      start: row.start || undefined,
+      end: row.end || undefined,
+      zoom: row.zoom || undefined,
+      pan: row.panX !== null && row.panY !== null ? { x: row.panX, y: row.panY } : undefined,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    };
+  }
+
+  /**
+   * Create a new media item
+   */
+  createMediaItem(playlistId: string, item: CreateMediaItemInput & { id: string }): void {
+    const now = new Date();
+
+    // Get the highest position for this playlist
+    const posStmt = this.db.prepare(
+      "SELECT COALESCE(MAX(position), -1) as maxPos FROM media_items WHERE playlistId = ?"
+    );
+    const posRow = posStmt.get(playlistId) as { maxPos: number };
+    const position = posRow.maxPos + 1;
+
+    const stmt = this.db.prepare(`
+      INSERT INTO media_items
+      (id, playlistId, url, type, title, thumb, start, end, zoom, panX, panY, position, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      item.id,
+      playlistId,
+      item.url,
+      item.type,
+      item.title || null,
+      item.thumb || null,
+      item.start || null,
+      item.end || null,
+      item.zoom || null,
+      item.pan?.x ?? null,
+      item.pan?.y ?? null,
+      position,
+      now.toISOString(),
+      now.toISOString()
+    );
+  }
+
+  /**
+   * Update a media item
+   */
+  updateMediaItem(id: string, updates: UpdateMediaItemInput): void {
+    const existing = this.getMediaItemById(id);
+    if (!existing) {
+      throw new Error(`Media item ${id} not found`);
+    }
+
+    const merged = {
+      title: updates.title !== undefined ? updates.title : existing.title,
+      thumb: updates.thumb !== undefined ? updates.thumb : existing.thumb,
+      start: updates.start !== undefined ? updates.start : existing.start,
+      end: updates.end !== undefined ? updates.end : existing.end,
+      zoom: updates.zoom !== undefined ? updates.zoom : existing.zoom,
+      pan: updates.pan !== undefined ? updates.pan : existing.pan,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const stmt = this.db.prepare(`
+      UPDATE media_items
+      SET title = ?, thumb = ?, start = ?, end = ?, zoom = ?, panX = ?, panY = ?, updatedAt = ?
+      WHERE id = ?
+    `);
+    stmt.run(
+      merged.title || null,
+      merged.thumb || null,
+      merged.start || null,
+      merged.end || null,
+      merged.zoom || null,
+      merged.pan?.x ?? null,
+      merged.pan?.y ?? null,
+      merged.updatedAt,
+      id
+    );
+  }
+
+  /**
+   * Delete a media item
+   */
+  deleteMediaItem(id: string): void {
+    // Get the item to know its position and playlist
+    const item = this.db.prepare("SELECT playlistId, position FROM media_items WHERE id = ?").get(id) as any;
+    if (!item) return;
+
+    // Delete the item
+    const deleteStmt = this.db.prepare("DELETE FROM media_items WHERE id = ?");
+    deleteStmt.run(id);
+
+    // Reorder remaining items
+    const updateStmt = this.db.prepare(
+      "UPDATE media_items SET position = position - 1 WHERE playlistId = ? AND position > ?"
+    );
+    updateStmt.run(item.playlistId, item.position);
+  }
+
+  /**
+   * Reorder media items
+   */
+  reorderMediaItems(playlistId: string, itemIds: string[]): void {
+    // Update position for each item based on its index in the array
+    const stmt = this.db.prepare(
+      "UPDATE media_items SET position = ?, updatedAt = ? WHERE id = ? AND playlistId = ?"
+    );
+    const now = new Date().toISOString();
+
+    itemIds.forEach((id, index) => {
+      stmt.run(index, now, id, playlistId);
+    });
   }
 
   /**
