@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { PosterShowPayload } from "@/lib/models/OverlayEvents";
+import { PosterDisplay } from "./PosterDisplay";
 import "./poster.css";
 
 interface PosterData {
@@ -470,124 +471,17 @@ export function PosterRenderer() {
   }
 
   const renderPoster = (posterData: PosterData, className: string) => {
-    const isLeftSide = posterData.side === "left";
-
-    // YouTube has special positioning: always centered vertically, 50% width
-    if (posterData.type === "youtube") {
-      // Add YouTube parameters to force autoplay and hide UI
-      const youtubeUrl = new URL(posterData.fileUrl);
-      youtubeUrl.searchParams.set('autoplay', '1');
-      youtubeUrl.searchParams.set('mute', '1');
-      youtubeUrl.searchParams.set('controls', '0');
-      youtubeUrl.searchParams.set('showinfo', '0');
-      youtubeUrl.searchParams.set('rel', '0');
-      youtubeUrl.searchParams.set('modestbranding', '1');
-      youtubeUrl.searchParams.set('playsinline', '1');
-      youtubeUrl.searchParams.set('loop', '1');
-      youtubeUrl.searchParams.set('enablejsapi', '1');
-      
-      const youtubeStyle: React.CSSProperties = {
-        position: 'absolute',
-        objectFit: 'contain',
-        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
-        borderRadius: '8px',
-        // Centered vertically, 50% width, left or right positioning
-        ...(isLeftSide ? {
-          left: '30px',
-          right: 'auto',
-        } : {
-          left: 'auto',
-          right: '30px',
-        }),
-        top: '50%',
-        transform: 'translate(0%, -50%)',
-        width: '50%',
-        aspectRatio: '16 / 9', // YouTube is always 16:9
-        border: 'none',
-      };
-
-      return (
-        <div 
-          key={posterData.fileUrl} 
-          className={className}
-        >
-          <iframe
-            ref={youtubeRef}
-            style={youtubeStyle}
-            src={youtubeUrl.toString()}
-            title="YouTube video"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            aria-label="Poster YouTube video"
-          />
-        </div>
-      );
-    }
-
-    // For images and videos: existing logic
-    const isLandscape = posterData.aspectRatio && posterData.aspectRatio > 1.2;
-
-    // Apply different constraints and positioning based on aspect ratio AND side
-    const mediaStyle: React.CSSProperties = {
-      position: 'absolute',
-      objectFit: 'contain',
-      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
-      borderRadius: '8px',
-      // Different positioning and sizing for landscape vs portrait
-      ...(isLandscape ? {
-        // Landscape: bottom corner positioning
-        ...(isLeftSide ? {
-          left: '30px',
-          right: 'auto',
-        } : {
-          left: 'auto',
-          right: '30px',
-        }),
-        bottom: '30px',
-        top: 'auto',
-        transform: 'none',
-        maxWidth: '35%', // Much smaller width for landscape - max 35% of canvas
-        maxHeight: '40%', // Smaller height since it's at bottom
-      } : {
-        // Portrait/Square: center side positioning
-        ...(isLeftSide ? {
-          left: '30px',
-          right: 'auto',
-        } : {
-          left: 'auto',
-          right: '30px',
-        }),
-        top: '50%',
-        bottom: 'auto',
-        transform: 'translate(0%, -50%)',
-        maxWidth: '90%', // Original width for portrait/square
-        maxHeight: '90%', // Original height for portrait/square
-      }),
-    };
-    
     return (
-      <div 
-        key={posterData.fileUrl} 
-        className={className}
-      >
-        {posterData.type === "video" ? (
-          <video
-            ref={videoRef}
-            style={mediaStyle}
-            src={posterData.fileUrl}
-            autoPlay
-            loop
-            muted
-            aria-label="Poster video"
-          />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            style={mediaStyle}
-            src={posterData.fileUrl}
-            alt="Poster"
-          />
-        )}
+      <div key={posterData.fileUrl} className={className}>
+        <PosterDisplay
+          fileUrl={posterData.fileUrl}
+          type={posterData.type}
+          aspectRatio={posterData.aspectRatio || 1}
+          positioning="side"
+          side={posterData.side}
+          videoRef={posterData.type === "video" ? videoRef : undefined}
+          youtubeRef={posterData.type === "youtube" ? youtubeRef : undefined}
+        />
       </div>
     );
   };

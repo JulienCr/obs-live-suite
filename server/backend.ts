@@ -177,6 +177,29 @@ class BackendServer {
       }
     });
 
+    // Overlays - Big-Picture Poster
+    this.app.post('/api/overlays/poster-bigpicture', async (req, res) => {
+      try {
+        const { action, payload } = req.body;
+        const channel = OverlayChannel.POSTER_BIGPICTURE;
+        let type;
+        switch (action) {
+          case "show": type = "show"; break;
+          case "hide": type = "hide"; break;
+          case "play": type = "play"; break;
+          case "pause": type = "pause"; break;
+          case "seek": type = "seek"; break;
+          case "mute": type = "mute"; break;
+          case "unmute": type = "unmute"; break;
+          default: return res.status(400).json({ error: "Invalid action" });
+        }
+        await this.channelManager.publish(channel, type, payload);
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
     // 404 handler MUST be added LAST (after all routes)
     this.app.use((req, res) => {
       this.logger.warn(`404: ${req.method} ${req.path}`);
@@ -240,6 +263,7 @@ class BackendServer {
           lower: this.wsHub.getChannelSubscribers('lower'),
           countdown: this.wsHub.getChannelSubscribers('countdown'),
           poster: this.wsHub.getChannelSubscribers('poster'),
+          'poster-bigpicture': this.wsHub.getChannelSubscribers('poster-bigpicture'),
           quiz: this.wsHub.getChannelSubscribers('quiz'),
         }
       });

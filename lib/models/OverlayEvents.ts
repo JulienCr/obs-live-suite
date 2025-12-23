@@ -7,6 +7,7 @@ export enum OverlayChannel {
   LOWER = "lower",
   COUNTDOWN = "countdown",
   POSTER = "poster",
+  POSTER_BIGPICTURE = "poster-bigpicture",
   QUIZ = "quiz",
   SYSTEM = "system",
 }
@@ -99,7 +100,7 @@ export const posterShowPayloadSchema = z.object({
   type: z.enum(["image", "video", "youtube"]).optional(),
   transition: z.enum(["fade", "slide", "cut", "blur"]).default("fade"),
   duration: z.number().int().positive().optional(),
-  side: z.enum(["left", "right"]).default("left"),
+  side: z.enum(["left", "right"]).optional(),
   theme: z.object({
     layout: z.object({
       x: z.number(),

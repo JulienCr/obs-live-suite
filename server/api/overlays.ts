@@ -177,5 +177,54 @@ router.post("/poster", async (req, res) => {
   }
 });
 
+/**
+ * POST /api/overlays/poster-bigpicture
+ * Control big-picture poster overlay (full-screen centered mode)
+ */
+router.post("/poster-bigpicture", async (req, res) => {
+  try {
+    const { action, payload } = req.body;
+
+    switch (action) {
+      case "show":
+        // No theme enrichment for big-picture (always centered)
+        await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.SHOW, payload);
+        break;
+
+      case "hide":
+        await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.HIDE);
+        break;
+
+      case "play":
+        await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.PLAY);
+        break;
+
+      case "pause":
+        await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.PAUSE);
+        break;
+
+      case "seek":
+        await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.SEEK, payload);
+        break;
+
+      case "mute":
+        await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.MUTE);
+        break;
+
+      case "unmute":
+        await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.UNMUTE);
+        break;
+
+      default:
+        return res.status(400).json({ error: "Invalid action" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("[Overlays] BigPicture Poster error:", error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 export default router;
 
