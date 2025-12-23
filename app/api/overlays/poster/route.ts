@@ -11,18 +11,19 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+    const { action, payload } = body;
+
     // Enrich poster payloads with theme data before proxying to backend
     let enrichedBody = body;
-    if (body.action === 'show' && body.payload) {
+    if (action === 'show' && payload) {
       const db = DatabaseService.getInstance();
       enrichedBody = {
         ...body,
-        payload: enrichPosterPayload(body.payload, db),
+        payload: enrichPosterPayload(payload, db),
       };
-      console.log("[Next.js] Enriched poster payload with theme:", !!enrichedBody.payload.theme);
     }
-    
+
+    // Proxy to backend
     const response = await fetch(`${BACKEND_URL}/api/overlays/poster`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -30,8 +31,9 @@ export async function POST(request: NextRequest) {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
+      console.error("[Next.js Poster API] Backend error:", data);
       return NextResponse.json(data, { status: response.status });
     }
 

@@ -41,6 +41,11 @@ export enum PosterEventType {
   HIDE = "hide",
   NEXT = "next",
   PREVIOUS = "previous",
+  PLAY = "play",
+  PAUSE = "pause",
+  SEEK = "seek",
+  MUTE = "mute",
+  UNMUTE = "unmute",
 }
 
 /**
@@ -91,6 +96,7 @@ export type CountdownSetPayload = z.infer<typeof countdownSetPayloadSchema>;
 export const posterShowPayloadSchema = z.object({
   posterId: z.string().uuid().optional(),
   fileUrl: z.string(),
+  type: z.enum(["image", "video", "youtube"]).optional(),
   transition: z.enum(["fade", "slide", "cut", "blur"]).default("fade"),
   duration: z.number().int().positive().optional(),
   side: z.enum(["left", "right"]).default("left"),
@@ -104,6 +110,15 @@ export const posterShowPayloadSchema = z.object({
 });
 
 export type PosterShowPayload = z.infer<typeof posterShowPayloadSchema>;
+
+/**
+ * Poster seek event payload
+ */
+export const posterSeekPayloadSchema = z.object({
+  time: z.number().min(0),
+});
+
+export type PosterSeekPayload = z.infer<typeof posterSeekPayloadSchema>;
 
 /**
  * Base overlay event schema

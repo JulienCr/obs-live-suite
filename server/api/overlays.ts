@@ -4,11 +4,11 @@
 import { Router } from "express";
 import { ChannelManager } from "../../lib/services/ChannelManager";
 import { DatabaseService } from "../../lib/services/DatabaseService";
-import { 
-  LowerThirdEventType, 
-  CountdownEventType, 
+import {
+  LowerThirdEventType,
+  CountdownEventType,
   PosterEventType,
-  OverlayChannel 
+  OverlayChannel
 } from "../../lib/models/OverlayEvents";
 import { lowerThirdShowPayloadSchema } from "../../lib/models/OverlayEvents";
 import { enrichLowerThirdPayload, enrichCountdownPayload, enrichPosterPayload } from "../../lib/utils/themeEnrichment";
@@ -29,11 +29,11 @@ router.post("/lower", async (req, res) => {
       case "show":
         console.log("[Backend] Received lower third show payload:", payload);
         const validated = lowerThirdShowPayloadSchema.parse(payload);
-        
+
         // Enrich with theme data using shared utility
         const enrichedPayload = enrichLowerThirdPayload(validated, db);
         console.log("[Backend] Enriched with theme:", !!enrichedPayload.theme);
-        
+
         await channelManager.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, enrichedPayload);
         break;
 
@@ -70,7 +70,7 @@ router.post("/countdown", async (req, res) => {
         // Enrich with theme data using shared utility
         const enrichedPayload = enrichCountdownPayload(payload, db);
         console.log("[Backend] Enriched countdown with theme:", !!enrichedPayload.theme);
-        
+
         await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.SET, enrichedPayload);
         break;
 
@@ -92,7 +92,7 @@ router.post("/countdown", async (req, res) => {
           // Enrich with theme data using shared utility
           const enrichedUpdatePayload = enrichCountdownPayload(payload || {}, db);
           console.log("[Backend] Enriched countdown update with theme:", !!enrichedUpdatePayload.theme);
-          
+
           await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.UPDATE, enrichedUpdatePayload);
         } catch (enrichError) {
           console.error("[Backend] Error enriching countdown update:", enrichError);
@@ -130,7 +130,7 @@ router.post("/poster", async (req, res) => {
         // Enrich with theme data using shared utility
         const enrichedPayload = enrichPosterPayload(payload, db);
         console.log("[Backend] Enriched poster with theme:", !!enrichedPayload.theme);
-        
+
         await channelManager.publish(OverlayChannel.POSTER, PosterEventType.SHOW, enrichedPayload);
         break;
 
@@ -144,6 +144,26 @@ router.post("/poster", async (req, res) => {
 
       case "previous":
         await channelManager.publish(OverlayChannel.POSTER, PosterEventType.PREVIOUS);
+        break;
+
+      case "play":
+        await channelManager.publish(OverlayChannel.POSTER, PosterEventType.PLAY);
+        break;
+
+      case "pause":
+        await channelManager.publish(OverlayChannel.POSTER, PosterEventType.PAUSE);
+        break;
+
+      case "seek":
+        await channelManager.publish(OverlayChannel.POSTER, PosterEventType.SEEK, payload);
+        break;
+
+      case "mute":
+        await channelManager.publish(OverlayChannel.POSTER, PosterEventType.MUTE);
+        break;
+
+      case "unmute":
+        await channelManager.publish(OverlayChannel.POSTER, PosterEventType.UNMUTE);
         break;
 
       default:
