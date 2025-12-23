@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TagInput } from "@/components/ui/tag-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PosterUploader } from "./PosterUploader";
 import { VirtualizedPosterGrid } from "./VirtualizedPosterGrid";
-import { Plus, Upload, ChevronDown, ChevronUp, Image as ImageIcon, Video, Youtube } from "lucide-react";
+import { Plus, Trash2, Upload, ChevronDown, ChevronUp, Image as ImageIcon, Video, Youtube, Loader2 } from "lucide-react";
 
 interface Poster {
   id: string;
@@ -49,6 +50,9 @@ export function PosterManager() {
     type: "image" as "image" | "video" | "youtube",
     tags: [] as string[],
   });
+  // Track selected poster IDs for bulk operations
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   useEffect(() => {
     fetchPosters();
@@ -245,6 +249,47 @@ export function PosterManager() {
       case "video": return <Video className="w-3 h-3" />;
       case "youtube": return <Youtube className="w-3 h-3" />;
       default: return null;
+    }
+  };
+
+  const handleToggleSelection = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size;
+    if (!confirm(`Delete ${count} poster${count !== 1 ? 's' : ''}? This cannot be undone.`)) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const response = await fetch('/api/assets/posters/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+
+      if (response.ok) {
+        setSelectedIds(new Set());
+        fetchPosters();
+      } else {
+        console.error('Bulk delete failed');
+      }
+    } catch (error) {
+      console.error('Failed to bulk delete posters:', error);
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -539,12 +584,12 @@ export function PosterManager() {
           <h3 className="text-lg font-medium">Active Posters</h3>
           <Badge variant="default">{filteredEnabledPosters.length}</Badge>
         </div>
-        
+
         {filteredEnabledPosters.length === 0 ? (
           <div className="text-center py-12 border-2 border-dashed rounded-lg">
             <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">
-              {enabledPosters.length === 0 
+              {enabledPosters.length === 0
                 ? "No active posters"
                 : "No posters match your filters"}
             </p>
@@ -561,6 +606,9 @@ export function PosterManager() {
             onEdit={handleEdit}
             onToggleEnabled={handleToggleEnabled}
             onDelete={handleDelete}
+            selectedIds={selectedIds}
+            onToggleSelection={handleToggleSelection}
+            isBulkDeleting={isBulkDeleting}
           />
         )}
       </div>
@@ -591,8 +639,48 @@ export function PosterManager() {
               onEdit={handleEdit}
               onToggleEnabled={handleToggleEnabled}
               onDelete={handleDelete}
+              selectedIds={selectedIds}
+              onToggleSelection={handleToggleSelection}
+              isBulkDeleting={isBulkDeleting}
             />
           )}
+        </div>
+      )}
+
+      {/* Bulk Action Toolbar - appears when items selected */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50
+                        bg-background border rounded-lg shadow-lg p-4
+                        flex items-center gap-4 min-w-[400px]">
+          <div className="flex-1">
+            <p className="font-medium">
+              {selectedIds.size} poster{selectedIds.size !== 1 ? 's' : ''} selected
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={handleClearSelection}
+            disabled={isBulkDeleting}
+          >
+            Clear
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleBulkDelete}
+            disabled={isBulkDeleting}
+          >
+            {isBulkDeleting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </>
+            )}
+          </Button>
         </div>
       )}
     </div>

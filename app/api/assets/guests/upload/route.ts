@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { uploadFile } from "@/lib/utils/fileUpload";
+import { IMAGE_TYPES } from "@/lib/filetypes";
 
 /**
  * POST /api/assets/guests/upload
@@ -9,7 +10,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    
+
     if (!file) {
       return NextResponse.json(
         { error: "No file provided" },
@@ -19,12 +20,7 @@ export async function POST(request: Request) {
 
     const result = await uploadFile(file, {
       subfolder: "guests",
-      allowedTypes: [
-        "image/jpeg",
-        "image/png",
-        "image/gif",
-        "image/webp",
-      ],
+      allowedTypes: [...IMAGE_TYPES],
       maxSizeMB: 5,
     });
 

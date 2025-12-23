@@ -12,7 +12,10 @@
       "Bash(gh pr create:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr edit:*)",
-      "Bash(pnpm tsc:*)"
+      "Bash(pnpm tsc:*)",
+      "Bash(git fetch:*)",
+      "Bash(git rebase:*)",
+      "Bash(git stash push:*)"
     ],
     "deny": [],
     "ask": [

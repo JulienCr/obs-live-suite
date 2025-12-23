@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { uploadFile } from "@/lib/utils/fileUpload";
+import { IMAGE_TYPES } from "@/lib/filetypes";
 
 /**
  * POST /api/assets/quiz
@@ -16,12 +17,7 @@ export async function POST(request: Request) {
 
     const result = await uploadFile(file, {
       subfolder: "quiz",
-      allowedTypes: [
-        "image/jpeg",
-        "image/png",
-        "image/gif",
-        "image/webp",
-      ],
+      allowedTypes: [...IMAGE_TYPES],
       maxSizeMB: 25,
     });
 
