@@ -16,6 +16,8 @@ export interface DbGuest {
 export interface DbPoster {
   id: string;
   title: string;
+  description: string | null;
+  source: string | null;
   fileUrl: string;
   type: string;
   duration: number | null;

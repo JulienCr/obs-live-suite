@@ -22,6 +22,7 @@ import { PathManager } from "../lib/config/PathManager";
 import { AppConfig } from "../lib/config/AppConfig";
 import quizRouter from "./api/quiz";
 import quizBotRouter from "./api/quiz-bot";
+import { updatePosterSourceInOBS } from "./api/obs-helpers";
 
 class BackendServer {
   private logger: Logger;
@@ -37,17 +38,17 @@ class BackendServer {
     // Initialize Logger file path first
     const pathManager = PathManager.getInstance();
     Logger.setLogFilePath(pathManager.getLogFilePath());
-    
+
     this.logger = new Logger("BackendServer");
     this.wsHub = WebSocketHub.getInstance();
     this.channelManager = ChannelManager.getInstance();
     this.obsManager = OBSConnectionManager.getInstance();
     this.app = express();
-    
+
     // Use port 3002 for backend HTTP API
     const config = AppConfig.getInstance();
     this.httpPort = (config as any).backendApiPort || 3002;
-    
+
     this.setupHttpApi();
   }
 
@@ -177,12 +178,50 @@ class BackendServer {
       }
     });
 
+    // Overlays - Big-Picture Poster
+    this.app.post('/api/overlays/poster-bigpicture', async (req, res) => {
+      try {
+        const { action, payload } = req.body;
+        const channel = OverlayChannel.POSTER_BIGPICTURE;
+        let type;
+        switch (action) {
+          case "show":
+            type = "show";
+            // Update source text in OBS
+
+            if (payload && typeof payload === 'object') {
+              const sourceText = (payload as any).source || "";
+              updatePosterSourceInOBS(this.obsManager.getOBS(), sourceText).catch(err => {
+                this.logger.warn("Failed to update source-text in OBS", err);
+              });
+            }
+            break;
+          case "hide": type = "hide";
+            // Reset source text in OBS
+            updatePosterSourceInOBS(this.obsManager.getOBS(), "").catch(err => {
+              this.logger.warn("Failed to reset source-text in OBS", err);
+            });
+            break;
+          case "play": type = "play"; break;
+          case "pause": type = "pause"; break;
+          case "seek": type = "seek"; break;
+          case "mute": type = "mute"; break;
+          case "unmute": type = "unmute"; break;
+          default: return res.status(400).json({ error: "Invalid action" });
+        }
+        await this.channelManager.publish(channel, type, payload);
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: String(error) });
+      }
+    });
+
     // 404 handler MUST be added LAST (after all routes)
     this.app.use((req, res) => {
       this.logger.warn(`404: ${req.method} ${req.path}`);
       res.status(404).json({ error: 'Endpoint not found', path: req.path });
     });
-    
+
     this.logger.info("✓ API routes configured");
   }
 
@@ -203,7 +242,7 @@ class BackendServer {
 
     // Health check
     this.app.get('/health', (req, res) => {
-      res.json({ 
+      res.json({
         status: 'ok',
         wsRunning: this.wsHub.isRunning(),
         obsConnected: this.obsManager.isConnected(),
@@ -217,13 +256,13 @@ class BackendServer {
     this.app.post('/publish', async (req, res) => {
       try {
         const { channel, type, payload } = req.body;
-        
+
         if (!channel || !type) {
           return res.status(400).json({ error: 'channel and type are required' });
         }
 
         await this.channelManager.publish(channel, type, payload);
-        
+
         res.json({ success: true });
       } catch (error) {
         this.logger.error('Failed to publish message', error);
@@ -240,12 +279,86 @@ class BackendServer {
           lower: this.wsHub.getChannelSubscribers('lower'),
           countdown: this.wsHub.getChannelSubscribers('countdown'),
           poster: this.wsHub.getChannelSubscribers('poster'),
+          'poster-bigpicture': this.wsHub.getChannelSubscribers('poster-bigpicture'),
           quiz: this.wsHub.getChannelSubscribers('quiz'),
         }
       });
     });
 
     // 404 handler will be added AFTER API routes in start()
+  }
+
+  /**
+   * Helper to update OBS source text and position
+   */
+  private async updatePosterSourceInOBS(sourceText: string): Promise<void> {
+    if (!this.obsManager.isConnected()) return;
+
+    try {
+      const obs = this.obsManager.getOBS();
+
+      // 1. Update text content and internal alignment
+      // align: "right" makes text grow to the left from its origin
+      await obs.call("SetInputSettings", {
+        inputName: "source-text",
+        inputSettings: {
+          text: sourceText,
+          align: "right"
+        }
+      });
+
+      // 2. Position the scene item (Right aligned, 35px from edge)
+      const { currentProgramSceneName } = await obs.call("GetCurrentProgramScene");
+
+      // Find the scene item id
+      const { sceneItemId } = await obs.call("GetSceneItemId", {
+        sceneName: currentProgramSceneName,
+        sourceName: "source-text"
+      });
+
+      if (sceneItemId) {
+        const { baseWidth } = await obs.call("GetVideoSettings");
+        const targetX = baseWidth - 35; // 35px from right edge
+
+        // Get current transform to preserve vertical alignment
+        const { sceneItemTransform } = await obs.call("GetSceneItemTransform", {
+          sceneName: currentProgramSceneName,
+          sceneItemId
+        });
+
+        // Calculate new alignment: Preserve vertical bits (0x18 = 0001 1000 = Top|Bottom inverted?) 
+        // OBS Alignment is:
+        // Center: 0
+        // Left: 1
+        // Right: 2
+        // Top: 4
+        // Bottom: 8
+        // Mask: 0b1100 = 12 (0xC) for vertical (Top|Bottom)
+        // Check current:
+        const currentAlign = sceneItemTransform.alignment as number;
+
+        // Preserve vertical (Top(4) / Bottom(8) / Center(0))
+        const verticalPart = currentAlign & 12; // 12 = 4 | 8
+
+        // Force Right (2)
+        const newAlign = verticalPart | 2;
+
+        await obs.call("SetSceneItemTransform", {
+          sceneName: currentProgramSceneName,
+          sceneItemId,
+          sceneItemTransform: {
+            positionX: targetX,
+            alignment: newAlign
+          }
+        });
+
+        this.logger.debug(`Updated source-text: Right aligned at ${targetX}px`);
+      }
+    } catch (error) {
+      // It's normal to fail if source-text doesn't exist in current scene or at all
+      // We assume source-text might be global but scene item is local
+      throw error;
+    }
   }
 
   async start(): Promise<void> {

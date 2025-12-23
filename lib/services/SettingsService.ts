@@ -84,5 +84,25 @@ export class SettingsService {
   hasOBSSettingsInDatabase(): boolean {
     return this.db.getSetting("obs.websocket.url") !== null;
   }
+
+  /**
+   * Get general UI settings
+   */
+  getGeneralSettings(): { defaultPosterDisplayMode: string } {
+    const mode = this.db.getSetting("ui.poster.defaultDisplayMode");
+    return {
+      defaultPosterDisplayMode: mode || "left",
+    };
+  }
+
+  /**
+   * Save general UI settings
+   */
+  saveGeneralSettings(settings: { defaultPosterDisplayMode?: string }): void {
+    if (settings.defaultPosterDisplayMode) {
+      this.db.setSetting("ui.poster.defaultDisplayMode", settings.defaultPosterDisplayMode);
+    }
+    this.logger.info("General settings saved to database");
+  }
 }
 

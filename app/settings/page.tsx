@@ -2,12 +2,13 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { GeneralSettings } from "@/components/settings/GeneralSettings";
 import { OBSSettings } from "@/components/settings/OBSSettings";
 import { BackendSettings } from "@/components/settings/BackendSettings";
 import { PathSettings } from "@/components/settings/PathSettings";
 import { BackupSettings } from "@/components/settings/BackupSettings";
 import { PluginSettings } from "@/components/settings/PluginSettings";
-import { Settings, Server, FolderOpen, Download, Package } from "lucide-react";
+import { Settings, Server, FolderOpen, Download, Package, SlidersHorizontal } from "lucide-react";
 
 /**
  * Settings page with tabbed interface
@@ -26,8 +27,12 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <Tabs defaultValue="obs" className="space-y-3">
-          <TabsList className="grid w-full grid-cols-5">
+        <Tabs defaultValue="general" className="space-y-3">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="general" className="flex items-center gap-1.5 text-xs">
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              General
+            </TabsTrigger>
             <TabsTrigger value="obs" className="flex items-center gap-1.5 text-xs">
               <Server className="w-3.5 h-3.5" />
               OBS
@@ -49,6 +54,12 @@ export default function SettingsPage() {
               Plugins
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="general">
+            <Card className="p-4">
+              <GeneralSettings />
+            </Card>
+          </TabsContent>
 
           <TabsContent value="obs">
             <Card className="p-4">

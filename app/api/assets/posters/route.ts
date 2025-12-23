@@ -11,7 +11,7 @@ export async function GET() {
   try {
     const db = DatabaseService.getInstance();
     const posters = db.getAllPosters();
-    
+
     return NextResponse.json({ posters });
   } catch (error) {
     return NextResponse.json(
@@ -28,17 +28,21 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+
     const poster = posterSchema.parse({
       id: randomUUID(),
       ...body,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    
+
     const db = DatabaseService.getInstance();
-    db.createPoster(poster);
-    
+    db.createPoster({
+      ...poster,
+      description: poster.description || null,
+      source: poster.source || null,
+    });
+
     return NextResponse.json({ poster }, { status: 201 });
   } catch (error) {
     return NextResponse.json(

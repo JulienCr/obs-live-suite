@@ -28,7 +28,7 @@ export class DatabaseService {
     this.logger = new Logger("DatabaseService");
     const pathManager = PathManager.getInstance();
     const dbPath = pathManager.getDatabasePath();
-    
+
     this.logger.info(`Initializing database at: ${dbPath}`);
     this.db = new Database(dbPath);
     this.db.pragma("journal_mode = WAL");
@@ -116,6 +116,33 @@ export class DatabaseService {
     } catch (error) {
       this.logger.error("Migration error for posters table:", error);
     }
+
+    // Check if description and source columns exist in posters table
+    try {
+      const posterTableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
+      const hasDescription = posterTableInfo.some((col) => col.name === "description");
+      const hasSource = posterTableInfo.some((col) => col.name === "source");
+
+      if (!hasDescription) {
+        this.logger.info("Adding description column to posters table");
+        this.db.exec(`
+          ALTER TABLE posters ADD COLUMN description TEXT;
+        `);
+      }
+
+      if (!hasSource) {
+        this.logger.info("Adding source column to posters table");
+        this.db.exec(`
+          ALTER TABLE posters ADD COLUMN source TEXT;
+        `);
+      }
+
+      if (!hasDescription || !hasSource) {
+        this.logger.info("Posters table description/source migration completed");
+      }
+    } catch (error) {
+      this.logger.error("Migration error for posters table (description/source):", error);
+    }
   }
 
   /**
@@ -137,6 +164,8 @@ export class DatabaseService {
       CREATE TABLE IF NOT EXISTS posters (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
+        description TEXT,
+        source TEXT,
         fileUrl TEXT NOT NULL,
         type TEXT NOT NULL,
         duration INTEGER,
@@ -233,7 +262,7 @@ export class DatabaseService {
     `);
 
     this.logger.info("Database tables initialized");
-    
+
     // Run migrations after tables are created
     this.runMigrations();
   }
@@ -397,12 +426,14 @@ export class DatabaseService {
   createPoster(poster: DbPosterInput): void {
     const now = new Date();
     const stmt = this.db.prepare(`
-      INSERT INTO posters (id, title, fileUrl, type, duration, tags, profileIds, metadata, isEnabled, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO posters (id, title, description, source, fileUrl, type, duration, tags, profileIds, metadata, isEnabled, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       poster.id,
       poster.title,
+      poster.description || null,
+      poster.source || null,
       poster.fileUrl,
       poster.type,
       poster.duration || null,
@@ -428,6 +459,8 @@ export class DatabaseService {
     // Merge existing data with updates
     const merged = {
       title: updates.title !== undefined ? updates.title : existing.title,
+      description: updates.description !== undefined ? updates.description : existing.description,
+      source: updates.source !== undefined ? updates.source : existing.source,
       fileUrl: updates.fileUrl !== undefined ? updates.fileUrl : existing.fileUrl,
       type: updates.type !== undefined ? updates.type : existing.type,
       duration: updates.duration !== undefined ? updates.duration : existing.duration,
@@ -440,11 +473,13 @@ export class DatabaseService {
 
     const stmt = this.db.prepare(`
       UPDATE posters
-      SET title = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, isEnabled = ?, updatedAt = ?
+      SET title = ?, description = ?, source = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, isEnabled = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
       merged.title,
+      merged.description || null,
+      merged.source || null,
       merged.fileUrl,
       merged.type,
       merged.duration || null,
@@ -559,7 +594,7 @@ export class DatabaseService {
       JSON.stringify(updates.posterRotation || []),
       JSON.stringify(updates.audioSettings || {}),
       updates.isActive ? 1 : 0,
-      updates.updatedAt.toISOString(),
+      (updates.updatedAt || new Date()).toISOString(),
       id
     );
   }
@@ -672,7 +707,7 @@ export class DatabaseService {
       JSON.stringify(updates.countdownLayout || { x: 960, y: 540, scale: 1 }),
       JSON.stringify(updates.posterLayout || { x: 960, y: 540, scale: 1 }),
       updates.isGlobal ? 1 : 0,
-      updates.updatedAt.toISOString(),
+      (updates.updatedAt || new Date()).toISOString(),
       id
     );
   }

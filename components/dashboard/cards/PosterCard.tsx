@@ -13,6 +13,7 @@ interface Poster {
   title: string;
   fileUrl: string;
   type: string;
+  source?: string;
   isEnabled: boolean;
 }
 
@@ -25,13 +26,17 @@ interface PosterCardProps {
 /**
  * PosterCard - Thumbnail gallery for quick poster triggering
  */
+type DisplayMode = "left" | "right" | "bigpicture";
+
 export function PosterCard({ size, className, settings }: PosterCardProps = {}) {
   const [activePoster, setActivePoster] = useState<string | null>(null);
-  const [activeSide, setActiveSide] = useState<"left" | "right" | null>(null);
+  const [displayMode, setDisplayMode] = useState<DisplayMode | null>(null);
+  const [activeSide, setActiveSide] = useState<"left" | "right" | null>(null); // kept for backwards compatibility
   const [activeType, setActiveType] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(false);
   const [posters, setPosters] = useState<Poster[]>([]);
   const [loading, setLoading] = useState(true);
+  const [defaultDisplayMode, setDefaultDisplayMode] = useState<DisplayMode>("left");
   const [playbackState, setPlaybackState] = useState({
     isPlaying: false,
     isMuted: true,
@@ -44,6 +49,7 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
 
   useEffect(() => {
     fetchPosters();
+    fetchDefaultDisplayMode();
   }, []);
 
   // WebSocket connection for playback state
@@ -60,45 +66,47 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
     wsRef.current = ws;
 
     ws.onopen = () => {
-      // Subscribe to poster channel
+      // Subscribe to the appropriate channel based on display mode
+      const channel = displayMode === "bigpicture" ? "poster-bigpicture" : "poster";
       ws.send(JSON.stringify({
         type: "subscribe",
-        channel: "poster",
+        channel,
       }));
     };
 
     ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        
-        // Check if this is a state update (can be message.type or just check channel)
-        if (message.channel === "poster" && message.data) {
+
+        // Only process messages from the active channel
+        const expectedChannel = displayMode === "bigpicture" ? "poster-bigpicture" : "poster";
+        if (message.channel === expectedChannel && message.data) {
           const data = message.data;
-          
+
           // Merge with existing state, only updating valid values
           setPlaybackState(prev => {
             const newState = { ...prev };
-            
+
             // Only update currentTime if valid and not seeking
             if (!isNaN(data.currentTime) && isFinite(data.currentTime) && localSeekTime === null) {
               newState.currentTime = data.currentTime;
             }
-            
+
             // Only update duration if valid
             if (!isNaN(data.duration) && isFinite(data.duration) && data.duration > 0) {
               newState.duration = data.duration;
             }
-            
+
             // Update playing state (boolean, always safe)
             if (typeof data.isPlaying === 'boolean') {
               newState.isPlaying = data.isPlaying;
             }
-            
+
             // Update muted state (boolean, always safe)
             if (typeof data.isMuted === 'boolean') {
               newState.isMuted = data.isMuted;
             }
-            
+
             return newState;
           });
         }
@@ -114,7 +122,7 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
     return () => {
       ws.close();
     };
-  }, [activePoster]);
+  }, [activePoster, displayMode]);
 
   const fetchPosters = async () => {
     try {
@@ -130,50 +138,61 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
     }
   };
 
-  const handleTogglePoster = async (poster: Poster, side: "left" | "right") => {
-    // Hide if same poster + same side
-    if (activePoster === poster.id && activeSide === side) {
-      await handleHide();
-      return;
-    }
-
-    // Show or move to selected side
+  const fetchDefaultDisplayMode = async () => {
     try {
-      const response = await fetch("/api/overlays/poster", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "show",
-          payload: {
-            posterId: poster.id,
-            fileUrl: poster.fileUrl,
-            type: poster.type,
-            transition: "fade",
-            side: side,
-          }
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to show poster");
-      }
-
-      setActivePoster(poster.id);
-      setActiveSide(side);
-      setActiveType(poster.type);
-      
-      // Show controls if video or youtube
-      if (poster.type === "video" || poster.type === "youtube") {
-        setShowControls(true);
-      }
+      const res = await fetch("/api/settings/general");
+      const data = await res.json();
+      const mode = data.settings?.defaultPosterDisplayMode || "left";
+      setDefaultDisplayMode(mode as DisplayMode);
     } catch (error) {
-      console.error("Error showing poster:", error);
+      console.error("Failed to fetch default display mode:", error);
+      // Keep default "left" if fetch fails
     }
   };
 
-  const handleHide = async () => {
+  const handleTogglePoster = async (poster: Poster, mode: DisplayMode) => {
+    // Toggle off if same poster + same mode
+    if (activePoster === poster.id && displayMode === mode) {
+      await hideCurrentMode();
+      return;
+    }
+
+    // Hide current mode before showing new one
+    if (activePoster) {
+      await hideCurrentMode();
+      // Small delay for smooth transition
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Show in new mode
+    await showInMode(poster, mode);
+  };
+
+  const handleCardClick = async (poster: Poster) => {
+    // If this poster is currently displayed, toggle it off
+    if (activePoster === poster.id) {
+      await hideCurrentMode();
+      return;
+    }
+
+    // Otherwise, show it in the default position
+    // First hide any currently displayed poster
+    if (activePoster) {
+      await hideCurrentMode();
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Show in default mode
+    await showInMode(poster, defaultDisplayMode);
+  };
+
+  const hideCurrentMode = async () => {
     try {
-      const response = await fetch("/api/overlays/poster", {
+      const endpoint = displayMode === "bigpicture"
+        ? "/api/overlays/poster-bigpicture"
+        : "/api/overlays/poster";
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "hide" }),
@@ -184,6 +203,7 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
       }
 
       setActivePoster(null);
+      setDisplayMode(null);
       setActiveSide(null);
       setActiveType(null);
       setShowControls(false);
@@ -192,16 +212,67 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
     }
   };
 
+  const showInMode = async (poster: Poster, mode: DisplayMode) => {
+    try {
+      const endpoint = mode === "bigpicture"
+        ? "/api/overlays/poster-bigpicture"
+        : "/api/overlays/poster";
+
+      const payload: any = {
+        posterId: poster.id,
+        fileUrl: poster.fileUrl,
+        type: poster.type,
+        source: poster.source,
+        transition: "fade",
+      };
+
+      // Add side only if not bigpicture
+      if (mode !== "bigpicture") {
+        payload.side = mode;
+      }
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "show",
+          payload,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("[PosterCard] Failed to show poster:", errorData);
+        throw new Error(`Failed to show poster: ${errorData.error || response.statusText}`);
+      }
+
+      setActivePoster(poster.id);
+      setDisplayMode(mode);
+      setActiveSide(mode === "bigpicture" ? null : mode);
+      setActiveType(poster.type);
+
+      // Show controls if video or youtube
+      if (poster.type === "video" || poster.type === "youtube") {
+        setShowControls(true);
+      }
+    } catch (error) {
+      console.error("Error showing poster:", error);
+    }
+  };
+
   const handlePlayPause = async () => {
     try {
+      const endpoint = displayMode === "bigpicture"
+        ? "/api/overlays/poster-bigpicture"
+        : "/api/overlays/poster";
       const action = playbackState.isPlaying ? "pause" : "play";
-      
-      await fetch("/api/overlays/poster", {
+
+      await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       });
-      
+
       // Optimistic update
       setPlaybackState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
     } catch (error) {
@@ -211,7 +282,11 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
 
   const handleSeek = async (time: number) => {
     try {
-      await fetch("/api/overlays/poster", {
+      const endpoint = displayMode === "bigpicture"
+        ? "/api/overlays/poster-bigpicture"
+        : "/api/overlays/poster";
+
+      await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -219,7 +294,7 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
           payload: { time }
         }),
       });
-      
+
       // Optimistic update
       setPlaybackState(prev => ({ ...prev, currentTime: time }));
     } catch (error) {
@@ -229,14 +304,17 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
 
   const handleMute = async () => {
     try {
+      const endpoint = displayMode === "bigpicture"
+        ? "/api/overlays/poster-bigpicture"
+        : "/api/overlays/poster";
       const action = playbackState.isMuted ? "unmute" : "mute";
-      
-      await fetch("/api/overlays/poster", {
+
+      await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       });
-      
+
       // Optimistic update
       setPlaybackState(prev => ({ ...prev, isMuted: !prev.isMuted }));
     } catch (error) {
@@ -260,9 +338,8 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
           <CardTitle className="flex items-center justify-between">
             Posters
             <div
-              className={`w-3 h-3 rounded-full ${
-                activePoster ? "bg-green-500" : "bg-gray-300"
-              }`}
+              className={`w-3 h-3 rounded-full ${activePoster ? "bg-green-500" : "bg-gray-300"
+                }`}
             />
           </CardTitle>
         </CardHeader>
@@ -279,12 +356,12 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
                 {posters.map((poster) => (
                   <div
                     key={poster.id}
-                    className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${
-                      activePoster === poster.id
+                    className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${activePoster === poster.id
                         ? "border-green-500 ring-2 ring-green-500 ring-offset-2"
                         : "border-border hover:border-primary"
-                    }`}
+                      }`}
                     title={poster.title}
+                    onClick={() => handleCardClick(poster)}
                   >
                     {/* Preview */}
                     {poster.type === "youtube" ? (
@@ -312,26 +389,61 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
                       />
                     )}
 
-                    {/* LEFT half button */}
-                    <button
-                      onClick={() => handleTogglePoster(poster, "left")}
-                      className="absolute top-0 bottom-0 left-0 w-1/2 hover:bg-blue-500/20 transition-colors border-r border-white/10"
-                      aria-label={`Show ${poster.title} on left`}
-                    />
+                    {/* Three button controls on hover */}
+                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+                      <Button
+                        size="sm"
+                        variant={displayMode === "left" && activePoster === poster.id ? "default" : "secondary"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTogglePoster(poster, "left");
+                        }}
+                        className={cn(
+                          "px-2 py-1 h-auto",
+                          displayMode === "left" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
+                        )}
+                        aria-label={`Show ${poster.title} on left`}
+                      >
+                        ← Left
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={displayMode === "right" && activePoster === poster.id ? "default" : "secondary"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTogglePoster(poster, "right");
+                        }}
+                        className={cn(
+                          "px-2 py-1 h-auto",
+                          displayMode === "right" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
+                        )}
+                        aria-label={`Show ${poster.title} on right`}
+                      >
+                        Right →
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={displayMode === "bigpicture" && activePoster === poster.id ? "default" : "secondary"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTogglePoster(poster, "bigpicture");
+                        }}
+                        className={cn(
+                          "px-2 py-1 h-auto",
+                          displayMode === "bigpicture" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
+                        )}
+                        aria-label={`Show ${poster.title} in big picture mode`}
+                      >
+                        🖼️ Big
+                      </Button>
+                    </div>
 
-                    {/* RIGHT half button */}
-                    <button
-                      onClick={() => handleTogglePoster(poster, "right")}
-                      className="absolute top-0 bottom-0 right-0 w-1/2 hover:bg-blue-500/20 transition-colors border-l border-white/10"
-                      aria-label={`Show ${poster.title} on right`}
-                    />
-
-                    {/* Active indicator with L/R badge */}
+                    {/* Active indicator badge */}
                     {activePoster === poster.id && (
-                      <div className={`absolute top-1 ${activeSide === "left" ? "left-1" : "right-1"} flex items-center gap-1 bg-green-500 rounded-full px-2 py-1 pointer-events-none`}>
+                      <div className="absolute top-1 right-1 flex items-center gap-1 bg-green-500 rounded-full px-2 py-1 pointer-events-none">
                         <Eye className="w-3 h-3 text-white" />
                         <span className="text-white text-[10px] font-semibold">
-                          {activeSide === "left" ? "L" : "R"}
+                          {displayMode === "left" ? "L" : displayMode === "right" ? "R" : "⛶"}
                         </span>
                       </div>
                     )}
