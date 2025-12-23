@@ -15,26 +15,26 @@ export async function GET(
   try {
     const pathManager = PathManager.getInstance();
     const dataDir = pathManager.getDataDir();
-    
+
     // Await params before accessing properties
     const resolvedParams = await params;
-    
+
     // Construct file path
     const filePath = join(dataDir, ...resolvedParams.path);
-    
+
     // Security check: ensure the resolved path is still within data directory
     if (!filePath.startsWith(dataDir)) {
       return new NextResponse("Forbidden", { status: 403 });
     }
-    
+
     // Check if file exists
     if (!existsSync(filePath)) {
       return new NextResponse("Not Found", { status: 404 });
     }
-    
+
     // Read file
     const fileBuffer = await readFile(filePath);
-    
+
     // Determine content type based on extension
     const ext = filePath.split(".").pop()?.toLowerCase();
     const contentTypeMap: Record<string, string> = {
@@ -44,12 +44,13 @@ export async function GET(
       gif: "image/gif",
       webp: "image/webp",
       mp4: "video/mp4",
+      avif: "image/avif",
       webm: "video/webm",
       mov: "video/quicktime",
     };
-    
+
     const contentType = contentTypeMap[ext || ""] || "application/octet-stream";
-    
+
     return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         "Content-Type": contentType,
