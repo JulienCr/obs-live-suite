@@ -143,6 +143,22 @@ export class DatabaseService {
     } catch (error) {
       this.logger.error("Migration error for posters table (description/source):", error);
     }
+
+    // Check if lowerThirdAnimation column exists in themes table
+    try {
+      const themeTableInfo = this.db.prepare("PRAGMA table_info(themes)").all() as Array<{ name: string }>;
+      const hasLowerThirdAnimation = themeTableInfo.some((col) => col.name === "lowerThirdAnimation");
+
+      if (!hasLowerThirdAnimation) {
+        this.logger.info("Adding lowerThirdAnimation column to themes table");
+        this.db.exec(`
+          ALTER TABLE themes ADD COLUMN lowerThirdAnimation TEXT DEFAULT '{"timing":{"logoFadeDuration":200,"logoScaleDuration":200,"flipDuration":600,"flipDelay":500,"barAppearDelay":800,"barExpandDuration":450,"textAppearDelay":1000,"textFadeDuration":250},"styles":{"barBorderRadius":16,"barMinWidth":200,"avatarBorderWidth":4,"avatarBorderColor":"#272727"}}';
+        `);
+        this.logger.info("Themes table lowerThirdAnimation migration completed");
+      }
+    } catch (error) {
+      this.logger.error("Migration error for themes table (lowerThirdAnimation):", error);
+    }
   }
 
   /**
@@ -184,6 +200,7 @@ export class DatabaseService {
         lowerThirdTemplate TEXT NOT NULL,
         lowerThirdFont TEXT NOT NULL,
         lowerThirdLayout TEXT NOT NULL DEFAULT '{"x":60,"y":920,"scale":1}',
+        lowerThirdAnimation TEXT DEFAULT '{"timing":{"logoFadeDuration":200,"logoScaleDuration":200,"flipDuration":600,"flipDelay":500,"barAppearDelay":800,"barExpandDuration":450,"textAppearDelay":1000,"textFadeDuration":250},"styles":{"barBorderRadius":16,"barMinWidth":200,"avatarBorderWidth":4,"avatarBorderColor":"#272727"}}',
         countdownStyle TEXT NOT NULL,
         countdownFont TEXT NOT NULL,
         countdownLayout TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}',
@@ -625,12 +642,30 @@ export class DatabaseService {
    */
   getAllThemes(): DbTheme[] {
     const stmt = this.db.prepare("SELECT * FROM themes ORDER BY isGlobal DESC, name ASC");
-    const rows = stmt.all() as Array<Omit<DbTheme, 'colors' | 'lowerThirdFont' | 'lowerThirdLayout' | 'countdownFont' | 'countdownLayout' | 'posterLayout' | 'isGlobal' | 'createdAt' | 'updatedAt'> & { colors: string; lowerThirdFont: string; lowerThirdLayout: string; countdownFont: string; countdownLayout: string; posterLayout: string; isGlobal: number; createdAt: string; updatedAt: string }>;
+    const rows = stmt.all() as Array<Omit<DbTheme, 'colors' | 'lowerThirdFont' | 'lowerThirdLayout' | 'lowerThirdAnimation' | 'countdownFont' | 'countdownLayout' | 'posterLayout' | 'isGlobal' | 'createdAt' | 'updatedAt'> & { colors: string; lowerThirdFont: string; lowerThirdLayout: string; lowerThirdAnimation?: string; countdownFont: string; countdownLayout: string; posterLayout: string; isGlobal: number; createdAt: string; updatedAt: string }>;
     return rows.map((row) => ({
       ...row,
       colors: JSON.parse(row.colors),
       lowerThirdFont: JSON.parse(row.lowerThirdFont),
       lowerThirdLayout: JSON.parse(row.lowerThirdLayout || '{"x":60,"y":920,"scale":1}'),
+      lowerThirdAnimation: row.lowerThirdAnimation ? JSON.parse(row.lowerThirdAnimation) : {
+        timing: {
+          logoFadeDuration: 200,
+          logoScaleDuration: 200,
+          flipDuration: 600,
+          flipDelay: 500,
+          barAppearDelay: 800,
+          barExpandDuration: 450,
+          textAppearDelay: 1000,
+          textFadeDuration: 250,
+        },
+        styles: {
+          barBorderRadius: 16,
+          barMinWidth: 200,
+          avatarBorderWidth: 4,
+          avatarBorderColor: '#272727',
+        },
+      },
       countdownFont: JSON.parse(row.countdownFont),
       countdownLayout: JSON.parse(row.countdownLayout || '{"x":960,"y":540,"scale":1}'),
       posterLayout: JSON.parse(row.posterLayout || '{"x":960,"y":540,"scale":1}'),
@@ -645,13 +680,31 @@ export class DatabaseService {
    */
   getThemeById(id: string): DbTheme | null {
     const stmt = this.db.prepare("SELECT * FROM themes WHERE id = ?");
-    const row = stmt.get(id) as (Omit<DbTheme, 'colors' | 'lowerThirdFont' | 'lowerThirdLayout' | 'countdownFont' | 'countdownLayout' | 'posterLayout' | 'isGlobal' | 'createdAt' | 'updatedAt'> & { colors: string; lowerThirdFont: string; lowerThirdLayout: string; countdownFont: string; countdownLayout: string; posterLayout: string; isGlobal: number; createdAt: string; updatedAt: string }) | undefined;
+    const row = stmt.get(id) as (Omit<DbTheme, 'colors' | 'lowerThirdFont' | 'lowerThirdLayout' | 'lowerThirdAnimation' | 'countdownFont' | 'countdownLayout' | 'posterLayout' | 'isGlobal' | 'createdAt' | 'updatedAt'> & { colors: string; lowerThirdFont: string; lowerThirdLayout: string; lowerThirdAnimation?: string; countdownFont: string; countdownLayout: string; posterLayout: string; isGlobal: number; createdAt: string; updatedAt: string }) | undefined;
     if (!row) return null;
     return {
       ...row,
       colors: JSON.parse(row.colors),
       lowerThirdFont: JSON.parse(row.lowerThirdFont),
       lowerThirdLayout: JSON.parse(row.lowerThirdLayout || '{"x":60,"y":920,"scale":1}'),
+      lowerThirdAnimation: row.lowerThirdAnimation ? JSON.parse(row.lowerThirdAnimation) : {
+        timing: {
+          logoFadeDuration: 200,
+          logoScaleDuration: 200,
+          flipDuration: 600,
+          flipDelay: 500,
+          barAppearDelay: 800,
+          barExpandDuration: 450,
+          textAppearDelay: 1000,
+          textFadeDuration: 250,
+        },
+        styles: {
+          barBorderRadius: 16,
+          barMinWidth: 200,
+          avatarBorderWidth: 4,
+          avatarBorderColor: '#272727',
+        },
+      },
       countdownFont: JSON.parse(row.countdownFont),
       countdownLayout: JSON.parse(row.countdownLayout || '{"x":960,"y":540,"scale":1}'),
       posterLayout: JSON.parse(row.posterLayout || '{"x":960,"y":540,"scale":1}'),
@@ -667,8 +720,8 @@ export class DatabaseService {
   createTheme(theme: DbThemeInput): void {
     const now = new Date();
     const stmt = this.db.prepare(`
-      INSERT INTO themes (id, name, colors, lowerThirdTemplate, lowerThirdFont, lowerThirdLayout, countdownStyle, countdownFont, countdownLayout, posterLayout, isGlobal, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO themes (id, name, colors, lowerThirdTemplate, lowerThirdFont, lowerThirdLayout, lowerThirdAnimation, countdownStyle, countdownFont, countdownLayout, posterLayout, isGlobal, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       theme.id,
@@ -677,6 +730,24 @@ export class DatabaseService {
       theme.lowerThirdTemplate,
       JSON.stringify(theme.lowerThirdFont),
       JSON.stringify(theme.lowerThirdLayout || { x: 60, y: 920, scale: 1 }),
+      JSON.stringify(theme.lowerThirdAnimation || {
+        timing: {
+          logoFadeDuration: 200,
+          logoScaleDuration: 200,
+          flipDuration: 600,
+          flipDelay: 500,
+          barAppearDelay: 800,
+          barExpandDuration: 450,
+          textAppearDelay: 1000,
+          textFadeDuration: 250,
+        },
+        styles: {
+          barBorderRadius: 16,
+          barMinWidth: 200,
+          avatarBorderWidth: 4,
+          avatarBorderColor: '#272727',
+        },
+      }),
       theme.countdownStyle,
       JSON.stringify(theme.countdownFont),
       JSON.stringify(theme.countdownLayout || { x: 960, y: 540, scale: 1 }),
@@ -693,7 +764,7 @@ export class DatabaseService {
   updateTheme(id: string, updates: DbThemeUpdate): void {
     const stmt = this.db.prepare(`
       UPDATE themes
-      SET name = ?, colors = ?, lowerThirdTemplate = ?, lowerThirdFont = ?, lowerThirdLayout = ?, countdownStyle = ?, countdownFont = ?, countdownLayout = ?, posterLayout = ?, isGlobal = ?, updatedAt = ?
+      SET name = ?, colors = ?, lowerThirdTemplate = ?, lowerThirdFont = ?, lowerThirdLayout = ?, lowerThirdAnimation = ?, countdownStyle = ?, countdownFont = ?, countdownLayout = ?, posterLayout = ?, isGlobal = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
@@ -702,6 +773,24 @@ export class DatabaseService {
       updates.lowerThirdTemplate,
       JSON.stringify(updates.lowerThirdFont),
       JSON.stringify(updates.lowerThirdLayout || { x: 60, y: 920, scale: 1 }),
+      JSON.stringify(updates.lowerThirdAnimation || {
+        timing: {
+          logoFadeDuration: 200,
+          logoScaleDuration: 200,
+          flipDuration: 600,
+          flipDelay: 500,
+          barAppearDelay: 800,
+          barExpandDuration: 450,
+          textAppearDelay: 1000,
+          textFadeDuration: 250,
+        },
+        styles: {
+          barBorderRadius: 16,
+          barMinWidth: 200,
+          avatarBorderWidth: 4,
+          avatarBorderColor: '#272727',
+        },
+      }),
       updates.countdownStyle,
       JSON.stringify(updates.countdownFont),
       JSON.stringify(updates.countdownLayout || { x: 960, y: 540, scale: 1 }),

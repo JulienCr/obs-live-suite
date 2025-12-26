@@ -50,6 +50,30 @@ export enum PosterEventType {
 }
 
 /**
+ * Lower third animation configuration
+ */
+export const lowerThirdAnimationConfigSchema = z.object({
+  timing: z.object({
+    logoFadeDuration: z.number().positive().default(200),
+    logoScaleDuration: z.number().positive().default(200),
+    flipDuration: z.number().positive().default(600),
+    flipDelay: z.number().positive().default(500),
+    barAppearDelay: z.number().positive().default(800),
+    barExpandDuration: z.number().positive().default(450),
+    textAppearDelay: z.number().positive().default(1000),
+    textFadeDuration: z.number().positive().default(250),
+  }).optional(),
+  styles: z.object({
+    barBorderRadius: z.number().positive().default(16),
+    barMinWidth: z.number().positive().default(200),
+    avatarBorderWidth: z.number().positive().default(4),
+    avatarBorderColor: z.string().default('#272727'),
+  }).optional(),
+}).optional();
+
+export type LowerThirdAnimationConfig = z.infer<typeof lowerThirdAnimationConfigSchema>;
+
+/**
  * Lower third show event payload
  */
 export const lowerThirdShowPayloadSchema = z.object({
@@ -60,6 +84,30 @@ export const lowerThirdShowPayloadSchema = z.object({
   duration: z.number().int().positive().optional(),
   avatarUrl: z.string().optional(),
   accentColor: z.string().optional(),
+  logoImage: z.string().optional(),
+  avatarImage: z.string().optional(),
+  logoHasPadding: z.boolean().default(false),
+  animationConfig: lowerThirdAnimationConfigSchema,
+  theme: z.object({
+    colors: z.object({
+      primary: z.string(),
+      accent: z.string(),
+      surface: z.string(),
+      text: z.string(),
+      success: z.string(),
+      warn: z.string(),
+    }),
+    font: z.object({
+      family: z.string(),
+      size: z.number(),
+      weight: z.number(),
+    }),
+    layout: z.object({
+      x: z.number(),
+      y: z.number(),
+      scale: z.number(),
+    }).optional(),
+  }).optional(),
 });
 
 export type LowerThirdShowPayload = z.infer<typeof lowerThirdShowPayloadSchema>;
