@@ -1,94 +1,155 @@
-.lower-third {
+:root {
+  --lt-timing-logo-fade: 0.2s;
+  --lt-timing-logo-scale: 0.2s;
+  --lt-timing-flip: 0.6s;
+  --lt-timing-bar-expand: 0.45s;
+  --lt-timing-text-fade: 0.25s;
+  --lt-timing-text-slide: 0.35s;
+  --lt-color-title: white;
+  --lt-color-subtitle: rgba(255, 255, 255, 0.75);
+  --lt-color-bar-bg: rgba(15, 16, 20, 0.75);
+  --lt-color-border-avatar: rgb(39, 39, 39);
+  --lt-bar-border-radius: 16px;
+  --lt-bar-min-width: 200px;
+}
+
+.lowerthird {
   position: fixed;
+  left: 60px;
+  bottom: 80px;
   display: flex;
   align-items: center;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.9) 0%,
-    rgba(0, 0, 0, 0.85) 100%
-  );
-  padding: 16px 24px;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  max-width: 600px;
-  backdrop-filter: blur(10px);
+  pointer-events: none;
 }
 
-.lower-third-accent {
-  width: 4px;
-  height: 60px;
-  margin-right: 16px;
-  border-radius: 2px;
+/* ===== CIRCLE / AVATAR ===== */
+.avatar {
+  width: 126px;
+  height: 126px;
+  perspective: 800px;
+  z-index: 2;
 }
 
-.lower-third-avatar-container {
-  margin-right: 16px;
+.avatar-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  transform-style: preserve-3d;
+  transition: transform var(--lt-timing-flip) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.lower-third-avatar {
-  width: 60px;
-  height: 60px;
+.avatar.flip .avatar-inner {
+  transform: rotateY(180deg);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
   overflow: hidden;
-  border: 3px solid;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  backface-visibility: hidden;
+  box-sizing: border-box;
 }
 
-.lower-third-avatar img {
+.face img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.lower-third-content {
+/* Compensation pour les logos avec marge intégrée */
+.face img.has-padding {
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  margin: -8px;
+}
+
+.face.front {
+  opacity: 0;
+  transform: scale(1.6);
+  transition:
+    opacity var(--lt-timing-logo-fade) ease,
+    transform var(--lt-timing-logo-scale) ease;
+}
+
+.face.front.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.face.back {
+  transform: rotateY(180deg);
+  border: var(--lt-color-border-avatar);
+}
+
+.face.back img {
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  margin: -4px;
+}
+
+/* ===== BAR ===== */
+.bar {
+  height: 80px;
+  background: var(--lt-color-bar-bg);
+  backdrop-filter: blur(10px);
+  border-radius: var(--lt-bar-border-radius);
+  margin-left: -32px;
+  padding: 0 28px 0 72px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform var(--lt-timing-bar-expand) cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: var(--lt-bar-min-width);
 }
 
-.lower-third-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: white;
-  line-height: 1.2;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+.bar.show {
+  transform: scaleX(1);
 }
 
-.lower-third-subtitle {
-  font-size: 18px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.2;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+/* ===== TEXT ===== */
+.text {
+  opacity: 0;
+  transform: translateX(-10px);
+  transition:
+    opacity var(--lt-timing-text-fade) ease,
+    transform var(--lt-timing-text-slide) cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.lower-third.animate-in {
-  animation: fadeIn 0.5s ease-out forwards;
+.text.show {
+  opacity: 1;
+  transform: none;
 }
 
-.lower-third.animate-out {
-  animation: fadeOut 0.5s ease-in forwards;
+.name {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--lt-color-title);
+  line-height: 1.1;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(100%) scale(var(--scale, 1));
-  }
-  to {
-    opacity: 1;
-    transform: translateY(100%) scale(var(--scale, 1));
-  }
+.subtitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--lt-color-subtitle);
 }
 
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-    transform: translateY(100%) scale(var(--scale, 1));
-  }
-  to {
-    opacity: 0;
-    transform: translateY(100%) scale(var(--scale, 1));
-  }
+/* Animation out states */
+.lowerthird.animate-out .face.front {
+  opacity: 0;
+  transform: scale(0.9);
 }
 
+.lowerthird.animate-out .avatar.flip .avatar-inner {
+  transform: rotateY(0deg);
+}
+
+.lowerthird.animate-out .bar {
+  transform: scaleX(0);
+}
+
+.lowerthird.animate-out .text {
+  opacity: 0;
+  transform: translateX(-10px);
+}
