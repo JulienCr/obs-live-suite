@@ -31,9 +31,13 @@ interface ThemeData {
 interface LowerThirdState {
   visible: boolean;
   animating: boolean;
-  title: string;
+  title?: string;
   subtitle?: string;
-  side: "left" | "right";
+  body?: string;
+  contentType?: "guest" | "text";
+  imageUrl?: string;
+  imageAlt?: string;
+  side: "left" | "right" | "center";
   accentColor: string;
   avatarUrl?: string;
   logoImage?: string;
@@ -81,7 +85,11 @@ export function LowerThirdRenderer() {
             animating: true,
             title: data.payload.title,
             subtitle: data.payload.subtitle,
-            side: data.payload.side,
+            body: data.payload.body,
+            contentType: data.payload.contentType,
+            imageUrl: data.payload.imageUrl,
+            imageAlt: data.payload.imageAlt,
+            side: data.payload.side || "left",
             accentColor: data.payload.accentColor || data.payload.theme?.colors?.primary || "#3b82f6",
             avatarUrl: data.payload.avatarUrl,
             logoImage: data.payload.logoImage,
@@ -118,6 +126,10 @@ export function LowerThirdRenderer() {
           logoImage: data.payload?.logoImage !== undefined ? data.payload.logoImage : prev.logoImage,
           logoHasPadding: data.payload?.logoHasPadding !== undefined ? data.payload.logoHasPadding : prev.logoHasPadding,
           animationConfig: data.payload?.animationConfig || prev.animationConfig,
+          body: data.payload?.body !== undefined ? data.payload.body : prev.body,
+          contentType: data.payload?.contentType !== undefined ? data.payload.contentType : prev.contentType,
+          imageUrl: data.payload?.imageUrl !== undefined ? data.payload.imageUrl : prev.imageUrl,
+          imageAlt: data.payload?.imageAlt !== undefined ? data.payload.imageAlt : prev.imageAlt,
         }));
         break;
     }
@@ -231,10 +243,15 @@ export function LowerThirdRenderer() {
     <LowerThirdDisplay
       title={state.title}
       subtitle={state.subtitle}
+      body={state.body}
+      contentType={state.contentType}
+      imageUrl={state.imageUrl}
+      imageAlt={state.imageAlt}
       logoImage={state.logoImage}
       avatarImage={state.avatarImage}
       logoHasPadding={state.logoHasPadding}
       accentColor={state.accentColor}
+      side={state.side}
       theme={state.theme ? {
         colors: state.theme.colors,
         font: state.theme.font,
@@ -246,4 +263,3 @@ export function LowerThirdRenderer() {
     />
   );
 }
-

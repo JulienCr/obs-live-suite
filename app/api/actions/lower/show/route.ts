@@ -11,7 +11,18 @@ import { enrichLowerThirdPayload } from "@/lib/utils/themeEnrichment";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, subtitle, side = "left", duration, accentColor, avatarUrl } = body;
+    const {
+      title,
+      subtitle,
+      side = "left",
+      duration,
+      accentColor,
+      avatarUrl,
+      contentType,
+      body: markdownBody,
+      imageUrl,
+      imageAlt,
+    } = body;
 
     // Build base payload and enrich with theme data using shared utility
     const db = DatabaseService.getInstance();
@@ -22,6 +33,10 @@ export async function POST(request: NextRequest) {
       duration,
       accentColor,
       avatarUrl,
+      contentType,
+      body: markdownBody,
+      imageUrl,
+      imageAlt,
     };
 
     const enrichedPayload = enrichLowerThirdPayload(basePayload, db);
@@ -38,4 +53,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

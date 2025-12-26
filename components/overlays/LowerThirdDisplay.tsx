@@ -1,14 +1,22 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo, useLayoutEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { LowerThirdAnimationConfig } from "@/lib/models/OverlayEvents";
 import { DEFAULT_LOGO_IMAGE } from "@/lib/config/lowerThirdDefaults";
 import { ColorScheme, FontConfig, LayoutConfig, LowerThirdAnimationTheme } from "@/lib/models/Theme";
 import "./lower-third.css";
 
 export interface LowerThirdDisplayProps {
-  title: string;
+  title?: string;
   subtitle?: string;
+  body?: string;
+  contentType?: "guest" | "text";
+  imageUrl?: string;
+  imageAlt?: string;
+  side?: "left" | "right" | "center";
   logoImage?: string;
   avatarImage?: string;
   logoHasPadding?: boolean;
@@ -31,6 +39,11 @@ export interface LowerThirdDisplayProps {
 export function LowerThirdDisplay({
   title,
   subtitle,
+  body,
+  contentType,
+  imageUrl,
+  imageAlt,
+  side = "left",
   logoImage,
   avatarImage,
   logoHasPadding = false,
@@ -46,6 +59,9 @@ export function LowerThirdDisplay({
   const [textVisible, setTextVisible] = useState(false);
   
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+  const markdownRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [wrapWidth, setWrapWidth] = useState(0);
 
   // Merge config with priority: animationConfig prop > theme.lowerThirdAnimation > defaults
   const themeAnimation = theme?.lowerThirdAnimation;
@@ -154,6 +170,8 @@ export function LowerThirdDisplay({
     '--lt-bar-min-width': `${config.styles.barMinWidth}px`,
   } as React.CSSProperties;
 
+  const centeredBottomOffset = 80;
+
   const containerStyle: React.CSSProperties = {
     ...cssVars,
     ...(isPreview ? {
@@ -161,10 +179,17 @@ export function LowerThirdDisplay({
       left: "auto",
       bottom: "auto",
     } : {
-      left: `${layout.x}px`,
-      bottom: `${1080 - layout.y}px`,
-      transform: `scale(${layout.scale})`,
-      transformOrigin: "bottom left",
+      ...(side === "center" ? {
+        left: "50%",
+        bottom: `${centeredBottomOffset}px`,
+        transform: `translateX(-50%) scale(${layout.scale})`,
+        transformOrigin: "bottom center",
+      } : {
+        left: `${layout.x}px`,
+        bottom: `${1080 - layout.y}px`,
+        transform: `scale(${layout.scale})`,
+        transformOrigin: "bottom left",
+      }),
     }),
   };
 
@@ -181,34 +206,178 @@ export function LowerThirdDisplay({
   } : {};
 
   const avatarBorderStyle = `${config.styles.avatarBorderWidth}px solid ${config.styles.avatarBorderColor}`;
+  const isTextMode = contentType === "text" || !!body;
+  const markdownSource = body || title || "";
+  const baseFontSize = theme?.font.size || 32;
+  const baseFontWeight = theme?.font.weight || 700;
+  const fontFamily = theme?.font.family || "sans-serif";
+  const computeLineScale = (lineCount: number, maxLen: number) => {
+    let scale = 1;
+    if (lineCount >= 3) scale = 0.9;
+    if (lineCount >= 4) scale = 0.8;
+    if (lineCount >= 5) scale = 0.72;
+    if (maxLen > 80) scale *= 0.85;
+    else if (maxLen > 60) scale *= 0.92;
+    return Math.max(0.6, scale);
+  };
+
+  const wrapMarkdownText = (
+    text: string,
+    width: number,
+    scale: number
+  ) => {
+    const sanitized = (input: string) => input
+      .replace(/!\[[^\]]*]\([^)]*\)/g, "")
+      .replace(/\[(.*?)\]\([^)]*\)/g, "$1")
+      .replace(/[`*_~]/g, "")
+      .replace(/^#{1,6}\s+/g, "")
+      .replace(/^>\s+/g, "")
+      .replace(/^\d+\.\s+/g, "")
+      .replace(/^-\s+/g, "");
+
+    const fontSize = Math.round(baseFontSize * scale);
+    if (!canvasRef.current) {
+      canvasRef.current = document.createElement("canvas");
+    }
+    const ctx = canvasRef.current.getContext("2d");
+    if (!ctx) {
+      return { lines: text.split(/\r?\n/), maxLineLength: 0 };
+    }
+    ctx.font = `${baseFontWeight} ${fontSize}px ${fontFamily}`;
+
+    const paragraphs = text.split(/\r?\n/);
+    const lines: string[] = [];
+    let maxLen = 0;
+
+    paragraphs.forEach((paragraph) => {
+      if (!paragraph.trim()) {
+        lines.push("");
+        return;
+      }
+      const words = paragraph.split(/\s+/).filter(Boolean);
+      let current = "";
+      words.forEach((word) => {
+        const candidate = current ? `${current} ${word}` : word;
+        const candidateWidth = ctx.measureText(sanitized(candidate)).width;
+        if (candidateWidth > width && current) {
+          lines.push(current);
+          maxLen = Math.max(maxLen, current.length);
+          current = word;
+        } else {
+          current = candidate;
+        }
+      });
+      if (current) {
+        lines.push(current);
+        maxLen = Math.max(maxLen, current.length);
+      }
+    });
+
+    return { lines, maxLineLength: maxLen };
+  };
+
+  useLayoutEffect(() => {
+    if (!markdownRef.current) return;
+    const updateWidth = () => {
+      const newWidth = markdownRef.current?.clientWidth || 0;
+      setWrapWidth(newWidth);
+    };
+    updateWidth();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(updateWidth);
+      observer.observe(markdownRef.current);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, [isTextMode, imageUrl]);
+
+  const { wrappedLines, lineScale } = useMemo(() => {
+    if (!isTextMode) {
+      return { wrappedLines: [], lineScale: 1 };
+    }
+    if (!wrapWidth) {
+      const fallbackLines = markdownSource.split(/\r?\n/);
+      const maxLen = fallbackLines.reduce((max, line) => Math.max(max, line.length), 0);
+      return {
+        wrappedLines: fallbackLines.slice(0, 5),
+        lineScale: computeLineScale(fallbackLines.length, maxLen),
+      };
+    }
+
+    const firstPass = wrapMarkdownText(markdownSource, wrapWidth, 1);
+    let scale = computeLineScale(firstPass.lines.length, firstPass.maxLineLength);
+    let secondPass = wrapMarkdownText(markdownSource, wrapWidth, scale);
+    const secondScale = computeLineScale(secondPass.lines.length, secondPass.maxLineLength);
+    if (Math.abs(secondScale - scale) > 0.01) {
+      scale = secondScale;
+      secondPass = wrapMarkdownText(markdownSource, wrapWidth, scale);
+    }
+
+    return { wrappedLines: secondPass.lines, lineScale: scale };
+  }, [isTextMode, markdownSource, wrapWidth, baseFontSize, baseFontWeight, fontFamily]);
+
+  const markdownStyle: React.CSSProperties = {
+    fontFamily,
+    fontSize: `${Math.round(baseFontSize * lineScale)}px`,
+    fontWeight: baseFontWeight,
+    lineHeight: 1.25,
+  };
 
   return (
     <div
-      className={`lowerthird ${animating ? "" : "animate-out"}`}
+      className={`lowerthird lowerthird--${side} ${isTextMode ? "lowerthird--text" : "lowerthird--guest"} ${animating ? "" : "animate-out"}`}
       style={containerStyle}
     >
-      <div className={`avatar ${flipped ? "flip" : ""}`}>
-        <div className="avatar-inner">
-          <div className={`face front ${logoVisible ? "visible" : ""}`}>
-            <img 
-              src={finalLogoImage} 
-              alt="Logo" 
-              className={logoHasPadding ? "has-padding" : ""}
-            />
-          </div>
-          {finalAvatarImage && (
-            <div className="face back" style={{ border: avatarBorderStyle }}>
-              <img src={finalAvatarImage} alt={title} />
+      {!isTextMode && (
+        <div className={`avatar ${flipped ? "flip" : ""}`}>
+          <div className="avatar-inner">
+            <div className={`face front ${logoVisible ? "visible" : ""}`}>
+              <img 
+                src={finalLogoImage} 
+                alt="Logo" 
+                className={logoHasPadding ? "has-padding" : ""}
+              />
             </div>
-          )}
+            {finalAvatarImage && (
+              <div className="face back" style={{ border: avatarBorderStyle }}>
+                <img src={finalAvatarImage} alt={title || "Guest"} />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={`bar ${barVisible ? "show" : ""}`}>
+        {isTextMode && imageUrl && (
+          <div className="lowerthird-media">
+            <img src={imageUrl} alt={imageAlt || "Lower third image"} />
+          </div>
+        )}
         <div className={`text ${textVisible ? "show" : ""}`}>
-          <div className="name" style={titleStyle}>{title}</div>
-          {subtitle && (
-            <div className="subtitle" style={subtitleStyle}>{subtitle}</div>
+          {isTextMode ? (
+            <div className="lowerthird-markdown" ref={markdownRef} style={markdownStyle}>
+              {wrappedLines.map((line, index) => (
+                <div
+                  key={`line-${index}`}
+                  className="lowerthird-line"
+                  style={{ "--lt-line-delay": `${index * 140}ms` } as React.CSSProperties}
+                >
+                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                    {line || " "}
+                  </ReactMarkdown>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="name" style={titleStyle}>{title}</div>
+              {subtitle && (
+                <div className="subtitle" style={subtitleStyle}>{subtitle}</div>
+              )}
+            </>
           )}
         </div>
       </div>
