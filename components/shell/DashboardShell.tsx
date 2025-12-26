@@ -5,7 +5,10 @@ import {
   DockviewReact,
   DockviewReadyEvent,
   IDockviewPanelProps,
+  themeAbyss as themeDark,
+  themeLight,
 } from "dockview-react";
+import { useTheme } from "next-themes";
 // Note: Dockview CSS is imported globally in app/globals.css
 
 // Import widget panels
@@ -29,8 +32,15 @@ const components = {
 };
 
 export function DashboardShell() {
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const apiRef = useRef<DockviewReadyEvent["api"] | null>(null);
   const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);
+
+  // Handle hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const onReady = useCallback((event: DockviewReadyEvent) => {
     apiRef.current = event.api;
@@ -123,7 +133,7 @@ export function DashboardShell() {
         <DockviewReact
           components={components}
           onReady={onReady}
-          className="dockview-theme-dark"
+          theme={!mounted || theme === "dark" ? themeDark : themeLight}
         />
       </div>
     </DockviewContext.Provider>
