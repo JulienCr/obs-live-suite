@@ -19,8 +19,13 @@ import { PosterPanel } from "./panels/PosterPanel";
 import { MacrosPanel } from "./panels/MacrosPanel";
 import { EventLogPanel } from "./panels/EventLogPanel";
 import { DockviewContext } from "./DockviewContext";
+import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
+import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
+import { LiveModeRail } from "./LiveModeRail";
+import { useAppMode } from "./AppModeContext";
 
 const LAYOUT_KEY = "obs-live-suite-dockview-layout";
+const PRESET_KEY = "obs-live-suite-layout-preset";
 
 const components = {
   lowerThird: LowerThirdPanel,
@@ -33,6 +38,7 @@ const components = {
 
 export function DashboardShell() {
   const { theme } = useTheme();
+  const { mode } = useAppMode();
   const [mounted, setMounted] = useState(false);
   const apiRef = useRef<DockviewReadyEvent["api"] | null>(null);
   const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);
@@ -41,6 +47,161 @@ export function DashboardShell() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const applyLivePreset = useCallback(() => {
+    if (!apiRef.current) return;
+
+    // Clear existing panels
+    apiRef.current.clear();
+
+    // Main area with widget panels in tabs (default layout)
+    const lowerThird = apiRef.current.addPanel({
+      id: "lowerThird",
+      component: "lowerThird",
+      title: "Lower Third",
+    });
+
+    apiRef.current.addPanel({
+      id: "countdown",
+      component: "countdown",
+      title: "Countdown",
+      position: { referencePanel: lowerThird, direction: "within" },
+    });
+
+    apiRef.current.addPanel({
+      id: "guests",
+      component: "guests",
+      title: "Guests",
+      position: { referencePanel: lowerThird, direction: "within" },
+    });
+
+    apiRef.current.addPanel({
+      id: "poster",
+      component: "poster",
+      title: "Poster",
+      position: { referencePanel: lowerThird, direction: "within" },
+    });
+
+    // Bottom panel for Macros and Event Log
+    const macros = apiRef.current.addPanel({
+      id: "macros",
+      component: "macros",
+      title: "Macros",
+      position: { referencePanel: lowerThird, direction: "below" },
+    });
+
+    apiRef.current.addPanel({
+      id: "eventLog",
+      component: "eventLog",
+      title: "Event Log",
+      position: { referencePanel: macros, direction: "within" },
+    });
+
+    try {
+      macros.api.setSize({ height: 250 });
+    } catch (err) {
+      console.warn("Failed to set panel size:", err);
+    }
+
+    localStorage.setItem(PRESET_KEY, "live");
+  }, []);
+
+  const applyPrepPreset = useCallback(() => {
+    if (!apiRef.current) return;
+
+    // Clear existing panels
+    apiRef.current.clear();
+
+    // Grid layout - all panels visible
+    const lowerThird = apiRef.current.addPanel({
+      id: "lowerThird",
+      component: "lowerThird",
+      title: "Lower Third",
+    });
+
+    const countdown = apiRef.current.addPanel({
+      id: "countdown",
+      component: "countdown",
+      title: "Countdown",
+      position: { referencePanel: lowerThird, direction: "right" },
+    });
+
+    const guests = apiRef.current.addPanel({
+      id: "guests",
+      component: "guests",
+      title: "Guests",
+      position: { referencePanel: countdown, direction: "right" },
+    });
+
+    const poster = apiRef.current.addPanel({
+      id: "poster",
+      component: "poster",
+      title: "Poster",
+      position: { referencePanel: lowerThird, direction: "below" },
+    });
+
+    const macros = apiRef.current.addPanel({
+      id: "macros",
+      component: "macros",
+      title: "Macros",
+      position: { referencePanel: poster, direction: "right" },
+    });
+
+    apiRef.current.addPanel({
+      id: "eventLog",
+      component: "eventLog",
+      title: "Event Log",
+      position: { referencePanel: macros, direction: "right" },
+    });
+
+    localStorage.setItem(PRESET_KEY, "prep");
+  }, []);
+
+  const applyMinimalPreset = useCallback(() => {
+    if (!apiRef.current) return;
+
+    // Clear existing panels
+    apiRef.current.clear();
+
+    // Minimal layout - only Lower Third and Macros
+    const lowerThird = apiRef.current.addPanel({
+      id: "lowerThird",
+      component: "lowerThird",
+      title: "Lower Third",
+    });
+
+    const macros = apiRef.current.addPanel({
+      id: "macros",
+      component: "macros",
+      title: "Macros",
+      position: { referencePanel: lowerThird, direction: "below" },
+    });
+
+    try {
+      macros.api.setSize({ height: 200 });
+    } catch (err) {
+      console.warn("Failed to set panel size:", err);
+    }
+
+    localStorage.setItem(PRESET_KEY, "minimal");
+  }, []);
+
+  const applyPreset = useCallback((preset: LayoutPreset) => {
+    switch (preset) {
+      case "live":
+        applyLivePreset();
+        break;
+      case "prep":
+        applyPrepPreset();
+        break;
+      case "minimal":
+        applyMinimalPreset();
+        break;
+    }
+  }, [applyLivePreset, applyPrepPreset, applyMinimalPreset]);
+
+  // Enable keyboard shortcuts for layout presets
+  useKeyboardShortcuts(applyPreset);
 
   const onReady = useCallback((event: DockviewReadyEvent) => {
     apiRef.current = event.api;
@@ -128,14 +289,19 @@ export function DashboardShell() {
   }, []);
 
   return (
-    <DockviewContext.Provider value={{ api }}>
-      <div style={{ height: "100vh", width: "100vw" }}>
-        <DockviewReact
-          components={components}
-          onReady={onReady}
-          theme={!mounted || theme === "dark" ? themeDark : themeLight}
-        />
-      </div>
-    </DockviewContext.Provider>
+    <LayoutPresetsProvider applyPreset={applyPreset}>
+      <DockviewContext.Provider value={{ api }}>
+        <div style={{ height: "100vh", width: "100vw", display: "flex" }}>
+          {mode === "LIVE" && <LiveModeRail />}
+          <div style={{ flex: 1 }}>
+            <DockviewReact
+              components={components}
+              onReady={onReady}
+              theme={!mounted || theme === "dark" ? themeDark : themeLight}
+            />
+          </div>
+        </div>
+      </DockviewContext.Provider>
+    </LayoutPresetsProvider>
   );
 }

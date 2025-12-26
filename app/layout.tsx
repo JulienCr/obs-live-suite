@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ConditionalHeader } from "@/components/dashboard/ConditionalHeader";
 import { BodyThemeSync } from "@/components/BodyThemeSync";
+import { AppModeProvider } from "@/components/shell/AppModeContext";
+import { AppShell } from "@/components/shell/AppShell";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,9 +30,12 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <BodyThemeSync />
-          <ConditionalHeader />
-          {children}
+          <AppModeProvider>
+            <BodyThemeSync />
+            <AppShell>
+              {children}
+            </AppShell>
+          </AppModeProvider>
         </ThemeProvider>
       </body>
     </html>

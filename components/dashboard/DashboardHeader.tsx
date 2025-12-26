@@ -1,11 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Settings, Image, Folder, Radio, LayoutDashboard } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Radio, Maximize, Loader2, ChevronDown, Check } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useAppMode } from "@/components/shell/AppModeContext";
+import { HeaderOverflowMenu } from "./HeaderOverflowMenu";
+import { cn } from "@/lib/utils";
 
 interface OBSStatus {
   connected: boolean;
@@ -14,17 +23,26 @@ interface OBSStatus {
   isRecording: boolean;
 }
 
+interface Profile {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
 /**
- * DashboardHeader displays OBS status and controls
+ * DashboardHeader displays operational status and global controls
  */
 export function DashboardHeader() {
+  const { mode, isOnAir, setIsOnAir } = useAppMode();
   const [status, setStatus] = useState<OBSStatus>({
     connected: false,
     currentScene: null,
     isStreaming: false,
     isRecording: false,
   });
-
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -48,6 +66,10 @@ export function DashboardHeader() {
           isStreaming: data.isStreaming,
           isRecording: data.isRecording,
         });
+
+        // Update isOnAir in context
+        const onAir = data.isStreaming || data.isRecording;
+        setIsOnAir(onAir);
       } catch (error) {
         console.error("Failed to fetch OBS status:", error);
       }
@@ -60,65 +82,189 @@ export function DashboardHeader() {
     const interval = setInterval(fetchStatus, 2000);
 
     return () => clearInterval(interval);
+  }, [setIsOnAir]);
+
+  useEffect(() => {
+    // Fetch profiles
+    const fetchProfiles = async () => {
+      try {
+        const res = await fetch("/api/profiles");
+        const data = await res.json();
+        setProfiles(data.profiles || []);
+      } catch (error) {
+        console.error("Failed to fetch profiles:", error);
+      }
+    };
+
+    fetchProfiles();
   }, []);
 
-  const isOnAir = status.isStreaming || status.isRecording;
+  useEffect(() => {
+    // Handle fullscreen changes
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const handleReconnect = async () => {
+    setIsConnecting(true);
+    try {
+      await fetch("/api/obs/reconnect", { method: "POST" });
+    } catch (error) {
+      console.error("Failed to reconnect to OBS:", error);
+    } finally {
+      setTimeout(() => setIsConnecting(false), 2000);
+    }
+  };
+
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    } else {
+      await document.exitFullscreen();
+    }
+  };
+
+  const activeProfile = profiles.find(p => p.isActive);
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("en-US", {
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+  };
+
+  const handleActivateProfile = async (profileId: string) => {
+    try {
+      await fetch(`/api/profiles/${profileId}/activate`, { method: "POST" });
+      // Refresh profiles list
+      const res = await fetch("/api/profiles");
+      const data = await res.json();
+      setProfiles(data.profiles || []);
+    } catch (error) {
+      console.error("Failed to activate profile:", error);
+    }
+  };
 
   return (
     <header className="border-b bg-card">
-      <div className="container mx-auto px-4 py-2.5">
-        <div className="flex items-center justify-between">
-          {/* Left: OBS Status */}
+      <div className="container mx-auto px-4 py-2">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left: App Title + Mode Badge */}
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold">OBS Live Suite</h1>
-            
-            <Badge variant={status.connected ? "default" : "destructive"} className="text-xs px-2 py-0.5">
-              {status.connected ? "Connected" : "Disconnected"}
+            <Badge
+              variant={mode === "LIVE" ? "default" : "secondary"}
+              className="text-xs px-2 py-1 font-medium"
+            >
+              {mode}
             </Badge>
+          </div>
 
-            {status.currentScene && (
-              <div className="text-xs text-muted-foreground">
-                Scene: <span className="font-medium">{status.currentScene}</span>
+          {/* Center-Left: OBS Connection State */}
+          <div className="flex items-center gap-3">
+            {status.connected ? (
+              <>
+                <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1">
+                  Connected
+                </Badge>
+                {status.currentScene && (
+                  <div className="text-xs text-muted-foreground">
+                    Scene: <span className="font-medium">{status.currentScene}</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Badge variant="destructive" className="text-xs px-2 py-1">
+                  Disconnected
+                </Badge>
+                <Button
+                  onClick={handleReconnect}
+                  disabled={isConnecting}
+                  className="h-10 px-4"
+                  variant="default"
+                  size="sm"
+                >
+                  {isConnecting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Reconnecting...
+                    </>
+                  ) : (
+                    "Reconnect"
+                  )}
+                </Button>
               </div>
             )}
           </div>
 
           {/* Center: ON AIR Indicator */}
-          <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center justify-center">
             {isOnAir && (
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-red-500 text-white rounded text-xs font-bold animate-pulse">
-                <Radio className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-md font-bold animate-pulse">
+                <Radio className="w-4 h-4" />
                 <span>ON AIR</span>
               </div>
             )}
           </div>
 
-          {/* Right: Clock and Navigation */}
+          {/* Right: Profile + Controls */}
           <div className="flex items-center gap-2">
-            <div className="text-xs font-mono" suppressHydrationWarning>
-              {currentTime.toLocaleTimeString()}
+            {/* Active Profile Selector */}
+            {profiles.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-2 text-sm"
+                  >
+                    {activeProfile ? activeProfile.name : "No Profile"}
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {profiles.map((profile) => (
+                    <DropdownMenuItem
+                      key={profile.id}
+                      onClick={() => handleActivateProfile(profile.id)}
+                      className="flex items-center justify-between"
+                    >
+                      <span>{profile.name}</span>
+                      {profile.isActive && <Check className="w-4 h-4" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* Clock */}
+            <div className="text-sm font-mono px-2" suppressHydrationWarning>
+              {formatTime(currentTime)}
             </div>
+
+            {/* Fullscreen Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              className="h-10 w-10 p-0"
+            >
+              <Maximize className="w-4 h-4" />
+            </Button>
+
+            {/* Theme Toggle */}
             <ThemeToggle />
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm" title="Dashboard">
-                <LayoutDashboard className="w-3.5 h-3.5" />
-              </Button>
-            </Link>
-            <Link href="/profiles">
-              <Button variant="ghost" size="sm" title="Profiles">
-                <Folder className="w-3.5 h-3.5" />
-              </Button>
-            </Link>
-            <Link href="/assets">
-              <Button variant="ghost" size="sm" title="Assets">
-                <Image className="w-3.5 h-3.5" />
-              </Button>
-            </Link>
-            <Link href="/settings">
-              <Button variant="ghost" size="sm" title="Settings">
-                <Settings className="w-3.5 h-3.5" />
-              </Button>
-            </Link>
+
+            {/* Overflow Menu */}
+            <HeaderOverflowMenu />
           </div>
         </div>
       </div>
