@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Palette, Plus, Edit2, Trash2, Check, X, Eye, Zap, Play, RotateCcw } from "lucide-react";
@@ -17,6 +17,7 @@ import {
 } from "@/lib/models/Theme";
 import { LowerThirdPreview, CountdownPreview } from "./ThemePreviews";
 import { OverlayCanvas } from "./OverlayCanvas";
+import { LowerThirdAnimationEditor } from "./LowerThirdAnimationEditor";
 
 /**
  * Theme management component
@@ -44,6 +45,24 @@ export function ThemeManager() {
       weight: 700,
     },
     lowerThirdLayout: { x: 60, y: 920, scale: 1 },
+    lowerThirdAnimation: {
+      timing: {
+        logoFadeDuration: 200,
+        logoScaleDuration: 200,
+        flipDuration: 600,
+        flipDelay: 500,
+        barAppearDelay: 800,
+        barExpandDuration: 450,
+        textAppearDelay: 1000,
+        textFadeDuration: 250,
+      },
+      styles: {
+        barBorderRadius: 16,
+        barMinWidth: 200,
+        avatarBorderWidth: 4,
+        avatarBorderColor: '#272727',
+      },
+    },
     countdownStyle: CountdownStyle.BOLD,
     countdownFont: {
       family: "Courier New, monospace",
@@ -187,6 +206,24 @@ export function ThemeManager() {
         weight: 700,
       },
       lowerThirdLayout: { x: 60, y: 920, scale: 1 },
+      lowerThirdAnimation: {
+        timing: {
+          logoFadeDuration: 200,
+          logoScaleDuration: 200,
+          flipDuration: 600,
+          flipDelay: 500,
+          barAppearDelay: 800,
+          barExpandDuration: 450,
+          textAppearDelay: 1000,
+          textFadeDuration: 250,
+        },
+        styles: {
+          barBorderRadius: 16,
+          barMinWidth: 200,
+          avatarBorderWidth: 4,
+          avatarBorderColor: '#272727',
+        },
+      },
       countdownStyle: CountdownStyle.BOLD,
       countdownFont: {
         family: "Courier New, monospace",
@@ -208,6 +245,24 @@ export function ThemeManager() {
       lowerThirdTemplate: theme.lowerThirdTemplate,
       lowerThirdFont: theme.lowerThirdFont,
       lowerThirdLayout: theme.lowerThirdLayout || { x: 60, y: 920, scale: 1 },
+      lowerThirdAnimation: theme.lowerThirdAnimation || {
+        timing: {
+          logoFadeDuration: 200,
+          logoScaleDuration: 200,
+          flipDuration: 600,
+          flipDelay: 500,
+          barAppearDelay: 800,
+          barExpandDuration: 450,
+          textAppearDelay: 1000,
+          textFadeDuration: 250,
+        },
+        styles: {
+          barBorderRadius: 16,
+          barMinWidth: 200,
+          avatarBorderWidth: 4,
+          avatarBorderColor: '#272727',
+        },
+      },
       countdownStyle: theme.countdownStyle,
       countdownFont: theme.countdownFont,
       countdownLayout: theme.countdownLayout || { x: 960, y: 540, scale: 1 },
@@ -379,7 +434,7 @@ export function ThemeManager() {
   };
 
   const updateLowerThirdFont = (
-    key: keyof typeof formData.lowerThirdFont,
+    key: "family" | "size" | "weight",
     value: string | number
   ) => {
     setFormData((prev) => ({
@@ -392,7 +447,7 @@ export function ThemeManager() {
   };
 
   const updateCountdownFont = (
-    key: keyof typeof formData.countdownFont,
+    key: "family" | "size" | "weight",
     value: string | number
   ) => {
     setFormData((prev) => ({
@@ -545,6 +600,7 @@ export function ThemeManager() {
                 lowerThirdColors={formData.colors}
                 lowerThirdFont={formData.lowerThirdFont}
                 lowerThirdLayout={formData.lowerThirdLayout || { x: 60, y: 920, scale: 1 }}
+                lowerThirdAnimation={formData.lowerThirdAnimation}
                 onLowerThirdLayoutChange={(layout) =>
                   setFormData((prev) => ({ ...prev, lowerThirdLayout: layout }))
                 }
@@ -663,19 +719,23 @@ export function ThemeManager() {
                 <div className="space-y-2">
                   <Label htmlFor="lowerThirdTemplate">Template</Label>
                   <Select
-                    id="lowerThirdTemplate"
                     value={formData.lowerThirdTemplate}
-                    onChange={(e) =>
+                    onValueChange={(value) =>
                       setFormData((prev) => ({
                         ...prev,
-                        lowerThirdTemplate: e.target.value as LowerThirdTemplate,
+                        lowerThirdTemplate: value as LowerThirdTemplate,
                       }))
                     }
                   >
-                    <option value={LowerThirdTemplate.CLASSIC}>Classic</option>
-                    <option value={LowerThirdTemplate.BAR}>Bar</option>
-                    <option value={LowerThirdTemplate.CARD}>Card</option>
-                    <option value={LowerThirdTemplate.SLIDE}>Slide</option>
+                    <SelectTrigger id="lowerThirdTemplate">
+                      <SelectValue placeholder="Select template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={LowerThirdTemplate.CLASSIC}>Classic</SelectItem>
+                      <SelectItem value={LowerThirdTemplate.BAR}>Bar</SelectItem>
+                      <SelectItem value={LowerThirdTemplate.CARD}>Card</SelectItem>
+                      <SelectItem value={LowerThirdTemplate.SLIDE}>Slide</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
@@ -702,22 +762,75 @@ export function ThemeManager() {
                 <div className="space-y-2">
                   <Label htmlFor="lowerThirdFontWeight">Font Weight</Label>
                   <Select
-                    id="lowerThirdFontWeight"
-                    value={formData.lowerThirdFont?.weight}
-                    onChange={(e) =>
-                      updateLowerThirdFont("weight", parseInt(e.target.value))
+                    value={formData.lowerThirdFont?.weight?.toString()}
+                    onValueChange={(value) =>
+                      updateLowerThirdFont("weight", parseInt(value))
                     }
                   >
-                    <option value="300">Light (300)</option>
-                    <option value="400">Regular (400)</option>
-                    <option value="500">Medium (500)</option>
-                    <option value="600">Semi Bold (600)</option>
-                    <option value="700">Bold (700)</option>
-                    <option value="800">Extra Bold (800)</option>
-                    <option value="900">Black (900)</option>
+                    <SelectTrigger id="lowerThirdFontWeight">
+                      <SelectValue placeholder="Select weight" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="300">Light (300)</SelectItem>
+                      <SelectItem value="400">Regular (400)</SelectItem>
+                      <SelectItem value="500">Medium (500)</SelectItem>
+                      <SelectItem value="600">Semi Bold (600)</SelectItem>
+                      <SelectItem value="700">Bold (700)</SelectItem>
+                      <SelectItem value="800">Extra Bold (800)</SelectItem>
+                      <SelectItem value="900">Black (900)</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
               </div>
+            </div>
+
+            {/* Lower Third Animation Settings */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Lower Third Animation</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      lowerThirdAnimation: {
+                        timing: {
+                          logoFadeDuration: 200,
+                          logoScaleDuration: 200,
+                          flipDuration: 600,
+                          flipDelay: 500,
+                          barAppearDelay: 800,
+                          barExpandDuration: 450,
+                          textAppearDelay: 1000,
+                          textFadeDuration: 250,
+                        },
+                        styles: {
+                          barBorderRadius: 16,
+                          barMinWidth: 200,
+                          avatarBorderWidth: 4,
+                          avatarBorderColor: '#272727',
+                        },
+                      },
+                    }));
+                  }}
+                  className="h-8 px-2 text-xs"
+                  title="Reset animation settings to default"
+                >
+                  <RotateCcw className="w-3 h-3 mr-1" />
+                  Reset Animation
+                </Button>
+              </div>
+              {formData.lowerThirdAnimation && formData.colors && (
+                <LowerThirdAnimationEditor
+                  value={formData.lowerThirdAnimation}
+                  themeColors={formData.colors}
+                  onChange={(value) =>
+                    setFormData((prev) => ({ ...prev, lowerThirdAnimation: value }))
+                  }
+                />
+              )}
             </div>
 
             {/* Countdown Settings */}
@@ -753,18 +866,22 @@ export function ThemeManager() {
                 <div className="space-y-2">
                   <Label htmlFor="countdownStyle">Style</Label>
                   <Select
-                    id="countdownStyle"
                     value={formData.countdownStyle}
-                    onChange={(e) =>
+                    onValueChange={(value) =>
                       setFormData((prev) => ({
                         ...prev,
-                        countdownStyle: e.target.value as CountdownStyle,
+                        countdownStyle: value as CountdownStyle,
                       }))
                     }
                   >
-                    <option value={CountdownStyle.BOLD}>Bold (Center)</option>
-                    <option value={CountdownStyle.CORNER}>Corner</option>
-                    <option value={CountdownStyle.BANNER}>Banner (Top)</option>
+                    <SelectTrigger id="countdownStyle">
+                      <SelectValue placeholder="Select style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={CountdownStyle.BOLD}>Bold (Center)</SelectItem>
+                      <SelectItem value={CountdownStyle.CORNER}>Corner</SelectItem>
+                      <SelectItem value={CountdownStyle.BANNER}>Banner (Top)</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
@@ -791,19 +908,23 @@ export function ThemeManager() {
                 <div className="space-y-2">
                   <Label htmlFor="countdownFontWeight">Font Weight</Label>
                   <Select
-                    id="countdownFontWeight"
-                    value={formData.countdownFont?.weight}
-                    onChange={(e) =>
-                      updateCountdownFont("weight", parseInt(e.target.value))
+                    value={formData.countdownFont?.weight?.toString()}
+                    onValueChange={(value) =>
+                      updateCountdownFont("weight", parseInt(value))
                     }
                   >
-                    <option value="300">Light (300)</option>
-                    <option value="400">Regular (400)</option>
-                    <option value="500">Medium (500)</option>
-                    <option value="600">Semi Bold (600)</option>
-                    <option value="700">Bold (700)</option>
-                    <option value="800">Extra Bold (800)</option>
-                    <option value="900">Black (900)</option>
+                    <SelectTrigger id="countdownFontWeight">
+                      <SelectValue placeholder="Select weight" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="300">Light (300)</SelectItem>
+                      <SelectItem value="400">Regular (400)</SelectItem>
+                      <SelectItem value="500">Medium (500)</SelectItem>
+                      <SelectItem value="600">Semi Bold (600)</SelectItem>
+                      <SelectItem value="700">Bold (700)</SelectItem>
+                      <SelectItem value="800">Extra Bold (800)</SelectItem>
+                      <SelectItem value="900">Black (900)</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
               </div>

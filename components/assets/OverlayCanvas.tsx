@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ColorScheme, FontConfig, LayoutConfig } from "@/lib/models/Theme";
+import { ColorScheme, FontConfig, LayoutConfig, LowerThirdAnimationTheme } from "@/lib/models/Theme";
 import { Move, Undo, Redo } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLayoutHistory } from "./useLayoutHistory";
@@ -13,6 +13,7 @@ interface OverlayCanvasProps {
   lowerThirdColors: ColorScheme;
   lowerThirdFont: FontConfig;
   lowerThirdLayout: LayoutConfig;
+  lowerThirdAnimation?: LowerThirdAnimationTheme;
   onLowerThirdLayoutChange: (layout: LayoutConfig) => void;
   
   // Countdown props
@@ -32,6 +33,7 @@ export function OverlayCanvas({
   lowerThirdColors,
   lowerThirdFont,
   lowerThirdLayout,
+  lowerThirdAnimation,
   onLowerThirdLayoutChange,
   countdownColors,
   countdownFont,
@@ -251,11 +253,12 @@ export function OverlayCanvas({
             <LowerThirdDisplay
               title="John Doe"
               subtitle="Software Engineer"
-              avatarUrl="https://ui-avatars.com/api/?name=JD&background=60A5FA&color=fff&size=128"
+              avatarImage="https://ui-avatars.com/api/?name=JD&background=60A5FA&color=fff&size=128"
               theme={{
                 colors: lowerThirdColors,
                 font: lowerThirdFont,
                 layout: lowerThirdLayout,
+                lowerThirdAnimation: lowerThirdAnimation,
               }}
               animating={true}
               isPreview={true}
