@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { Eye, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 
 interface Poster {
   id: string;
@@ -344,6 +345,14 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Quick Add Component */}
+          <PosterQuickAdd
+            onPosterAdded={fetchPosters}
+            onPosterDisplayed={(poster, mode) => {
+              showInMode(poster, mode);
+            }}
+          />
+
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
           ) : posters.length === 0 ? (
