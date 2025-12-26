@@ -15,11 +15,26 @@
       "Bash(pnpm tsc:*)",
       "Bash(git fetch:*)",
       "Bash(git rebase:*)",
-      "Bash(git stash push:*)"
+      "Bash(git stash push:*)",
+      "WebFetch(domain:dockview.dev)",
+      "Bash(GIT_EDITOR=true git commit:*)"
     ],
     "deny": [],
     "ask": [
       "Bash(pnpm dev:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-call.py"
+          }
+        ]
+      }
     ]
   },
   "outputStyle": "default"
