@@ -16,7 +16,8 @@
       "Bash(git fetch:*)",
       "Bash(git rebase:*)",
       "Bash(git stash push:*)",
-      "WebFetch(domain:dockview.dev)"
+      "WebFetch(domain:dockview.dev)",
+      "Bash(GIT_EDITOR=true git commit:*)"
     ],
     "deny": [],
     "ask": [

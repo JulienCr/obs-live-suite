@@ -66,7 +66,7 @@ export function HeaderOverflowMenu() {
     } else {
       // In ADMIN mode, if we're on dashboard, navigate to settings
       if (pathname === "/dashboard" || pathname === "/dashboard-v2" || pathname === "/") {
-        router.push("/settings");
+        router.push("/settings/general");
       }
     }
   };

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, Play, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield } from "lucide-react";
+import { ChevronDown, ChevronRight, Play, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield, Package } from "lucide-react";
 
 interface NavSection {
   id: string;
@@ -24,15 +24,15 @@ const navigationSections: NavSection[] = [
     label: "LIVE",
     items: [
       { label: "Show Control", href: "/dashboard", icon: Play },
-      { label: "Overlays", href: "/overlays", icon: Layers },
+      { label: "Overlays", href: "/settings/overlays", icon: Layers },
     ],
   },
   {
     id: "library",
     label: "LIBRARY",
     items: [
-      { label: "Assets", href: "/assets", icon: Image },
-      { label: "Themes", href: "/assets?tab=themes", icon: Palette },
+      { label: "Posters", href: "/assets/posters", icon: Image },
+      { label: "Themes", href: "/assets/themes", icon: Palette },
     ],
   },
   {
@@ -40,14 +40,14 @@ const navigationSections: NavSection[] = [
     label: "SHOW SETUP",
     items: [
       { label: "Profiles", href: "/profiles", icon: FolderOpen },
-      { label: "Guests", href: "/assets?tab=guests", icon: Users },
+      { label: "Guests", href: "/assets/guests", icon: Users },
     ],
   },
   {
     id: "integrations",
     label: "INTEGRATIONS",
     items: [
-      { label: "OBS", href: "/settings?tab=obs", icon: Plug },
+      { label: "OBS", href: "/settings/obs", icon: Plug },
       { label: "Stream Deck", href: "/integrations/stream-deck", icon: Shield },
       { label: "Plugins & Updates", href: "/updater", icon: Download },
     ],
@@ -56,10 +56,11 @@ const navigationSections: NavSection[] = [
     id: "settings",
     label: "SETTINGS",
     items: [
-      { label: "General", href: "/settings?tab=general", icon: SettingsIcon },
-      { label: "Backend", href: "/settings?tab=backend", icon: Database },
-      { label: "Paths", href: "/settings?tab=paths", icon: FolderCog },
-      { label: "Backup", href: "/settings?tab=backup", icon: FileStack },
+      { label: "General", href: "/settings/general", icon: SettingsIcon },
+      { label: "Backend", href: "/settings/backend", icon: Database },
+      { label: "Paths", href: "/settings/paths", icon: FolderCog },
+      { label: "Backup", href: "/settings/backup", icon: FileStack },
+      { label: "Plugins", href: "/settings/plugins", icon: Package },
     ],
   },
 ];
