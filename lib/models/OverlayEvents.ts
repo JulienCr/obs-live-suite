@@ -68,6 +68,11 @@ export const lowerThirdAnimationConfigSchema = z.object({
     barMinWidth: z.number().positive().default(200),
     avatarBorderWidth: z.number().positive().default(4),
     avatarBorderColor: z.string().default('#272727'),
+    freeTextMaxWidth: z.object({
+      left: z.number().min(10).max(100).default(65),
+      right: z.number().min(10).max(100).default(65),
+      center: z.number().min(10).max(100).default(90),
+    }).optional(),
   }).optional(),
 }).optional();
 
@@ -91,6 +96,7 @@ export const lowerThirdShowPayloadSchema = z.object({
   logoImage: z.string().optional(),
   avatarImage: z.string().optional(),
   logoHasPadding: z.boolean().default(false),
+  guestId: z.string().optional(), // Guest ID for tracking in dashboard
   animationConfig: lowerThirdAnimationConfigSchema,
   theme: z.object({
     colors: z.object({

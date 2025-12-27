@@ -69,6 +69,34 @@ export interface DbTheme {
     y: number;
     scale: number;
   };
+  lowerThirdAnimation: {
+    timing: {
+      logoFadeDuration: number;
+      logoScaleDuration: number;
+      flipDuration: number;
+      flipDelay: number;
+      barAppearDelay: number;
+      barExpandDuration: number;
+      textAppearDelay: number;
+      textFadeDuration: number;
+    };
+    styles: {
+      barBorderRadius: number;
+      barMinWidth: number;
+      avatarBorderWidth: number;
+      avatarBorderColor: string;
+      freeTextMaxWidth?: {
+        left: number;
+        right: number;
+        center: number;
+      };
+    };
+    colors?: {
+      titleColor?: string;
+      subtitleColor?: string;
+      barBgColor?: string;
+    };
+  };
   countdownStyle: string;
   countdownFont: {
     family: string;
