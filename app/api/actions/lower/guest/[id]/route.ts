@@ -31,12 +31,14 @@ export async function POST(
 
     // Build base payload and enrich with theme data using shared utility
     const basePayload = {
+      contentType: "guest" as const, // Important: Mark as guest type for tracking
       title: guest.displayName,
       subtitle: guest.subtitle || "",
       side: "left" as const,
       duration,
       avatarUrl: guest.avatarUrl,
       accentColor: guest.accentColor,
+      guestId: guest.id, // Add guest ID for tracking in dashboard
     };
 
     const enrichedPayload = enrichLowerThirdPayload(basePayload, db);
