@@ -1,10 +1,5 @@
-import { Card } from "@/components/ui/card";
-import { ThemeManager } from "@/components/assets/ThemeManager";
+import { ThemeManager } from "@/components/theme-editor";
 
 export default function ThemesPage() {
-  return (
-    <Card className="p-4">
-      <ThemeManager />
-    </Card>
-  );
+  return <ThemeManager />;
 }

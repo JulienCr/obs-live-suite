@@ -3,7 +3,6 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ColorScheme, LowerThirdAnimationTheme } from "@/lib/models/Theme";
-import { Card } from "@/components/ui/card";
 
 interface LowerThirdAnimationEditorProps {
   value: LowerThirdAnimationTheme;
@@ -60,8 +59,9 @@ export function LowerThirdAnimationEditor({
   };
 
   return (
-    <div className="space-y-4">
-      <Card className="p-4">
+    <div className="space-y-6">
+      {/* Timings Section */}
+      <div>
         <h4 className="text-sm font-semibold mb-3">Timings (ms)</h4>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -169,9 +169,10 @@ export function LowerThirdAnimationEditor({
             />
           </div>
         </div>
-      </Card>
+      </div>
 
-      <Card className="p-4">
+      {/* Styles Section */}
+      <div className="pt-4 border-t">
         <h4 className="text-sm font-semibold mb-3">Styles</h4>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -229,9 +230,10 @@ export function LowerThirdAnimationEditor({
             </div>
           </div>
         </div>
-      </Card>
+      </div>
 
-      <Card className="p-4">
+      {/* Free Text Max Width Section */}
+      <div className="pt-4 border-t">
         <h4 className="text-sm font-semibold mb-3">Free Text Max Width (%)</h4>
         <p className="text-xs text-muted-foreground mb-3">
           Maximum width for lower third free text by position
@@ -277,9 +279,10 @@ export function LowerThirdAnimationEditor({
             />
           </div>
         </div>
-      </Card>
+      </div>
 
-      <Card className="p-4">
+      {/* Color Overrides Section */}
+      <div className="pt-4 border-t">
         <h4 className="text-sm font-semibold mb-3">Color Overrides (optional)</h4>
         <p className="text-xs text-muted-foreground mb-3">
           Leave empty to use theme colors
@@ -349,7 +352,7 @@ export function LowerThirdAnimationEditor({
             </div>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
