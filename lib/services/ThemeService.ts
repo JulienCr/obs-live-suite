@@ -103,6 +103,30 @@ export class ThemeService {
    * Get default theme definitions
    */
   private getDefaultThemeDefinitions() {
+    const defaultAnimation = {
+      timing: {
+        logoFadeDuration: 200,
+        logoScaleDuration: 200,
+        flipDuration: 600,
+        flipDelay: 500,
+        barAppearDelay: 800,
+        barExpandDuration: 450,
+        textAppearDelay: 1000,
+        textFadeDuration: 250,
+      },
+      styles: {
+        barBorderRadius: 16,
+        barMinWidth: 200,
+        avatarBorderWidth: 4,
+        avatarBorderColor: '#272727',
+        freeTextMaxWidth: {
+          left: 65,
+          right: 65,
+          center: 90,
+        },
+      },
+    };
+
     return [
       {
         name: "Modern Blue",
@@ -121,6 +145,7 @@ export class ThemeService {
           weight: 700,
         },
         lowerThirdLayout: { x: 60, y: 920, scale: 1 },
+        lowerThirdAnimation: defaultAnimation,
         countdownStyle: CountdownStyle.BOLD,
         countdownFont: {
           family: "Courier New, monospace",
@@ -128,6 +153,7 @@ export class ThemeService {
           weight: 900,
         },
         countdownLayout: { x: 960, y: 540, scale: 1 },
+        posterLayout: { x: 960, y: 540, scale: 1 },
         isGlobal: true,
       },
       {
@@ -147,6 +173,7 @@ export class ThemeService {
           weight: 600,
         },
         lowerThirdLayout: { x: 60, y: 920, scale: 1 },
+        lowerThirdAnimation: defaultAnimation,
         countdownStyle: CountdownStyle.CORNER,
         countdownFont: {
           family: "Courier New, monospace",
@@ -154,6 +181,7 @@ export class ThemeService {
           weight: 900,
         },
         countdownLayout: { x: 1780, y: 40, scale: 1 },
+        posterLayout: { x: 960, y: 540, scale: 1 },
         isGlobal: true,
       },
       {
@@ -173,6 +201,7 @@ export class ThemeService {
           weight: 700,
         },
         lowerThirdLayout: { x: 60, y: 920, scale: 1 },
+        lowerThirdAnimation: defaultAnimation,
         countdownStyle: CountdownStyle.BANNER,
         countdownFont: {
           family: "Courier New, monospace",
@@ -180,6 +209,7 @@ export class ThemeService {
           weight: 900,
         },
         countdownLayout: { x: 960, y: 40, scale: 1 },
+        posterLayout: { x: 960, y: 540, scale: 1 },
         isGlobal: true,
       },
       {
@@ -199,6 +229,7 @@ export class ThemeService {
           weight: 700,
         },
         lowerThirdLayout: { x: 1860, y: 920, scale: 1 },
+        lowerThirdAnimation: defaultAnimation,
         countdownStyle: CountdownStyle.BOLD,
         countdownFont: {
           family: "Courier New, monospace",
@@ -206,6 +237,7 @@ export class ThemeService {
           weight: 900,
         },
         countdownLayout: { x: 960, y: 540, scale: 1 },
+        posterLayout: { x: 960, y: 540, scale: 1 },
         isGlobal: true,
       },
       {
@@ -225,6 +257,7 @@ export class ThemeService {
           weight: 700,
         },
         lowerThirdLayout: { x: 60, y: 920, scale: 1 },
+        lowerThirdAnimation: defaultAnimation,
         countdownStyle: CountdownStyle.CORNER,
         countdownFont: {
           family: "Courier New, monospace",
@@ -232,6 +265,7 @@ export class ThemeService {
           weight: 900,
         },
         countdownLayout: { x: 1780, y: 40, scale: 1 },
+        posterLayout: { x: 960, y: 540, scale: 1 },
         isGlobal: true,
       },
     ];

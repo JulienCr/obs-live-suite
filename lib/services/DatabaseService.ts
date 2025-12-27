@@ -152,12 +152,77 @@ export class DatabaseService {
       if (!hasLowerThirdAnimation) {
         this.logger.info("Adding lowerThirdAnimation column to themes table");
         this.db.exec(`
-          ALTER TABLE themes ADD COLUMN lowerThirdAnimation TEXT DEFAULT '{"timing":{"logoFadeDuration":200,"logoScaleDuration":200,"flipDuration":600,"flipDelay":500,"barAppearDelay":800,"barExpandDuration":450,"textAppearDelay":1000,"textFadeDuration":250},"styles":{"barBorderRadius":16,"barMinWidth":200,"avatarBorderWidth":4,"avatarBorderColor":"#272727"}}';
+          ALTER TABLE themes ADD COLUMN lowerThirdAnimation TEXT DEFAULT '{"timing":{"logoFadeDuration":200,"logoScaleDuration":200,"flipDuration":600,"flipDelay":500,"barAppearDelay":800,"barExpandDuration":450,"textAppearDelay":1000,"textFadeDuration":250},"styles":{"barBorderRadius":16,"barMinWidth":200,"avatarBorderWidth":4,"avatarBorderColor":"#272727","freeTextMaxWidth":{"left":65,"right":65,"center":90}}}';
         `);
         this.logger.info("Themes table lowerThirdAnimation migration completed");
+      } else {
+        // Update existing records to include freeTextMaxWidth if missing
+        this.logger.info("Checking for freeTextMaxWidth in existing themes...");
+        const themes = this.db.prepare("SELECT id, lowerThirdAnimation FROM themes").all() as Array<{ id: string; lowerThirdAnimation: string }>;
+        
+        let updatedCount = 0;
+        themes.forEach((theme) => {
+          try {
+            const animation = JSON.parse(theme.lowerThirdAnimation || "{}");
+            if (!animation.styles?.freeTextMaxWidth) {
+              if (!animation.styles) {
+                animation.styles = {};
+              }
+              animation.styles.freeTextMaxWidth = { left: 65, right: 65, center: 90 };
+              
+              this.db.prepare("UPDATE themes SET lowerThirdAnimation = ? WHERE id = ?")
+                .run(JSON.stringify(animation), theme.id);
+              updatedCount++;
+            }
+          } catch (error) {
+            this.logger.error(`Error updating theme ${theme.id}:`, error);
+          }
+        });
+        
+        if (updatedCount > 0) {
+          this.logger.info(`Updated ${updatedCount} theme(s) with freeTextMaxWidth`);
+        }
       }
     } catch (error) {
       this.logger.error("Migration error for themes table (lowerThirdAnimation):", error);
+    }
+
+    // Check if wikipedia_cache table exists
+    try {
+      const tables = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='wikipedia_cache'").all() as Array<{ name: string }>;
+      
+      if (tables.length === 0) {
+        this.logger.info("Creating wikipedia_cache table");
+        this.db.exec(`
+          CREATE TABLE wikipedia_cache (
+            id TEXT PRIMARY KEY,
+            query TEXT NOT NULL,
+            lang TEXT NOT NULL DEFAULT 'fr',
+            title TEXT NOT NULL,
+            summary TEXT NOT NULL,
+            thumbnail TEXT,
+            source TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            ttl INTEGER NOT NULL DEFAULT 604800,
+            raw_extract TEXT
+          );
+          CREATE INDEX idx_wikipedia_cache_query ON wikipedia_cache(query, lang);
+          CREATE INDEX idx_wikipedia_cache_created_at ON wikipedia_cache(created_at);
+        `);
+        this.logger.info("Wikipedia cache table created");
+      } else {
+        // Check if raw_extract column exists and add it if not
+        const cacheTableInfo = this.db.prepare("PRAGMA table_info(wikipedia_cache)").all() as Array<{ name: string }>;
+        const hasRawExtract = cacheTableInfo.some((col) => col.name === "raw_extract");
+        
+        if (!hasRawExtract) {
+          this.logger.info("Adding raw_extract column to wikipedia_cache table");
+          this.db.exec(`ALTER TABLE wikipedia_cache ADD COLUMN raw_extract TEXT`);
+          this.logger.info("Wikipedia cache table raw_extract migration completed");
+        }
+      }
+    } catch (error) {
+      this.logger.error("Migration error for wikipedia_cache table:", error);
     }
   }
 
@@ -200,7 +265,7 @@ export class DatabaseService {
         lowerThirdTemplate TEXT NOT NULL,
         lowerThirdFont TEXT NOT NULL,
         lowerThirdLayout TEXT NOT NULL DEFAULT '{"x":60,"y":920,"scale":1}',
-        lowerThirdAnimation TEXT DEFAULT '{"timing":{"logoFadeDuration":200,"logoScaleDuration":200,"flipDuration":600,"flipDelay":500,"barAppearDelay":800,"barExpandDuration":450,"textAppearDelay":1000,"textFadeDuration":250},"styles":{"barBorderRadius":16,"barMinWidth":200,"avatarBorderWidth":4,"avatarBorderColor":"#272727"}}',
+        lowerThirdAnimation TEXT DEFAULT '{"timing":{"logoFadeDuration":200,"logoScaleDuration":200,"flipDuration":600,"flipDelay":500,"barAppearDelay":800,"barExpandDuration":450,"textAppearDelay":1000,"textFadeDuration":250},"styles":{"barBorderRadius":16,"barMinWidth":200,"avatarBorderWidth":4,"avatarBorderColor":"#272727","freeTextMaxWidth":{"left":65,"right":65,"center":90}}}',
         countdownStyle TEXT NOT NULL,
         countdownFont TEXT NOT NULL,
         countdownLayout TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}',
@@ -270,12 +335,27 @@ export class DatabaseService {
         updatedAt TEXT NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS wikipedia_cache (
+        id TEXT PRIMARY KEY,
+        query TEXT NOT NULL,
+        lang TEXT NOT NULL DEFAULT 'fr',
+        title TEXT NOT NULL,
+        summary TEXT NOT NULL,
+        thumbnail TEXT,
+        source TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        ttl INTEGER NOT NULL DEFAULT 604800,
+        raw_extract TEXT
+      );
+
       CREATE INDEX IF NOT EXISTS idx_guests_displayName ON guests(displayName);
       CREATE INDEX IF NOT EXISTS idx_posters_profileIds ON posters(profileIds);
       CREATE INDEX IF NOT EXISTS idx_profiles_isActive ON profiles(isActive);
       CREATE INDEX IF NOT EXISTS idx_presets_profileId ON presets(profileId);
       CREATE INDEX IF NOT EXISTS idx_macros_profileId ON macros(profileId);
       CREATE INDEX IF NOT EXISTS idx_plugins_updateStatus ON plugins(updateStatus);
+      CREATE INDEX IF NOT EXISTS idx_wikipedia_cache_query ON wikipedia_cache(query, lang);
+      CREATE INDEX IF NOT EXISTS idx_wikipedia_cache_created_at ON wikipedia_cache(created_at);
     `);
 
     this.logger.info("Database tables initialized");
