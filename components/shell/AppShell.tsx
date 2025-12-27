@@ -13,7 +13,7 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const { mode, setMode } = useAppMode();
+  const { mode, setMode, isFullscreenMode } = useAppMode();
 
   // Enable global keyboard shortcuts (mode switching, fullscreen)
   useKeyboardShortcuts();
@@ -39,11 +39,11 @@ export function AppShell({ children }: AppShellProps) {
     return <>{children}</>;
   }
 
-  const showSidebar = mode === "ADMIN";
+  const showSidebar = mode === "ADMIN" && !isFullscreenMode;
 
   return (
     <div className="min-h-screen flex flex-col">
-      <DashboardHeader />
+      {!isFullscreenMode && <DashboardHeader />}
       <div className="flex flex-1 overflow-hidden">
         {showSidebar && <AdminSidebar />}
         <main className="flex-1 overflow-auto">

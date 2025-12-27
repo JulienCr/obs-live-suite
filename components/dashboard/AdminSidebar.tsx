@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, Play, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield, Package } from "lucide-react";
+import { ChevronDown, ChevronRight, Play, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield, Package, Sparkles } from "lucide-react";
 
 interface NavSection {
   id: string;
@@ -57,6 +57,7 @@ const navigationSections: NavSection[] = [
     label: "SETTINGS",
     items: [
       { label: "General", href: "/settings/general", icon: SettingsIcon },
+      { label: "Integrations", href: "/settings/integrations", icon: Sparkles },
       { label: "Backend", href: "/settings/backend", icon: Database },
       { label: "Paths", href: "/settings/paths", icon: FolderCog },
       { label: "Backup", href: "/settings/backup", icon: FileStack },

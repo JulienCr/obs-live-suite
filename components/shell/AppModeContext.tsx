@@ -9,6 +9,8 @@ interface AppModeContextValue {
   setMode: (mode: AppMode) => void;
   isOnAir: boolean;
   setIsOnAir: (isOnAir: boolean) => void;
+  isFullscreenMode: boolean;
+  setIsFullscreenMode: (isFullscreen: boolean) => void;
 }
 
 const AppModeContext = createContext<AppModeContextValue | null>(null);
@@ -18,6 +20,7 @@ const MODE_STORAGE_KEY = "obs-live-suite-app-mode";
 export function AppModeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<AppMode>("LIVE");
   const [isOnAir, setIsOnAir] = useState(false);
+  const [isFullscreenMode, setIsFullscreenMode] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(MODE_STORAGE_KEY);
@@ -32,7 +35,7 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AppModeContext.Provider value={{ mode, setMode, isOnAir, setIsOnAir }}>
+    <AppModeContext.Provider value={{ mode, setMode, isOnAir, setIsOnAir, isFullscreenMode, setIsFullscreenMode }}>
       {children}
     </AppModeContext.Provider>
   );

@@ -33,7 +33,7 @@ interface Profile {
  * DashboardHeader displays operational status and global controls
  */
 export function DashboardHeader() {
-  const { mode, isOnAir, setIsOnAir } = useAppMode();
+  const { mode, isOnAir, setIsOnAir, isFullscreenMode, setIsFullscreenMode } = useAppMode();
   const [status, setStatus] = useState<OBSStatus>({
     connected: false,
     currentScene: null,
@@ -42,7 +42,6 @@ export function DashboardHeader() {
   });
   const [isConnecting, setIsConnecting] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -99,16 +98,6 @@ export function DashboardHeader() {
     fetchProfiles();
   }, []);
 
-  useEffect(() => {
-    // Handle fullscreen changes
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
-
   const handleReconnect = async () => {
     setIsConnecting(true);
     try {
@@ -120,12 +109,8 @@ export function DashboardHeader() {
     }
   };
 
-  const toggleFullscreen = async () => {
-    if (!document.fullscreenElement) {
-      await document.documentElement.requestFullscreen();
-    } else {
-      await document.exitFullscreen();
-    }
+  const toggleFullscreen = () => {
+    setIsFullscreenMode(!isFullscreenMode);
   };
 
   const activeProfile = profiles.find(p => p.isActive);
@@ -254,7 +239,7 @@ export function DashboardHeader() {
               variant="ghost"
               size="sm"
               onClick={toggleFullscreen}
-              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              title={isFullscreenMode ? "Exit Fullscreen" : "Fullscreen"}
               className="h-10 w-10 p-0"
             >
               <Maximize className="w-4 h-4" />
