@@ -68,6 +68,11 @@ export const lowerThirdAnimationConfigSchema = z.object({
     barMinWidth: z.number().positive().default(200),
     avatarBorderWidth: z.number().positive().default(4),
     avatarBorderColor: z.string().default('#272727'),
+    freeTextMaxWidth: z.object({
+      left: z.number().min(10).max(100).default(65),
+      right: z.number().min(10).max(100).default(65),
+      center: z.number().min(10).max(100).default(90),
+    }).optional(),
   }).optional(),
 }).optional();
 
@@ -77,9 +82,13 @@ export type LowerThirdAnimationConfig = z.infer<typeof lowerThirdAnimationConfig
  * Lower third show event payload
  */
 export const lowerThirdShowPayloadSchema = z.object({
-  title: z.string(),
+  title: z.string().optional(),
   subtitle: z.string().optional(),
-  side: z.enum(["left", "right"]).default("left"),
+  body: z.string().optional(),
+  contentType: z.enum(["guest", "text"]).optional(),
+  imageUrl: z.string().optional(),
+  imageAlt: z.string().optional(),
+  side: z.enum(["left", "right", "center"]).default("left"),
   themeId: z.string().uuid().optional(),
   duration: z.number().int().positive().optional(),
   avatarUrl: z.string().optional(),
@@ -87,6 +96,7 @@ export const lowerThirdShowPayloadSchema = z.object({
   logoImage: z.string().optional(),
   avatarImage: z.string().optional(),
   logoHasPadding: z.boolean().default(false),
+  guestId: z.string().optional(), // Guest ID for tracking in dashboard
   animationConfig: lowerThirdAnimationConfigSchema,
   theme: z.object({
     colors: z.object({
@@ -108,6 +118,14 @@ export const lowerThirdShowPayloadSchema = z.object({
       scale: z.number(),
     }).optional(),
   }).optional(),
+}).superRefine((data, ctx) => {
+  if (!data.title && !data.body) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Lower third requires either a title or body.",
+      path: ["title"],
+    });
+  }
 });
 
 export type LowerThirdShowPayload = z.infer<typeof lowerThirdShowPayloadSchema>;
@@ -195,4 +213,3 @@ export const ackEventSchema = z.object({
 });
 
 export type AckEvent = z.infer<typeof ackEventSchema>;
-

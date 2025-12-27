@@ -36,6 +36,19 @@ export function LowerThirdAnimationEditor({
     });
   };
 
+  const handleFreeTextMaxWidthChange = (position: 'left' | 'right' | 'center', val: number) => {
+    onChange({
+      ...value,
+      styles: {
+        ...value.styles,
+        freeTextMaxWidth: {
+          ...(value.styles.freeTextMaxWidth || { left: 65, right: 65, center: 90 }),
+          [position]: val,
+        },
+      },
+    });
+  };
+
   const handleColorChange = (key: 'titleColor' | 'subtitleColor' | 'barBgColor', val: string) => {
     onChange({
       ...value,
@@ -219,6 +232,54 @@ export function LowerThirdAnimationEditor({
       </Card>
 
       <Card className="p-4">
+        <h4 className="text-sm font-semibold mb-3">Free Text Max Width (%)</h4>
+        <p className="text-xs text-muted-foreground mb-3">
+          Maximum width for lower third free text by position
+        </p>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <Label htmlFor="freeTextMaxWidthLeft" className="text-xs">Left Position</Label>
+            <Input
+              id="freeTextMaxWidthLeft"
+              type="number"
+              min="10"
+              max="100"
+              step="5"
+              value={value.styles.freeTextMaxWidth?.left || 65}
+              onChange={(e) => handleFreeTextMaxWidthChange('left', parseInt(e.target.value) || 65)}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div>
+            <Label htmlFor="freeTextMaxWidthRight" className="text-xs">Right Position</Label>
+            <Input
+              id="freeTextMaxWidthRight"
+              type="number"
+              min="10"
+              max="100"
+              step="5"
+              value={value.styles.freeTextMaxWidth?.right || 65}
+              onChange={(e) => handleFreeTextMaxWidthChange('right', parseInt(e.target.value) || 65)}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div>
+            <Label htmlFor="freeTextMaxWidthCenter" className="text-xs">Center Position</Label>
+            <Input
+              id="freeTextMaxWidthCenter"
+              type="number"
+              min="10"
+              max="100"
+              step="5"
+              value={value.styles.freeTextMaxWidth?.center || 90}
+              onChange={(e) => handleFreeTextMaxWidthChange('center', parseInt(e.target.value) || 90)}
+              className="h-8 text-xs"
+            />
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-4">
         <h4 className="text-sm font-semibold mb-3">Color Overrides (optional)</h4>
         <p className="text-xs text-muted-foreground mb-3">
           Leave empty to use theme colors
@@ -292,4 +353,5 @@ export function LowerThirdAnimationEditor({
     </div>
   );
 }
+
 

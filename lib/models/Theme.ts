@@ -85,11 +85,25 @@ export const lowerThirdAnimationThemeSchema = z.object({
     barMinWidth: z.number().positive().default(200),
     avatarBorderWidth: z.number().positive().default(4),
     avatarBorderColor: z.string().default('#272727'),
+    freeTextMaxWidth: z.object({
+      left: z.number().min(10).max(100).default(65),    // Percentage for left position
+      right: z.number().min(10).max(100).default(65),   // Percentage for right position
+      center: z.number().min(10).max(100).default(90),  // Percentage for center position
+    }).optional().default({
+      left: 65,
+      right: 65,
+      center: 90,
+    }),
   }).default({
     barBorderRadius: 16,
     barMinWidth: 200,
     avatarBorderWidth: 4,
     avatarBorderColor: '#272727',
+    freeTextMaxWidth: {
+      left: 65,
+      right: 65,
+      center: 90,
+    },
   }),
   colors: z.object({
     titleColor: z.string().optional(),
@@ -112,6 +126,11 @@ export const lowerThirdAnimationThemeSchema = z.object({
     barMinWidth: 200,
     avatarBorderWidth: 4,
     avatarBorderColor: '#272727',
+    freeTextMaxWidth: {
+      left: 65,
+      right: 65,
+      center: 90,
+    },
   },
 });
 

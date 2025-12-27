@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Zap } from "lucide-react";
@@ -27,9 +27,101 @@ interface GuestsCardProps {
 export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalEnabledGuests, setTotalEnabledGuests] = useState(0);
+  const [activeGuestId, setActiveGuestId] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchGuests();
+  }, []);
+
+  // WebSocket connection to track active lower third
+  useEffect(() => {
+    let reconnectTimeout: NodeJS.Timeout;
+    let isUnmounted = false;
+
+    const connectWebSocket = () => {
+      if (isUnmounted) return;
+
+      try {
+        const ws = new WebSocket(`ws://${window.location.hostname}:3003`);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          ws.send(JSON.stringify({
+            type: "subscribe",
+            channel: "lower", // Channel name is "lower", not "lower-third"
+          }));
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            if (message.channel === "lower" && message.data) {
+              const data = message.data;
+              
+              // Clear any existing hide timeout
+              if (hideTimeoutRef.current) {
+                clearTimeout(hideTimeoutRef.current);
+                hideTimeoutRef.current = null;
+              }
+              
+              // Track when a guest lower third is shown or hidden
+              if (data.type === "show" && data.payload?.contentType === "guest") {
+                setActiveGuestId(data.payload.guestId || null);
+                
+                // If there's a duration, automatically clear the active state after that duration
+                if (data.payload.duration) {
+                  hideTimeoutRef.current = setTimeout(() => {
+                    setActiveGuestId(null);
+                    hideTimeoutRef.current = null;
+                  }, data.payload.duration * 1000);
+                }
+              } else if (data.type === "hide") {
+                setActiveGuestId(null);
+              }
+            }
+          } catch (error) {
+            console.error("[GuestsCard] Failed to parse WebSocket message:", error);
+          }
+        };
+
+        ws.onerror = () => {
+          // Silently handle error, will reconnect on close
+        };
+
+        ws.onclose = () => {
+          wsRef.current = null;
+          // Reconnect after 3 seconds if not unmounted
+          if (!isUnmounted) {
+            reconnectTimeout = setTimeout(connectWebSocket, 3000);
+          }
+        };
+      } catch (error) {
+        console.error("[GuestsCard] Failed to create WebSocket:", error);
+        // Retry connection after 3 seconds
+        if (!isUnmounted) {
+          reconnectTimeout = setTimeout(connectWebSocket, 3000);
+        }
+      }
+    };
+
+    // Initial connection with a small delay to let backend start
+    const initialTimeout = setTimeout(connectWebSocket, 500);
+
+    return () => {
+      isUnmounted = true;
+      clearTimeout(initialTimeout);
+      clearTimeout(reconnectTimeout);
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
   }, []);
 
   const fetchGuests = async () => {
@@ -37,8 +129,10 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
       const res = await fetch("/api/assets/guests");
       const data = await res.json();
       // Filter to show only enabled guests
-      const enabledGuests = (data.guests || []).filter((g: Guest) => g.isEnabled);
-      setGuests(enabledGuests);
+      const allEnabledGuests = (data.guests || []).filter((g: Guest) => g.isEnabled);
+      setTotalEnabledGuests(allEnabledGuests.length);
+      // Limit to 10 for keyboard shortcuts (1-0)
+      setGuests(allEnabledGuests.slice(0, 10));
     } catch (error) {
       console.error("Failed to fetch guests:", error);
     } finally {
@@ -48,6 +142,27 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
 
   const handleQuickLowerThird = async (guest: Guest) => {
     try {
+      // If clicking on the currently active guest, hide it (panic button)
+      if (activeGuestId === guest.id) {
+        console.log("[GuestsCard] Hiding active guest (panic):", guest.id);
+        
+        // Clear the auto-hide timer
+        if (hideTimeoutRef.current) {
+          clearTimeout(hideTimeoutRef.current);
+          hideTimeoutRef.current = null;
+        }
+        
+        // Send hide event
+        await fetch("/api/actions/lower/hide", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        
+        // Update state immediately
+        setActiveGuestId(null);
+        return;
+      }
+      
       console.log("[GuestsCard] Showing guest lower third with theme:", guest.id);
       
       // Use the same endpoint as Stream Deck plugin (has theme enrichment)
@@ -59,16 +174,23 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
         }),
       });
     } catch (error) {
-      console.error("Failed to show lower third:", error);
+      console.error("Failed to show/hide lower third:", error);
     }
   };
 
   return (
     <Card className={cn(className)}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="w-5 h-5" />
-          Quick Guests
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Quick Guests
+          </div>
+          {totalEnabledGuests > 10 && (
+            <span className="text-xs text-muted-foreground font-normal">
+              Showing 10 of {totalEnabledGuests}
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -86,13 +208,24 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
               scrollbarColor: "hsl(var(--muted)) transparent"
             }}
           >
-            {guests.map((guest) => (
+            {guests.map((guest, index) => {
+              const isActive = activeGuestId === guest.id;
+              return (
               <div
                 key={guest.id}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+                className={cn(
+                  "relative flex items-center gap-2 p-2 rounded-lg transition-all cursor-pointer group border-2",
+                  isActive
+                    ? "bg-muted/50 border-green-500"
+                    : "border-transparent hover:bg-muted/50"
+                )}
                 onClick={() => handleQuickLowerThird(guest)}
-                title={`Show ${guest.displayName} lower third`}
+                title={`Show ${guest.displayName} lower third (Shortcut: ${index === 9 ? '0' : index + 1})`}
               >
+                {/* Guest number badge */}
+                <div className="w-5 h-5 rounded flex items-center justify-center bg-primary/10 text-primary text-xs font-bold flex-shrink-0">
+                  {index === 9 ? '0' : index + 1}
+                </div>
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 overflow-hidden"
                   style={{ backgroundColor: guest.accentColor }}
@@ -112,20 +245,28 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
                     {guest.displayName}
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-6 w-6 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleQuickLowerThird(guest);
-                  }}
-                  title="Show Lower Third (8s)"
-                >
-                  <Zap className="w-3 h-3" />
-                </Button>
+                
+                {/* Active indicator with green Zap icon */}
+                {isActive ? (
+                  <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 bg-green-500 rounded-full">
+                    <Zap className="w-3 h-3 text-white fill-white" />
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-6 w-6 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleQuickLowerThird(guest);
+                    }}
+                    title="Show Lower Third (8s)"
+                  >
+                    <Zap className="w-3 h-3" />
+                  </Button>
+                )}
               </div>
-            ))}
+            )})}
           </div>
         )}
       </CardContent>

@@ -38,7 +38,7 @@ const components = {
 
 export function DashboardShell() {
   const { theme } = useTheme();
-  const { mode } = useAppMode();
+  const { mode, isFullscreenMode } = useAppMode();
   const [mounted, setMounted] = useState(false);
   const apiRef = useRef<DockviewReadyEvent["api"] | null>(null);
   const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);
@@ -201,7 +201,7 @@ export function DashboardShell() {
   }, [applyLivePreset, applyPrepPreset, applyMinimalPreset]);
 
   // Enable keyboard shortcuts for layout presets
-  useKeyboardShortcuts(applyPreset);
+  useKeyboardShortcuts(applyPreset, api);
 
   const onReady = useCallback((event: DockviewReadyEvent) => {
     apiRef.current = event.api;
@@ -292,7 +292,7 @@ export function DashboardShell() {
     <LayoutPresetsProvider applyPreset={applyPreset}>
       <DockviewContext.Provider value={{ api }}>
         <div style={{ height: "100vh", width: "100vw", display: "flex" }}>
-          {mode === "LIVE" && <LiveModeRail />}
+          {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
           <div style={{ flex: 1 }}>
             <DockviewReact
               components={components}
