@@ -61,6 +61,11 @@ export function ThemeManager() {
         barMinWidth: 200,
         avatarBorderWidth: 4,
         avatarBorderColor: '#272727',
+        freeTextMaxWidth: {
+          left: 65,
+          right: 65,
+          center: 90,
+        },
       },
     },
     countdownStyle: CountdownStyle.BOLD,
@@ -222,6 +227,11 @@ export function ThemeManager() {
           barMinWidth: 200,
           avatarBorderWidth: 4,
           avatarBorderColor: '#272727',
+          freeTextMaxWidth: {
+            left: 65,
+            right: 65,
+            center: 90,
+          },
         },
       },
       countdownStyle: CountdownStyle.BOLD,
@@ -261,6 +271,11 @@ export function ThemeManager() {
           barMinWidth: 200,
           avatarBorderWidth: 4,
           avatarBorderColor: '#272727',
+          freeTextMaxWidth: {
+            left: 65,
+            right: 65,
+            center: 90,
+          },
         },
       },
       countdownStyle: theme.countdownStyle,
@@ -811,6 +826,11 @@ export function ThemeManager() {
                           barMinWidth: 200,
                           avatarBorderWidth: 4,
                           avatarBorderColor: '#272727',
+                          freeTextMaxWidth: {
+                            left: 65,
+                            right: 65,
+                            center: 90,
+                          },
                         },
                       },
                     }));
