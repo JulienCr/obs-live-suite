@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { LowerThirdShowPayload, LowerThirdAnimationConfig } from "@/lib/models/OverlayEvents";
 import { LowerThirdDisplay } from "./LowerThirdDisplay";
+import { LowerThirdAnimationTheme } from "@/lib/models/Theme";
 
 interface ThemeData {
   colors: {
@@ -26,6 +27,7 @@ interface ThemeData {
     width?: number;
     height?: number;
   };
+  lowerThirdAnimation?: LowerThirdAnimationTheme;
 }
 
 interface LowerThirdState {
@@ -256,6 +258,7 @@ export function LowerThirdRenderer() {
         colors: state.theme.colors,
         font: state.theme.font,
         layout: state.theme.layout || { x: 60, y: 920, scale: 1 },
+        lowerThirdAnimation: state.theme.lowerThirdAnimation,
       } : undefined}
       animationConfig={state.animationConfig}
       animating={state.animating}

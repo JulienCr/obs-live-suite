@@ -11,6 +11,7 @@
   --lt-color-border-avatar: rgb(39, 39, 39);
   --lt-bar-border-radius: 16px;
   --lt-bar-min-width: 200px;
+  --lt-free-text-max-width: 65%;
 }
 
 .lowerthird {
@@ -24,6 +25,12 @@
 
 .lowerthird--center {
   justify-content: center;
+}
+
+/* Set max-width constraint on text mode container */
+.lowerthird--text {
+  max-width: var(--lt-free-text-max-width);
+  min-width: var(--lt-free-text-max-width);
 }
 
 /* ===== CIRCLE / AVATAR ===== */
@@ -131,7 +138,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-width: 900px;
 }
 
 .lowerthird-media {

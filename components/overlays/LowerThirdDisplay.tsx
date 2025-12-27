@@ -82,6 +82,11 @@ export function LowerThirdDisplay({
       barMinWidth: animationConfig?.styles?.barMinWidth ?? themeAnimation?.styles?.barMinWidth ?? 200,
       avatarBorderWidth: animationConfig?.styles?.avatarBorderWidth ?? themeAnimation?.styles?.avatarBorderWidth ?? 4,
       avatarBorderColor: animationConfig?.styles?.avatarBorderColor ?? themeAnimation?.styles?.avatarBorderColor ?? '#272727',
+      freeTextMaxWidth: animationConfig?.styles?.freeTextMaxWidth ?? themeAnimation?.styles?.freeTextMaxWidth ?? {
+        left: 65,
+        right: 65,
+        center: 90,
+      },
     },
   };
 
@@ -156,6 +161,8 @@ export function LowerThirdDisplay({
   }, [animating, config.timing.flipDelay, config.timing.barAppearDelay, config.timing.textAppearDelay]);
 
   // Generate CSS variables
+  const freeTextMaxWidth = config.styles.freeTextMaxWidth?.[side] ?? (side === 'center' ? 90 : 65);
+  
   const cssVars = {
     '--lt-timing-logo-fade': `${config.timing.logoFadeDuration}ms`,
     '--lt-timing-logo-scale': `${config.timing.logoScaleDuration}ms`,
@@ -168,6 +175,7 @@ export function LowerThirdDisplay({
     '--lt-color-border-avatar': config.styles.avatarBorderColor,
     '--lt-bar-border-radius': `${config.styles.barBorderRadius}px`,
     '--lt-bar-min-width': `${config.styles.barMinWidth}px`,
+    '--lt-free-text-max-width': `${freeTextMaxWidth}vw`,
   } as React.CSSProperties;
 
   const centeredBottomOffset = 80;
@@ -276,35 +284,45 @@ export function LowerThirdDisplay({
     return { lines, maxLineLength: maxLen };
   };
 
+  // Calculate target width from theme config (in vw)
+  const targetWidth = useMemo(() => {
+    if (!isTextMode) return 0;
+    
+    const vwValue = freeTextMaxWidth; // Already calculated: 90 for center, 65 for left/right
+    // Convert vw to pixels: 1vw = viewport width / 100
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
+    const widthInPixels = (viewportWidth * vwValue) / 100;
+    
+    // Account for bar padding (16px left + 20px right = 36px) and text padding
+    // The markdown wrapper needs the full bar width minus its internal padding
+    const textContainerPadding = 40; // Total horizontal padding in .bar
+    const imageSpace = imageUrl ? 156 : 0; // Image width + gap if present
+    
+    return widthInPixels - textContainerPadding - imageSpace;
+  }, [isTextMode, freeTextMaxWidth, imageUrl]);
+
   useLayoutEffect(() => {
-    if (!markdownRef.current) return;
-    const updateWidth = () => {
-      const newWidth = markdownRef.current?.clientWidth || 0;
-      setWrapWidth(newWidth);
+    if (!isTextMode) return;
+    
+    // Use calculated target width immediately
+    setWrapWidth(targetWidth);
+    
+    // Still observe for window resize
+    const handleResize = () => {
+      const viewportWidth = window.innerWidth;
+      const widthInPixels = (viewportWidth * freeTextMaxWidth) / 100;
+      const textContainerPadding = 40;
+      const imageSpace = imageUrl ? 156 : 0;
+      setWrapWidth(widthInPixels - textContainerPadding - imageSpace);
     };
-    updateWidth();
-
-    if (typeof ResizeObserver !== "undefined") {
-      const observer = new ResizeObserver(updateWidth);
-      observer.observe(markdownRef.current);
-      return () => observer.disconnect();
-    }
-
-    window.addEventListener("resize", updateWidth);
-    return () => window.removeEventListener("resize", updateWidth);
-  }, [isTextMode, imageUrl]);
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isTextMode, freeTextMaxWidth, targetWidth, imageUrl]);
 
   const { wrappedLines, lineScale } = useMemo(() => {
-    if (!isTextMode) {
+    if (!isTextMode || !wrapWidth) {
       return { wrappedLines: [], lineScale: 1 };
-    }
-    if (!wrapWidth) {
-      const fallbackLines = markdownSource.split(/\r?\n/);
-      const maxLen = fallbackLines.reduce((max, line) => Math.max(max, line.length), 0);
-      return {
-        wrappedLines: fallbackLines.slice(0, 5),
-        lineScale: computeLineScale(fallbackLines.length, maxLen),
-      };
     }
 
     const firstPass = wrapMarkdownText(markdownSource, wrapWidth, 1);
