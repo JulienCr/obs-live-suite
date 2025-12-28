@@ -40,6 +40,7 @@ router.post("/", (req, res) => {
       vdoNinjaUrl: input.vdoNinjaUrl || null,
       twitchChatUrl: input.twitchChatUrl || null,
       quickReplies: input.quickReplies || ["Ready", "Need more context", "Delay 1 min", "Audio issue"],
+      canSendCustomMessages: input.canSendCustomMessages ?? false,
     });
 
     const room = db.getRoomById(id);

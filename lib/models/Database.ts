@@ -164,6 +164,7 @@ export interface DbRoom {
   vdoNinjaUrl: string | null;
   twitchChatUrl: string | null;
   quickReplies: string[];
+  canSendCustomMessages: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

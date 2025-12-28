@@ -230,6 +230,22 @@ export class DatabaseService {
     } catch (error) {
       this.logger.error("Migration error for wikipedia_cache table:", error);
     }
+
+    // Check if canSendCustomMessages column exists in rooms table
+    try {
+      const roomTableInfo = this.db.prepare("PRAGMA table_info(rooms)").all() as Array<{ name: string }>;
+      const hasCanSendCustomMessages = roomTableInfo.some((col) => col.name === "canSendCustomMessages");
+
+      if (!hasCanSendCustomMessages) {
+        this.logger.info("Adding canSendCustomMessages column to rooms table");
+        this.db.exec(`
+          ALTER TABLE rooms ADD COLUMN canSendCustomMessages INTEGER NOT NULL DEFAULT 0;
+        `);
+        this.logger.info("Rooms table canSendCustomMessages migration completed");
+      }
+    } catch (error) {
+      this.logger.error("Migration error for rooms table (canSendCustomMessages):", error);
+    }
   }
 
   /**
@@ -360,6 +376,7 @@ export class DatabaseService {
         vdoNinjaUrl TEXT,
         twitchChatUrl TEXT,
         quickReplies TEXT NOT NULL DEFAULT '["Ready","Need more context","Delay 1 min","Audio issue"]',
+        canSendCustomMessages INTEGER NOT NULL DEFAULT 0,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       );

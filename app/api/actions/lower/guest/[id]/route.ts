@@ -54,6 +54,7 @@ export async function POST(
         title: `Guest: ${guest.displayName}`,
         imageUrl: guest.avatarUrl || undefined,
         bullets: guest.subtitle ? [guest.subtitle] : undefined,
+        guestId: guest.id, // Include guest ID for tracking
       });
     } catch (error) {
       console.error("[GuestAction] Failed to send presenter notification:", error);
