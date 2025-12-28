@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Eye, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
+import { getWebSocketUrl } from "@/lib/utils/websocket";
 
 interface Poster {
   id: string;
@@ -63,7 +64,7 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
       return;
     }
 
-    const ws = new WebSocket(`ws://${window.location.hostname}:3003`);
+    const ws = new WebSocket(getWebSocketUrl());
     wsRef.current = ws;
 
     ws.onopen = () => {

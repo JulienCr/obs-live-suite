@@ -7,13 +7,16 @@ import type { DockviewApi } from "dockview-react";
 
 export function useKeyboardShortcuts(
   applyPreset?: (preset: "live" | "prep" | "minimal") => void,
-  dockviewApi?: DockviewApi | null
+  dockviewApi?: DockviewApi | null,
+  enabled: boolean = true
 ) {
   const router = useRouter();
   const pathname = usePathname();
   const { mode, setMode, isOnAir, isFullscreenMode, setIsFullscreenMode } = useAppMode();
 
   useEffect(() => {
+    // Skip if disabled (prevents double listeners when both AppShell and DashboardShell are active)
+    if (!enabled) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
       const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
@@ -116,9 +119,9 @@ export function useKeyboardShortcuts(
         return;
       }
 
-      // 1-0 - Trigger guests (only if not typing)
+      // 1-0 - Trigger guests (only if not typing and no modifiers)
       // Use e.code to detect physical key position (works with any keyboard layout)
-      if (!isTyping && /^Digit[0-9]$/.test(e.code)) {
+      if (!isTyping && !cmdOrCtrl && /^Digit[0-9]$/.test(e.code)) {
         e.preventDefault();
         const digitMatch = e.code.match(/^Digit([0-9])$/);
         if (digitMatch) {
@@ -142,8 +145,8 @@ export function useKeyboardShortcuts(
         if (mode !== "ADMIN") {
           if (!isOnAir) {
             setMode("ADMIN");
-            if (pathname === "/dashboard" || pathname === "/dashboard-v2" || pathname === "/") {
-              router.push("/settings");
+            if (pathname === "/dashboard" || pathname === "/") {
+              router.push("/settings/general");
             }
           }
         }
@@ -155,7 +158,7 @@ export function useKeyboardShortcuts(
         e.preventDefault();
         if (mode !== "LIVE") {
           setMode("LIVE");
-          if (pathname !== "/dashboard" && pathname !== "/dashboard-v2" && pathname !== "/") {
+          if (pathname !== "/dashboard" && pathname !== "/") {
             router.push("/dashboard");
           }
         }
@@ -163,7 +166,7 @@ export function useKeyboardShortcuts(
       }
 
       // Layout presets - only in LIVE mode on dashboard
-      const isOnDashboard = pathname === "/" || pathname === "/dashboard" || pathname === "/dashboard-v2";
+      const isOnDashboard = pathname === "/" || pathname === "/dashboard";
       if (mode === "LIVE" && isOnDashboard && applyPreset) {
         // Cmd/Ctrl + 1 - Live preset
         if (cmdOrCtrl && e.key === "1") {
@@ -190,5 +193,5 @@ export function useKeyboardShortcuts(
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [mode, setMode, isOnAir, pathname, router, applyPreset, isFullscreenMode, setIsFullscreenMode, dockviewApi]);
+  }, [mode, setMode, isOnAir, pathname, router, applyPreset, isFullscreenMode, setIsFullscreenMode, dockviewApi, enabled]);
 }

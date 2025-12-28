@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { enrichPosterPayload } from "@/lib/utils/themeEnrichment";
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
+import { sendPresenterNotification } from "@/lib/utils/presenterNotifications";
+import { BACKEND_URL } from "@/lib/config/urls";
 
 /**
  * POST /api/overlays/poster
@@ -35,6 +35,52 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       console.error("[Next.js Poster API] Backend error:", data);
       return NextResponse.json(data, { status: response.status });
+    }
+
+    // Send notification to presenter when showing a poster (non-blocking)
+    if (action === 'show' && payload) {
+      try {
+        const { posterId, fileUrl, type, source, side } = payload;
+        const db = DatabaseService.getInstance();
+
+        // Get title and description from database if posterId is provided
+        let title = 'Sans titre';
+        let description = undefined;
+        if (posterId) {
+          const poster = db.getPosterById(posterId);
+          if (poster) {
+            title = poster.title;
+            description = poster.description;
+          }
+        }
+
+        // Build bullets with only useful context
+        const bullets = [];
+        if (source) {
+          bullets.push(`Source: ${source}`);
+        }
+
+        // Build links
+        const links = [];
+        if (type === 'youtube') {
+          links.push({ url: fileUrl, title: 'Voir sur YouTube' });
+        } else if (type === 'image') {
+          links.push({ url: fileUrl, title: 'Voir l\'image en grand' });
+        } else if (type === 'video') {
+          links.push({ url: fileUrl, title: 'Voir la vidéo' });
+        }
+
+        await sendPresenterNotification({
+          type: 'poster',
+          title: `Poster: ${title}`,
+          body: description,
+          imageUrl: type === 'image' ? fileUrl : undefined,
+          bullets: bullets.length > 0 ? bullets : undefined,
+          links: links.length > 0 ? links : undefined,
+        });
+      } catch (error) {
+        console.error('[PosterAction] Failed to send presenter notification:', error);
+      }
     }
 
     return NextResponse.json(data);

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, Play, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield, Package, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, Play, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield, Package, Sparkles, MessageSquare } from "lucide-react";
 
 interface NavSection {
   id: string;
@@ -41,6 +41,13 @@ const navigationSections: NavSection[] = [
     items: [
       { label: "Profiles", href: "/profiles", icon: FolderOpen },
       { label: "Guests", href: "/assets/guests", icon: Users },
+    ],
+  },
+  {
+    id: "presenter",
+    label: "PRESENTER",
+    items: [
+      { label: "Rooms", href: "/settings/presenter/rooms", icon: MessageSquare },
     ],
   },
   {
@@ -99,7 +106,7 @@ export function AdminSidebar() {
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
-      return pathname === "/" || pathname === "/dashboard" || pathname === "/dashboard-v2";
+      return pathname === "/" || pathname === "/dashboard";
     }
     return pathname.startsWith(href);
   };

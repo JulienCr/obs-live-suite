@@ -14,6 +14,12 @@ import {
   DbTheme,
   DbThemeInput,
   DbThemeUpdate,
+  DbRoom,
+  DbRoomInput,
+  DbRoomUpdate,
+  DbCueMessage,
+  DbCueMessageInput,
+  DbCueMessageUpdate,
 } from "../models/Database";
 
 /**
@@ -348,6 +354,38 @@ export class DatabaseService {
         raw_extract TEXT
       );
 
+      CREATE TABLE IF NOT EXISTS rooms (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        vdoNinjaUrl TEXT,
+        twitchChatUrl TEXT,
+        quickReplies TEXT NOT NULL DEFAULT '["Ready","Need more context","Delay 1 min","Audio issue"]',
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS cue_messages (
+        id TEXT PRIMARY KEY,
+        roomId TEXT NOT NULL,
+        type TEXT NOT NULL,
+        fromRole TEXT NOT NULL,
+        severity TEXT,
+        title TEXT,
+        body TEXT,
+        pinned INTEGER NOT NULL DEFAULT 0,
+        actions TEXT NOT NULL DEFAULT '[]',
+        countdownPayload TEXT,
+        contextPayload TEXT,
+        questionPayload TEXT,
+        seenBy TEXT NOT NULL DEFAULT '[]',
+        ackedBy TEXT NOT NULL DEFAULT '[]',
+        resolvedAt INTEGER,
+        resolvedBy TEXT,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL,
+        FOREIGN KEY (roomId) REFERENCES rooms(id) ON DELETE CASCADE
+      );
+
       CREATE INDEX IF NOT EXISTS idx_guests_displayName ON guests(displayName);
       CREATE INDEX IF NOT EXISTS idx_posters_profileIds ON posters(profileIds);
       CREATE INDEX IF NOT EXISTS idx_profiles_isActive ON profiles(isActive);
@@ -356,6 +394,10 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_plugins_updateStatus ON plugins(updateStatus);
       CREATE INDEX IF NOT EXISTS idx_wikipedia_cache_query ON wikipedia_cache(query, lang);
       CREATE INDEX IF NOT EXISTS idx_wikipedia_cache_created_at ON wikipedia_cache(created_at);
+      CREATE INDEX IF NOT EXISTS idx_rooms_name ON rooms(name);
+      CREATE INDEX IF NOT EXISTS idx_cue_messages_roomId ON cue_messages(roomId);
+      CREATE INDEX IF NOT EXISTS idx_cue_messages_createdAt ON cue_messages(createdAt);
+      CREATE INDEX IF NOT EXISTS idx_cue_messages_pinned ON cue_messages(pinned);
     `);
 
     this.logger.info("Database tables initialized");
@@ -929,6 +971,295 @@ export class DatabaseService {
       settings[row.key] = row.value;
     }
     return settings;
+  }
+
+  // ==================== ROOMS ====================
+
+  /**
+   * Get all rooms
+   */
+  getAllRooms(): DbRoom[] {
+    const stmt = this.db.prepare("SELECT * FROM rooms ORDER BY name ASC");
+    const rows = stmt.all() as Array<Omit<DbRoom, 'quickReplies' | 'createdAt' | 'updatedAt'> & { quickReplies: string; createdAt: string; updatedAt: string }>;
+    return rows.map((row) => ({
+      ...row,
+      quickReplies: JSON.parse(row.quickReplies || '[]'),
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    }));
+  }
+
+  /**
+   * Get room by ID
+   */
+  getRoomById(id: string): DbRoom | null {
+    const stmt = this.db.prepare("SELECT * FROM rooms WHERE id = ?");
+    const row = stmt.get(id) as (Omit<DbRoom, 'quickReplies' | 'createdAt' | 'updatedAt'> & { quickReplies: string; createdAt: string; updatedAt: string }) | undefined;
+    if (!row) return null;
+    return {
+      ...row,
+      quickReplies: JSON.parse(row.quickReplies || '[]'),
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    };
+  }
+
+  /**
+   * Create a new room
+   */
+  createRoom(room: DbRoomInput): void {
+    const now = new Date();
+    const stmt = this.db.prepare(`
+      INSERT INTO rooms (id, name, vdoNinjaUrl, twitchChatUrl, quickReplies, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      room.id,
+      room.name,
+      room.vdoNinjaUrl || null,
+      room.twitchChatUrl || null,
+      JSON.stringify(room.quickReplies || []),
+      (room.createdAt || now).toISOString(),
+      (room.updatedAt || now).toISOString()
+    );
+  }
+
+  /**
+   * Update a room
+   */
+  updateRoom(id: string, updates: DbRoomUpdate): void {
+    const existing = this.getRoomById(id);
+    if (!existing) {
+      throw new Error(`Room with id ${id} not found`);
+    }
+
+    const merged = {
+      name: updates.name !== undefined ? updates.name : existing.name,
+      vdoNinjaUrl: updates.vdoNinjaUrl !== undefined ? updates.vdoNinjaUrl : existing.vdoNinjaUrl,
+      twitchChatUrl: updates.twitchChatUrl !== undefined ? updates.twitchChatUrl : existing.twitchChatUrl,
+      quickReplies: updates.quickReplies !== undefined ? updates.quickReplies : existing.quickReplies,
+      updatedAt: updates.updatedAt || new Date(),
+    };
+
+    const stmt = this.db.prepare(`
+      UPDATE rooms
+      SET name = ?, vdoNinjaUrl = ?, twitchChatUrl = ?, quickReplies = ?, updatedAt = ?
+      WHERE id = ?
+    `);
+    stmt.run(
+      merged.name,
+      merged.vdoNinjaUrl || null,
+      merged.twitchChatUrl || null,
+      JSON.stringify(merged.quickReplies || []),
+      merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
+      id
+    );
+  }
+
+  /**
+   * Delete a room
+   */
+  deleteRoom(id: string): void {
+    const stmt = this.db.prepare("DELETE FROM rooms WHERE id = ?");
+    stmt.run(id);
+  }
+
+  // ==================== CUE MESSAGES ====================
+
+  /**
+   * Get messages by room ID with optional limit and cursor
+   */
+  getMessagesByRoom(roomId: string, limit: number = 50, cursor?: number): DbCueMessage[] {
+    let query = "SELECT * FROM cue_messages WHERE roomId = ?";
+    const params: (string | number)[] = [roomId];
+
+    if (cursor) {
+      query += " AND createdAt < ?";
+      params.push(cursor);
+    }
+
+    query += " ORDER BY createdAt DESC LIMIT ?";
+    params.push(limit);
+
+    const stmt = this.db.prepare(query);
+    const rows = stmt.all(...params) as Array<Omit<DbCueMessage, 'pinned' | 'actions' | 'countdownPayload' | 'contextPayload' | 'questionPayload' | 'seenBy' | 'ackedBy'> & { pinned: number; actions: string; countdownPayload: string | null; contextPayload: string | null; questionPayload: string | null; seenBy: string; ackedBy: string }>;
+
+    return rows.map((row) => ({
+      ...row,
+      pinned: row.pinned === 1,
+      actions: JSON.parse(row.actions || '[]'),
+      countdownPayload: row.countdownPayload ? JSON.parse(row.countdownPayload) : null,
+      contextPayload: row.contextPayload ? JSON.parse(row.contextPayload) : null,
+      questionPayload: row.questionPayload ? JSON.parse(row.questionPayload) : null,
+      seenBy: JSON.parse(row.seenBy || '[]'),
+      ackedBy: JSON.parse(row.ackedBy || '[]'),
+    }));
+  }
+
+  /**
+   * Get pinned messages by room ID
+   */
+  getPinnedMessages(roomId: string): DbCueMessage[] {
+    const stmt = this.db.prepare("SELECT * FROM cue_messages WHERE roomId = ? AND pinned = 1 ORDER BY createdAt DESC");
+    const rows = stmt.all(roomId) as Array<Omit<DbCueMessage, 'pinned' | 'actions' | 'countdownPayload' | 'contextPayload' | 'questionPayload' | 'seenBy' | 'ackedBy'> & { pinned: number; actions: string; countdownPayload: string | null; contextPayload: string | null; questionPayload: string | null; seenBy: string; ackedBy: string }>;
+
+    return rows.map((row) => ({
+      ...row,
+      pinned: row.pinned === 1,
+      actions: JSON.parse(row.actions || '[]'),
+      countdownPayload: row.countdownPayload ? JSON.parse(row.countdownPayload) : null,
+      contextPayload: row.contextPayload ? JSON.parse(row.contextPayload) : null,
+      questionPayload: row.questionPayload ? JSON.parse(row.questionPayload) : null,
+      seenBy: JSON.parse(row.seenBy || '[]'),
+      ackedBy: JSON.parse(row.ackedBy || '[]'),
+    }));
+  }
+
+  /**
+   * Get message by ID
+   */
+  getMessageById(id: string): DbCueMessage | null {
+    const stmt = this.db.prepare("SELECT * FROM cue_messages WHERE id = ?");
+    const row = stmt.get(id) as (Omit<DbCueMessage, 'pinned' | 'actions' | 'countdownPayload' | 'contextPayload' | 'questionPayload' | 'seenBy' | 'ackedBy'> & { pinned: number; actions: string; countdownPayload: string | null; contextPayload: string | null; questionPayload: string | null; seenBy: string; ackedBy: string }) | undefined;
+
+    if (!row) return null;
+
+    return {
+      ...row,
+      pinned: row.pinned === 1,
+      actions: JSON.parse(row.actions || '[]'),
+      countdownPayload: row.countdownPayload ? JSON.parse(row.countdownPayload) : null,
+      contextPayload: row.contextPayload ? JSON.parse(row.contextPayload) : null,
+      questionPayload: row.questionPayload ? JSON.parse(row.questionPayload) : null,
+      seenBy: JSON.parse(row.seenBy || '[]'),
+      ackedBy: JSON.parse(row.ackedBy || '[]'),
+    };
+  }
+
+  /**
+   * Create a new cue message
+   */
+  createMessage(message: DbCueMessageInput): DbCueMessage {
+    const now = Date.now();
+    const stmt = this.db.prepare(`
+      INSERT INTO cue_messages (id, roomId, type, fromRole, severity, title, body, pinned, actions, countdownPayload, contextPayload, questionPayload, seenBy, ackedBy, resolvedAt, resolvedBy, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      message.id,
+      message.roomId,
+      message.type,
+      message.fromRole,
+      message.severity || null,
+      message.title || null,
+      message.body || null,
+      message.pinned ? 1 : 0,
+      JSON.stringify(message.actions || []),
+      message.countdownPayload ? JSON.stringify(message.countdownPayload) : null,
+      message.contextPayload ? JSON.stringify(message.contextPayload) : null,
+      message.questionPayload ? JSON.stringify(message.questionPayload) : null,
+      JSON.stringify(message.seenBy || []),
+      JSON.stringify(message.ackedBy || []),
+      message.resolvedAt || null,
+      message.resolvedBy || null,
+      message.createdAt || now,
+      message.updatedAt || now
+    );
+
+    return this.getMessageById(message.id)!;
+  }
+
+  /**
+   * Update a cue message
+   */
+  updateMessage(id: string, updates: DbCueMessageUpdate): void {
+    const existing = this.getMessageById(id);
+    if (!existing) {
+      throw new Error(`Message with id ${id} not found`);
+    }
+
+    const merged = {
+      type: updates.type !== undefined ? updates.type : existing.type,
+      fromRole: updates.fromRole !== undefined ? updates.fromRole : existing.fromRole,
+      severity: updates.severity !== undefined ? updates.severity : existing.severity,
+      title: updates.title !== undefined ? updates.title : existing.title,
+      body: updates.body !== undefined ? updates.body : existing.body,
+      pinned: updates.pinned !== undefined ? updates.pinned : existing.pinned,
+      actions: updates.actions !== undefined ? updates.actions : existing.actions,
+      countdownPayload: updates.countdownPayload !== undefined ? updates.countdownPayload : existing.countdownPayload,
+      contextPayload: updates.contextPayload !== undefined ? updates.contextPayload : existing.contextPayload,
+      questionPayload: updates.questionPayload !== undefined ? updates.questionPayload : existing.questionPayload,
+      seenBy: updates.seenBy !== undefined ? updates.seenBy : existing.seenBy,
+      ackedBy: updates.ackedBy !== undefined ? updates.ackedBy : existing.ackedBy,
+      resolvedAt: updates.resolvedAt !== undefined ? updates.resolvedAt : existing.resolvedAt,
+      resolvedBy: updates.resolvedBy !== undefined ? updates.resolvedBy : existing.resolvedBy,
+      updatedAt: updates.updatedAt || Date.now(),
+    };
+
+    const stmt = this.db.prepare(`
+      UPDATE cue_messages
+      SET type = ?, fromRole = ?, severity = ?, title = ?, body = ?, pinned = ?, actions = ?, countdownPayload = ?, contextPayload = ?, questionPayload = ?, seenBy = ?, ackedBy = ?, resolvedAt = ?, resolvedBy = ?, updatedAt = ?
+      WHERE id = ?
+    `);
+    stmt.run(
+      merged.type,
+      merged.fromRole,
+      merged.severity || null,
+      merged.title || null,
+      merged.body || null,
+      merged.pinned ? 1 : 0,
+      JSON.stringify(merged.actions || []),
+      merged.countdownPayload ? JSON.stringify(merged.countdownPayload) : null,
+      merged.contextPayload ? JSON.stringify(merged.contextPayload) : null,
+      merged.questionPayload ? JSON.stringify(merged.questionPayload) : null,
+      JSON.stringify(merged.seenBy || []),
+      JSON.stringify(merged.ackedBy || []),
+      merged.resolvedAt || null,
+      merged.resolvedBy || null,
+      merged.updatedAt,
+      id
+    );
+  }
+
+  /**
+   * Delete a cue message
+   */
+  deleteMessage(id: string): void {
+    const stmt = this.db.prepare("DELETE FROM cue_messages WHERE id = ?");
+    stmt.run(id);
+  }
+
+  /**
+   * Delete old messages from a room, keeping only the most recent N
+   */
+  deleteOldMessages(roomId: string, keepCount: number = 100): void {
+    // Get the cutoff timestamp
+    const stmt = this.db.prepare(`
+      SELECT createdAt FROM cue_messages
+      WHERE roomId = ? AND pinned = 0
+      ORDER BY createdAt DESC
+      LIMIT 1 OFFSET ?
+    `);
+    const row = stmt.get(roomId, keepCount - 1) as { createdAt: number } | undefined;
+
+    if (row) {
+      const deleteStmt = this.db.prepare(`
+        DELETE FROM cue_messages
+        WHERE roomId = ? AND pinned = 0 AND createdAt < ?
+      `);
+      deleteStmt.run(roomId, row.createdAt);
+    }
+  }
+
+  /**
+   * Clear all messages from a room (including pinned)
+   */
+  clearRoomMessages(roomId: string): void {
+    const stmt = this.db.prepare(`
+      DELETE FROM cue_messages
+      WHERE roomId = ?
+    `);
+    stmt.run(roomId);
   }
 
   /**

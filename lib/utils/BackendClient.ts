@@ -1,10 +1,9 @@
+import { BACKEND_URL } from "@/lib/config/urls";
+
 /**
  * BackendClient
  * Communicates with the standalone backend server from Next.js API routes
  */
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
-
 export class BackendClient {
   /**
    * Publish a message to a WebSocket channel via the backend

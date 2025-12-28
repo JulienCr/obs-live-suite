@@ -6,6 +6,7 @@ import { QuizScorePanel } from "./QuizScorePanel";
 import { QuizZoomReveal } from "./QuizZoomReveal";
 import { QuizOpenDisplay } from "./QuizOpenDisplay";
 import { QuizMysteryImage } from "./QuizMysteryImage";
+import { getWebSocketUrl } from "@/lib/utils/websocket";
 
 interface QuizState {
   phase: string;
@@ -248,8 +249,7 @@ export function QuizRenderer() {
       if (ws.current?.readyState === WebSocket.OPEN || ws.current?.readyState === WebSocket.CONNECTING) {
         try { ws.current.close(); } catch {}
       }
-      const url = `ws://${window.location.hostname}:3003`;
-      ws.current = new WebSocket(url);
+      ws.current = new WebSocket(getWebSocketUrl());
       ws.current.onopen = () => {
         if (!isMounted) return;
         ws.current?.send(JSON.stringify({ type: "subscribe", channel: "quiz" }));

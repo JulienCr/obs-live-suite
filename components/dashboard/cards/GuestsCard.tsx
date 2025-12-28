@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Zap } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { getWebSocketUrl } from "@/lib/utils/websocket";
 
 interface Guest {
   id: string;
@@ -45,7 +46,7 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
       if (isUnmounted) return;
 
       try {
-        const ws = new WebSocket(`ws://${window.location.hostname}:3003`);
+        const ws = new WebSocket(getWebSocketUrl());
         wsRef.current = ws;
 
         ws.onopen = () => {
@@ -252,18 +253,9 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
                     <Zap className="w-3 h-3 text-white fill-white" />
                   </div>
                 ) : (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-6 w-6 p-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleQuickLowerThird(guest);
-                    }}
-                    title="Show Lower Third (8s)"
-                  >
-                    <Zap className="w-3 h-3" />
-                  </Button>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-6 w-6 flex items-center justify-center">
+                    <Zap className="w-3 h-3 text-muted-foreground" />
+                  </div>
                 )}
               </div>
             )})}

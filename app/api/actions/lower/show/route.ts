@@ -3,6 +3,7 @@ import { LowerThirdEventType, OverlayChannel } from "@/lib/models/OverlayEvents"
 import { BackendClient } from "@/lib/utils/BackendClient";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { enrichLowerThirdPayload } from "@/lib/utils/themeEnrichment";
+import { sendPresenterNotification } from "@/lib/utils/presenterNotifications";
 
 /**
  * POST /api/actions/lower/show
@@ -43,6 +44,28 @@ export async function POST(request: NextRequest) {
     console.log("[LowerShow] Publishing with theme:", !!enrichedPayload.theme);
 
     await BackendClient.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, enrichedPayload);
+
+    // Send notification to presenter (non-blocking)
+    try {
+      // Build bullets with contextual info only
+      const bullets = [];
+      if (title) bullets.push(title);
+      if (subtitle) bullets.push(subtitle);
+
+      // Build links if image provided
+      const links = imageUrl ? [{ url: imageUrl, title: 'Voir l\'image en grand' }] : undefined;
+
+      await sendPresenterNotification({
+        type: 'lower-third',
+        title: 'Lower Third',
+        body: markdownBody,
+        imageUrl: imageUrl,
+        bullets: bullets.length > 0 ? bullets : undefined,
+        links,
+      });
+    } catch (error) {
+      console.error('[LowerShow] Failed to send presenter notification:', error);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

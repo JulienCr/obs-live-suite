@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { LowerThirdShowPayload, LowerThirdAnimationConfig } from "@/lib/models/OverlayEvents";
 import { LowerThirdDisplay } from "./LowerThirdDisplay";
 import { LowerThirdAnimationTheme } from "@/lib/models/Theme";
+import { getWebSocketUrl } from "@/lib/utils/websocket";
 
 interface ThemeData {
   colors: {
@@ -166,8 +167,7 @@ export function LowerThirdRenderer() {
         }
       }
 
-      const wsUrl = `ws://${window.location.hostname}:3003`;
-      ws.current = new WebSocket(wsUrl);
+      ws.current = new WebSocket(getWebSocketUrl());
 
       ws.current.onopen = () => {
         if (!isMounted) {

@@ -17,11 +17,14 @@ import { OBSConnectionManager } from "../lib/adapters/obs/OBSConnectionManager";
 import { OverlayChannel } from "../lib/models/OverlayEvents";
 import { OBSStateManager } from "../lib/adapters/obs/OBSStateManager";
 import { DatabaseService } from "../lib/services/DatabaseService";
+import { RoomService } from "../lib/services/RoomService";
 import { Logger } from "../lib/utils/Logger";
 import { PathManager } from "../lib/config/PathManager";
 import { AppConfig } from "../lib/config/AppConfig";
 import quizRouter from "./api/quiz";
 import quizBotRouter from "./api/quiz-bot";
+import roomsRouter from "./api/rooms";
+import cueRouter from "./api/cue";
 import { updatePosterSourceInOBS } from "./api/obs-helpers";
 
 class BackendServer {
@@ -111,6 +114,10 @@ class BackendServer {
     // Quiz API
     this.app.use('/api/quiz', quizRouter);
     this.app.use('/api/quiz-bot', quizBotRouter);
+
+    // Presenter Dashboard API
+    this.app.use('/api/rooms', roomsRouter);
+    this.app.use('/api/cue', cueRouter);
 
     // Overlays - Lower Third
     this.app.post('/api/overlays/lower', async (req, res) => {
@@ -377,11 +384,16 @@ class BackendServer {
       DatabaseService.getInstance();
       this.logger.info("✓ Database initialized");
 
-      // 2. Start WebSocket Hub
+      // 2. Initialize default room
+      const roomService = RoomService.getInstance();
+      await roomService.initializeDefaultRoom();
+      this.logger.info("✓ Default room initialized");
+
+      // 3. Start WebSocket Hub
       this.wsHub.start();
       this.logger.info("✓ WebSocket hub started");
 
-      // 3. Connect to OBS
+      // 4. Connect to OBS
       try {
         await this.obsManager.connect();
         const stateManager = OBSStateManager.getInstance();
@@ -391,7 +403,7 @@ class BackendServer {
         this.logger.warn("OBS connection failed (will retry)", error);
       }
 
-      // 4. Start HTTP API server
+      // 5. Start HTTP API server
       await new Promise<void>((resolve) => {
         this.httpServer = this.app.listen(this.httpPort, () => {
           this.logger.info(`✓ HTTP API listening on port ${this.httpPort}`);

@@ -18,6 +18,8 @@ import { GuestsPanel } from "./panels/GuestsPanel";
 import { PosterPanel } from "./panels/PosterPanel";
 import { MacrosPanel } from "./panels/MacrosPanel";
 import { EventLogPanel } from "./panels/EventLogPanel";
+import { CueComposerPanel } from "./panels/CueComposerPanel";
+import { PresenceStatusPanel } from "./panels/PresenceStatusPanel";
 import { DockviewContext } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
@@ -34,6 +36,8 @@ const components = {
   poster: PosterPanel,
   macros: MacrosPanel,
   eventLog: EventLogPanel,
+  cueComposer: CueComposerPanel,
+  presenceStatus: PresenceStatusPanel,
 };
 
 export function DashboardShell() {

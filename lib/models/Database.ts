@@ -158,6 +158,37 @@ export interface DbMacro {
   updatedAt: Date;
 }
 
+export interface DbRoom {
+  id: string;
+  name: string;
+  vdoNinjaUrl: string | null;
+  twitchChatUrl: string | null;
+  quickReplies: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface DbCueMessage {
+  id: string;
+  roomId: string;
+  type: string;
+  fromRole: string;
+  severity: string | null;
+  title: string | null;
+  body: string | null;
+  pinned: boolean;
+  actions: string[];
+  countdownPayload: Record<string, unknown> | null;
+  contextPayload: Record<string, unknown> | null;
+  questionPayload: Record<string, unknown> | null;
+  seenBy: string[];
+  ackedBy: string[];
+  resolvedAt: number | null;
+  resolvedBy: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 // Input types for creation (dates can be optional)
 export type DbGuestInput = Omit<DbGuest, 'createdAt' | 'updatedAt'> & {
   createdAt?: Date;
@@ -194,4 +225,22 @@ export type DbProfileUpdate = Partial<Omit<DbProfile, 'id' | 'createdAt'>> & {
 
 export type DbThemeUpdate = Partial<Omit<DbTheme, 'id' | 'createdAt'>> & {
   updatedAt?: Date;
+};
+
+export type DbRoomInput = Omit<DbRoom, 'createdAt' | 'updatedAt'> & {
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+export type DbRoomUpdate = Partial<Omit<DbRoom, 'id' | 'createdAt'>> & {
+  updatedAt?: Date;
+};
+
+export type DbCueMessageInput = Omit<DbCueMessage, 'createdAt' | 'updatedAt'> & {
+  createdAt?: number;
+  updatedAt?: number;
+};
+
+export type DbCueMessageUpdate = Partial<Omit<DbCueMessage, 'id' | 'roomId' | 'createdAt'>> & {
+  updatedAt?: number;
 };

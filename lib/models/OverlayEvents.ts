@@ -13,6 +13,18 @@ export enum OverlayChannel {
 }
 
 /**
+ * Room event types for presenter dashboard
+ */
+export enum RoomEventType {
+  JOIN = "join",
+  LEAVE = "leave",
+  MESSAGE = "message",
+  ACTION = "action",
+  PRESENCE = "presence",
+  REPLAY = "replay",
+}
+
+/**
  * Lower third event types
  */
 export enum LowerThirdEventType {
@@ -213,3 +225,42 @@ export const ackEventSchema = z.object({
 });
 
 export type AckEvent = z.infer<typeof ackEventSchema>;
+
+/**
+ * Room event schema for presenter dashboard
+ */
+export const roomEventSchema = z.object({
+  roomId: z.string().uuid(),
+  type: z.nativeEnum(RoomEventType),
+  payload: z.unknown().optional(),
+  timestamp: z.number().default(() => Date.now()),
+  id: z.string().uuid(),
+});
+
+export type RoomEvent = z.infer<typeof roomEventSchema>;
+
+/**
+ * Room presence schema
+ */
+export const roomPresenceEventSchema = z.object({
+  roomId: z.string().uuid(),
+  clientId: z.string().uuid(),
+  role: z.enum(["presenter", "control", "producer"]),
+  isOnline: z.boolean(),
+  lastSeen: z.number(),
+  lastActivity: z.number().optional(),
+});
+
+export type RoomPresenceEvent = z.infer<typeof roomPresenceEventSchema>;
+
+/**
+ * Room message replay schema
+ */
+export const roomReplayEventSchema = z.object({
+  roomId: z.string().uuid(),
+  messages: z.array(z.unknown()),
+  pinnedMessages: z.array(z.unknown()),
+  presence: z.array(roomPresenceEventSchema),
+});
+
+export type RoomReplayEvent = z.infer<typeof roomReplayEventSchema>;

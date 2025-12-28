@@ -21,6 +21,29 @@ const nextConfig = {
   outputFileTracingExcludes: {
     '*': ['**/Application Data/**', '**/AppData/**']
   },
+  turbopack: {
+    // Configure module resolution aliases
+    resolveAlias: {
+      // Turbopack will respect path mappings from tsconfig.json automatically
+      // Add custom aliases here if needed
+    },
+    // Configure custom file extensions for resolution
+    resolveExtensions: [
+      '.tsx',
+      '.ts',
+      '.jsx',
+      '.js',
+      '.mjs',
+      '.json',
+    ],
+    // Configure webpack loaders (if needed in the future)
+    rules: {
+      // Example: '*.svg': {
+      //   loaders: ['@svgr/webpack'],
+      //   as: '*.js',
+      // },
+    },
+  },
   webpack: (config, { isServer, dev }) => {
     // Handle better-sqlite3 native module
     if (isServer) {
