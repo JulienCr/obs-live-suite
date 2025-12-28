@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
           imageUrl: type === 'image' ? fileUrl : undefined,
           bullets: bullets.length > 0 ? bullets : undefined,
           links: links.length > 0 ? links : undefined,
+          posterId: posterId, // Include poster ID for tracking
         });
       } catch (error) {
         console.error('[PosterAction] Failed to send presenter notification:', error);

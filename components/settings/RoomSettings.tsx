@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -33,6 +34,7 @@ interface RoomFormData {
   vdoNinjaUrl: string;
   twitchChatUrl: string;
   quickReplies: string[];
+  canSendCustomMessages: boolean;
 }
 
 const emptyFormData: RoomFormData = {
@@ -40,6 +42,7 @@ const emptyFormData: RoomFormData = {
   vdoNinjaUrl: "",
   twitchChatUrl: "",
   quickReplies: [...DEFAULT_QUICK_REPLIES],
+  canSendCustomMessages: false,
 };
 
 /**
@@ -96,6 +99,7 @@ export function RoomSettings() {
       vdoNinjaUrl: room.vdoNinjaUrl || "",
       twitchChatUrl: room.twitchChatUrl || "",
       quickReplies: [...room.quickReplies],
+      canSendCustomMessages: room.canSendCustomMessages || false,
     });
   };
 
@@ -153,6 +157,7 @@ export function RoomSettings() {
           vdoNinjaUrl: formData.vdoNinjaUrl || undefined,
           twitchChatUrl: formData.twitchChatUrl || undefined,
           quickReplies: formData.quickReplies,
+          canSendCustomMessages: formData.canSendCustomMessages,
         };
 
         const res = await fetch("/api/presenter/rooms", {
@@ -184,6 +189,7 @@ export function RoomSettings() {
           vdoNinjaUrl: formData.vdoNinjaUrl || undefined,
           twitchChatUrl: formData.twitchChatUrl || undefined,
           quickReplies: formData.quickReplies,
+          canSendCustomMessages: formData.canSendCustomMessages,
         };
 
         const res = await fetch(`/api/presenter/rooms/${editingRoom.id}`, {
@@ -500,6 +506,24 @@ export function RoomSettings() {
                   Quick reply buttons shown to the presenter for fast responses.
                 </p>
               </div>
+            </div>
+
+            {/* Custom Messages Toggle */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="canSendCustomMessages">Allow Custom Messages</Label>
+                <Switch
+                  id="canSendCustomMessages"
+                  checked={formData.canSendCustomMessages}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, canSendCustomMessages: checked })
+                  }
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                When enabled, presenters can type and send custom reply messages.
+                When disabled, only quick reply buttons are shown.
+              </p>
             </div>
           </div>
 

@@ -7,6 +7,7 @@ import { CueFeedPanel } from "./panels/CueFeedPanel";
 import { QuickReplyPanel } from "./panels/QuickReplyPanel";
 import { TwitchChatPanel } from "./panels/TwitchChatPanel";
 import { usePresenterWebSocket } from "./hooks/usePresenterWebSocket";
+import { useOverlayState } from "./hooks/useOverlayState";
 import { Wifi, WifiOff, Users, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,10 +34,10 @@ export function PresenterShell() {
     clearHistory,
   } = usePresenterWebSocket(roomId, role);
 
+  const overlayState = useOverlayState();
+
   const handleClearHistory = async () => {
-    if (confirm("Êtes-vous sûr de vouloir vider l'historique des messages ? Cette action est irréversible.")) {
-      await clearHistory();
-    }
+    await clearHistory();
   };
 
   // Fetch room configuration
@@ -140,6 +141,7 @@ export function PresenterShell() {
               pinnedMessages={pinnedMessages}
               onAction={sendAction}
               isPresenter={role === "presenter"}
+              overlayState={overlayState}
             />
           </div>
 
@@ -148,6 +150,7 @@ export function PresenterShell() {
             <QuickReplyPanel
               quickReplies={quickReplies}
               onSend={sendReply}
+              canSendCustomMessages={roomConfig?.canSendCustomMessages ?? true}
             />
           </div>
         </div>

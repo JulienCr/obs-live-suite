@@ -71,6 +71,8 @@ export const contextPayloadSchema = z.object({
   imageUrl: z.string().url().optional(),
   links: z.array(contextLinkSchema).optional(),
   bullets: z.array(z.string()).optional(),
+  guestId: z.string().optional(), // For tracking guest on screen
+  posterId: z.string().optional(), // For tracking poster on screen
 });
 
 export type ContextPayload = z.infer<typeof contextPayloadSchema>;

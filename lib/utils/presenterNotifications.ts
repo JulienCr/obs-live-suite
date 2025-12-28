@@ -13,6 +13,8 @@ export interface NotificationOptions {
   bullets?: string[];
   links?: Array<{ url: string; title?: string }>;
   severity?: CueSeverity;
+  guestId?: string; // For tracking guest on screen
+  posterId?: string; // For tracking poster on screen
 }
 
 /**
@@ -63,6 +65,8 @@ export async function sendPresenterNotification(
     imageUrl?: string;
     bullets?: string[];
     links?: Array<{ url: string; title?: string }>;
+    guestId?: string;
+    posterId?: string;
   } = {};
 
   // Only include imageUrl if it's a valid URL
@@ -97,6 +101,16 @@ export async function sendPresenterNotification(
     if (normalizedLinks.length > 0) {
       contextPayload.links = normalizedLinks;
     }
+  }
+
+  // Include guest ID if provided
+  if (options.guestId) {
+    contextPayload.guestId = options.guestId;
+  }
+
+  // Include poster ID if provided
+  if (options.posterId) {
+    contextPayload.posterId = options.posterId;
   }
 
   const payload: {

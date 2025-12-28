@@ -4,6 +4,7 @@ import { useRef, useEffect } from "react";
 import { Pin } from "lucide-react";
 import { CueCard } from "../CueCard";
 import type { CueMessage, CueAction } from "@/lib/models/Cue";
+import type { OverlayState } from "../hooks/useOverlayState";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CueFeedPanelProps {
@@ -11,6 +12,7 @@ interface CueFeedPanelProps {
   pinnedMessages: CueMessage[];
   onAction: (messageId: string, action: CueAction) => void;
   isPresenter: boolean;
+  overlayState?: OverlayState;
 }
 
 export function CueFeedPanel({
@@ -18,6 +20,7 @@ export function CueFeedPanel({
   pinnedMessages,
   onAction,
   isPresenter,
+  overlayState,
 }: CueFeedPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +50,7 @@ export function CueFeedPanel({
                 onAction={onAction}
                 isPresenter={isPresenter}
                 compact
+                overlayState={overlayState}
               />
             ))}
           </div>
@@ -69,6 +73,7 @@ export function CueFeedPanel({
                   message={message}
                   onAction={onAction}
                   isPresenter={isPresenter}
+                  overlayState={overlayState}
                 />
               ))
           )}

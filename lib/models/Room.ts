@@ -34,6 +34,7 @@ export const roomSchema = z.object({
   vdoNinjaUrl: z.string().url().optional(),
   twitchChatUrl: z.string().url().optional(),
   quickReplies: z.array(z.string()).default(DEFAULT_QUICK_REPLIES),
+  canSendCustomMessages: z.boolean().default(false),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });
