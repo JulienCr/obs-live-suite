@@ -5,7 +5,6 @@ import { type IDockviewPanelProps } from "dockview-react";
 import { Wifi, WifiOff, User, Users, AlertCircle, ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { RoomPresence, Room } from "@/lib/models/Room";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
@@ -85,21 +84,19 @@ function PresenceStatusContent() {
   return (
     <div className="p-4 space-y-4">
       {/* Room Info */}
-      <Card>
-        <CardHeader className="py-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm">Room Status</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={fetchPresence}>
-                <RefreshCw className="h-3 w-3" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={openPresenterView}>
-                <ExternalLink className="h-3 w-3" />
-              </Button>
-            </div>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-semibold">Room Status</div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={fetchPresence}>
+              <RefreshCw className="h-3 w-3" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={openPresenterView}>
+              <ExternalLink className="h-3 w-3" />
+            </Button>
           </div>
-        </CardHeader>
-        <CardContent className="py-2 space-y-3">
+        </div>
+        <div className="space-y-3">
           {/* WebSocket Status */}
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">WebSocket</span>
@@ -131,18 +128,16 @@ function PresenceStatusContent() {
               <Badge variant="destructive">{urgentUnacked}</Badge>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Presence */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Presence
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="py-2 space-y-2">
+      <div className="space-y-3">
+        <div className="text-sm font-semibold flex items-center gap-2">
+          <Users className="h-4 w-4" />
+          Presence
+        </div>
+        <div className="space-y-2">
           {/* Presenter */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -198,8 +193,8 @@ function PresenceStatusContent() {
               No one connected
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Error */}
       {error && (
