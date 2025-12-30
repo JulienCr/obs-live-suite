@@ -236,9 +236,15 @@ class BackendServer {
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
 
-    // CORS for Next.js
+    // CORS for Next.js and network access
     this.app.use((req, res, next) => {
-      res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+      const origin = req.headers.origin;
+      // Allow localhost and any local network IPs
+      if (origin && (origin.startsWith('http://localhost:') || origin.match(/^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.).*:[0-9]+$/))) {
+        res.header('Access-Control-Allow-Origin', origin);
+      } else {
+        res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+      }
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type');
       if (req.method === 'OPTIONS') {

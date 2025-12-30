@@ -45,6 +45,7 @@ module.exports = {
         // Fallback to dev if no build is present
         NODE_ENV: 'production',
         PORT: 3000,
+        HOSTNAME: '0.0.0.0',
         APPDATA: APPDATA_DIR,
       },
       error_file: './.pm2/logs/frontend-error.log',
