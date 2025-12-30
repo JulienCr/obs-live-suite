@@ -5,3 +5,4 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - utf-8-validate
+  - wtf_wikipedia

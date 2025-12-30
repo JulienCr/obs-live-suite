@@ -64,3 +64,5 @@ next-env.d.ts
 
 .cursor/rules/mcp.json
 _work/
+
+.appdata/
