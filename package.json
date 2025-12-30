@@ -27,7 +27,8 @@
     "test:functional": "node scripts/test-lower-third-functional.js",
     "test:functional:ui": "node scripts/test-dashboard-ui.js",
     "test:all": "pnpm test && pnpm test:functional && pnpm test:functional:ui",
-    "streamdeck:ids": "node scripts/list-streamdeck-ids.js"
+    "streamdeck:ids": "node scripts/list-streamdeck-ids.js",
+    "backup:appdata": "node scripts/backup-appdata.js"
   },
   "dependencies": {
     "@blueprintjs/core": "^6.4.1",
@@ -52,6 +53,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toast": "^1.2.15",
+    "@streamerbot/client": "^1.12.2",
     "@tanstack/react-virtual": "^3.13.13",
     "@types/express": "^5.0.6",
     "archiver": "^7.0.1",

@@ -23,18 +23,21 @@ import {
   Trash2,
   X,
   AlertCircle,
-  Badge,
 } from "lucide-react";
 import { Room, CreateRoomInput, DEFAULT_ROOM_ID, DEFAULT_QUICK_REPLIES } from "@/lib/models/Room";
+import { type StreamerbotConnectionSettings } from "@/lib/models/StreamerbotChat";
+import { StreamerbotConnectionForm } from "./StreamerbotConnectionForm";
 
 type FormMode = "create" | "edit" | null;
 
 interface RoomFormData {
   name: string;
   vdoNinjaUrl: string;
+  /** @deprecated Use streamerbotConnection instead */
   twitchChatUrl: string;
   quickReplies: string[];
   canSendCustomMessages: boolean;
+  streamerbotConnection?: StreamerbotConnectionSettings;
 }
 
 const emptyFormData: RoomFormData = {
@@ -43,6 +46,7 @@ const emptyFormData: RoomFormData = {
   twitchChatUrl: "",
   quickReplies: [...DEFAULT_QUICK_REPLIES],
   canSendCustomMessages: false,
+  streamerbotConnection: undefined,
 };
 
 /**
@@ -100,6 +104,7 @@ export function RoomSettings() {
       twitchChatUrl: room.twitchChatUrl || "",
       quickReplies: [...room.quickReplies],
       canSendCustomMessages: room.canSendCustomMessages || false,
+      streamerbotConnection: room.streamerbotConnection,
     });
   };
 
@@ -138,14 +143,6 @@ export function RoomSettings() {
       return;
     }
 
-    if (formData.twitchChatUrl && !validateUrl(formData.twitchChatUrl)) {
-      setActionResult({
-        success: false,
-        message: "Twitch Chat URL is invalid",
-      });
-      return;
-    }
-
     setSaving(true);
     setActionResult(null);
 
@@ -158,6 +155,7 @@ export function RoomSettings() {
           twitchChatUrl: formData.twitchChatUrl || undefined,
           quickReplies: formData.quickReplies,
           canSendCustomMessages: formData.canSendCustomMessages,
+          streamerbotConnection: formData.streamerbotConnection,
         };
 
         const res = await fetch("/api/presenter/rooms", {
@@ -190,6 +188,7 @@ export function RoomSettings() {
           twitchChatUrl: formData.twitchChatUrl || undefined,
           quickReplies: formData.quickReplies,
           canSendCustomMessages: formData.canSendCustomMessages,
+          streamerbotConnection: formData.streamerbotConnection,
         };
 
         const res = await fetch(`/api/presenter/rooms/${editingRoom.id}`, {
@@ -362,10 +361,12 @@ export function RoomSettings() {
                       </span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Twitch Chat URL:</span>{" "}
+                      <span className="text-muted-foreground">Streamer.bot:</span>{" "}
                       <span className="text-xs">
-                        {room.twitchChatUrl ? (
-                          <span className="text-green-600 dark:text-green-500">✓ Set</span>
+                        {room.streamerbotConnection ? (
+                          <span className="text-green-600 dark:text-green-500">
+                            ✓ {room.streamerbotConnection.host}:{room.streamerbotConnection.port}
+                          </span>
                         ) : (
                           <span className="italic text-muted-foreground">Not configured</span>
                         )}
@@ -446,19 +447,14 @@ export function RoomSettings() {
               </p>
             </div>
 
-            {/* Twitch Chat URL */}
+            {/* Streamer.bot Connection */}
             <div className="space-y-2">
-              <Label htmlFor="twitchChatUrl">Twitch Chat URL</Label>
-              <Input
-                id="twitchChatUrl"
-                type="url"
-                value={formData.twitchChatUrl}
-                onChange={(e) => setFormData({ ...formData, twitchChatUrl: e.target.value })}
-                placeholder="https://twitch.tv/embed/..."
+              <Label>Chat Connection (Streamer.bot)</Label>
+              <StreamerbotConnectionForm
+                value={formData.streamerbotConnection}
+                onChange={(value) => setFormData({ ...formData, streamerbotConnection: value })}
+                disabled={saving}
               />
-              <p className="text-xs text-muted-foreground">
-                Optional. Embedded iframe URL for Twitch chat (or Streamer.bot).
-              </p>
             </div>
 
             {/* Quick Replies */}

@@ -246,6 +246,22 @@ export class DatabaseService {
     } catch (error) {
       this.logger.error("Migration error for rooms table (canSendCustomMessages):", error);
     }
+
+    // Check if streamerbotConnection column exists in rooms table
+    try {
+      const roomTableInfo = this.db.prepare("PRAGMA table_info(rooms)").all() as Array<{ name: string }>;
+      const hasStreamerbotConnection = roomTableInfo.some((col) => col.name === "streamerbotConnection");
+
+      if (!hasStreamerbotConnection) {
+        this.logger.info("Adding streamerbotConnection column to rooms table");
+        this.db.exec(`
+          ALTER TABLE rooms ADD COLUMN streamerbotConnection TEXT;
+        `);
+        this.logger.info("Rooms table streamerbotConnection migration completed");
+      }
+    } catch (error) {
+      this.logger.error("Migration error for rooms table (streamerbotConnection):", error);
+    }
   }
 
   /**
@@ -997,10 +1013,11 @@ export class DatabaseService {
    */
   getAllRooms(): DbRoom[] {
     const stmt = this.db.prepare("SELECT * FROM rooms ORDER BY name ASC");
-    const rows = stmt.all() as Array<Omit<DbRoom, 'quickReplies' | 'createdAt' | 'updatedAt'> & { quickReplies: string; createdAt: string; updatedAt: string }>;
+    const rows = stmt.all() as Array<Omit<DbRoom, 'quickReplies' | 'streamerbotConnection' | 'createdAt' | 'updatedAt'> & { quickReplies: string; streamerbotConnection: string | null; createdAt: string; updatedAt: string }>;
     return rows.map((row) => ({
       ...row,
       quickReplies: JSON.parse(row.quickReplies || '[]'),
+      streamerbotConnection: row.streamerbotConnection ? JSON.parse(row.streamerbotConnection) : null,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     }));
@@ -1011,11 +1028,12 @@ export class DatabaseService {
    */
   getRoomById(id: string): DbRoom | null {
     const stmt = this.db.prepare("SELECT * FROM rooms WHERE id = ?");
-    const row = stmt.get(id) as (Omit<DbRoom, 'quickReplies' | 'createdAt' | 'updatedAt'> & { quickReplies: string; createdAt: string; updatedAt: string }) | undefined;
+    const row = stmt.get(id) as (Omit<DbRoom, 'quickReplies' | 'streamerbotConnection' | 'createdAt' | 'updatedAt'> & { quickReplies: string; streamerbotConnection: string | null; createdAt: string; updatedAt: string }) | undefined;
     if (!row) return null;
     return {
       ...row,
       quickReplies: JSON.parse(row.quickReplies || '[]'),
+      streamerbotConnection: row.streamerbotConnection ? JSON.parse(row.streamerbotConnection) : null,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     };
@@ -1027,8 +1045,8 @@ export class DatabaseService {
   createRoom(room: DbRoomInput): void {
     const now = new Date();
     const stmt = this.db.prepare(`
-      INSERT INTO rooms (id, name, vdoNinjaUrl, twitchChatUrl, quickReplies, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO rooms (id, name, vdoNinjaUrl, twitchChatUrl, quickReplies, streamerbotConnection, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       room.id,
@@ -1036,6 +1054,7 @@ export class DatabaseService {
       room.vdoNinjaUrl || null,
       room.twitchChatUrl || null,
       JSON.stringify(room.quickReplies || []),
+      room.streamerbotConnection || null,
       (room.createdAt || now).toISOString(),
       (room.updatedAt || now).toISOString()
     );
@@ -1055,12 +1074,13 @@ export class DatabaseService {
       vdoNinjaUrl: updates.vdoNinjaUrl !== undefined ? updates.vdoNinjaUrl : existing.vdoNinjaUrl,
       twitchChatUrl: updates.twitchChatUrl !== undefined ? updates.twitchChatUrl : existing.twitchChatUrl,
       quickReplies: updates.quickReplies !== undefined ? updates.quickReplies : existing.quickReplies,
+      streamerbotConnection: updates.streamerbotConnection !== undefined ? updates.streamerbotConnection : existing.streamerbotConnection,
       updatedAt: updates.updatedAt || new Date(),
     };
 
     const stmt = this.db.prepare(`
       UPDATE rooms
-      SET name = ?, vdoNinjaUrl = ?, twitchChatUrl = ?, quickReplies = ?, updatedAt = ?
+      SET name = ?, vdoNinjaUrl = ?, twitchChatUrl = ?, quickReplies = ?, streamerbotConnection = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
@@ -1068,6 +1088,7 @@ export class DatabaseService {
       merged.vdoNinjaUrl || null,
       merged.twitchChatUrl || null,
       JSON.stringify(merged.quickReplies || []),
+      merged.streamerbotConnection || null,
       merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
       id
     );

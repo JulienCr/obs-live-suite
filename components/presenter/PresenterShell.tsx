@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { VdoNinjaPanel } from "./panels/VdoNinjaPanel";
 import { CueFeedPanel } from "./panels/CueFeedPanel";
 import { QuickReplyPanel } from "./panels/QuickReplyPanel";
-import { TwitchChatPanel } from "./panels/TwitchChatPanel";
+import { StreamerbotChatPanel } from "./panels/StreamerbotChatPanel";
 import { usePresenterWebSocket } from "./hooks/usePresenterWebSocket";
 import { useOverlayState } from "./hooks/useOverlayState";
 import { Wifi, WifiOff, Users, Trash2 } from "lucide-react";
@@ -60,7 +60,6 @@ export function PresenterShell() {
 
   const quickReplies = roomConfig?.quickReplies || DEFAULT_QUICK_REPLIES;
   const vdoNinjaUrl = roomConfig?.vdoNinjaUrl;
-  const twitchChatUrl = roomConfig?.twitchChatUrl;
 
   const presenterOnline = presence.some(p => p.role === "presenter" && p.isOnline);
   const controlOnline = presence.some(p => p.role === "control" && p.isOnline);
@@ -155,9 +154,12 @@ export function PresenterShell() {
           </div>
         </div>
 
-        {/* Right Pane - Twitch Chat */}
+        {/* Right Pane - Streamer.bot Chat */}
         <div className="h-1/2 md:h-full md:w-1/2 lg:w-1/3 border-t md:border-t-0 md:border-l min-h-0">
-          <TwitchChatPanel url={twitchChatUrl} />
+          <StreamerbotChatPanel
+            connectionSettings={roomConfig?.streamerbotConnection}
+            roomId={roomId}
+          />
         </div>
       </div>
     </div>
