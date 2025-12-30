@@ -38,6 +38,8 @@ export const roomSchema = z.object({
   quickReplies: z.array(z.string()).default(DEFAULT_QUICK_REPLIES),
   canSendCustomMessages: z.boolean().default(false),
   streamerbotConnection: streamerbotConnectionSchema.optional(),
+  /** Allow presenter to send chat messages via Streamer.bot */
+  allowPresenterToSendMessage: z.boolean().default(false),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });

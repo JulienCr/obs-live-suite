@@ -30,10 +30,16 @@ import {
   getUsernameColorClass,
 } from "../hooks/useStreamerbotMessages";
 import { useStreamerbotChatSettings } from "../hooks/useStreamerbotChatSettings";
+import { ChatBadge } from "../chat/ChatBadge";
+import { ChatMessageContent } from "../chat/ChatMessageContent";
+import { ChatEventMessage } from "../chat/ChatEventMessage";
+import { PlatformIcon } from "../chat/PlatformIcon";
+import { ChatMessageInput } from "../chat/ChatMessageInput";
 
 export interface StreamerbotChatPanelProps {
   connectionSettings?: StreamerbotConnectionSettings;
   roomId: string;
+  allowSendMessage?: boolean;
 }
 
 /**
@@ -42,6 +48,7 @@ export interface StreamerbotChatPanelProps {
 export function StreamerbotChatPanel({
   connectionSettings,
   roomId,
+  allowSendMessage = false,
 }: StreamerbotChatPanelProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -62,7 +69,7 @@ export function StreamerbotChatPanel({
     highlightRules: preferences.highlightRules,
   });
 
-  const { status, error, connect, disconnect, lastEventTime } = useStreamerbotClient({
+  const { status, error, connect, disconnect, lastEventTime, sendMessage, canSendMessages } = useStreamerbotClient({
     settings: connectionSettings ?? null,
     onMessage: addMessage,
     onError: (err) => {
@@ -294,6 +301,24 @@ export function StreamerbotChatPanel({
           >
             {rowVirtualizer.getVirtualItems().map((virtualItem) => {
               const message = filteredMessages[virtualItem.index];
+
+              // Render event messages differently
+              if (message.eventType !== "message") {
+                return (
+                  <div
+                    key={message.id}
+                    className="absolute top-0 left-0 w-full px-2"
+                    style={{
+                      height: `${virtualItem.size}px`,
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                  >
+                    <ChatEventMessage message={message} compact={preferences.compactMode} />
+                  </div>
+                );
+              }
+
+              // Regular chat message with badges and emotes
               const highlights = getMessageHighlights(message, preferences.highlightRules);
               const roleClasses = getRoleHighlightClasses(highlights.role);
               const usernameClass = getUsernameColorClass(
@@ -308,6 +333,7 @@ export function StreamerbotChatPanel({
                     "absolute top-0 left-0 w-full px-2 py-1 hover:bg-muted/30 transition-colors",
                     roleClasses,
                     highlights.keyword && `border-l-2`,
+                    message.metadata?.isHighlighted && "bg-purple-500/10",
                     preferences.compactMode ? "text-xs" : "text-sm"
                   )}
                   style={{
@@ -316,12 +342,36 @@ export function StreamerbotChatPanel({
                     borderLeftColor: highlights.keyword?.color,
                   }}
                 >
+                  {/* Reply indicator */}
+                  {message.metadata?.isReply && message.metadata.replyTo && (
+                    <div className="text-[10px] text-muted-foreground mb-0.5 truncate flex items-center gap-1">
+                      <PlatformIcon platform={message.platform} size="sm" />
+                      <span>Replying to @{message.metadata.replyTo.displayName}</span>
+                    </div>
+                  )}
+
                   <div className="flex items-start gap-1.5">
                     {/* Timestamp */}
                     {preferences.showTimestamps && (
                       <span className="text-muted-foreground text-[10px] flex-shrink-0 pt-0.5">
                         {formatTime(message.timestamp)}
                       </span>
+                    )}
+
+                    {/* Platform icon and Badges */}
+                    {(!message.metadata?.isReply || (message.metadata?.badges && message.metadata.badges.length > 0)) && (
+                      <div className="flex items-center gap-0.5 flex-shrink-0 pt-0.5">
+                        {!message.metadata?.isReply && (
+                          <PlatformIcon platform={message.platform} size="sm" />
+                        )}
+                        {message.metadata?.badges && message.metadata.badges.length > 0 && (
+                          <>
+                            {message.metadata.badges.map((badge, idx) => (
+                              <ChatBadge key={`${badge.name}-${idx}`} badge={badge} size="sm" />
+                            ))}
+                          </>
+                        )}
+                      </div>
                     )}
 
                     {/* Username */}
@@ -336,8 +386,13 @@ export function StreamerbotChatPanel({
                       {message.displayName}:
                     </span>
 
-                    {/* Message */}
-                    <span className="break-words min-w-0">{message.message}</span>
+                    {/* Message content with emotes */}
+                    <ChatMessageContent
+                      parts={message.parts}
+                      fallbackText={message.message}
+                      isMe={message.metadata?.isMe}
+                      className="break-words min-w-0"
+                    />
                   </div>
                 </div>
               );
@@ -345,6 +400,15 @@ export function StreamerbotChatPanel({
           </div>
         )}
       </div>
+
+      {/* Message input (when enabled) */}
+      {allowSendMessage && canSendMessages && (
+        <ChatMessageInput
+          onSend={sendMessage}
+          disabled={status !== StreamerbotConnectionStatus.CONNECTED}
+          placeholder="Send a message to chat..."
+        />
+      )}
 
       {/* Scroll to bottom button */}
       {!isAtBottom && filteredMessages.length > 0 && (

@@ -169,6 +169,7 @@ export interface DbRoom {
   quickReplies: string[];
   canSendCustomMessages: boolean;
   streamerbotConnection: StreamerbotConnectionSettings | null;
+  allowPresenterToSendMessage: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -159,6 +159,7 @@ export function PresenterShell() {
           <StreamerbotChatPanel
             connectionSettings={roomConfig?.streamerbotConnection}
             roomId={roomId}
+            allowSendMessage={roomConfig?.allowPresenterToSendMessage}
           />
         </div>
       </div>

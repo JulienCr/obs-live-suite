@@ -38,6 +38,7 @@ interface RoomFormData {
   quickReplies: string[];
   canSendCustomMessages: boolean;
   streamerbotConnection?: StreamerbotConnectionSettings;
+  allowPresenterToSendMessage: boolean;
 }
 
 const emptyFormData: RoomFormData = {
@@ -47,6 +48,7 @@ const emptyFormData: RoomFormData = {
   quickReplies: [...DEFAULT_QUICK_REPLIES],
   canSendCustomMessages: false,
   streamerbotConnection: undefined,
+  allowPresenterToSendMessage: false,
 };
 
 /**
@@ -105,6 +107,7 @@ export function RoomSettings() {
       quickReplies: [...room.quickReplies],
       canSendCustomMessages: room.canSendCustomMessages || false,
       streamerbotConnection: room.streamerbotConnection,
+      allowPresenterToSendMessage: room.allowPresenterToSendMessage || false,
     });
   };
 
@@ -156,6 +159,7 @@ export function RoomSettings() {
           quickReplies: formData.quickReplies,
           canSendCustomMessages: formData.canSendCustomMessages,
           streamerbotConnection: formData.streamerbotConnection,
+          allowPresenterToSendMessage: formData.allowPresenterToSendMessage,
         };
 
         const res = await fetch("/api/presenter/rooms", {
@@ -189,6 +193,7 @@ export function RoomSettings() {
           quickReplies: formData.quickReplies,
           canSendCustomMessages: formData.canSendCustomMessages,
           streamerbotConnection: formData.streamerbotConnection,
+          allowPresenterToSendMessage: formData.allowPresenterToSendMessage,
         };
 
         const res = await fetch(`/api/presenter/rooms/${editingRoom.id}`, {
@@ -518,7 +523,23 @@ export function RoomSettings() {
               </div>
               <p className="text-xs text-muted-foreground">
                 When enabled, presenters can type and send custom reply messages.
-                When disabled, only quick reply buttons are shown.
+              </p>
+            </div>
+
+            {/* Allow Presenter to Send Chat Messages Toggle */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="allowPresenterToSendMessage">Allow Presenter to Send Chat Messages</Label>
+                <Switch
+                  id="allowPresenterToSendMessage"
+                  checked={formData.allowPresenterToSendMessage}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, allowPresenterToSendMessage: checked })
+                  }
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                When enabled, presenters can send messages to Twitch/YouTube chat via Streamer.bot (requires authentication).
               </p>
             </div>
           </div>

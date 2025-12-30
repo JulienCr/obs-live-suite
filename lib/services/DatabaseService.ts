@@ -262,6 +262,22 @@ export class DatabaseService {
     } catch (error) {
       this.logger.error("Migration error for rooms table (streamerbotConnection):", error);
     }
+
+    // Check if allowPresenterToSendMessage column exists in rooms table
+    try {
+      const roomTableInfo = this.db.prepare("PRAGMA table_info(rooms)").all() as Array<{ name: string }>;
+      const hasAllowPresenterToSendMessage = roomTableInfo.some((col) => col.name === "allowPresenterToSendMessage");
+
+      if (!hasAllowPresenterToSendMessage) {
+        this.logger.info("Adding allowPresenterToSendMessage column to rooms table");
+        this.db.exec(`
+          ALTER TABLE rooms ADD COLUMN allowPresenterToSendMessage INTEGER NOT NULL DEFAULT 0;
+        `);
+        this.logger.info("Rooms table allowPresenterToSendMessage migration completed");
+      }
+    } catch (error) {
+      this.logger.error("Migration error for rooms table (allowPresenterToSendMessage):", error);
+    }
   }
 
   /**
@@ -1013,11 +1029,13 @@ export class DatabaseService {
    */
   getAllRooms(): DbRoom[] {
     const stmt = this.db.prepare("SELECT * FROM rooms ORDER BY name ASC");
-    const rows = stmt.all() as Array<Omit<DbRoom, 'quickReplies' | 'streamerbotConnection' | 'createdAt' | 'updatedAt'> & { quickReplies: string; streamerbotConnection: string | null; createdAt: string; updatedAt: string }>;
+    const rows = stmt.all() as Array<Omit<DbRoom, 'quickReplies' | 'canSendCustomMessages' | 'streamerbotConnection' | 'allowPresenterToSendMessage' | 'createdAt' | 'updatedAt'> & { quickReplies: string; canSendCustomMessages: number; streamerbotConnection: string | null; allowPresenterToSendMessage: number; createdAt: string; updatedAt: string }>;
     return rows.map((row) => ({
       ...row,
       quickReplies: JSON.parse(row.quickReplies || '[]'),
+      canSendCustomMessages: Boolean(row.canSendCustomMessages),
       streamerbotConnection: row.streamerbotConnection ? JSON.parse(row.streamerbotConnection) : null,
+      allowPresenterToSendMessage: Boolean(row.allowPresenterToSendMessage),
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     }));
@@ -1028,12 +1046,14 @@ export class DatabaseService {
    */
   getRoomById(id: string): DbRoom | null {
     const stmt = this.db.prepare("SELECT * FROM rooms WHERE id = ?");
-    const row = stmt.get(id) as (Omit<DbRoom, 'quickReplies' | 'streamerbotConnection' | 'createdAt' | 'updatedAt'> & { quickReplies: string; streamerbotConnection: string | null; createdAt: string; updatedAt: string }) | undefined;
+    const row = stmt.get(id) as (Omit<DbRoom, 'quickReplies' | 'canSendCustomMessages' | 'streamerbotConnection' | 'allowPresenterToSendMessage' | 'createdAt' | 'updatedAt'> & { quickReplies: string; canSendCustomMessages: number; streamerbotConnection: string | null; allowPresenterToSendMessage: number; createdAt: string; updatedAt: string }) | undefined;
     if (!row) return null;
     return {
       ...row,
       quickReplies: JSON.parse(row.quickReplies || '[]'),
+      canSendCustomMessages: Boolean(row.canSendCustomMessages),
       streamerbotConnection: row.streamerbotConnection ? JSON.parse(row.streamerbotConnection) : null,
+      allowPresenterToSendMessage: Boolean(row.allowPresenterToSendMessage),
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     };
@@ -1045,8 +1065,8 @@ export class DatabaseService {
   createRoom(room: DbRoomInput): void {
     const now = new Date();
     const stmt = this.db.prepare(`
-      INSERT INTO rooms (id, name, vdoNinjaUrl, twitchChatUrl, quickReplies, streamerbotConnection, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO rooms (id, name, vdoNinjaUrl, twitchChatUrl, quickReplies, canSendCustomMessages, streamerbotConnection, allowPresenterToSendMessage, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       room.id,
@@ -1054,7 +1074,9 @@ export class DatabaseService {
       room.vdoNinjaUrl || null,
       room.twitchChatUrl || null,
       JSON.stringify(room.quickReplies || []),
+      room.canSendCustomMessages ? 1 : 0,
       room.streamerbotConnection || null,
+      room.allowPresenterToSendMessage ? 1 : 0,
       (room.createdAt || now).toISOString(),
       (room.updatedAt || now).toISOString()
     );
@@ -1074,13 +1096,15 @@ export class DatabaseService {
       vdoNinjaUrl: updates.vdoNinjaUrl !== undefined ? updates.vdoNinjaUrl : existing.vdoNinjaUrl,
       twitchChatUrl: updates.twitchChatUrl !== undefined ? updates.twitchChatUrl : existing.twitchChatUrl,
       quickReplies: updates.quickReplies !== undefined ? updates.quickReplies : existing.quickReplies,
+      canSendCustomMessages: updates.canSendCustomMessages !== undefined ? updates.canSendCustomMessages : existing.canSendCustomMessages,
       streamerbotConnection: updates.streamerbotConnection !== undefined ? updates.streamerbotConnection : existing.streamerbotConnection,
+      allowPresenterToSendMessage: updates.allowPresenterToSendMessage !== undefined ? updates.allowPresenterToSendMessage : existing.allowPresenterToSendMessage,
       updatedAt: updates.updatedAt || new Date(),
     };
 
     const stmt = this.db.prepare(`
       UPDATE rooms
-      SET name = ?, vdoNinjaUrl = ?, twitchChatUrl = ?, quickReplies = ?, streamerbotConnection = ?, updatedAt = ?
+      SET name = ?, vdoNinjaUrl = ?, twitchChatUrl = ?, quickReplies = ?, canSendCustomMessages = ?, streamerbotConnection = ?, allowPresenterToSendMessage = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
@@ -1088,7 +1112,9 @@ export class DatabaseService {
       merged.vdoNinjaUrl || null,
       merged.twitchChatUrl || null,
       JSON.stringify(merged.quickReplies || []),
+      merged.canSendCustomMessages ? 1 : 0,
       merged.streamerbotConnection || null,
+      merged.allowPresenterToSendMessage ? 1 : 0,
       merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
       id
     );

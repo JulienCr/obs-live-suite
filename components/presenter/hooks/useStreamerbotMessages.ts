@@ -108,15 +108,17 @@ export function useStreamerbotMessages({
 export function getMessageHighlights(
   message: ChatMessage,
   rules: HighlightRule[]
-): { keyword: HighlightRule | null; role: "mod" | "broadcaster" | "vip" | null } {
+): { keyword: HighlightRule | null; role: "mod" | "broadcaster" | "vip" | "subscriber" | null } {
   // Check role-based highlights first
-  let role: "mod" | "broadcaster" | "vip" | null = null;
+  let role: "mod" | "broadcaster" | "vip" | "subscriber" | null = null;
   if (message.metadata?.isBroadcaster) {
     role = "broadcaster";
   } else if (message.metadata?.isMod) {
     role = "mod";
   } else if (message.metadata?.isVip) {
     role = "vip";
+  } else if (message.metadata?.isSubscriber) {
+    role = "subscriber";
   }
 
   // Check keyword highlights
@@ -146,7 +148,7 @@ export function getMessageHighlights(
  * Get CSS classes for message highlighting based on role
  */
 export function getRoleHighlightClasses(
-  role: "mod" | "broadcaster" | "vip" | null
+  role: "mod" | "broadcaster" | "vip" | "subscriber" | null
 ): string {
   switch (role) {
     case "broadcaster":
@@ -155,6 +157,8 @@ export function getRoleHighlightClasses(
       return "bg-green-500/10 border-l-2 border-green-500";
     case "vip":
       return "bg-purple-500/10 border-l-2 border-purple-500";
+    case "subscriber":
+      return ""; // Subscribers get badge but no background highlight
     default:
       return "";
   }
@@ -164,7 +168,7 @@ export function getRoleHighlightClasses(
  * Get username color class based on role
  */
 export function getUsernameColorClass(
-  role: "mod" | "broadcaster" | "vip" | null,
+  role: "mod" | "broadcaster" | "vip" | "subscriber" | null,
   userColor?: string
 ): string {
   // If user has a custom color set, we'll apply it inline
@@ -176,6 +180,8 @@ export function getUsernameColorClass(
       return "text-green-400";
     case "vip":
       return "text-purple-400";
+    case "subscriber":
+      return "text-blue-400";
     default:
       return "text-foreground";
   }
