@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, Play, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield, Package } from "lucide-react";
+import { ChevronDown, ChevronRight, Play, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield, Package, Sparkles, MessageSquare } from "lucide-react";
 
 interface NavSection {
   id: string;
@@ -44,6 +44,13 @@ const navigationSections: NavSection[] = [
     ],
   },
   {
+    id: "presenter",
+    label: "PRESENTER",
+    items: [
+      { label: "Rooms", href: "/settings/presenter/rooms", icon: MessageSquare },
+    ],
+  },
+  {
     id: "integrations",
     label: "INTEGRATIONS",
     items: [
@@ -57,6 +64,7 @@ const navigationSections: NavSection[] = [
     label: "SETTINGS",
     items: [
       { label: "General", href: "/settings/general", icon: SettingsIcon },
+      { label: "Integrations", href: "/settings/integrations", icon: Sparkles },
       { label: "Backend", href: "/settings/backend", icon: Database },
       { label: "Paths", href: "/settings/paths", icon: FolderCog },
       { label: "Backup", href: "/settings/backup", icon: FileStack },
@@ -98,7 +106,7 @@ export function AdminSidebar() {
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
-      return pathname === "/" || pathname === "/dashboard" || pathname === "/dashboard-v2";
+      return pathname === "/" || pathname === "/dashboard";
     }
     return pathname.startsWith(href);
   };

@@ -18,6 +18,8 @@ import { GuestsPanel } from "./panels/GuestsPanel";
 import { PosterPanel } from "./panels/PosterPanel";
 import { MacrosPanel } from "./panels/MacrosPanel";
 import { EventLogPanel } from "./panels/EventLogPanel";
+import { CueComposerPanel } from "./panels/CueComposerPanel";
+import { PresenceStatusPanel } from "./panels/PresenceStatusPanel";
 import { DockviewContext } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
@@ -34,11 +36,13 @@ const components = {
   poster: PosterPanel,
   macros: MacrosPanel,
   eventLog: EventLogPanel,
+  cueComposer: CueComposerPanel,
+  presenceStatus: PresenceStatusPanel,
 };
 
 export function DashboardShell() {
   const { theme } = useTheme();
-  const { mode } = useAppMode();
+  const { mode, isFullscreenMode } = useAppMode();
   const [mounted, setMounted] = useState(false);
   const apiRef = useRef<DockviewReadyEvent["api"] | null>(null);
   const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);
@@ -201,7 +205,7 @@ export function DashboardShell() {
   }, [applyLivePreset, applyPrepPreset, applyMinimalPreset]);
 
   // Enable keyboard shortcuts for layout presets
-  useKeyboardShortcuts(applyPreset);
+  useKeyboardShortcuts(applyPreset, api);
 
   const onReady = useCallback((event: DockviewReadyEvent) => {
     apiRef.current = event.api;
@@ -292,7 +296,7 @@ export function DashboardShell() {
     <LayoutPresetsProvider applyPreset={applyPreset}>
       <DockviewContext.Provider value={{ api }}>
         <div style={{ height: "100vh", width: "100vw", display: "flex" }}>
-          {mode === "LIVE" && <LiveModeRail />}
+          {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
           <div style={{ flex: 1 }}>
             <DockviewReact
               components={components}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { CountdownDisplay } from "./CountdownDisplay";
+import { getWebSocketUrl } from "@/lib/utils/websocket";
 import "./countdown.css";
 
 interface ThemeData {
@@ -140,8 +141,7 @@ export function CountdownRenderer() {
         }
       }
 
-      const wsUrl = `ws://${window.location.hostname}:3003`;
-      ws.current = new WebSocket(wsUrl);
+      ws.current = new WebSocket(getWebSocketUrl());
 
       ws.current.onopen = () => {
         if (!isMounted) {

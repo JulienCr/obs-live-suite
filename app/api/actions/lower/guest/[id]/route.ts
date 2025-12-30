@@ -4,6 +4,7 @@ import { BackendClient } from "@/lib/utils/BackendClient";
 import { LowerThirdEventType, OverlayChannel } from "@/lib/models/OverlayEvents";
 import { enrichLowerThirdPayload } from "@/lib/utils/themeEnrichment";
 import { DbGuest } from "@/lib/models/Database";
+import { sendPresenterNotification } from "@/lib/utils/presenterNotifications";
 
 /**
  * POST /api/actions/lower/guest/[id]
@@ -31,21 +32,36 @@ export async function POST(
 
     // Build base payload and enrich with theme data using shared utility
     const basePayload = {
+      contentType: "guest" as const, // Important: Mark as guest type for tracking
       title: guest.displayName,
       subtitle: guest.subtitle || "",
       side: "left" as const,
       duration,
       avatarUrl: guest.avatarUrl,
       accentColor: guest.accentColor,
+      guestId: guest.id, // Add guest ID for tracking in dashboard
     };
 
     const enrichedPayload = enrichLowerThirdPayload(basePayload, db);
     console.log("[GuestAction] Publishing with theme:", !!enrichedPayload.theme);
-    
+
     await BackendClient.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, enrichedPayload);
 
-    return NextResponse.json({ 
-      success: true, 
+    // Send notification to presenter (non-blocking)
+    try {
+      await sendPresenterNotification({
+        type: "guest",
+        title: `Guest: ${guest.displayName}`,
+        imageUrl: guest.avatarUrl || undefined,
+        bullets: guest.subtitle ? [guest.subtitle] : undefined,
+        guestId: guest.id, // Include guest ID for tracking
+      });
+    } catch (error) {
+      console.error("[GuestAction] Failed to send presenter notification:", error);
+    }
+
+    return NextResponse.json({
+      success: true,
       guest: {
         id: guest.id,
         displayName: guest.displayName,

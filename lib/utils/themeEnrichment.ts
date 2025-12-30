@@ -12,6 +12,7 @@ export interface LowerThirdThemeData {
   template: Theme["lowerThirdTemplate"];
   font: Theme["lowerThirdFont"];
   layout: Theme["lowerThirdLayout"];
+  lowerThirdAnimation: Theme["lowerThirdAnimation"];
 }
 
 export interface CountdownThemeData {
@@ -67,6 +68,7 @@ export function getLowerThirdThemeData(theme: Theme | null): LowerThirdThemeData
     template: theme.lowerThirdTemplate,
     font: theme.lowerThirdFont,
     layout: theme.lowerThirdLayout,
+    lowerThirdAnimation: theme.lowerThirdAnimation,
   };
 }
 

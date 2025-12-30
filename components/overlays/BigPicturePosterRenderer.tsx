@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { PosterShowPayload } from "@/lib/models/OverlayEvents";
 import { PosterDisplay } from "./PosterDisplay";
+import { getWebSocketUrl } from "@/lib/utils/websocket";
 import "./bigpicture-poster.css";
 
 interface PosterData {
@@ -278,8 +279,7 @@ export function BigPicturePosterRenderer() {
         }
       }
 
-      const wsUrl = `ws://${window.location.hostname}:3003`;
-      ws.current = new WebSocket(wsUrl);
+      ws.current = new WebSocket(getWebSocketUrl());
 
       ws.current.onopen = () => {
         if (!isMounted) {

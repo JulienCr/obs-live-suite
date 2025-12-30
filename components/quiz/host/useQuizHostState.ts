@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Session } from "@/lib/models/Quiz";
+import { getWebSocketUrl } from "@/lib/utils/websocket";
 
 interface PlayerScore {
   id: string;
@@ -107,8 +108,7 @@ export function useQuizHostState() {
       } catch {}
     }
 
-    const url = `ws://${window.location.hostname}:3003`;
-    ws.current = new WebSocket(url);
+    ws.current = new WebSocket(getWebSocketUrl());
 
     ws.current.onopen = () => {
       setState((prev) => ({ ...prev, connected: true }));

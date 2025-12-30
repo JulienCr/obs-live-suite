@@ -20,7 +20,9 @@
       "Bash(GIT_EDITOR=true git commit:*)",
       "Bash(pnpm type-check:*)",
       "Bash(lsof:*)",
-      "Bash(xargs kill:*)"
+      "Bash(xargs kill:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": [

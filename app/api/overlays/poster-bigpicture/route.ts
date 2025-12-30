@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
+import { DatabaseService } from "@/lib/services/DatabaseService";
+import { sendPresenterNotification } from "@/lib/utils/presenterNotifications";
+import { BACKEND_URL } from "@/lib/config/urls";
 
 /**
  * POST /api/overlays/poster-bigpicture
@@ -22,6 +23,53 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       console.error("[Next.js BigPicture Poster API] Backend error:", data);
       return NextResponse.json(data, { status: response.status });
+    }
+
+    // Send notification to presenter when showing a big picture poster (non-blocking)
+    if (body.action === 'show' && body.payload) {
+      try {
+        const { posterId, fileUrl, type, source } = body.payload;
+        const db = DatabaseService.getInstance();
+
+        // Get title and description from database if posterId is provided
+        let title = 'Sans titre';
+        let description = undefined;
+        if (posterId) {
+          const poster = db.getPosterById(posterId);
+          if (poster) {
+            title = poster.title;
+            description = poster.description;
+          }
+        }
+
+        // Build bullets with only useful context
+        const bullets = [];
+        if (source) {
+          bullets.push(`Source: ${source}`);
+        }
+
+        // Build links
+        const links = [];
+        if (type === 'youtube') {
+          links.push({ url: fileUrl, title: 'Voir sur YouTube' });
+        } else if (type === 'image') {
+          links.push({ url: fileUrl, title: 'Voir l\'image en grand' });
+        } else if (type === 'video') {
+          links.push({ url: fileUrl, title: 'Voir la vidéo' });
+        }
+
+        await sendPresenterNotification({
+          type: 'poster',
+          title: `Poster: ${title}`,
+          body: description,
+          imageUrl: type === 'image' ? fileUrl : undefined,
+          bullets: bullets.length > 0 ? bullets : undefined,
+          links: links.length > 0 ? links : undefined,
+          posterId: posterId, // Include poster ID for tracking
+        });
+      } catch (error) {
+        console.error('[BigPicturePosterAction] Failed to send presenter notification:', error);
+      }
     }
 
     return NextResponse.json(data);

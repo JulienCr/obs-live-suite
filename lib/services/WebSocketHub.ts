@@ -3,6 +3,7 @@ import { createServer, Server as HTTPServer } from "http";
 import { AppConfig } from "../config/AppConfig";
 import { Logger } from "../utils/Logger";
 import { randomUUID } from "crypto";
+import { RoomPresence, RoomRole } from "../models/Room";
 
 /**
  * WebSocket client with metadata
@@ -12,6 +13,9 @@ interface WSClient {
   ws: WebSocket;
   channels: Set<string>;
   isAlive: boolean;
+  roomId?: string;
+  role?: RoomRole;
+  lastActivity?: number;
 }
 
 /**
@@ -22,15 +26,18 @@ export class WebSocketHub {
   private wss: WebSocketServer | null;
   private httpServer: HTTPServer | null;
   private clients: Map<string, WSClient>;
+  private roomPresence: Map<string, Map<string, RoomPresence>>;
   private logger: Logger;
   private config: AppConfig;
   private heartbeatInterval?: NodeJS.Timeout;
   private startAttempted: boolean;
+  private onRoomJoinCallback?: (roomId: string, clientId: string, role: RoomRole) => void;
 
   private constructor() {
     this.wss = null;
     this.httpServer = null;
     this.clients = new Map();
+    this.roomPresence = new Map();
     this.logger = new Logger("WebSocketHub");
     this.config = AppConfig.getInstance();
     this.startAttempted = false;
@@ -83,6 +90,7 @@ export class WebSocketHub {
       });
 
       ws.on("close", () => {
+        this.handleClientDisconnect(clientId);
         this.clients.delete(clientId);
         this.logger.info(`Client disconnected: ${clientId}`);
       });
@@ -199,6 +207,34 @@ export class WebSocketHub {
           }
           break;
 
+        case "join-room":
+          if (message.roomId && message.role) {
+            this.handleJoinRoom(clientId, message.roomId, message.role);
+          }
+          break;
+
+        case "leave-room":
+          if (message.roomId) {
+            this.handleLeaveRoom(clientId, message.roomId);
+          }
+          break;
+
+        case "cue-action":
+          // Handle cue actions (ack, done, take, skip, pin, unpin)
+          if (message.messageId && message.action) {
+            client.lastActivity = Date.now();
+            this.updatePresenceActivity(clientId);
+            // The action itself is handled by the backend API
+            this.logger.debug(`Cue action from ${clientId}: ${message.action} on ${message.messageId}`);
+          }
+          break;
+
+        case "presence-ping":
+          // Update last activity for presence tracking
+          client.lastActivity = Date.now();
+          this.updatePresenceActivity(clientId);
+          break;
+
         default:
           this.logger.warn(`Unknown message type: ${message.type}`);
       }
@@ -278,6 +314,164 @@ export class WebSocketHub {
       }
     });
     return count;
+  }
+
+  // ==================== ROOM METHODS ====================
+
+  /**
+   * Set callback for room join events (used by backend to send replay)
+   */
+  setOnRoomJoinCallback(callback: (roomId: string, clientId: string, role: RoomRole) => void): void {
+    this.onRoomJoinCallback = callback;
+  }
+
+  /**
+   * Handle client joining a room
+   */
+  private handleJoinRoom(clientId: string, roomId: string, role: RoomRole): void {
+    const client = this.clients.get(clientId);
+    if (!client) return;
+
+    const roomChannel = `room:${roomId}`;
+
+    // Leave previous room if any
+    if (client.roomId && client.roomId !== roomId) {
+      this.handleLeaveRoom(clientId, client.roomId);
+    }
+
+    // Update client metadata
+    client.roomId = roomId;
+    client.role = role;
+    client.lastActivity = Date.now();
+    client.channels.add(roomChannel);
+
+    // Update presence
+    this.updatePresence(roomId, clientId, role, true);
+
+    this.logger.info(`Client ${clientId} joined room ${roomId} as ${role}`);
+
+    // Broadcast presence update to room
+    this.broadcastPresence(roomId);
+
+    // Trigger callback for replay (handled by backend)
+    if (this.onRoomJoinCallback) {
+      this.onRoomJoinCallback(roomId, clientId, role);
+    }
+  }
+
+  /**
+   * Handle client leaving a room
+   */
+  private handleLeaveRoom(clientId: string, roomId: string): void {
+    const client = this.clients.get(clientId);
+    if (!client) return;
+
+    const roomChannel = `room:${roomId}`;
+
+    // Remove from channel
+    client.channels.delete(roomChannel);
+    client.roomId = undefined;
+    client.role = undefined;
+
+    // Update presence
+    this.updatePresence(roomId, clientId, undefined, false);
+
+    this.logger.info(`Client ${clientId} left room ${roomId}`);
+
+    // Broadcast presence update to room
+    this.broadcastPresence(roomId);
+  }
+
+  /**
+   * Update presence for a client in a room
+   */
+  private updatePresence(roomId: string, clientId: string, role: RoomRole | undefined, isOnline: boolean): void {
+    if (!this.roomPresence.has(roomId)) {
+      this.roomPresence.set(roomId, new Map());
+    }
+
+    const roomClients = this.roomPresence.get(roomId)!;
+
+    if (isOnline && role) {
+      roomClients.set(clientId, {
+        roomId,
+        clientId,
+        role,
+        isOnline: true,
+        lastSeen: Date.now(),
+        lastActivity: Date.now(),
+      });
+    } else {
+      roomClients.delete(clientId);
+    }
+  }
+
+  /**
+   * Update last activity for a client
+   */
+  private updatePresenceActivity(clientId: string): void {
+    const client = this.clients.get(clientId);
+    if (!client || !client.roomId) return;
+
+    const roomClients = this.roomPresence.get(client.roomId);
+    if (!roomClients) return;
+
+    const presence = roomClients.get(clientId);
+    if (presence) {
+      presence.lastActivity = Date.now();
+      presence.lastSeen = Date.now();
+    }
+  }
+
+  /**
+   * Broadcast presence update to all clients in a room
+   */
+  broadcastPresence(roomId: string): void {
+    const roomChannel = `room:${roomId}`;
+    const presence = this.getPresence(roomId);
+
+    this.broadcast(roomChannel, {
+      type: "presence",
+      roomId,
+      presence,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Get presence for a room
+   */
+  getPresence(roomId: string): RoomPresence[] {
+    const roomClients = this.roomPresence.get(roomId);
+    if (!roomClients) return [];
+
+    return Array.from(roomClients.values());
+  }
+
+  /**
+   * Send replay data to a specific client
+   */
+  sendReplay(clientId: string, roomId: string, messages: unknown[], pinnedMessages: unknown[]): void {
+    const presence = this.getPresence(roomId);
+
+    this.sendToClient(clientId, {
+      type: "replay",
+      roomId,
+      messages,
+      pinnedMessages,
+      presence,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Handle client disconnect - clean up room presence
+   */
+  private handleClientDisconnect(clientId: string): void {
+    const client = this.clients.get(clientId);
+    if (client?.roomId) {
+      this.handleLeaveRoom(clientId, client.roomId);
+    }
   }
 }
 

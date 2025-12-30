@@ -40,7 +40,7 @@ export function HeaderOverflowMenu() {
     // Not in dashboard context, that's fine
   }
 
-  const isOnDashboard = pathname === "/" || pathname === "/dashboard" || pathname === "/dashboard-v2";
+  const isOnDashboard = pathname === "/" || pathname === "/dashboard";
 
   const handleModeToggle = () => {
     const targetMode = mode === "LIVE" ? "ADMIN" : "LIVE";
@@ -60,12 +60,12 @@ export function HeaderOverflowMenu() {
     // Navigate to appropriate page based on mode
     if (targetMode === "LIVE") {
       // Always navigate to dashboard in LIVE mode
-      if (pathname !== "/dashboard" && pathname !== "/dashboard-v2" && pathname !== "/") {
+      if (pathname !== "/dashboard" && pathname !== "/") {
         router.push("/dashboard");
       }
     } else {
       // In ADMIN mode, if we're on dashboard, navigate to settings
-      if (pathname === "/dashboard" || pathname === "/dashboard-v2" || pathname === "/") {
+      if (pathname === "/dashboard" || pathname === "/") {
         router.push("/settings/general");
       }
     }
@@ -121,7 +121,7 @@ export function HeaderOverflowMenu() {
             Switch to {mode === "LIVE" ? "ADMIN" : "LIVE"} Mode
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem disabled>
+          <DropdownMenuItem onClick={() => router.push("/shortcuts")}>
             <Keyboard className="w-4 h-4 mr-2" />
             Keyboard Shortcuts
           </DropdownMenuItem>

@@ -3,6 +3,7 @@ import { OBSConnectionManager } from "../adapters/obs/OBSConnectionManager";
 import { OBSStateManager } from "../adapters/obs/OBSStateManager";
 import { DatabaseService } from "../services/DatabaseService";
 import { ThemeService } from "../services/ThemeService";
+import { RoomService } from "../services/RoomService";
 import { Logger } from "../utils/Logger";
 import { PathManager } from "../config/PathManager";
 
@@ -53,6 +54,11 @@ export class ServerInit {
       const themeService = ThemeService.getInstance();
       await themeService.initializeDefaultThemes();
       this.logger.info("✓ Default themes initialized");
+
+      // Initialize default room
+      const roomService = RoomService.getInstance();
+      await roomService.initializeDefaultRoom();
+      this.logger.info("✓ Default room initialized");
 
       // Initialize WebSocket Hub
       const wsHub = WebSocketHub.getInstance();
