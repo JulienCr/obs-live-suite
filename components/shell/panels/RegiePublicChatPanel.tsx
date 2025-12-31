@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
 import { MessageSquare, Loader2 } from "lucide-react";
+import { PanelColorMenu } from "../PanelColorMenu";
 import { useStreamerbotClient } from "@/components/presenter/hooks/useStreamerbotClient";
 import { useStreamerbotMessages } from "@/components/presenter/hooks/useStreamerbotMessages";
 import { useStreamerbotChatSettings } from "@/components/presenter/hooks/useStreamerbotChatSettings";
@@ -199,8 +200,10 @@ function RegiePublicChatContent() {
 
 export function RegiePublicChatPanel(props: IDockviewPanelProps) {
   return (
-    <div style={{ height: "100%", overflow: "hidden" }}>
-      <RegiePublicChatContent />
-    </div>
+    <PanelColorMenu panelId="regiePublicChat">
+      <div data-panel-id="regiePublicChat" style={{ height: "100%", overflow: "hidden" }}>
+        <RegiePublicChatContent />
+      </div>
+    </PanelColorMenu>
   );
 }

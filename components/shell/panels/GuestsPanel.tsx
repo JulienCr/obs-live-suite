@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { Zap } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
+import { PanelColorMenu } from "../PanelColorMenu";
 
 interface Guest {
   id: string;
@@ -148,8 +149,9 @@ export function GuestsPanel(props: IDockviewPanelProps) {
   };
 
   return (
-    <div style={{ padding: "1rem", height: "100%", overflow: "auto" }}>
-      {loading ? (
+    <PanelColorMenu panelId="guests">
+      <div data-panel-id="guests" style={{ padding: "1rem", height: "100%", overflow: "auto" }}>
+        {loading ? (
         <div className="text-sm text-muted-foreground">Loading...</div>
       ) : guests.length === 0 ? (
         <div className="text-sm text-muted-foreground text-center py-4">
@@ -213,7 +215,8 @@ export function GuestsPanel(props: IDockviewPanelProps) {
             );
           })}
         </div>
-      )}
-    </div>
+        )}
+      </div>
+    </PanelColorMenu>
   );
 }
