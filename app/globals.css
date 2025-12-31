@@ -66,7 +66,7 @@
   body {
     @apply bg-background text-foreground text-sm;
   }
-  
+
   /* Refined UI - more compact spacing and typography */
   h1 {
     @apply text-xl font-semibold;
@@ -77,5 +77,16 @@
   h3 {
     @apply text-base font-semibold;
   }
+}
+
+/* Panel Color Customization - Dynamic styles injected by PanelColorStyles component */
+/* Base styles to ensure panel content inherits background colors */
+[data-panel-id] {
+  transition: background-color 0.2s ease;
+}
+
+/* Dockview tab transition for smooth color changes */
+.dv-tab[data-panel-id] {
+  transition: background-color 0.2s ease;
 }
 

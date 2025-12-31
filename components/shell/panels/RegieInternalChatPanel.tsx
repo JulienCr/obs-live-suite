@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
 import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText, Megaphone, Tv, Wrench } from "lucide-react";
+import { PanelColorMenu } from "../PanelColorMenu";
 import { Button } from "@/components/ui/button";
 import { CueType, CueSeverity, CueFrom } from "@/lib/models/Cue";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
@@ -224,8 +225,10 @@ function RegieInternalChatContent() {
 
 export function RegieInternalChatPanel(props: IDockviewPanelProps) {
   return (
-    <div style={{ height: "100%", overflow: "hidden" }}>
-      <RegieInternalChatContent />
-    </div>
+    <PanelColorMenu panelId="regieInternalChat">
+      <div data-panel-id="regieInternalChat" style={{ height: "100%", overflow: "hidden" }}>
+        <RegieInternalChatContent />
+      </div>
+    </PanelColorMenu>
   );
 }

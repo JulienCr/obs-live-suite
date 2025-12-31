@@ -277,3 +277,24 @@ export interface DbStreamerbotChatMessage {
 export type DbStreamerbotChatMessageInput = Omit<DbStreamerbotChatMessage, 'createdAt'> & {
   createdAt?: number;
 };
+
+// Panel Colors (dashboard panel customization)
+export interface DbPanelColor {
+  id: string;
+  panelId: string;
+  lightBackground: string | null;
+  lightHeader: string | null;
+  darkBackground: string | null;
+  darkHeader: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type DbPanelColorInput = Omit<DbPanelColor, 'createdAt' | 'updatedAt'> & {
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+export type DbPanelColorUpdate = Partial<Omit<DbPanelColor, 'id' | 'panelId' | 'createdAt'>> & {
+  updatedAt?: Date;
+};

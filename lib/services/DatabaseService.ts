@@ -22,6 +22,8 @@ import {
   DbCueMessageUpdate,
   DbStreamerbotChatMessage,
   DbStreamerbotChatMessageInput,
+  DbPanelColor,
+  DbPanelColorUpdate,
 } from "../models/Database";
 
 /**
@@ -451,6 +453,17 @@ export class DatabaseService {
         createdAt INTEGER NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS panel_colors (
+        id TEXT PRIMARY KEY,
+        panelId TEXT NOT NULL UNIQUE,
+        lightBackground TEXT,
+        lightHeader TEXT,
+        darkBackground TEXT,
+        darkHeader TEXT,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      );
+
       CREATE INDEX IF NOT EXISTS idx_guests_displayName ON guests(displayName);
       CREATE INDEX IF NOT EXISTS idx_posters_profileIds ON posters(profileIds);
       CREATE INDEX IF NOT EXISTS idx_profiles_isActive ON profiles(isActive);
@@ -464,6 +477,7 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_cue_messages_createdAt ON cue_messages(createdAt);
       CREATE INDEX IF NOT EXISTS idx_cue_messages_pinned ON cue_messages(pinned);
       CREATE INDEX IF NOT EXISTS idx_streamerbot_chat_timestamp ON streamerbot_chat_messages(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_panel_colors_panelId ON panel_colors(panelId);
     `);
 
     this.logger.info("Database tables initialized");
@@ -1432,6 +1446,95 @@ export class DatabaseService {
   clearStreamerbotChatMessages(): void {
     const stmt = this.db.prepare("DELETE FROM streamerbot_chat_messages");
     stmt.run();
+  }
+
+  // ==================== PANEL COLORS ====================
+
+  /**
+   * Get all panel colors
+   */
+  getAllPanelColors(): DbPanelColor[] {
+    const stmt = this.db.prepare("SELECT * FROM panel_colors ORDER BY panelId ASC");
+    const rows = stmt.all() as Array<Omit<DbPanelColor, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }>;
+    return rows.map((row) => ({
+      ...row,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    }));
+  }
+
+  /**
+   * Get panel color by panel ID
+   */
+  getPanelColorByPanelId(panelId: string): DbPanelColor | null {
+    const stmt = this.db.prepare("SELECT * FROM panel_colors WHERE panelId = ?");
+    const row = stmt.get(panelId) as (Omit<DbPanelColor, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }) | undefined;
+    if (!row) return null;
+    return {
+      ...row,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    };
+  }
+
+  /**
+   * Upsert panel color (create or update)
+   */
+  upsertPanelColor(panelId: string, colors: DbPanelColorUpdate): DbPanelColor {
+    const existing = this.getPanelColorByPanelId(panelId);
+    const now = new Date();
+
+    if (existing) {
+      // Update existing
+      const merged = {
+        lightBackground: colors.lightBackground !== undefined ? colors.lightBackground : existing.lightBackground,
+        lightHeader: colors.lightHeader !== undefined ? colors.lightHeader : existing.lightHeader,
+        darkBackground: colors.darkBackground !== undefined ? colors.darkBackground : existing.darkBackground,
+        darkHeader: colors.darkHeader !== undefined ? colors.darkHeader : existing.darkHeader,
+        updatedAt: now,
+      };
+
+      const stmt = this.db.prepare(`
+        UPDATE panel_colors
+        SET lightBackground = ?, lightHeader = ?, darkBackground = ?, darkHeader = ?, updatedAt = ?
+        WHERE panelId = ?
+      `);
+      stmt.run(
+        merged.lightBackground,
+        merged.lightHeader,
+        merged.darkBackground,
+        merged.darkHeader,
+        merged.updatedAt.toISOString(),
+        panelId
+      );
+    } else {
+      // Create new
+      const id = crypto.randomUUID();
+      const stmt = this.db.prepare(`
+        INSERT INTO panel_colors (id, panelId, lightBackground, lightHeader, darkBackground, darkHeader, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(
+        id,
+        panelId,
+        colors.lightBackground || null,
+        colors.lightHeader || null,
+        colors.darkBackground || null,
+        colors.darkHeader || null,
+        now.toISOString(),
+        now.toISOString()
+      );
+    }
+
+    return this.getPanelColorByPanelId(panelId)!;
+  }
+
+  /**
+   * Delete panel color (reset to default)
+   */
+  deletePanelColor(panelId: string): void {
+    const stmt = this.db.prepare("DELETE FROM panel_colors WHERE panelId = ?");
+    stmt.run(panelId);
   }
 
   /**

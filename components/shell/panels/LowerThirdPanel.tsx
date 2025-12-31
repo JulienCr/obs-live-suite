@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Timer, Loader2, ExternalLink, FileText, X, Search, Sparkles } from "lucide-react";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { toast } from "sonner";
+import { PanelColorMenu } from "../PanelColorMenu";
 
 interface WikipediaPreview {
   title: string;
@@ -275,8 +276,9 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
   };
 
   return (
-    <div style={{ padding: "1rem", height: "100%", overflow: "auto" }}>
-      <div className="space-y-4">
+    <PanelColorMenu panelId="lowerThird">
+      <div data-panel-id="lowerThird" style={{ padding: "1rem", height: "100%", overflow: "auto" }}>
+        <div className="space-y-4">
         <div className="flex gap-2">
           <Button
             variant={mode === "guest" ? "default" : "outline"}
@@ -549,7 +551,8 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
             <Timer className="w-4 h-4" />
           </Button>
         </div>
+        </div>
       </div>
-    </div>
+    </PanelColorMenu>
   );
 }

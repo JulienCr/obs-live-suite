@@ -2,6 +2,7 @@
 
 import { type IDockviewPanelProps } from "dockview-react";
 import { MessageSquare, Wifi, WifiOff, Trash2 } from "lucide-react";
+import { PanelColorMenu } from "../PanelColorMenu";
 import { Button } from "@/components/ui/button";
 import { usePresenterWebSocket } from "@/components/presenter/hooks/usePresenterWebSocket";
 import { CueFeedPanel } from "@/components/presenter/panels/CueFeedPanel";
@@ -70,8 +71,10 @@ function RegieInternalChatViewContent() {
 
 export function RegieInternalChatViewPanel(props: IDockviewPanelProps) {
   return (
-    <div style={{ height: "100%", overflow: "hidden" }}>
-      <RegieInternalChatViewContent />
-    </div>
+    <PanelColorMenu panelId="regieInternalChatView">
+      <div data-panel-id="regieInternalChatView" style={{ height: "100%", overflow: "hidden" }}>
+        <RegieInternalChatViewContent />
+      </div>
+    </PanelColorMenu>
   );
 }

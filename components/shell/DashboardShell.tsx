@@ -28,6 +28,8 @@ import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { LiveModeRail } from "./LiveModeRail";
 import { useAppMode } from "./AppModeContext";
+import { PanelColorsProvider } from "./PanelColorsContext";
+import { PanelColorStyles } from "./PanelColorStyles";
 
 const LAYOUT_KEY = "obs-live-suite-dockview-layout";
 const PRESET_KEY = "obs-live-suite-layout-preset";
@@ -299,19 +301,22 @@ export function DashboardShell() {
   }, []);
 
   return (
-    <LayoutPresetsProvider applyPreset={applyPreset}>
-      <DockviewContext.Provider value={{ api }}>
-        <div style={{ height: "100vh", width: "100vw", display: "flex" }}>
-          {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
-          <div style={{ flex: 1 }}>
-            <DockviewReact
-              components={components}
-              onReady={onReady}
-              theme={!mounted || theme === "dark" ? themeDark : themeLight}
-            />
+    <PanelColorsProvider>
+      <LayoutPresetsProvider applyPreset={applyPreset}>
+        <DockviewContext.Provider value={{ api }}>
+          <PanelColorStyles />
+          <div style={{ height: "100vh", width: "100vw", display: "flex" }}>
+            {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
+            <div style={{ flex: 1 }}>
+              <DockviewReact
+                components={components}
+                onReady={onReady}
+                theme={!mounted || theme === "dark" ? themeDark : themeLight}
+              />
+            </div>
           </div>
-        </div>
-      </DockviewContext.Provider>
-    </LayoutPresetsProvider>
+        </DockviewContext.Provider>
+      </LayoutPresetsProvider>
+    </PanelColorsProvider>
   );
 }

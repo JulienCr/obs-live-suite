@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
 import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText } from "lucide-react";
+import { PanelColorMenu } from "../PanelColorMenu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -230,8 +231,10 @@ function CueComposerContent() {
 
 export function CueComposerPanel(props: IDockviewPanelProps) {
   return (
-    <div style={{ height: "100%", overflow: "auto" }}>
-      <CueComposerContent />
-    </div>
+    <PanelColorMenu panelId="cueComposer">
+      <div data-panel-id="cueComposer" style={{ height: "100%", overflow: "auto" }}>
+        <CueComposerContent />
+      </div>
+    </PanelColorMenu>
   );
 }
