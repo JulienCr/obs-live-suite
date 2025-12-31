@@ -6,7 +6,7 @@ import { QuizScorePanel } from "./QuizScorePanel";
 import { QuizZoomReveal } from "./QuizZoomReveal";
 import { QuizOpenDisplay } from "./QuizOpenDisplay";
 import { QuizMysteryImage } from "./QuizMysteryImage";
-import { getWebSocketUrl } from "@/lib/utils/websocket";
+import { getWebSocketUrl, getBackendUrl } from "@/lib/utils/websocket";
 
 interface QuizState {
   phase: string;
@@ -66,7 +66,7 @@ export function QuizRenderer() {
         setTimeout(async () => {
           if (payload?.question_id) {
             try {
-              const res = await fetch("http://localhost:3002/api/quiz/state");
+              const res = await fetch(`${getBackendUrl()}/api/quiz/state`);
               const stateData = await res.json();
               const currentQ = stateData.session?.rounds?.[stateData.session?.currentRoundIndex]?.questions?.[stateData.session?.currentQuestionIndex];
               if (currentQ) {
@@ -216,7 +216,7 @@ export function QuizRenderer() {
   useEffect(() => {
     const fetchInitialState = async () => {
       try {
-        const res = await fetch("http://localhost:3002/api/quiz/state");
+        const res = await fetch(`${getBackendUrl()}/api/quiz/state`);
         const stateData = await res.json();
         
         if (stateData.session) {
