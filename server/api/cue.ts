@@ -116,13 +116,17 @@ router.post("/:messageId/action", async (req, res) => {
         break;
 
       case CueAction.DONE:
-      case CueAction.CLEAR:
         // Mark as resolved
         db.updateMessage(messageId, {
           resolvedAt: now,
           resolvedBy: clientId,
           updatedAt: now,
         });
+        break;
+
+      case CueAction.CLEAR:
+        // Delete the message
+        db.deleteMessage(messageId);
         break;
 
       case CueAction.TAKE:
@@ -154,15 +158,25 @@ router.post("/:messageId/action", async (req, res) => {
     }
 
     // Get updated message and broadcast
-    const updated = db.getMessageById(messageId);
-    await channelManager.publishToRoom(message.roomId, RoomEventType.ACTION, {
-      messageId,
-      action,
-      clientId,
-      message: updated,
-    });
-
-    res.json({ message: updated });
+    if (action === CueAction.CLEAR) {
+      // Message was deleted - broadcast deletion event
+      await channelManager.publishToRoom(message.roomId, RoomEventType.ACTION, {
+        messageId,
+        action,
+        clientId,
+        deleted: true,
+      });
+      res.json({ deleted: true });
+    } else {
+      const updated = db.getMessageById(messageId);
+      await channelManager.publishToRoom(message.roomId, RoomEventType.ACTION, {
+        messageId,
+        action,
+        clientId,
+        message: updated,
+      });
+      res.json({ message: updated });
+    }
   } catch (error) {
     console.error("[Cue] Action error:", error);
     res.status(500).json({ error: String(error) });

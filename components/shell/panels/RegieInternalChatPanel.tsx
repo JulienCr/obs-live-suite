@@ -1,37 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
-import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText } from "lucide-react";
+import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText, Megaphone, Tv, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CueType, CueSeverity, CueFrom } from "@/lib/models/Cue";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
+import { cn } from "@/lib/utils";
 
 const cueTypeOptions = [
   { value: CueType.CUE, label: "Cue", icon: AlertCircle },
   { value: CueType.NOTE, label: "Note", icon: FileText },
-  { value: CueType.COUNTDOWN, label: "Countdown", icon: Clock },
-  { value: CueType.CONTEXT, label: "Context", icon: FileText },
+  { value: CueType.COUNTDOWN, label: "Timer", icon: Clock },
 ];
 
 const severityOptions = [
-  { value: CueSeverity.INFO, label: "Info", icon: Info },
-  { value: CueSeverity.WARN, label: "Warning", icon: AlertTriangle },
-  { value: CueSeverity.URGENT, label: "Urgent", icon: AlertCircle },
+  { value: CueSeverity.INFO, label: "Info", icon: Info, color: "blue" },
+  { value: CueSeverity.WARN, label: "Warn", icon: AlertTriangle, color: "yellow" },
+  { value: CueSeverity.URGENT, label: "Urgent", icon: AlertCircle, color: "red" },
+];
+
+const quickTemplates = [
+  { label: "Ad", icon: Tv, severity: CueSeverity.WARN, body: "Ad break in 30 seconds" },
+  { label: "Tech", icon: Wrench, severity: CueSeverity.URGENT, body: "Technical issue - please stand by" },
+  { label: "Wrap", icon: Megaphone, severity: CueSeverity.INFO, body: "Wrap up current topic" },
 ];
 
 function RegieInternalChatContent() {
   const [cueType, setCueType] = useState<CueType>(CueType.CUE);
   const [severity, setSeverity] = useState<CueSeverity>(CueSeverity.INFO);
-  const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [pinned, setPinned] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(60);
   const [sending, setSending] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Focus textarea on mount
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
 
   const handleSend = async () => {
     if (!body.trim() && cueType !== CueType.COUNTDOWN) return;
@@ -42,7 +49,6 @@ function RegieInternalChatContent() {
         roomId: DEFAULT_ROOM_ID,
         type: cueType,
         from: CueFrom.CONTROL,
-        title: title.trim() || undefined,
         body: body.trim() || undefined,
         pinned,
       };
@@ -65,9 +71,9 @@ function RegieInternalChatContent() {
       });
 
       if (response.ok) {
-        setTitle("");
         setBody("");
         setPinned(false);
+        textareaRef.current?.focus();
       } else {
         console.error("Failed to send message:", await response.text());
       }
@@ -85,150 +91,133 @@ function RegieInternalChatContent() {
     }
   };
 
+  const handleQuickTemplate = (template: typeof quickTemplates[0]) => {
+    setCueType(CueType.CUE);
+    setSeverity(template.severity);
+    setBody(template.body);
+    textareaRef.current?.focus();
+  };
+
   return (
-    <div className="p-4 space-y-4 h-full flex flex-col">
-      <div className="space-y-3 flex-1 overflow-auto">
-        {/* Type Selector */}
-        <div className="space-y-2">
-          <Label>Type</Label>
-          <Select value={cueType} onValueChange={(v) => setCueType(v as CueType)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {cueTypeOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  <div className="flex items-center gap-2">
-                    <option.icon className="h-4 w-4" />
-                    {option.label}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Severity Selector (only for cue type) */}
-        {cueType === CueType.CUE && (
-          <div className="space-y-2">
-            <Label>Severity</Label>
-            <Select value={severity} onValueChange={(v) => setSeverity(v as CueSeverity)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {severityOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center gap-2">
-                      <option.icon className="h-4 w-4" />
-                      {option.label}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {/* Countdown Duration (only for countdown type) */}
-        {cueType === CueType.COUNTDOWN && (
-          <div className="space-y-2">
-            <Label>Duration (seconds)</Label>
-            <Input
-              type="number"
-              value={countdownSeconds}
-              onChange={(e) => setCountdownSeconds(parseInt(e.target.value) || 60)}
-              min={1}
-            />
-          </div>
-        )}
-
-        {/* Title */}
-        <div className="space-y-2">
-          <Label>Title (optional)</Label>
-          <Input
-            placeholder="Enter a title..."
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
-
-        {/* Body */}
-        <div className="space-y-2">
-          <Label>Message</Label>
-          <textarea
-            placeholder="Enter the message... (Ctrl+Enter to send)"
-            value={body}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBody(e.target.value)}
-            onKeyDown={handleKeyDown}
-            rows={3}
-            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          />
-        </div>
-
-        {/* Pin Toggle */}
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="pin-toggle"
-            checked={pinned}
-            onCheckedChange={(checked) => setPinned(checked === true)}
-          />
-          <Label htmlFor="pin-toggle" className="flex items-center gap-2 cursor-pointer">
-            <Pin className="h-4 w-4" />
-            Pin message
-          </Label>
-        </div>
-
-        {/* Quick Templates */}
-        <div className="space-y-2">
-          <Label>Quick Templates</Label>
-          <div className="flex flex-wrap gap-2">
+    <div className="p-3 h-full flex flex-col gap-3">
+      {/* Type Toggle Group */}
+      <div className="flex gap-1">
+        {cueTypeOptions.map((option) => {
+          const Icon = option.icon;
+          const isActive = cueType === option.value;
+          return (
             <Button
-              variant="outline"
+              key={option.value}
+              variant={isActive ? "default" : "outline"}
               size="sm"
-              onClick={() => {
-                setCueType(CueType.CUE);
-                setSeverity(CueSeverity.WARN);
-                setBody("Ad break in 30 seconds");
-              }}
+              className="flex-1"
+              onClick={() => setCueType(option.value)}
             >
-              Ad Warning
+              <Icon className="h-4 w-4 mr-1" />
+              {option.label}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setCueType(CueType.CUE);
-                setSeverity(CueSeverity.URGENT);
-                setBody("Technical issue - please stand by");
-              }}
-            >
-              Tech Issue
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setCueType(CueType.CUE);
-                setSeverity(CueSeverity.INFO);
-                setBody("Wrap up current topic");
-              }}
-            >
-              Wrap Up
-            </Button>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
-      {/* Send Button */}
-      <Button
-        className="w-full"
-        onClick={handleSend}
-        disabled={sending || (!body.trim() && cueType !== CueType.COUNTDOWN)}
-      >
-        <Send className="h-4 w-4 mr-2" />
-        {sending ? "Sending..." : "Send Message"}
-      </Button>
+      {/* Severity Toggle Group (only for CUE type) */}
+      {cueType === CueType.CUE && (
+        <div className="flex gap-1">
+          {severityOptions.map((option) => {
+            const Icon = option.icon;
+            const isActive = severity === option.value;
+            return (
+              <Button
+                key={option.value}
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "flex-1 transition-colors",
+                  isActive && option.color === "blue" && "bg-blue-500/20 border-blue-500 text-blue-600 dark:text-blue-400",
+                  isActive && option.color === "yellow" && "bg-yellow-500/20 border-yellow-500 text-yellow-600 dark:text-yellow-400",
+                  isActive && option.color === "red" && "bg-red-500/20 border-red-500 text-red-600 dark:text-red-400"
+                )}
+                onClick={() => setSeverity(option.value)}
+              >
+                <Icon className="h-4 w-4 mr-1" />
+                {option.label}
+              </Button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Countdown Duration (only for COUNTDOWN type) */}
+      {cueType === CueType.COUNTDOWN && (
+        <div className="flex gap-2 items-center">
+          <span className="text-sm text-muted-foreground">Duration:</span>
+          <div className="flex gap-1">
+            {[30, 60, 120, 300].map((secs) => (
+              <Button
+                key={secs}
+                variant={countdownSeconds === secs ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCountdownSeconds(secs)}
+              >
+                {secs < 60 ? `${secs}s` : `${secs / 60}m`}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Message Textarea */}
+      <textarea
+        ref={textareaRef}
+        placeholder="Message... (Ctrl+Enter to send)"
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        onKeyDown={handleKeyDown}
+        rows={3}
+        className="flex-1 min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+      />
+
+      {/* Actions Row: Pin + Templates + Send */}
+      <div className="flex gap-2 items-center">
+        {/* Pin Toggle */}
+        <Button
+          variant={pinned ? "default" : "outline"}
+          size="sm"
+          onClick={() => setPinned(!pinned)}
+          className={cn(pinned && "bg-primary")}
+        >
+          <Pin className="h-4 w-4" />
+        </Button>
+
+        {/* Quick Templates */}
+        <div className="flex gap-1 flex-1">
+          {quickTemplates.map((template) => {
+            const Icon = template.icon;
+            return (
+              <Button
+                key={template.label}
+                variant="ghost"
+                size="sm"
+                onClick={() => handleQuickTemplate(template)}
+                title={template.body}
+              >
+                <Icon className="h-4 w-4 mr-1" />
+                {template.label}
+              </Button>
+            );
+          })}
+        </div>
+
+        {/* Send Button */}
+        <Button
+          onClick={handleSend}
+          disabled={sending || (!body.trim() && cueType !== CueType.COUNTDOWN)}
+          className="px-6"
+        >
+          <Send className="h-4 w-4 mr-1" />
+          {sending ? "..." : "Send"}
+        </Button>
+      </div>
     </div>
   );
 }

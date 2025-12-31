@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   MessageSquare,
   MessagesSquare,
+  Inbox,
 } from "lucide-react";
 import { useDockview } from "./DockviewContext";
 
@@ -30,7 +31,8 @@ const PANELS: PanelItem[] = [
   { id: "poster", label: "Poster", icon: Image, component: "poster" },
   { id: "macros", label: "Macros", icon: Command, component: "macros" },
   { id: "eventLog", label: "Event Log", icon: FileText, component: "eventLog" },
-  { id: "regieInternalChat", label: "Internal Chat", icon: MessageSquare, component: "regieInternalChat" },
+  { id: "regieInternalChat", label: "Send Message", icon: MessageSquare, component: "regieInternalChat" },
+  { id: "regieInternalChatView", label: "Chat View", icon: Inbox, component: "regieInternalChatView" },
   { id: "regiePublicChat", label: "Public Chat", icon: MessagesSquare, component: "regiePublicChat" },
 ];
 

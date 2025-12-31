@@ -91,12 +91,13 @@ function RegiePublicChatContent() {
         roomId: DEFAULT_ROOM_ID,
         type: CueType.QUESTION,
         from: CueFrom.SYSTEM,
-        title: `Question de ${message.displayName}`,
-        body: message.message,
         questionPayload: {
           platform: message.platform,
           author: message.displayName,
           text: message.message,
+          color: message.metadata?.color,
+          badges: message.metadata?.badges,
+          parts: message.parts,
         },
         actions: [CueAction.TAKE, CueAction.SKIP],
       };

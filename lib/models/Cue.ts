@@ -78,6 +78,30 @@ export const contextPayloadSchema = z.object({
 export type ContextPayload = z.infer<typeof contextPayloadSchema>;
 
 /**
+ * Badge for chat messages
+ */
+export const chatBadgeSchema = z.object({
+  name: z.string(),
+  version: z.string().optional(),
+  imageUrl: z.string().optional(),
+});
+
+/**
+ * Message part for rendering text and emotes
+ */
+export const messagePartSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("text"),
+    text: z.string(),
+  }),
+  z.object({
+    type: z.literal("emote"),
+    name: z.string(),
+    imageUrl: z.string(),
+  }),
+]);
+
+/**
  * Question-specific payload (promoted from Twitch chat)
  */
 export const questionPayloadSchema = z.object({
@@ -85,6 +109,9 @@ export const questionPayloadSchema = z.object({
   author: z.string(),
   text: z.string(),
   messageUrl: z.string().url().optional(),
+  color: z.string().optional(),
+  badges: z.array(chatBadgeSchema).optional(),
+  parts: z.array(messagePartSchema).optional(),
 });
 
 export type QuestionPayload = z.infer<typeof questionPayloadSchema>;

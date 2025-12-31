@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -22,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { CueType, CueSeverity, CueAction, CueFrom } from "@/lib/models/Cue";
 import type { CueMessage } from "@/lib/models/Cue";
 import type { OverlayState } from "./hooks/useOverlayState";
+import { ChatBadge as ChatBadgeComponent } from "./chat/ChatBadge";
+import { ChatMessageContent } from "./chat/ChatMessageContent";
 
 interface CueCardProps {
   message: CueMessage;
@@ -52,9 +55,62 @@ const severityIcons: Record<CueSeverity, React.ComponentType<{ className?: strin
   [CueSeverity.URGENT]: AlertCircle,
 };
 
+const fromStyles: Record<CueFrom, string> = {
+  [CueFrom.CONTROL]: "border-l-4 border-l-blue-500",
+  [CueFrom.PRESENTER]: "border-l-4 border-l-green-500",
+  [CueFrom.SYSTEM]: "border-l-4 border-l-gray-500",
+};
+
 function formatTimestamp(ts: number): string {
   const date = new Date(ts);
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+/**
+ * Countdown timer component that ticks every second
+ */
+function CountdownTimer({
+  createdAt,
+  durationSec
+}: {
+  createdAt: number;
+  durationSec: number;
+}) {
+  const [remaining, setRemaining] = useState(() => {
+    const elapsed = Math.floor((Date.now() - createdAt) / 1000);
+    return Math.max(0, durationSec - elapsed);
+  });
+
+  useEffect(() => {
+    if (remaining <= 0) return;
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - createdAt) / 1000);
+      const newRemaining = Math.max(0, durationSec - elapsed);
+      setRemaining(newRemaining);
+
+      if (newRemaining <= 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [createdAt, durationSec, remaining]);
+
+  const minutes = Math.floor(remaining / 60);
+  const seconds = remaining % 60;
+  const isExpired = remaining <= 0;
+  const isUrgent = remaining <= 10 && remaining > 0;
+
+  return (
+    <div className={cn(
+      "text-2xl font-mono font-bold transition-colors",
+      isExpired && "text-muted-foreground",
+      isUrgent && "text-red-500 animate-pulse"
+    )}>
+      {isExpired ? "00:00" : `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`}
+    </div>
+  );
 }
 
 export function CueCard({ message, onAction, isPresenter, compact, overlayState }: CueCardProps) {
@@ -69,6 +125,7 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState 
 
   const cardStyle = cn(
     "relative transition-all",
+    fromStyles[message.from as CueFrom],
     severity && severityStyles[severity],
     isResolved && "opacity-50",
     isAcked && !isResolved && "opacity-30",
@@ -120,10 +177,12 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState 
               severity === CueSeverity.INFO && "text-blue-500"
             )} />
 
-            {/* Title */}
-            {message.title && (
+            {/* Title - for questions show "Highlight" */}
+            {isQuestion ? (
+              <span className="font-medium text-sm">Highlight</span>
+            ) : message.title ? (
               <span className="font-medium text-sm">{message.title}</span>
-            )}
+            ) : null}
 
             {/* Severity badge */}
             {SeverityIcon && (
@@ -145,8 +204,16 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState 
               <CheckCheck className="h-3 w-3 text-green-500" aria-label="Acknowledged" />
             )}
 
-            {/* Source */}
-            <span>{isFromControl ? "Control" : isFromSystem ? "System" : "Presenter"}</span>
+            {/* Source - hide for questions */}
+            {!isQuestion && (
+              <span>
+                {isFromControl
+                  ? "Régie"
+                  : isFromSystem
+                    ? "System"
+                    : "Presenter"}
+              </span>
+            )}
 
             {/* Timestamp */}
             <span>{formatTimestamp(message.createdAt)}</span>
@@ -171,20 +238,40 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState 
       </CardHeader>
 
       <CardContent className={cn("pb-2", compact && "py-1")}>
-        {/* Body - show only if NOT a CONTEXT type with image */}
-        {message.body && !(message.type === CueType.CONTEXT && message.contextPayload?.imageUrl) && (
-          <p className="text-sm whitespace-pre-wrap">{message.body}</p>
+        {/* Question-specific content - Twitch format */}
+        {isQuestion && message.questionPayload && (
+          <div className="flex flex-wrap items-start gap-1 text-sm">
+            {/* Badges */}
+            {message.questionPayload.badges && message.questionPayload.badges.length > 0 && (
+              <>
+                {message.questionPayload.badges.map((badge, idx) => (
+                  <ChatBadgeComponent
+                    key={`${badge.name}-${idx}`}
+                    badge={badge}
+                    size="sm"
+                  />
+                ))}
+              </>
+            )}
+            {/* Username with color */}
+            <span
+              className="font-bold"
+              style={{ color: message.questionPayload.color || undefined }}
+            >
+              {message.questionPayload.author}:
+            </span>
+            {/* Message with emotes */}
+            <ChatMessageContent
+              parts={message.questionPayload.parts}
+              fallbackText={message.questionPayload.text}
+              className="break-words"
+            />
+          </div>
         )}
 
-        {/* Question-specific content */}
-        {isQuestion && message.questionPayload && (
-          <div className="mt-2 p-2 bg-muted rounded text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <span className="font-medium">@{message.questionPayload.author}</span>
-              <span className="text-xs">on {message.questionPayload.platform}</span>
-            </div>
-            <p className="italic">&ldquo;{message.questionPayload.text}&rdquo;</p>
-          </div>
+        {/* Body - hide for QUESTION type and CONTEXT with image */}
+        {message.body && !isQuestion && !(message.type === CueType.CONTEXT && message.contextPayload?.imageUrl) && (
+          <p className="text-sm whitespace-pre-wrap">{message.body}</p>
         )}
 
         {/* Context-specific content - TWO COLUMN LAYOUT */}
@@ -250,19 +337,23 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState 
         {/* Countdown-specific content */}
         {message.type === CueType.COUNTDOWN && message.countdownPayload && (
           <div className="mt-2 text-center">
-            <div className="text-2xl font-mono font-bold">
-              {message.countdownPayload.mode === "duration"
-                ? `${Math.floor((message.countdownPayload.durationSec || 0) / 60)}:${String((message.countdownPayload.durationSec || 0) % 60).padStart(2, "0")}`
-                : message.countdownPayload.targetTime
-              }
-            </div>
+            {message.countdownPayload.mode === "duration" && message.countdownPayload.durationSec ? (
+              <CountdownTimer
+                createdAt={message.createdAt}
+                durationSec={message.countdownPayload.durationSec}
+              />
+            ) : (
+              <div className="text-2xl font-mono font-bold">
+                {message.countdownPayload.targetTime}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
 
-      {/* Actions */}
-      {!isResolved && !compact && (
-        <CardFooter className="pt-0 pb-2 gap-2">
+      {/* Actions - Always show for control room, hide for presenter if resolved/compact */}
+      {(!isResolved || !isPresenter) && (!compact || !isPresenter) && (
+        <CardFooter className={cn("pt-0 pb-2 gap-2", compact && "pb-1")}>
           {/* Presenter actions */}
           {isPresenter && (
             <>
@@ -318,19 +409,18 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState 
                   onAction(message.id, message.pinned ? CueAction.UNPIN : CueAction.PIN);
                 }}
               >
-                <Pin className={cn("h-3 w-3 mr-1", message.pinned && "text-primary")} />
-                {message.pinned ? "Unpin" : "Pin"}
+                <Pin className={cn("h-3 w-3", message.pinned && "text-primary")} />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onAction(message.id, CueAction.DONE);
+                  onAction(message.id, CueAction.CLEAR);
                 }}
+                title="Delete message"
               >
-                <X className="h-3 w-3 mr-1" />
-                Done
+                <X className="h-3 w-3" />
               </Button>
             </>
           )}
