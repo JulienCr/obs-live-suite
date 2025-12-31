@@ -151,6 +151,22 @@ export function useStreamerbotClient({
         .catch((err) => {
           console.error("[Streamerbot] Failed to fetch status:", err);
         });
+
+        // Load chat history from database
+        fetch(`${getBackendUrl()}/api/streamerbot-chat/history`)
+        .then((res) => res.json())
+        .then((data: { messages: ChatMessage[]; count: number }) => {
+          if (mountedRef.current && data.messages && data.messages.length > 0) {
+            console.log(`[Streamerbot] Loaded ${data.count} historical messages`);
+            // Add historical messages to the message buffer
+            data.messages.forEach((msg) => {
+              onMessageRef.current?.(msg);
+            });
+          }
+        })
+        .catch((err) => {
+          console.error("[Streamerbot] Failed to fetch history:", err);
+        });
       };
 
       ws.onmessage = (event) => {

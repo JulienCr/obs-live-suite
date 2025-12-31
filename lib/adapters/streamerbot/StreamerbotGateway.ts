@@ -2,6 +2,7 @@ import { StreamerbotClient } from "@streamerbot/client";
 import { Logger } from "../../utils/Logger";
 import { SettingsService } from "../../services/SettingsService";
 import { WebSocketHub } from "../../services/WebSocketHub";
+import { DatabaseService } from "../../services/DatabaseService";
 import {
   ChatMessage,
   StreamerbotConnectionStatus,
@@ -122,9 +123,34 @@ export class StreamerbotGateway {
     try {
       const message = normalizer();
       this.lastEventTime = Date.now();
+      this.persistMessage(message);
       this.broadcastMessage(message);
     } catch (error) {
       this.logger.error("Failed to normalize Streamer.bot event", error);
+    }
+  }
+
+  /**
+   * Persist chat message to database rolling buffer
+   */
+  private persistMessage(message: ChatMessage): void {
+    try {
+      const db = DatabaseService.getInstance();
+      db.insertStreamerbotChatMessage({
+        id: message.id,
+        timestamp: message.timestamp,
+        platform: message.platform,
+        eventType: message.eventType,
+        channel: message.channel || null,
+        username: message.username,
+        displayName: message.displayName,
+        message: message.message,
+        parts: message.parts || null,
+        metadata: message.metadata || null,
+      });
+    } catch (error) {
+      this.logger.error("Failed to persist chat message", error);
+      // Don't throw - message still broadcasts even if persistence fails
     }
   }
 

@@ -20,6 +20,8 @@ import {
   DbCueMessage,
   DbCueMessageInput,
   DbCueMessageUpdate,
+  DbStreamerbotChatMessage,
+  DbStreamerbotChatMessageInput,
 } from "../models/Database";
 
 /**
@@ -435,6 +437,20 @@ export class DatabaseService {
         FOREIGN KEY (roomId) REFERENCES rooms(id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS streamerbot_chat_messages (
+        id TEXT PRIMARY KEY,
+        timestamp INTEGER NOT NULL,
+        platform TEXT NOT NULL,
+        eventType TEXT NOT NULL DEFAULT 'message',
+        channel TEXT,
+        username TEXT NOT NULL,
+        displayName TEXT NOT NULL,
+        message TEXT NOT NULL,
+        parts TEXT,
+        metadata TEXT,
+        createdAt INTEGER NOT NULL
+      );
+
       CREATE INDEX IF NOT EXISTS idx_guests_displayName ON guests(displayName);
       CREATE INDEX IF NOT EXISTS idx_posters_profileIds ON posters(profileIds);
       CREATE INDEX IF NOT EXISTS idx_profiles_isActive ON profiles(isActive);
@@ -447,6 +463,7 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_cue_messages_roomId ON cue_messages(roomId);
       CREATE INDEX IF NOT EXISTS idx_cue_messages_createdAt ON cue_messages(createdAt);
       CREATE INDEX IF NOT EXISTS idx_cue_messages_pinned ON cue_messages(pinned);
+      CREATE INDEX IF NOT EXISTS idx_streamerbot_chat_timestamp ON streamerbot_chat_messages(timestamp DESC);
     `);
 
     this.logger.info("Database tables initialized");
@@ -1324,6 +1341,97 @@ export class DatabaseService {
       WHERE roomId = ?
     `);
     stmt.run(roomId);
+  }
+
+  // ==================== STREAMERBOT CHAT MESSAGES ====================
+
+  private readonly CHAT_BUFFER_SIZE = 200;
+
+  /**
+   * Get recent chat messages, ordered by timestamp descending
+   */
+  getStreamerbotChatMessages(limit: number = 200): DbStreamerbotChatMessage[] {
+    const stmt = this.db.prepare(`
+      SELECT * FROM streamerbot_chat_messages
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+    const rows = stmt.all(limit) as Array<Omit<DbStreamerbotChatMessage, 'parts' | 'metadata'> & {
+      parts: string | null;
+      metadata: string | null;
+    }>;
+
+    return rows.map((row) => ({
+      ...row,
+      parts: row.parts ? JSON.parse(row.parts) : null,
+      metadata: row.metadata ? JSON.parse(row.metadata) : null,
+    }));
+  }
+
+  /**
+   * Insert a chat message and maintain rolling buffer of 200 messages
+   */
+  insertStreamerbotChatMessage(message: DbStreamerbotChatMessageInput): void {
+    const now = Date.now();
+
+    // Insert the new message (ignore if duplicate ID)
+    const insertStmt = this.db.prepare(`
+      INSERT OR IGNORE INTO streamerbot_chat_messages
+      (id, timestamp, platform, eventType, channel, username, displayName, message, parts, metadata, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    insertStmt.run(
+      message.id,
+      message.timestamp,
+      message.platform,
+      message.eventType,
+      message.channel || null,
+      message.username,
+      message.displayName,
+      message.message,
+      message.parts ? JSON.stringify(message.parts) : null,
+      message.metadata ? JSON.stringify(message.metadata) : null,
+      message.createdAt || now
+    );
+
+    // Enforce rolling buffer - delete oldest messages beyond limit
+    this.trimStreamerbotChatBuffer();
+  }
+
+  /**
+   * Trim chat buffer to maintain max 200 messages
+   * Deletes oldest messages by createdAt
+   */
+  private trimStreamerbotChatBuffer(): void {
+    const countStmt = this.db.prepare("SELECT COUNT(*) as count FROM streamerbot_chat_messages");
+    const { count } = countStmt.get() as { count: number };
+
+    if (count > this.CHAT_BUFFER_SIZE) {
+      // Get the createdAt of the Nth newest message (threshold)
+      const thresholdStmt = this.db.prepare(`
+        SELECT createdAt FROM streamerbot_chat_messages
+        ORDER BY createdAt DESC
+        LIMIT 1 OFFSET ?
+      `);
+      const row = thresholdStmt.get(this.CHAT_BUFFER_SIZE - 1) as { createdAt: number } | undefined;
+
+      if (row) {
+        const deleteStmt = this.db.prepare(`
+          DELETE FROM streamerbot_chat_messages
+          WHERE createdAt < ?
+        `);
+        deleteStmt.run(row.createdAt);
+      }
+    }
+  }
+
+  /**
+   * Clear all chat messages (for manual clear action)
+   */
+  clearStreamerbotChatMessages(): void {
+    const stmt = this.db.prepare("DELETE FROM streamerbot_chat_messages");
+    stmt.run();
   }
 
   /**
