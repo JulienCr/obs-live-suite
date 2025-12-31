@@ -112,23 +112,30 @@ export function usePresenterWebSocket(
                 }
               } else if (roomData.type === "action") {
                 // Action on message (update state)
-                const { messageId, message: updatedMessage } = roomData.payload;
+                const { messageId, message: updatedMessage, deleted } = roomData.payload;
 
-                setMessages(prev => prev.map(m =>
-                  m.id === messageId ? updatedMessage : m
-                ));
-
-                // Update pinned messages
-                if (updatedMessage.pinned) {
-                  setPinnedMessages(prev => {
-                    const exists = prev.some(m => m.id === messageId);
-                    if (exists) {
-                      return prev.map(m => m.id === messageId ? updatedMessage : m);
-                    }
-                    return [updatedMessage, ...prev];
-                  });
-                } else {
+                if (deleted) {
+                  // Message was deleted - remove from lists
+                  setMessages(prev => prev.filter(m => m.id !== messageId));
                   setPinnedMessages(prev => prev.filter(m => m.id !== messageId));
+                  seenMessageIds.delete(messageId);
+                } else {
+                  setMessages(prev => prev.map(m =>
+                    m.id === messageId ? updatedMessage : m
+                  ));
+
+                  // Update pinned messages
+                  if (updatedMessage.pinned) {
+                    setPinnedMessages(prev => {
+                      const exists = prev.some(m => m.id === messageId);
+                      if (exists) {
+                        return prev.map(m => m.id === messageId ? updatedMessage : m);
+                      }
+                      return [updatedMessage, ...prev];
+                    });
+                  } else {
+                    setPinnedMessages(prev => prev.filter(m => m.id !== messageId));
+                  }
                 }
               } else if (roomData.type === "presence") {
                 setPresence(roomData.presence || []);

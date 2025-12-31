@@ -20,6 +20,9 @@ import { MacrosPanel } from "./panels/MacrosPanel";
 import { EventLogPanel } from "./panels/EventLogPanel";
 import { CueComposerPanel } from "./panels/CueComposerPanel";
 import { PresenceStatusPanel } from "./panels/PresenceStatusPanel";
+import { RegieInternalChatPanel } from "./panels/RegieInternalChatPanel";
+import { RegieInternalChatViewPanel } from "./panels/RegieInternalChatViewPanel";
+import { RegiePublicChatPanel } from "./panels/RegiePublicChatPanel";
 import { DockviewContext } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
@@ -38,6 +41,9 @@ const components = {
   eventLog: EventLogPanel,
   cueComposer: CueComposerPanel,
   presenceStatus: PresenceStatusPanel,
+  regieInternalChat: RegieInternalChatPanel,
+  regieInternalChatView: RegieInternalChatViewPanel,
+  regiePublicChat: RegiePublicChatPanel,
 };
 
 export function DashboardShell() {
