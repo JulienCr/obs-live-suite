@@ -5,6 +5,7 @@
 
 import http from "http";
 import https from "https";
+import { APP_PORT, BACKEND_PORT } from "../../../../lib/config/urls";
 
 export interface Guest {
 	id: string;
@@ -26,12 +27,8 @@ export interface Poster {
 
 /**
  * Configuration for API endpoints
- * Uses environment variables with fallback to default ports
- * These should match the ports in lib/config/urls.ts of the main app
+ * Port values imported from lib/config/urls.ts (single source of truth)
  */
-const APP_PORT = process.env.APP_PORT || "3000";
-const BACKEND_PORT = process.env.BACKEND_PORT || "3002";
-
 export const API_CONFIG = {
 	nextjs: `http://127.0.0.1:${APP_PORT}`,
 	backend: `http://127.0.0.1:${BACKEND_PORT}`,

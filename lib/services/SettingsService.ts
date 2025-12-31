@@ -1,6 +1,7 @@
 import { DatabaseService } from "./DatabaseService";
 import { Logger } from "../utils/Logger";
 import { StreamerbotConnectionSettings, DEFAULT_STREAMERBOT_CONNECTION } from "../models/StreamerbotChat";
+import { AppConfig } from "../config/AppConfig";
 
 /**
  * OBS settings interface
@@ -49,9 +50,10 @@ export class SettingsService {
     const dbUrl = this.db.getSetting("obs.websocket.url");
     const dbPassword = this.db.getSetting("obs.websocket.password");
 
-    // Fallback to environment variables
-    const url = dbUrl || process.env.OBS_WEBSOCKET_URL || "ws://localhost:4455";
-    const password = dbPassword || process.env.OBS_WEBSOCKET_PASSWORD || undefined;
+    // Fallback to AppConfig (which reads from environment variables)
+    const config = AppConfig.getInstance();
+    const url = dbUrl || config.obsWebSocketUrl;
+    const password = dbPassword || config.obsWebSocketPassword;
 
     this.logger.debug(
       `OBS settings loaded: URL from ${dbUrl ? "database" : "environment"}, ` +

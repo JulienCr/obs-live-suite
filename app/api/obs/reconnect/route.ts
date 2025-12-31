@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
+import { BACKEND_URL } from "@/lib/config/urls";
 
 /**
  * POST/GET /api/obs/reconnect

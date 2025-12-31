@@ -5,13 +5,7 @@
 
 import WebSocket from "ws";
 import { streamDeck } from "@elgato/streamdeck";
-
-/**
- * WebSocket port configuration
- * Uses environment variable with fallback to default port
- * This should match WS_PORT in lib/config/urls.ts of the main app
- */
-const WS_PORT = process.env.WEBSOCKET_PORT || "3003";
+import { WS_PORT } from "../../../../lib/config/urls";
 
 export interface CountdownState {
 	running: boolean;

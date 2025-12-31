@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Download, Upload, FileJson, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { BACKEND_URL } from "@/lib/config/urls";
 
 /**
  * Backup and restore settings
@@ -26,7 +27,7 @@ export function BackupSettings() {
           // Never export passwords
         },
         backend: {
-          url: "http://localhost:3002",
+          url: BACKEND_URL,
         },
         paths: [],
         exportedAt: new Date().toISOString(),

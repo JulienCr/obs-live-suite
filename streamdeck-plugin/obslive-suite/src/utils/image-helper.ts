@@ -5,13 +5,12 @@
 
 import http from "http";
 import https from "https";
+import { APP_PORT } from "../../../../lib/config/urls";
 
 /**
- * App port configuration
- * Uses environment variable with fallback to default port
- * This should match APP_PORT in lib/config/urls.ts of the main app
+ * Default base URL for API requests
+ * Port value imported from lib/config/urls.ts (single source of truth)
  */
-const APP_PORT = process.env.APP_PORT || "3000";
 const DEFAULT_BASE_URL = `http://127.0.0.1:${APP_PORT}`;
 
 /**

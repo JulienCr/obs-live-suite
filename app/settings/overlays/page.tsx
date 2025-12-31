@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Copy, ExternalLink, Info, MonitorPlay } from "lucide-react";
+import { APP_URL } from "@/lib/config/urls";
 
 interface Overlay {
   id: string;
@@ -127,7 +128,7 @@ export default function OverlaysPage() {
     if (typeof window !== "undefined") {
       return `${window.location.protocol}//${window.location.host}${path}`;
     }
-    return `http://localhost:3000${path}`;
+    return `${APP_URL}${path}`;
   };
 
   const copyToClipboard = async (id: string, path: string) => {

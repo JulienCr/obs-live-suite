@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { enrichPosterPayload } from "@/lib/utils/themeEnrichment";
 import { DbPoster } from "@/lib/models/Database";
-
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3002';
+import { BACKEND_URL } from "@/lib/config/urls";
 
 /**
  * POST /api/actions/poster/show/[id]
