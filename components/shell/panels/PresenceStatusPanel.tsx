@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { RoomPresence, Room } from "@/lib/models/Room";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
+import { getBackendUrl } from "@/lib/utils/websocket";
 
 function formatLastSeen(timestamp: number): string {
   const now = Date.now();
@@ -35,14 +36,14 @@ function PresenceStatusContent() {
       }
 
       // Fetch presence from backend
-      const presenceRes = await fetch(`http://localhost:3002/api/rooms/${DEFAULT_ROOM_ID}/presence`);
+      const presenceRes = await fetch(`${getBackendUrl()}/api/rooms/${DEFAULT_ROOM_ID}/presence`);
       if (presenceRes.ok) {
         const presenceData = await presenceRes.json();
         setPresence(presenceData.presence || []);
       }
 
       // Check WebSocket status
-      const wsRes = await fetch("http://localhost:3002/ws/stats");
+      const wsRes = await fetch(`${getBackendUrl()}/ws/stats`);
       if (wsRes.ok) {
         const wsData = await wsRes.json();
         setWsConnected(wsData.isRunning);

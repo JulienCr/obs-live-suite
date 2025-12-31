@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { v4 as uuidv4 } from "uuid";
 import type { CueMessage, CueAction } from "@/lib/models/Cue";
 import type { RoomPresence } from "@/lib/models/Room";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
@@ -31,7 +32,7 @@ export function usePresenterWebSocket(
 
   // Generate client ID
   useEffect(() => {
-    clientIdRef.current = crypto.randomUUID();
+    clientIdRef.current = uuidv4();
   }, []);
 
   // Connect to WebSocket

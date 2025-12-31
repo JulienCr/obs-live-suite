@@ -15,3 +15,16 @@ export function getWebSocketUrl(port: number = 3003): string {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${protocol}//${window.location.hostname}:${port}`;
 }
+
+/**
+ * Get backend HTTP URL
+ * Automatically uses the current hostname to support LAN access
+ */
+export function getBackendUrl(port: number = 3002): string {
+  if (typeof window === "undefined") {
+    // Server-side: default to localhost
+    return `http://localhost:${port}`;
+  }
+
+  return `${window.location.protocol}//${window.location.hostname}:${port}`;
+}

@@ -11,13 +11,19 @@ import { config as dotenvConfig } from "dotenv";
 dotenvConfig();
 
 import express from "express";
+import https from "https";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { WebSocketHub } from "../lib/services/WebSocketHub";
 import { ChannelManager } from "../lib/services/ChannelManager";
 import { OBSConnectionManager } from "../lib/adapters/obs/OBSConnectionManager";
+import { StreamerbotGateway } from "../lib/adapters/streamerbot/StreamerbotGateway";
 import { OverlayChannel } from "../lib/models/OverlayEvents";
 import { OBSStateManager } from "../lib/adapters/obs/OBSStateManager";
 import { DatabaseService } from "../lib/services/DatabaseService";
 import { RoomService } from "../lib/services/RoomService";
+import { SettingsService } from "../lib/services/SettingsService";
 import { Logger } from "../lib/utils/Logger";
 import { PathManager } from "../lib/config/PathManager";
 import { AppConfig } from "../lib/config/AppConfig";
@@ -25,13 +31,19 @@ import quizRouter from "./api/quiz";
 import quizBotRouter from "./api/quiz-bot";
 import roomsRouter from "./api/rooms";
 import cueRouter from "./api/cue";
+import streamerbotChatRouter from "./api/streamerbot-chat";
 import { updatePosterSourceInOBS } from "./api/obs-helpers";
+
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class BackendServer {
   private logger: Logger;
   private wsHub: WebSocketHub;
   private channelManager: ChannelManager;
   private obsManager: OBSConnectionManager;
+  private streamerbotGateway: StreamerbotGateway;
   private app: express.Application;
   private httpServer: any | null = null;
   private httpPort: number;
@@ -46,6 +58,7 @@ class BackendServer {
     this.wsHub = WebSocketHub.getInstance();
     this.channelManager = ChannelManager.getInstance();
     this.obsManager = OBSConnectionManager.getInstance();
+    this.streamerbotGateway = StreamerbotGateway.getInstance();
     this.app = express();
 
     // Use port 3002 for backend HTTP API
@@ -118,6 +131,9 @@ class BackendServer {
     // Presenter Dashboard API
     this.app.use('/api/rooms', roomsRouter);
     this.app.use('/api/cue', cueRouter);
+
+    // Streamerbot Chat Gateway API
+    this.app.use('/api/streamerbot-chat', streamerbotChatRouter);
 
     // Overlays - Lower Third
     this.app.post('/api/overlays/lower', async (req, res) => {
@@ -236,9 +252,24 @@ class BackendServer {
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
 
-    // CORS for Next.js
+    // Serve VDO.ninja static files
+    const vdoNinjaPath = path.join(__dirname, 'static', 'vdoninja');
+    this.app.use('/vdoninja', express.static(vdoNinjaPath));
+    this.logger.info(`VDO.ninja static files served from: ${vdoNinjaPath}`);
+
+    // CORS for Next.js and network access
     this.app.use((req, res, next) => {
-      res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+      const origin = req.headers.origin;
+      // Allow localhost and any local network IPs (HTTP or HTTPS)
+      if (origin && (
+        origin.startsWith('http://localhost:') ||
+        origin.startsWith('https://localhost:') ||
+        origin.match(/^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.).*:[0-9]+$/)
+      )) {
+        res.header('Access-Control-Allow-Origin', origin);
+      } else {
+        res.header('Access-Control-Allow-Origin', 'https://localhost:3000');
+      }
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type');
       if (req.method === 'OPTIONS') {
@@ -403,12 +434,47 @@ class BackendServer {
         this.logger.warn("OBS connection failed (will retry)", error);
       }
 
-      // 5. Start HTTP API server
+      // 5. Auto-connect to Streamerbot if enabled
+      try {
+        const settingsService = SettingsService.getInstance();
+        if (settingsService.isStreamerbotAutoConnectEnabled()) {
+          await this.streamerbotGateway.connect();
+          this.logger.info("✓ Streamerbot gateway connected");
+        } else {
+          this.logger.info("Streamerbot gateway auto-connect disabled");
+        }
+      } catch (error) {
+        this.logger.warn("Streamerbot gateway connection failed (will retry)", error);
+      }
+
+      // 6. Start HTTPS API server
       await new Promise<void>((resolve) => {
-        this.httpServer = this.app.listen(this.httpPort, () => {
-          this.logger.info(`✓ HTTP API listening on port ${this.httpPort}`);
-          resolve();
-        });
+        // Load SSL certificates
+        const certPath = path.join(process.cwd(), 'localhost+3.pem');
+        const keyPath = path.join(process.cwd(), 'localhost+3-key.pem');
+
+        // Check if certificates exist
+        if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+          const httpsOptions = {
+            key: fs.readFileSync(keyPath),
+            cert: fs.readFileSync(certPath),
+          };
+
+          this.httpServer = https.createServer(httpsOptions, this.app);
+          this.httpServer.listen(this.httpPort, () => {
+            this.logger.info(`✓ HTTPS API listening on port ${this.httpPort}`);
+            this.logger.info(`  - https://localhost:${this.httpPort}`);
+            this.logger.info(`  - https://192.168.1.10:${this.httpPort}`);
+            resolve();
+          });
+        } else {
+          // Fallback to HTTP if certificates not found
+          this.logger.warn('SSL certificates not found, falling back to HTTP');
+          this.httpServer = this.app.listen(this.httpPort, () => {
+            this.logger.info(`✓ HTTP API listening on port ${this.httpPort}`);
+            resolve();
+          });
+        }
       });
 
       this.initialized = true;
@@ -436,6 +502,7 @@ class BackendServer {
 
       this.wsHub.stop();
       await this.obsManager.disconnect();
+      await this.streamerbotGateway.disconnect();
       const db = DatabaseService.getInstance();
       db.close();
 

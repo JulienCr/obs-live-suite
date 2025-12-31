@@ -29,6 +29,8 @@ export function VdoNinjaPanel({ url }: VdoNinjaPanelProps) {
   };
 
   const handleOpenNewTab = () => {
+    // Open the original VDO.ninja URL (not local) in a new tab
+    // This allows the user to access the HTTPS version if needed
     if (url) {
       window.open(url, "_blank");
     }

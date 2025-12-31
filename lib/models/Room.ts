@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { streamerbotConnectionSchema, type StreamerbotConnectionSettings } from "./StreamerbotChat";
 
 /**
  * Well-known UUID for the default room
@@ -32,9 +33,13 @@ export const roomSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(100),
   vdoNinjaUrl: z.string().url().optional(),
+  /** @deprecated Use streamerbotConnection instead */
   twitchChatUrl: z.string().url().optional(),
   quickReplies: z.array(z.string()).default(DEFAULT_QUICK_REPLIES),
   canSendCustomMessages: z.boolean().default(false),
+  streamerbotConnection: streamerbotConnectionSchema.optional(),
+  /** Allow presenter to send chat messages via Streamer.bot */
+  allowPresenterToSendMessage: z.boolean().default(false),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });
@@ -95,6 +100,7 @@ export class RoomModel {
     return this.data.vdoNinjaUrl;
   }
 
+  /** @deprecated Use getStreamerbotConnection instead */
   getTwitchChatUrl(): string | undefined {
     return this.data.twitchChatUrl;
   }
@@ -108,8 +114,18 @@ export class RoomModel {
     this.data.updatedAt = new Date();
   }
 
+  /** @deprecated Use getStreamerbotConnection instead */
   setTwitchChatUrl(url: string | undefined): void {
     this.data.twitchChatUrl = url;
+    this.data.updatedAt = new Date();
+  }
+
+  getStreamerbotConnection(): StreamerbotConnectionSettings | undefined {
+    return this.data.streamerbotConnection;
+  }
+
+  setStreamerbotConnection(connection: StreamerbotConnectionSettings | undefined): void {
+    this.data.streamerbotConnection = connection;
     this.data.updatedAt = new Date();
   }
 

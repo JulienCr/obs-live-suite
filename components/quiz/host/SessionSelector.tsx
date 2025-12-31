@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Plus, RefreshCw, Calendar, Users } from "lucide-react";
 import Link from "next/link";
+import { getBackendUrl } from "@/lib/utils/websocket";
 
 interface SessionMeta {
   id: string;
@@ -23,7 +24,7 @@ export function SessionSelector({ onLoadSession }: SessionSelectorProps) {
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:3002/api/quiz/sessions");
+      const res = await fetch(`${getBackendUrl()}/api/quiz/sessions`);
       if (res.ok) {
         const data = await res.json();
         setSessions(data.sessions || []);

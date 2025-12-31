@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Session } from "@/lib/models/Quiz";
-import { getWebSocketUrl } from "@/lib/utils/websocket";
+import { getWebSocketUrl, getBackendUrl } from "@/lib/utils/websocket";
 
 interface PlayerScore {
   id: string;
@@ -58,7 +58,7 @@ export function useQuizHostState() {
 
   const loadState = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:3002/api/quiz/state");
+      const res = await fetch(`${getBackendUrl()}/api/quiz/state`);
       const data = await res.json();
       const session = data.session;
       const timer = data.timer;
@@ -233,7 +233,7 @@ export function useQuizHostState() {
 
   const call = async (path: string, body?: Record<string, unknown>) => {
     try {
-      await fetch("http://localhost:3002/api/quiz" + path, {
+      await fetch(`${getBackendUrl()}/api/quiz${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: body ? JSON.stringify(body) : undefined,
@@ -267,7 +267,7 @@ export function useQuizHostState() {
       },
       toggleScorePanel: async () => {
         try {
-          await fetch("http://localhost:3002/api/quiz/scorepanel/toggle", {
+          await fetch(`${getBackendUrl()}/api/quiz/scorepanel/toggle`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
           });
@@ -277,7 +277,7 @@ export function useQuizHostState() {
       },
       selectQuestion: async (questionId: string) => {
         try {
-          await fetch("http://localhost:3002/api/quiz/question/select", {
+          await fetch(`${getBackendUrl()}/api/quiz/question/select`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ questionId }),
@@ -289,7 +289,7 @@ export function useQuizHostState() {
       },
       submitPlayerAnswer: async (playerId: string, option?: string, text?: string, value?: number) => {
         try {
-          await fetch("http://localhost:3002/api/quiz/player/answer", {
+          await fetch(`${getBackendUrl()}/api/quiz/player/answer`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ playerId, option, text, value }),
@@ -300,7 +300,7 @@ export function useQuizHostState() {
       },
       loadSession: async (sessionId: string) => {
         try {
-          await fetch("http://localhost:3002/api/quiz/session/load", {
+          await fetch(`${getBackendUrl()}/api/quiz/session/load`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id: sessionId }),
@@ -312,7 +312,7 @@ export function useQuizHostState() {
       },
       unloadSession: async () => {
         try {
-          await fetch("http://localhost:3002/api/quiz/session/reset", {
+          await fetch(`${getBackendUrl()}/api/quiz/session/reset`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
           });
@@ -332,7 +332,7 @@ export function useQuizHostState() {
 
         // Immediately apply or revert points on backend
         try {
-          await fetch("http://localhost:3002/api/quiz/question/winners", {
+          await fetch(`${getBackendUrl()}/api/quiz/question/winners`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ playerIds: [playerId], remove: !isWinner }),
@@ -356,7 +356,7 @@ export function useQuizHostState() {
       // Mystery image controls
       mysteryStart: async (totalSquares: number) => {
         try {
-          await fetch("http://localhost:3002/api/quiz/media/mystery/start", {
+          await fetch(`${getBackendUrl()}/api/quiz/media/mystery/start`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ totalSquares }),

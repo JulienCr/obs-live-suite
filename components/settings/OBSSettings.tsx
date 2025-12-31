@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, XCircle, Loader2, TestTube } from "lucide-react";
+import { getBackendUrl } from "@/lib/utils/websocket";
 
 interface OBSConfig {
   url: string;
@@ -61,7 +62,7 @@ export function OBSSettings() {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch("http://localhost:3002/api/obs/status");
+      const res = await fetch(`${getBackendUrl()}/api/obs/status`);
       const data = await res.json();
       setCurrentStatus({
         connected: data.connected,

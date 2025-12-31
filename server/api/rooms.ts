@@ -41,6 +41,7 @@ router.post("/", (req, res) => {
       twitchChatUrl: input.twitchChatUrl || null,
       quickReplies: input.quickReplies || ["Ready", "Need more context", "Delay 1 min", "Audio issue"],
       canSendCustomMessages: input.canSendCustomMessages ?? false,
+      streamerbotConnection: input.streamerbotConnection ? JSON.stringify(input.streamerbotConnection) : null,
     });
 
     const room = db.getRoomById(id);
@@ -79,7 +80,13 @@ router.put("/:id", (req, res) => {
       return res.status(404).json({ error: "Room not found" });
     }
 
-    db.updateRoom(req.params.id, req.body);
+    // Stringify streamerbotConnection if it's an object
+    const updates = { ...req.body };
+    if (updates.streamerbotConnection && typeof updates.streamerbotConnection === "object") {
+      updates.streamerbotConnection = JSON.stringify(updates.streamerbotConnection);
+    }
+
+    db.updateRoom(req.params.id, updates);
     const room = db.getRoomById(req.params.id);
     res.json({ room });
   } catch (error) {

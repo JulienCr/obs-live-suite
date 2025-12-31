@@ -1,8 +1,11 @@
 import { WebSocketServer, WebSocket } from "ws";
-import { createServer, Server as HTTPServer } from "http";
+import { createServer as createHTTPServer, Server as HTTPServer } from "http";
+import { createServer as createHTTPSServer, Server as HTTPSServer } from "https";
 import { AppConfig } from "../config/AppConfig";
 import { Logger } from "../utils/Logger";
 import { randomUUID } from "crypto";
+import fs from "fs";
+import path from "path";
 import { RoomPresence, RoomRole } from "../models/Room";
 
 /**
@@ -24,7 +27,7 @@ interface WSClient {
 export class WebSocketHub {
   private static instance: WebSocketHub;
   private wss: WebSocketServer | null;
-  private httpServer: HTTPServer | null;
+  private httpServer: HTTPServer | HTTPSServer | null;
   private clients: Map<string, WSClient>;
   private roomPresence: Map<string, Map<string, RoomPresence>>;
   private logger: Logger;
@@ -66,7 +69,24 @@ export class WebSocketHub {
     const port = this.config.websocketPort;
     this.logger.info(`Starting WebSocket server on port ${port}...`);
 
-    this.httpServer = createServer();
+    // Check for SSL certificates
+    const certPath = path.join(process.cwd(), 'localhost+3.pem');
+    const keyPath = path.join(process.cwd(), 'localhost+3-key.pem');
+
+    if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+      // Create HTTPS server for WebSocket Secure (WSS)
+      const httpsOptions = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath),
+      };
+      this.httpServer = createHTTPSServer(httpsOptions);
+      this.logger.info(`WebSocket server using HTTPS (wss://)`);
+    } else {
+      // Fallback to HTTP
+      this.httpServer = createHTTPServer();
+      this.logger.warn('SSL certificates not found, WebSocket using HTTP (ws://)');
+    }
+
     this.wss = new WebSocketServer({ server: this.httpServer });
 
     this.wss.on("connection", (ws: WebSocket) => {

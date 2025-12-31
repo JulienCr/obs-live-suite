@@ -1,3 +1,5 @@
+import type { StreamerbotConnectionSettings } from "./StreamerbotChat";
+
 /**
  * Database model type definitions
  */
@@ -162,9 +164,12 @@ export interface DbRoom {
   id: string;
   name: string;
   vdoNinjaUrl: string | null;
+  /** @deprecated Use streamerbotConnection instead */
   twitchChatUrl: string | null;
   quickReplies: string[];
   canSendCustomMessages: boolean;
+  streamerbotConnection: StreamerbotConnectionSettings | null;
+  allowPresenterToSendMessage: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -228,13 +233,15 @@ export type DbThemeUpdate = Partial<Omit<DbTheme, 'id' | 'createdAt'>> & {
   updatedAt?: Date;
 };
 
-export type DbRoomInput = Omit<DbRoom, 'createdAt' | 'updatedAt'> & {
+export type DbRoomInput = Omit<DbRoom, 'createdAt' | 'updatedAt' | 'streamerbotConnection'> & {
   createdAt?: Date;
   updatedAt?: Date;
+  streamerbotConnection?: string | null; // JSON string for input
 };
 
-export type DbRoomUpdate = Partial<Omit<DbRoom, 'id' | 'createdAt'>> & {
+export type DbRoomUpdate = Partial<Omit<DbRoom, 'id' | 'createdAt' | 'streamerbotConnection'>> & {
   updatedAt?: Date;
+  streamerbotConnection?: string | null; // JSON string for update
 };
 
 export type DbCueMessageInput = Omit<DbCueMessage, 'createdAt' | 'updatedAt'> & {
