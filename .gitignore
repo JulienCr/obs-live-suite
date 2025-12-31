@@ -67,3 +67,10 @@ _work/
 
 .appdata/
 backups/
+
+# mkcert SSL certificates
+localhost+*.pem
+
+# VDO.ninja static files (download separately)
+server/static/vdoninja/*
+!server/static/vdoninja/README.md

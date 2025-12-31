@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "concurrently \"pnpm:dev:backend\" \"pnpm:dev:frontend\" --names \"BACKEND,NEXT\" --prefix-colors \"blue,green\" --kill-others",
-    "dev:frontend": "next dev -H 0.0.0.0",
+    "dev:frontend": "node server.js",
     "dev:backend": "tsx watch server/backend.ts",
     "backend": "tsx server/backend.ts",
     "build": "node scripts/build-safe.js",
