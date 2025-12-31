@@ -50,7 +50,13 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.vdo.ninja)",
-      "Bash(node scripts/setup-https.js:*)"
+      "Bash(node scripts/setup-https.js:*)",
+      "Bash(find:*)",
+      "Bash(dir D:devobs-tools*.pem)",
+      "Bash(mkcert:*)",
+      "Bash(powershell -Command \"mkcert --version\")",
+      "Bash(powershell -Command \"where.exe mkcert\")",
+      "Bash(node -e:*)"
     ],
     "deny": [],
     "ask": [

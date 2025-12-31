@@ -10,7 +10,7 @@ import {
   type StreamerbotGatewayMessage,
   type StreamerbotGatewayStatus,
 } from "@/lib/models/StreamerbotChat";
-import { getWebSocketUrl } from "@/lib/utils/websocket";
+import { getWebSocketUrl, getBackendUrl } from "@/lib/utils/websocket";
 
 export interface UseStreamerbotClientOptions {
   settings: StreamerbotConnectionSettings | null;
@@ -63,14 +63,6 @@ export function useStreamerbotClient({
     onErrorRef.current?.(errorInfo);
   }, []);
 
-  // Get backend API URL
-  const getBackendUrl = useCallback(() => {
-    if (typeof window === "undefined") return "http://localhost:3002";
-    const protocol = window.location.protocol === "https:" ? "https:" : "http:";
-    const hostname = window.location.hostname;
-    return `${protocol}//${hostname}:3002`;
-  }, []);
-
   // Connect to backend API
   const connect = useCallback(async () => {
     if (!settings) {
@@ -85,9 +77,8 @@ export function useStreamerbotClient({
     setStatus(StreamerbotConnectionStatus.CONNECTING);
 
     try {
-      const backendUrl = getBackendUrl();
       // Call backend API to connect
-      const response = await fetch(`${backendUrl}/api/streamerbot-chat/connect`, {
+      const response = await fetch(`${getBackendUrl()}/api/streamerbot-chat/connect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -107,14 +98,13 @@ export function useStreamerbotClient({
         originalError: err,
       });
     }
-  }, [settings, handleError, getBackendUrl]);
+  }, [settings, handleError]);
 
   // Disconnect from backend API
   const disconnect = useCallback(() => {
     console.log("[Streamerbot] Disconnecting...");
 
-    const backendUrl = getBackendUrl();
-    fetch(`${backendUrl}/api/streamerbot-chat/disconnect`, {
+    fetch(`${getBackendUrl()}/api/streamerbot-chat/disconnect`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     }).catch((err) => {
@@ -124,7 +114,7 @@ export function useStreamerbotClient({
     if (mountedRef.current) {
       setStatus(StreamerbotConnectionStatus.DISCONNECTED);
     }
-  }, [getBackendUrl]);
+  }, []);
 
   // Setup WebSocket connection to hub with retry
   useEffect(() => {
@@ -149,11 +139,7 @@ export function useStreamerbotClient({
         ws.send(JSON.stringify({ type: "subscribe", channel: "streamerbot-chat" }));
 
         // Request current status from backend
-        const backendUrl = typeof window !== "undefined"
-          ? `${window.location.protocol}//${window.location.hostname}:3002`
-          : "http://localhost:3002";
-
-        fetch(`${backendUrl}/api/streamerbot-chat/status`)
+        fetch(`${getBackendUrl()}/api/streamerbot-chat/status`)
         .then((res) => res.json())
         .then((statusData: StreamerbotGatewayStatus) => {
           if (mountedRef.current) {
@@ -270,11 +256,7 @@ export function useStreamerbotClient({
       try {
         console.log(`[Streamerbot] Sending message to ${platform}:`, message);
 
-        const backendUrl = typeof window !== "undefined"
-          ? `${window.location.protocol}//${window.location.hostname}:3002`
-          : "http://localhost:3002";
-
-        const response = await fetch(`${backendUrl}/api/streamerbot-chat/send`, {
+        const response = await fetch(`${getBackendUrl()}/api/streamerbot-chat/send`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ platform, message }),

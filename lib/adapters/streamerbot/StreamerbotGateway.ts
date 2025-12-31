@@ -69,48 +69,48 @@ export class StreamerbotGateway {
     if (!this.client) return;
 
     // Twitch events
-    this.client.on("Twitch.ChatMessage", (data: any) => {
+    this.client.on("Twitch.ChatMessage", (data) => {
       this.handleEvent(() => normalizeTwitchChatMessage(data));
     });
 
-    this.client.on("Twitch.Follow", (data: any) => {
+    this.client.on("Twitch.Follow", (data) => {
       this.handleEvent(() => normalizeTwitchFollowEvent(data));
     });
 
-    this.client.on("Twitch.Sub", (data: any) => {
+    this.client.on("Twitch.Sub", (data) => {
       this.handleEvent(() => normalizeTwitchSubEvent(data));
     });
 
-    this.client.on("Twitch.ReSub", (data: any) => {
+    this.client.on("Twitch.ReSub", (data) => {
       this.handleEvent(() => normalizeTwitchReSubEvent(data));
     });
 
-    this.client.on("Twitch.GiftSub", (data: any) => {
+    this.client.on("Twitch.GiftSub", (data) => {
       this.handleEvent(() => normalizeTwitchGiftSubEvent(data));
     });
 
-    this.client.on("Twitch.Raid", (data: any) => {
+    this.client.on("Twitch.Raid", (data) => {
       this.handleEvent(() => normalizeTwitchRaidEvent(data));
     });
 
-    this.client.on("Twitch.Cheer", (data: any) => {
+    this.client.on("Twitch.Cheer", (data) => {
       this.handleEvent(() => normalizeTwitchCheerEvent(data));
     });
 
     // YouTube events
-    this.client.on("YouTube.Message", (data: any) => {
+    this.client.on("YouTube.Message", (data) => {
       this.handleEvent(() => normalizeYouTubeChatMessage(data));
     });
 
-    this.client.on("YouTube.NewSponsor", (data: any) => {
+    this.client.on("YouTube.NewSponsor", (data) => {
       this.handleEvent(() => normalizeYouTubeNewSponsor(data));
     });
 
-    this.client.on("YouTube.SuperChat", (data: any) => {
+    this.client.on("YouTube.SuperChat", (data) => {
       this.handleEvent(() => normalizeYouTubeSuperChat(data));
     });
 
-    this.client.on("YouTube.SuperSticker", (data: any) => {
+    this.client.on("YouTube.SuperSticker", (data) => {
       this.handleEvent(() => normalizeYouTubeSuperSticker(data));
     });
   }
@@ -229,11 +229,12 @@ export class StreamerbotGateway {
 
       // Connect
       await this.client.connect();
-    } catch (error: any) {
+    } catch (error) {
       this.status = StreamerbotConnectionStatus.ERROR;
+      const errorMessage = error instanceof Error ? error.message : "Failed to connect to Streamer.bot";
       this.currentError = {
         type: StreamerbotErrorType.CONNECTION_REFUSED,
-        message: error?.message || "Failed to connect to Streamer.bot",
+        message: errorMessage,
         originalError: error,
       };
       this.logger.error("Failed to connect to Streamer.bot", error);
@@ -302,7 +303,6 @@ export class StreamerbotGateway {
     }
 
     try {
-      // @ts-ignore - StreamerbotClient typing might be incomplete
       await this.client.sendMessage(platform, message, { bot: false, internal: false });
       this.logger.debug(`Sent message to ${platform}: ${message}`);
     } catch (error) {

@@ -8,8 +8,12 @@ const nextConfig = {
   poweredByHeader: false,
   // Allow LAN access during development (use specific IPs or wildcards)
   allowedDevOrigins: [
-    'http://192.168.1.10:3000',  // Votre IP spécifique
-    // Ajoutez d'autres IPs au besoin
+    'http://192.168.1.10:3000',
+    'https://192.168.1.10:3000',
+    'http://edison:3000',
+    'https://edison:3000',
+    'http://localhost:3000',
+    'https://localhost:3000',
   ],
   images: {
     domains: ['localhost'],

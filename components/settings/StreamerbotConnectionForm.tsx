@@ -27,6 +27,7 @@ import {
   type StreamerbotConnectionSettings,
   DEFAULT_STREAMERBOT_CONNECTION,
 } from "@/lib/models/StreamerbotChat";
+import { getBackendUrl } from "@/lib/utils/websocket";
 
 export interface StreamerbotConnectionFormProps {
   value?: StreamerbotConnectionSettings;
@@ -72,10 +73,7 @@ export function StreamerbotConnectionForm({
     setTestResult(null);
 
     try {
-      // Get backend URL dynamically
-      const backendUrl = typeof window !== "undefined"
-        ? `${window.location.protocol}//${window.location.hostname}:3002`
-        : "http://localhost:3002";
+      const backendUrl = getBackendUrl();
 
       // First, save settings to backend
       const saveResponse = await fetch(`${backendUrl}/api/streamerbot-chat/settings`, {

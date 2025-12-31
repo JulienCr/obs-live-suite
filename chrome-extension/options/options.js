@@ -1,5 +1,9 @@
 // OBS-Suite Options Page Logic
 
+/**
+ * Default server URL - matches APP_PORT in lib/config/urls.ts
+ * User can override this in the options UI
+ */
 const DEFAULT_SERVER_URL = "http://localhost:3000";
 
 // DOM elements

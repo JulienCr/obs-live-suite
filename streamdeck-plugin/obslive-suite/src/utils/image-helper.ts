@@ -7,6 +7,14 @@ import http from "http";
 import https from "https";
 
 /**
+ * App port configuration
+ * Uses environment variable with fallback to default port
+ * This should match APP_PORT in lib/config/urls.ts of the main app
+ */
+const APP_PORT = process.env.APP_PORT || "3000";
+const DEFAULT_BASE_URL = `http://127.0.0.1:${APP_PORT}`;
+
+/**
  * Fetch an image from a URL and convert to base64 data URI
  */
 export async function fetchImageAsBase64(url: string): Promise<string> {
@@ -94,7 +102,7 @@ export function generateInitialsAvatar(name: string, color: string = "#3b82f6"):
 /**
  * Fetch guest avatar or generate fallback
  */
-export async function getGuestAvatar(avatarUrl: string | null | undefined, displayName: string, baseUrl: string = "http://127.0.0.1:3000"): Promise<string> {
+export async function getGuestAvatar(avatarUrl: string | null | undefined, displayName: string, baseUrl: string = DEFAULT_BASE_URL): Promise<string> {
 	// If no avatar URL, generate initials
 	if (!avatarUrl) {
 		return generateInitialsAvatar(displayName);
@@ -142,7 +150,7 @@ export function generatePosterFallbackIcon(title: string, color: string = "#8b5c
 /**
  * Fetch poster image or generate fallback
  */
-export async function getPosterImage(fileUrl: string | null | undefined, posterType: string, title: string, baseUrl: string = "http://127.0.0.1:3000"): Promise<string> {
+export async function getPosterImage(fileUrl: string | null | undefined, posterType: string, title: string, baseUrl: string = DEFAULT_BASE_URL): Promise<string> {
 	// If no file URL or not an image type, generate fallback
 	if (!fileUrl || posterType !== "image") {
 		return generatePosterFallbackIcon(title);

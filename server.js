@@ -1,18 +1,25 @@
+/**
+ * Next.js HTTPS Server
+ *
+ * This file runs the Next.js server with HTTPS support.
+ * Certificate config imported from lib/config/certificates.mjs
+ */
 import { createServer } from 'https';
 import { parse } from 'url';
 import next from 'next';
 import fs from 'fs';
+import { CERT_PATH, KEY_PATH } from './lib/config/certificates.mjs';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0'; // Listen on all network interfaces
-const port = 3000;
+const port = parseInt(process.env.APP_PORT || '3000', 10);
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 const httpsOptions = {
-  key: fs.readFileSync('./localhost+3-key.pem'),
-  cert: fs.readFileSync('./localhost+3.pem'),
+  key: fs.readFileSync(KEY_PATH),
+  cert: fs.readFileSync(CERT_PATH),
 };
 
 app.prepare().then(() => {

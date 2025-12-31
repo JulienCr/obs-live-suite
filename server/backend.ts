@@ -11,15 +11,12 @@ import { config as dotenvConfig } from "dotenv";
 dotenvConfig();
 
 import express from "express";
-import https from "https";
-import fs from "fs";
-import path from "path";
 import { fileURLToPath } from "url";
+import path from "path";
 import { WebSocketHub } from "../lib/services/WebSocketHub";
 import { ChannelManager } from "../lib/services/ChannelManager";
 import { OBSConnectionManager } from "../lib/adapters/obs/OBSConnectionManager";
 import { StreamerbotGateway } from "../lib/adapters/streamerbot/StreamerbotGateway";
-import { OverlayChannel } from "../lib/models/OverlayEvents";
 import { OBSStateManager } from "../lib/adapters/obs/OBSStateManager";
 import { DatabaseService } from "../lib/services/DatabaseService";
 import { RoomService } from "../lib/services/RoomService";
@@ -32,7 +29,9 @@ import quizBotRouter from "./api/quiz-bot";
 import roomsRouter from "./api/rooms";
 import cueRouter from "./api/cue";
 import streamerbotChatRouter from "./api/streamerbot-chat";
-import { updatePosterSourceInOBS } from "./api/obs-helpers";
+import overlaysRouter from "./api/overlays";
+import { APP_PORT, BACKEND_PORT, WS_PORT } from "../lib/config/urls";
+import { createServerWithFallback } from "../lib/utils/CertificateManager";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -61,9 +60,8 @@ class BackendServer {
     this.streamerbotGateway = StreamerbotGateway.getInstance();
     this.app = express();
 
-    // Use port 3002 for backend HTTP API
-    const config = AppConfig.getInstance();
-    this.httpPort = (config as any).backendApiPort || 3002;
+    // Use port from centralized config
+    this.httpPort = parseInt(BACKEND_PORT, 10);
 
     this.setupHttpApi();
   }
@@ -135,109 +133,8 @@ class BackendServer {
     // Streamerbot Chat Gateway API
     this.app.use('/api/streamerbot-chat', streamerbotChatRouter);
 
-    // Overlays - Lower Third
-    this.app.post('/api/overlays/lower', async (req, res) => {
-      try {
-        const { action, payload } = req.body;
-        const channel = OverlayChannel.LOWER;
-        let type;
-        switch (action) {
-          case "show": type = "show"; break;
-          case "hide": type = "hide"; break;
-          case "update": type = "update"; break;
-          default: return res.status(400).json({ error: "Invalid action" });
-        }
-        await this.channelManager.publish(channel, type, payload);
-        res.json({ success: true });
-      } catch (error) {
-        res.status(500).json({ error: String(error) });
-      }
-    });
-
-    // Overlays - Countdown
-    this.app.post('/api/overlays/countdown', async (req, res) => {
-      try {
-        const { action, payload } = req.body;
-        const channel = OverlayChannel.COUNTDOWN;
-        let type;
-        switch (action) {
-          case "set": type = "set"; break;
-          case "start": type = "start"; break;
-          case "pause": type = "pause"; break;
-          case "reset": type = "reset"; break;
-          case "update": type = "update"; break;
-          case "add-time": type = "add-time"; break;
-          default: return res.status(400).json({ error: "Invalid action" });
-        }
-        await this.channelManager.publish(channel, type, payload);
-        res.json({ success: true });
-      } catch (error) {
-        res.status(500).json({ error: String(error) });
-      }
-    });
-
-    // Overlays - Poster
-    this.app.post('/api/overlays/poster', async (req, res) => {
-      try {
-        const { action, payload } = req.body;
-        const channel = OverlayChannel.POSTER;
-        let type;
-        switch (action) {
-          case "show": type = "show"; break;
-          case "hide": type = "hide"; break;
-          case "next": type = "next"; break;
-          case "previous": type = "previous"; break;
-          case "play": type = "play"; break;
-          case "pause": type = "pause"; break;
-          case "seek": type = "seek"; break;
-          case "mute": type = "mute"; break;
-          case "unmute": type = "unmute"; break;
-          default: return res.status(400).json({ error: "Invalid action" });
-        }
-        await this.channelManager.publish(channel, type, payload);
-        res.json({ success: true });
-      } catch (error) {
-        res.status(500).json({ error: String(error) });
-      }
-    });
-
-    // Overlays - Big-Picture Poster
-    this.app.post('/api/overlays/poster-bigpicture', async (req, res) => {
-      try {
-        const { action, payload } = req.body;
-        const channel = OverlayChannel.POSTER_BIGPICTURE;
-        let type;
-        switch (action) {
-          case "show":
-            type = "show";
-            // Update source text in OBS
-
-            if (payload && typeof payload === 'object') {
-              const sourceText = (payload as any).source || "";
-              updatePosterSourceInOBS(this.obsManager.getOBS(), sourceText).catch(err => {
-                this.logger.warn("Failed to update source-text in OBS", err);
-              });
-            }
-            break;
-          case "hide": type = "hide";
-            // Reset source text in OBS
-            updatePosterSourceInOBS(this.obsManager.getOBS(), "").catch(err => {
-              this.logger.warn("Failed to reset source-text in OBS", err);
-            });
-            break;
-          case "play": type = "play"; break;
-          case "pause": type = "pause"; break;
-          case "seek": type = "seek"; break;
-          case "mute": type = "mute"; break;
-          case "unmute": type = "unmute"; break;
-          default: return res.status(400).json({ error: "Invalid action" });
-        }
-        await this.channelManager.publish(channel, type, payload);
-        res.json({ success: true });
-      } catch (error) {
-        res.status(500).json({ error: String(error) });
-      }
-    });
+    // Overlay control routes (consolidated in server/api/overlays.ts)
+    this.app.use('/api/overlays', overlaysRouter);
 
     // 404 handler MUST be added LAST (after all routes)
     this.app.use((req, res) => {
@@ -260,15 +157,18 @@ class BackendServer {
     // CORS for Next.js and network access
     this.app.use((req, res, next) => {
       const origin = req.headers.origin;
-      // Allow localhost and any local network IPs (HTTP or HTTPS)
-      if (origin && (
+      // Allow localhost, local network IPs, and local hostnames (HTTP or HTTPS)
+      const isLocalOrigin = origin && (
         origin.startsWith('http://localhost:') ||
         origin.startsWith('https://localhost:') ||
-        origin.match(/^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.).*:[0-9]+$/)
-      )) {
+        origin.match(/^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.).*:[0-9]+$/) ||
+        // Allow local hostnames (no dots = local network name)
+        origin.match(/^https?:\/\/[a-zA-Z][a-zA-Z0-9-]*:[0-9]+$/)
+      );
+      if (isLocalOrigin) {
         res.header('Access-Control-Allow-Origin', origin);
       } else {
-        res.header('Access-Control-Allow-Origin', 'https://localhost:3000');
+        res.header('Access-Control-Allow-Origin', `https://localhost:${APP_PORT}`);
       }
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type');
@@ -326,79 +226,6 @@ class BackendServer {
     // 404 handler will be added AFTER API routes in start()
   }
 
-  /**
-   * Helper to update OBS source text and position
-   */
-  private async updatePosterSourceInOBS(sourceText: string): Promise<void> {
-    if (!this.obsManager.isConnected()) return;
-
-    try {
-      const obs = this.obsManager.getOBS();
-
-      // 1. Update text content and internal alignment
-      // align: "right" makes text grow to the left from its origin
-      await obs.call("SetInputSettings", {
-        inputName: "source-text",
-        inputSettings: {
-          text: sourceText,
-          align: "right"
-        }
-      });
-
-      // 2. Position the scene item (Right aligned, 35px from edge)
-      const { currentProgramSceneName } = await obs.call("GetCurrentProgramScene");
-
-      // Find the scene item id
-      const { sceneItemId } = await obs.call("GetSceneItemId", {
-        sceneName: currentProgramSceneName,
-        sourceName: "source-text"
-      });
-
-      if (sceneItemId) {
-        const { baseWidth } = await obs.call("GetVideoSettings");
-        const targetX = baseWidth - 35; // 35px from right edge
-
-        // Get current transform to preserve vertical alignment
-        const { sceneItemTransform } = await obs.call("GetSceneItemTransform", {
-          sceneName: currentProgramSceneName,
-          sceneItemId
-        });
-
-        // Calculate new alignment: Preserve vertical bits (0x18 = 0001 1000 = Top|Bottom inverted?) 
-        // OBS Alignment is:
-        // Center: 0
-        // Left: 1
-        // Right: 2
-        // Top: 4
-        // Bottom: 8
-        // Mask: 0b1100 = 12 (0xC) for vertical (Top|Bottom)
-        // Check current:
-        const currentAlign = sceneItemTransform.alignment as number;
-
-        // Preserve vertical (Top(4) / Bottom(8) / Center(0))
-        const verticalPart = currentAlign & 12; // 12 = 4 | 8
-
-        // Force Right (2)
-        const newAlign = verticalPart | 2;
-
-        await obs.call("SetSceneItemTransform", {
-          sceneName: currentProgramSceneName,
-          sceneItemId,
-          sceneItemTransform: {
-            positionX: targetX,
-            alignment: newAlign
-          }
-        });
-
-        this.logger.debug(`Updated source-text: Right aligned at ${targetX}px`);
-      }
-    } catch (error) {
-      // It's normal to fail if source-text doesn't exist in current scene or at all
-      // We assume source-text might be global but scene item is local
-      throw error;
-    }
-  }
-
   async start(): Promise<void> {
     if (this.initialized) {
       this.logger.warn("Backend server already initialized");
@@ -447,34 +274,22 @@ class BackendServer {
         this.logger.warn("Streamerbot gateway connection failed (will retry)", error);
       }
 
-      // 6. Start HTTPS API server
+      // 6. Start HTTP/HTTPS API server using centralized certificate manager
       await new Promise<void>((resolve) => {
-        // Load SSL certificates
-        const certPath = path.join(process.cwd(), 'localhost+3.pem');
-        const keyPath = path.join(process.cwd(), 'localhost+3-key.pem');
+        const { server, isHttps } = createServerWithFallback(this.app);
+        this.httpServer = server;
 
-        // Check if certificates exist
-        if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-          const httpsOptions = {
-            key: fs.readFileSync(keyPath),
-            cert: fs.readFileSync(certPath),
-          };
-
-          this.httpServer = https.createServer(httpsOptions, this.app);
-          this.httpServer.listen(this.httpPort, () => {
+        this.httpServer.listen(this.httpPort, () => {
+          if (isHttps) {
             this.logger.info(`✓ HTTPS API listening on port ${this.httpPort}`);
             this.logger.info(`  - https://localhost:${this.httpPort}`);
             this.logger.info(`  - https://192.168.1.10:${this.httpPort}`);
-            resolve();
-          });
-        } else {
-          // Fallback to HTTP if certificates not found
-          this.logger.warn('SSL certificates not found, falling back to HTTP');
-          this.httpServer = this.app.listen(this.httpPort, () => {
+          } else {
+            this.logger.warn('SSL certificates not found, falling back to HTTP');
             this.logger.info(`✓ HTTP API listening on port ${this.httpPort}`);
-            resolve();
-          });
-        }
+          }
+          resolve();
+        });
       });
 
       this.initialized = true;
@@ -523,8 +338,8 @@ const server = new BackendServer();
 
 server.start().then(() => {
   console.log("\n✓ Backend server is running");
-  console.log("  - WebSocket: ws://localhost:3003");
-  console.log("  - HTTP API: http://localhost:3002");
+  console.log(`  - WebSocket: ws://localhost:${WS_PORT}`);
+  console.log(`  - HTTP API: http://localhost:${BACKEND_PORT}`);
   console.log("  - OBS: Connected");
   console.log("");
 }).catch((error) => {

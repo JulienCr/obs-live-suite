@@ -16,14 +16,17 @@
 import { execSync, spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import https from 'https';
 import { createWriteStream } from 'fs';
 import { pipeline } from 'stream/promises';
+import {
+  PROJECT_ROOT,
+  CERT_PATH,
+  KEY_PATH,
+  CERT_HOSTNAMES,
+} from '../lib/config/certificates.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const ROOT_DIR = path.join(__dirname, '..');
+const ROOT_DIR = PROJECT_ROOT;
 
 // Colors for console output
 const colors = {
@@ -122,11 +125,8 @@ async function setupMkcert() {
 async function generateCertificates(localIP) {
   logStep('2/4', 'Generating SSL certificates...');
 
-  const certPath = path.join(ROOT_DIR, 'localhost+3.pem');
-  const keyPath = path.join(ROOT_DIR, 'localhost+3-key.pem');
-
   // Check if certificates already exist
-  if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+  if (fs.existsSync(CERT_PATH) && fs.existsSync(KEY_PATH)) {
     logSuccess('SSL certificates already exist');
 
     const readline = await import('readline');
@@ -151,9 +151,9 @@ async function generateCertificates(localIP) {
     execSync('mkcert -install', { stdio: 'inherit', cwd: ROOT_DIR });
     logSuccess('Local CA installed');
 
-    // Generate certificates
-    log(`  Generating certificates for localhost and ${localIP}...`);
-    execSync(`mkcert localhost ${localIP} 127.0.0.1 ::1`, {
+    // Generate certificates using hostnames from centralized config
+    log(`  Generating certificates for: ${CERT_HOSTNAMES.join(', ')}...`);
+    execSync(`mkcert ${CERT_HOSTNAMES.join(' ')}`, {
       stdio: 'inherit',
       cwd: ROOT_DIR
     });

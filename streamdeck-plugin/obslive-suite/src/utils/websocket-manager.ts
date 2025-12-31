@@ -6,6 +6,13 @@
 import WebSocket from "ws";
 import { streamDeck } from "@elgato/streamdeck";
 
+/**
+ * WebSocket port configuration
+ * Uses environment variable with fallback to default port
+ * This should match WS_PORT in lib/config/urls.ts of the main app
+ */
+const WS_PORT = process.env.WEBSOCKET_PORT || "3003";
+
 export interface CountdownState {
 	running: boolean;
 	paused: boolean;
@@ -22,7 +29,7 @@ export class WebSocketManager {
 	private ws: WebSocket | null = null;
 	private reconnectTimeout: NodeJS.Timeout | null = null;
 	private readonly reconnectDelay = 3000;
-	private readonly wsUrl = "ws://127.0.0.1:3003";
+	private readonly wsUrl = `ws://127.0.0.1:${WS_PORT}`;
 	private countdownCallbacks: Set<CountdownCallback> = new Set();
 	private countdownState: CountdownState = {
 		running: false,

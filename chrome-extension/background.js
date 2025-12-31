@@ -1,7 +1,10 @@
 // OBS-Suite Chrome Extension - Background Service Worker
 // Handles context menu creation, image download, and API communication
 
-// Default server URL
+/**
+ * Default server URL - matches APP_PORT in lib/config/urls.ts
+ * User can override this in extension options (stored in chrome.storage.sync)
+ */
 const DEFAULT_SERVER_URL = "http://localhost:3000";
 
 // Context menu IDs

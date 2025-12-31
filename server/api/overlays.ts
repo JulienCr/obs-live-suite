@@ -1,9 +1,12 @@
 /**
  * Backend API - Overlay Control
+ *
+ * Consolidated overlay routes with theme enrichment and OBS integration.
  */
 import { Router } from "express";
 import { ChannelManager } from "../../lib/services/ChannelManager";
 import { DatabaseService } from "../../lib/services/DatabaseService";
+import { OBSConnectionManager } from "../../lib/adapters/obs/OBSConnectionManager";
 import {
   LowerThirdEventType,
   CountdownEventType,
@@ -12,10 +15,13 @@ import {
 } from "../../lib/models/OverlayEvents";
 import { lowerThirdShowPayloadSchema } from "../../lib/models/OverlayEvents";
 import { enrichLowerThirdPayload, enrichCountdownPayload, enrichPosterPayload } from "../../lib/utils/themeEnrichment";
+import { updatePosterSourceInOBS } from "./obs-helpers";
+import { Logger } from "../../lib/utils/Logger";
 
 const router = Router();
 const channelManager = ChannelManager.getInstance();
 const db = DatabaseService.getInstance();
+const logger = new Logger("OverlaysAPI");
 
 /**
  * POST /api/overlays/lower
@@ -184,15 +190,27 @@ router.post("/poster", async (req, res) => {
 router.post("/poster-bigpicture", async (req, res) => {
   try {
     const { action, payload } = req.body;
+    const obsManager = OBSConnectionManager.getInstance();
 
     switch (action) {
       case "show":
         // No theme enrichment for big-picture (always centered)
         await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.SHOW, payload);
+        // Update source text in OBS
+        if (payload && typeof payload === "object") {
+          const sourceText = (payload as { source?: string }).source || "";
+          updatePosterSourceInOBS(obsManager.getOBS(), sourceText).catch((err) => {
+            logger.warn("Failed to update source-text in OBS", err);
+          });
+        }
         break;
 
       case "hide":
         await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.HIDE);
+        // Reset source text in OBS
+        updatePosterSourceInOBS(obsManager.getOBS(), "").catch((err) => {
+          logger.warn("Failed to reset source-text in OBS", err);
+        });
         break;
 
       case "play":
