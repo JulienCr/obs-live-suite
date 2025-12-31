@@ -14,10 +14,12 @@ import express from "express";
 import { WebSocketHub } from "../lib/services/WebSocketHub";
 import { ChannelManager } from "../lib/services/ChannelManager";
 import { OBSConnectionManager } from "../lib/adapters/obs/OBSConnectionManager";
+import { StreamerbotGateway } from "../lib/adapters/streamerbot/StreamerbotGateway";
 import { OverlayChannel } from "../lib/models/OverlayEvents";
 import { OBSStateManager } from "../lib/adapters/obs/OBSStateManager";
 import { DatabaseService } from "../lib/services/DatabaseService";
 import { RoomService } from "../lib/services/RoomService";
+import { SettingsService } from "../lib/services/SettingsService";
 import { Logger } from "../lib/utils/Logger";
 import { PathManager } from "../lib/config/PathManager";
 import { AppConfig } from "../lib/config/AppConfig";
@@ -25,6 +27,7 @@ import quizRouter from "./api/quiz";
 import quizBotRouter from "./api/quiz-bot";
 import roomsRouter from "./api/rooms";
 import cueRouter from "./api/cue";
+import streamerbotChatRouter from "./api/streamerbot-chat";
 import { updatePosterSourceInOBS } from "./api/obs-helpers";
 
 class BackendServer {
@@ -32,6 +35,7 @@ class BackendServer {
   private wsHub: WebSocketHub;
   private channelManager: ChannelManager;
   private obsManager: OBSConnectionManager;
+  private streamerbotGateway: StreamerbotGateway;
   private app: express.Application;
   private httpServer: any | null = null;
   private httpPort: number;
@@ -46,6 +50,7 @@ class BackendServer {
     this.wsHub = WebSocketHub.getInstance();
     this.channelManager = ChannelManager.getInstance();
     this.obsManager = OBSConnectionManager.getInstance();
+    this.streamerbotGateway = StreamerbotGateway.getInstance();
     this.app = express();
 
     // Use port 3002 for backend HTTP API
@@ -118,6 +123,9 @@ class BackendServer {
     // Presenter Dashboard API
     this.app.use('/api/rooms', roomsRouter);
     this.app.use('/api/cue', cueRouter);
+
+    // Streamerbot Chat Gateway API
+    this.app.use('/api/streamerbot-chat', streamerbotChatRouter);
 
     // Overlays - Lower Third
     this.app.post('/api/overlays/lower', async (req, res) => {
@@ -409,7 +417,20 @@ class BackendServer {
         this.logger.warn("OBS connection failed (will retry)", error);
       }
 
-      // 5. Start HTTP API server
+      // 5. Auto-connect to Streamerbot if enabled
+      try {
+        const settingsService = SettingsService.getInstance();
+        if (settingsService.isStreamerbotAutoConnectEnabled()) {
+          await this.streamerbotGateway.connect();
+          this.logger.info("✓ Streamerbot gateway connected");
+        } else {
+          this.logger.info("Streamerbot gateway auto-connect disabled");
+        }
+      } catch (error) {
+        this.logger.warn("Streamerbot gateway connection failed (will retry)", error);
+      }
+
+      // 6. Start HTTP API server
       await new Promise<void>((resolve) => {
         this.httpServer = this.app.listen(this.httpPort, () => {
           this.logger.info(`✓ HTTP API listening on port ${this.httpPort}`);
@@ -442,6 +463,7 @@ class BackendServer {
 
       this.wsHub.stop();
       await this.obsManager.disconnect();
+      await this.streamerbotGateway.disconnect();
       const db = DatabaseService.getInstance();
       db.close();
 

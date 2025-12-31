@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { getBackendUrl } from "@/lib/utils/websocket";
 import { PlayerSelector } from "./PlayerSelector";
 import { RoundEditor } from "./RoundEditor";
 import { ArrowLeft } from "lucide-react";
@@ -55,7 +57,7 @@ export function SessionBuilder({ sessionId, onBack }: SessionBuilderProps) {
   const loadSession = async (id: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3002/api/quiz/session/load`, {
+      const res = await fetch(`${getBackendUrl()}/api/quiz/session/load`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
@@ -90,7 +92,7 @@ export function SessionBuilder({ sessionId, onBack }: SessionBuilderProps) {
       setRounds(rounds.map(r => r.id === round.id ? round : r));
     } else {
       // Create new
-      const newRound = { ...round, id: crypto.randomUUID() };
+      const newRound = { ...round, id: uuidv4() };
       setRounds([...rounds, newRound]);
     }
     setEditingRound(null);
@@ -132,7 +134,7 @@ export function SessionBuilder({ sessionId, onBack }: SessionBuilderProps) {
 
     const isEditing = !!currentSessionId;
     const session: Session = {
-      id: currentSessionId || crypto.randomUUID(),
+      id: currentSessionId || uuidv4(),
       name: sessionName,
       players,
       rounds,
@@ -140,7 +142,7 @@ export function SessionBuilder({ sessionId, onBack }: SessionBuilderProps) {
 
     try {
       const endpoint = isEditing 
-        ? `http://localhost:3002/api/quiz/session/${currentSessionId}/update`
+        ? `${getBackendUrl()}/api/quiz/session/${currentSessionId}/update`
         : "/api/quiz/session/create";
       
       const res = await fetch(endpoint, {

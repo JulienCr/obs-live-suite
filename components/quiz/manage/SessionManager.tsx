@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Play, Trash2, Edit2, Save, X, Plus, RefreshCw } from "lucide-react";
+import { getBackendUrl } from "@/lib/utils/websocket";
 
 interface Session {
   id: string;
@@ -25,12 +26,12 @@ export function SessionManager({ onBuildNew, onEditSession }: SessionManagerProp
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:3002/api/quiz/sessions");
+      const res = await fetch(`${getBackendUrl()}/api/quiz/sessions`);
       const data = await res.json();
       setSessions(data.sessions || []);
       
       // Get current session
-      const stateRes = await fetch("http://localhost:3002/api/quiz/state");
+      const stateRes = await fetch(`${getBackendUrl()}/api/quiz/state`);
       const stateData = await stateRes.json();
       setCurrentSessionId(stateData.session?.id || null);
     } catch (error) {
@@ -46,7 +47,7 @@ export function SessionManager({ onBuildNew, onEditSession }: SessionManagerProp
 
   const handleLoad = async (sessionId: string) => {
     try {
-      const res = await fetch("http://localhost:3002/api/quiz/session/load", {
+      const res = await fetch(`${getBackendUrl()}/api/quiz/session/load`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: sessionId }),
@@ -70,7 +71,7 @@ export function SessionManager({ onBuildNew, onEditSession }: SessionManagerProp
     }
 
     try {
-      const res = await fetch(`http://localhost:3002/api/quiz/session/${sessionId}`, {
+      const res = await fetch(`${getBackendUrl()}/api/quiz/session/${sessionId}`, {
         method: "DELETE",
       });
       
@@ -87,7 +88,7 @@ export function SessionManager({ onBuildNew, onEditSession }: SessionManagerProp
 
   const handleSaveEdit = async (sessionId: string) => {
     try {
-      const res = await fetch(`http://localhost:3002/api/quiz/session/${sessionId}`, {
+      const res = await fetch(`${getBackendUrl()}/api/quiz/session/${sessionId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: editTitle }),
@@ -108,7 +109,7 @@ export function SessionManager({ onBuildNew, onEditSession }: SessionManagerProp
 
   const handleSaveCurrent = async () => {
     try {
-      const res = await fetch("http://localhost:3002/api/quiz/session/save", {
+      const res = await fetch(`${getBackendUrl()}/api/quiz/session/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),

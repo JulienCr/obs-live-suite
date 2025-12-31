@@ -72,38 +72,58 @@ export function StreamerbotConnectionForm({
     setTestResult(null);
 
     try {
-      const wsUrl = `${settings.scheme}://${settings.host}:${settings.port}${settings.endpoint}`;
+      // Get backend URL dynamically
+      const backendUrl = typeof window !== "undefined"
+        ? `${window.location.protocol}//${window.location.hostname}:3002`
+        : "http://localhost:3002";
 
-      // Create a test WebSocket connection
-      const ws = new WebSocket(wsUrl);
+      // First, save settings to backend
+      const saveResponse = await fetch(`${backendUrl}/api/streamerbot-chat/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
 
-      const timeout = setTimeout(() => {
-        ws.close();
-        setTestResult({
-          success: false,
-          message: "Connection timeout (5s)",
-        });
-        setTesting(false);
-      }, 5000);
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save settings");
+      }
 
-      ws.onopen = () => {
-        clearTimeout(timeout);
-        ws.close();
+      // Then, try to connect via backend gateway
+      const connectResponse = await fetch(`${backendUrl}/api/streamerbot-chat/connect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!connectResponse.ok) {
+        const errorData = await connectResponse.json().catch(() => ({ error: "Connection failed" }));
+        throw new Error(errorData.error || "Connection failed");
+      }
+
+      // Wait a bit for connection to establish
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Check connection status
+      const statusResponse = await fetch(`${backendUrl}/api/streamerbot-chat/status`);
+      const status = await statusResponse.json();
+
+      if (status.status === "connected") {
         setTestResult({
           success: true,
-          message: `Connected to ${settings.host}:${settings.port}`,
+          message: `Connected to ${settings.host}:${settings.port} via backend gateway`,
         });
-        setTesting(false);
-      };
 
-      ws.onerror = () => {
-        clearTimeout(timeout);
+        // Disconnect after successful test
+        await fetch(`${backendUrl}/api/streamerbot-chat/disconnect`, {
+          method: "POST",
+        });
+      } else {
         setTestResult({
           success: false,
-          message: `Failed to connect to ${settings.host}:${settings.port}`,
+          message: status.error?.message || `Failed to connect to ${settings.host}:${settings.port}`,
         });
-        setTesting(false);
-      };
+      }
+
+      setTesting(false);
     } catch (error) {
       setTestResult({
         success: false,
@@ -314,8 +334,8 @@ export function StreamerbotConnectionForm({
       {/* Help text */}
       <p className="text-xs text-muted-foreground">
         Configure the connection to your local Streamer.bot WebSocket server.
-        Default port is usually 8080. Enable authentication in Streamer.bot settings
-        if you want to use a password.
+        The backend gateway connects to Streamer.bot, allowing secure access over LAN.
+        Default port is usually 8080.
       </p>
     </div>
   );

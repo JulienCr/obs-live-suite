@@ -637,3 +637,29 @@ export function normalizeYouTubeSuperSticker(event: YouTubeSuperStickerEvent): C
     rawPayload: event,
   };
 }
+
+// =============================================================================
+// Gateway Types (Backend → Frontend via WebSocket)
+// =============================================================================
+
+/**
+ * Gateway status for backend Streamerbot connection
+ */
+export interface StreamerbotGatewayStatus {
+  status: StreamerbotConnectionStatus;
+  error?: StreamerbotConnectionError;
+  lastEventTime?: number;
+}
+
+/**
+ * Gateway message types sent via WebSocket
+ */
+export type StreamerbotGatewayMessageType = "message" | "status" | "error";
+
+/**
+ * Gateway message payload
+ */
+export interface StreamerbotGatewayMessage {
+  type: StreamerbotGatewayMessageType;
+  payload: ChatMessage | StreamerbotGatewayStatus | StreamerbotConnectionError;
+}

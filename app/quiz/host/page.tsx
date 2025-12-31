@@ -8,6 +8,7 @@ import { SessionSelector } from "@/components/quiz/host/SessionSelector";
 import { useQuizHostState } from "@/components/quiz/host/useQuizHostState";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+import { getBackendUrl } from "@/lib/utils/websocket";
 
 export default function QuizHostPage() {
   const { state, actions } = useQuizHostState();
@@ -210,7 +211,7 @@ export default function QuizHostPage() {
           onScoreUpdate={async (playerId: string, newScore: number) => {
             try {
               const currentScore = state.players.find(p => p.id === playerId)?.score || 0;
-              await fetch("http://localhost:3002/api/quiz/score/update", {
+              await fetch(`${getBackendUrl()}/api/quiz/score/update`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ target: "player", id: playerId, delta: newScore - currentScore }),
