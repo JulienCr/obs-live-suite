@@ -15,6 +15,8 @@ import {
   CheckCheck,
   Play,
   StopCircle,
+  Monitor,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -32,6 +34,9 @@ interface CueCardProps {
   isPresenter: boolean;
   compact?: boolean;
   overlayState?: OverlayState;
+  onShowInOverlay?: (message: CueMessage) => void;
+  isShowingInOverlay?: boolean;
+  isCurrentlyDisplayed?: boolean;
 }
 
 const typeIcons: Record<CueType, React.ComponentType<{ className?: string }>> = {
@@ -113,7 +118,7 @@ function CountdownTimer({
   );
 }
 
-export function CueCard({ message, onAction, isPresenter, compact, overlayState }: CueCardProps) {
+export function CueCard({ message, onAction, isPresenter, compact, overlayState, onShowInOverlay, isShowingInOverlay, isCurrentlyDisplayed }: CueCardProps) {
   const TypeIcon = typeIcons[message.type as CueType] || FileText;
   const severity = message.severity as CueSeverity | undefined;
   const SeverityIcon = severity ? severityIcons[severity] : null;
@@ -379,6 +384,10 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState 
                     onClick={(e) => {
                       e.stopPropagation();
                       onAction(message.id, CueAction.TAKE);
+                      // Also show in overlay when taking a question
+                      if (onShowInOverlay) {
+                        onShowInOverlay(message);
+                      }
                     }}
                   >
                     Take
@@ -401,6 +410,25 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState 
           {/* Control room actions */}
           {!isPresenter && (
             <>
+              {/* Show in overlay button for questions */}
+              {isQuestion && onShowInOverlay && (
+                <Button
+                  variant={isCurrentlyDisplayed ? "default" : "outline"}
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShowInOverlay(message);
+                  }}
+                  disabled={isShowingInOverlay}
+                  title={isCurrentlyDisplayed ? "Hide from overlay" : "Show in overlay"}
+                >
+                  {isShowingInOverlay ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Monitor className={cn("h-3 w-3", isCurrentlyDisplayed && "text-green-500")} />
+                  )}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"

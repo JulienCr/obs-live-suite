@@ -26,6 +26,20 @@ export interface PosterThemeData {
   layout: Theme["posterLayout"];
 }
 
+export interface ChatHighlightThemeData {
+  colors: {
+    primary: string;
+    accent: string;
+    surface: string;
+    text: string;
+  };
+  font: {
+    family: string;
+    size: number;
+    weight: number;
+  };
+}
+
 /**
  * Get the active theme from the database
  * @param db DatabaseService instance (optional, will create if not provided)
@@ -151,7 +165,46 @@ export function enrichPosterPayload<T extends Record<string, unknown>>(
 ): T & { theme?: PosterThemeData } {
   const theme = getActiveTheme(db);
   const themeData = getPosterThemeData(theme);
-  
+
+  return {
+    ...payload,
+    theme: themeData,
+  };
+}
+
+/**
+ * Extract chat highlight theme data from a Theme object
+ * Uses lower third font settings for consistency
+ * @param theme Theme object
+ * @returns ChatHighlightThemeData or undefined
+ */
+export function getChatHighlightThemeData(theme: Theme | null): ChatHighlightThemeData | undefined {
+  if (!theme) return undefined;
+
+  return {
+    colors: {
+      primary: theme.colors.primary,
+      accent: theme.colors.accent,
+      surface: theme.colors.surface,
+      text: theme.colors.text,
+    },
+    font: theme.lowerThirdFont,
+  };
+}
+
+/**
+ * Enrich a chat highlight payload with active theme data
+ * @param payload Existing payload
+ * @param db DatabaseService instance (optional)
+ * @returns Enriched payload with theme data
+ */
+export function enrichChatHighlightPayload<T extends Record<string, unknown>>(
+  payload: T,
+  db?: DatabaseService
+): T & { theme?: ChatHighlightThemeData } {
+  const theme = getActiveTheme(db);
+  const themeData = getChatHighlightThemeData(theme);
+
   return {
     ...payload,
     theme: themeData,

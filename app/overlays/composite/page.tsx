@@ -3,6 +3,7 @@
 import { CountdownRenderer } from "@/components/overlays/CountdownRenderer";
 import { LowerThirdRenderer } from "@/components/overlays/LowerThirdRenderer";
 import { PosterRenderer } from "@/components/overlays/PosterRenderer";
+import { ChatHighlightRenderer } from "@/components/overlays/ChatHighlightRenderer";
 
 /**
  * Composite overlay page that combines all overlays into a single OBS Browser Source
@@ -11,6 +12,7 @@ import { PosterRenderer } from "@/components/overlays/PosterRenderer";
  * - Lower Third overlay
  * - Countdown timer
  * - Poster display
+ * - Chat Highlight overlay
  *
  * Each overlay manages its own WebSocket connection and visibility state independently.
  * Use this for a single OBS browser source, or use individual overlay pages for more control.
@@ -21,8 +23,11 @@ export default function CompositeOverlayPage() {
       {/* Poster is rendered first (bottom layer) */}
       <PosterRenderer />
 
-      {/* Lower Third is rendered second (middle layer) */}
+      {/* Lower Third is rendered second */}
       <LowerThirdRenderer />
+
+      {/* Chat Highlight for displaying Twitch/YouTube messages */}
+      <ChatHighlightRenderer />
 
       {/* Countdown is rendered last (top layer) */}
       <CountdownRenderer />

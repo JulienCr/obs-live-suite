@@ -39,6 +39,9 @@ export interface StreamerbotChatMessageListProps {
   isAtBottom: boolean;
   onScrollChange: (atBottom: boolean) => void;
   onScrollToBottom: () => void;
+  onShowInOverlay?: (message: ChatMessage) => Promise<void>;
+  showingInOverlayId?: string | null;
+  currentlyDisplayedId?: string | null;
 }
 
 export interface SearchBarProps {

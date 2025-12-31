@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
-import { ArrowDown, MessageSquare, Star, Loader2 } from "lucide-react";
+import { ArrowDown, MessageSquare, Star, Monitor, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   getMessageHighlights,
@@ -28,7 +28,7 @@ function formatTime(timestamp: number): string {
 }
 
 /**
- * Single chat message row component with highlight button
+ * Single chat message row component with highlight and overlay buttons
  */
 function ChatMessageRow({
   message,
@@ -36,20 +36,29 @@ function ChatMessageRow({
   virtualItem,
   onHighlight,
   isHighlighting,
+  onShowInOverlay,
+  isShowingInOverlay,
+  isCurrentlyDisplayed,
+  measureRef,
 }: {
   message: ChatMessage;
   preferences: RegiePublicChatMessageListProps["preferences"];
-  virtualItem: { size: number; start: number };
+  virtualItem: { size: number; start: number; index: number };
   onHighlight: () => void;
   isHighlighting: boolean;
+  onShowInOverlay: () => void;
+  isShowingInOverlay: boolean;
+  isCurrentlyDisplayed: boolean;
+  measureRef: (node: HTMLDivElement | null) => void;
 }) {
   // Event messages (follow, sub, raid, etc.)
   if (message.eventType !== "message") {
     return (
       <div
+        ref={measureRef}
+        data-index={virtualItem.index}
         className="absolute top-0 left-0 w-full px-2"
         style={{
-          height: `${virtualItem.size}px`,
           transform: `translateY(${virtualItem.start}px)`,
         }}
       >
@@ -68,6 +77,8 @@ function ChatMessageRow({
 
   return (
     <div
+      ref={measureRef}
+      data-index={virtualItem.index}
       className={cn(
         "absolute top-0 left-0 w-full px-2 py-1 group transition-colors",
         "hover:bg-muted/50",
@@ -77,7 +88,6 @@ function ChatMessageRow({
         preferences.compactMode ? "text-xs" : "text-sm"
       )}
       style={{
-        height: `${virtualItem.size}px`,
         transform: `translateY(${virtualItem.start}px)`,
         borderLeftColor: highlights.keyword?.color,
       }}
@@ -139,34 +149,60 @@ function ChatMessageRow({
           className="break-words min-w-0 flex-1"
         />
 
-        {/* Highlight button (visible on hover) */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity",
-            isHighlighting && "opacity-100"
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            onHighlight();
-          }}
-          disabled={isHighlighting}
-          title="Send to presenter"
-        >
-          {isHighlighting ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            <Star className="h-3 w-3" />
-          )}
-        </Button>
+        {/* Action buttons (visible on hover) */}
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {/* Show in Overlay button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity",
+              (isShowingInOverlay || isCurrentlyDisplayed) && "opacity-100",
+              isCurrentlyDisplayed && "text-green-500"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowInOverlay();
+            }}
+            disabled={isShowingInOverlay}
+            title={isCurrentlyDisplayed ? "Currently on overlay" : "Show in overlay"}
+          >
+            {isShowingInOverlay ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Monitor className="h-3 w-3" />
+            )}
+          </Button>
+
+          {/* Highlight button - send to presenter */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity",
+              isHighlighting && "opacity-100"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              onHighlight();
+            }}
+            disabled={isHighlighting}
+            title="Send to presenter"
+          >
+            {isHighlighting ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Star className="h-3 w-3" />
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
 
 /**
- * Virtualized message list component with highlight functionality
+ * Virtualized message list component with highlight and overlay functionality
  */
 export function RegiePublicChatMessageList({
   messages,
@@ -177,15 +213,19 @@ export function RegiePublicChatMessageList({
   onScrollToBottom,
   onHighlightMessage,
   highlightingMessageId,
+  onShowInOverlay,
+  showingInOverlayId,
+  currentlyDisplayedId,
 }: RegiePublicChatMessageListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Virtual list configuration
+  // Virtual list configuration with dynamic row heights
   const rowVirtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => (preferences.compactMode ? 28 : 44),
     overscan: 10,
+    measureElement: (element) => element?.getBoundingClientRect().height ?? (preferences.compactMode ? 28 : 44),
   });
 
   // Auto-scroll to bottom when new messages arrive
@@ -256,6 +296,10 @@ export function RegiePublicChatMessageList({
                   virtualItem={virtualItem}
                   onHighlight={() => onHighlightMessage(message)}
                   isHighlighting={highlightingMessageId === message.id}
+                  onShowInOverlay={() => onShowInOverlay(message)}
+                  isShowingInOverlay={showingInOverlayId === message.id}
+                  isCurrentlyDisplayed={currentlyDisplayedId === message.id}
+                  measureRef={rowVirtualizer.measureElement}
                 />
               );
             })}
