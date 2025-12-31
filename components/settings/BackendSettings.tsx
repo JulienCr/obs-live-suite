@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, XCircle, Loader2, RefreshCw } from "lucide-react";
+import { BACKEND_URL, WS_URL } from "@/lib/config/urls";
 
 interface BackendHealth {
   status: string;
@@ -19,7 +20,7 @@ interface BackendHealth {
  * Backend server connection settings
  */
 export function BackendSettings() {
-  const [backendUrl, setBackendUrl] = useState("http://localhost:3002");
+  const [backendUrl, setBackendUrl] = useState(BACKEND_URL);
   const [health, setHealth] = useState<BackendHealth | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +128,7 @@ export function BackendSettings() {
         <Label>WebSocket URL (for overlays)</Label>
         <Input
           type="text"
-          value="ws://localhost:3003"
+          value={WS_URL}
           disabled
           className="bg-muted"
         />
