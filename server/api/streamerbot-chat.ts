@@ -4,6 +4,7 @@
 import { Router } from "express";
 import { StreamerbotGateway } from "../../lib/adapters/streamerbot/StreamerbotGateway";
 import { SettingsService } from "../../lib/services/SettingsService";
+import { DatabaseService } from "../../lib/services/DatabaseService";
 import { chatPlatformSchema } from "../../lib/models/StreamerbotChat";
 
 const router = Router();
@@ -20,6 +21,26 @@ router.get("/status", async (req, res) => {
     res.json(status);
   } catch (error) {
     console.error("[StreamerbotGateway] Status error:", error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+/**
+ * GET /api/streamerbot-chat/history
+ * Get recent chat messages from database (rolling buffer of 200 messages)
+ */
+router.get("/history", async (req, res) => {
+  try {
+    const db = DatabaseService.getInstance();
+    const messages = db.getStreamerbotChatMessages(200);
+
+    // Return in chronological order (oldest first) for frontend consumption
+    res.json({
+      messages: messages.reverse(),
+      count: messages.length,
+    });
+  } catch (error) {
+    console.error("[StreamerbotGateway] History fetch error:", error);
     res.status(500).json({ error: String(error) });
   }
 });

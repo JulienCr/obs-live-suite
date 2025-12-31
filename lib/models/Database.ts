@@ -1,4 +1,10 @@
-import type { StreamerbotConnectionSettings } from "./StreamerbotChat";
+import type {
+  StreamerbotConnectionSettings,
+  ChatPlatform,
+  ChatEventType,
+  MessagePart,
+  ChatMessageMetadata,
+} from "./StreamerbotChat";
 
 /**
  * Database model type definitions
@@ -251,4 +257,23 @@ export type DbCueMessageInput = Omit<DbCueMessage, 'createdAt' | 'updatedAt'> & 
 
 export type DbCueMessageUpdate = Partial<Omit<DbCueMessage, 'id' | 'roomId' | 'createdAt'>> & {
   updatedAt?: number;
+};
+
+// Streamerbot Chat Message (global rolling buffer)
+export interface DbStreamerbotChatMessage {
+  id: string;
+  timestamp: number;
+  platform: ChatPlatform;
+  eventType: ChatEventType;
+  channel: string | null;
+  username: string;
+  displayName: string;
+  message: string;
+  parts: MessagePart[] | null;
+  metadata: ChatMessageMetadata | null;
+  createdAt: number;
+}
+
+export type DbStreamerbotChatMessageInput = Omit<DbStreamerbotChatMessage, 'createdAt'> & {
+  createdAt?: number;
 };
