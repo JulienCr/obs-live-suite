@@ -74,3 +74,4 @@ localhost+*.pem
 # VDO.ninja static files (download separately)
 server/static/vdoninja/*
 !server/static/vdoninja/README.md
+server/static/

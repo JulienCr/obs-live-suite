@@ -9,7 +9,27 @@ VDO.ninja requires a secure context (HTTPS) to access Web Crypto APIs used for W
 2. Hosts VDO.ninja locally on the backend HTTPS server
 3. Allows seamless access across your local network without browser security warnings
 
-## Setup Instructions
+## Quick Setup (Automated)
+
+Run the automated setup script:
+
+```bash
+pnpm setup:https
+```
+
+This script will:
+1. ✅ Check and guide mkcert installation
+2. ✅ Generate SSL certificates for localhost and your LAN IP
+3. ✅ Download and install VDO.ninja files
+4. ✅ Configure environment variables
+
+After running the script, start the app with `pnpm dev`.
+
+---
+
+## Manual Setup Instructions
+
+If you prefer manual setup or need to troubleshoot, follow these steps:
 
 ### Step 0: Install mkcert and Generate Certificates
 

@@ -11,6 +11,7 @@
     "dev:frontend": "node server.js",
     "dev:backend": "tsx watch server/backend.ts",
     "backend": "tsx server/backend.ts",
+    "setup:https": "node scripts/setup-https.js",
     "build": "node scripts/build-safe.js",
     "build:direct": "next build",
     "start": "next start -H 0.0.0.0",
