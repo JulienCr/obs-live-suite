@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
-import { ArrowDown, MessageSquare } from "lucide-react";
+import { ArrowDown, MessageSquare, Monitor, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   getMessageHighlights,
@@ -31,24 +31,33 @@ function formatTime(timestamp: number): string {
 }
 
 /**
- * Single chat message row component
+ * Single chat message row component with optional overlay button
  */
 function ChatMessageRow({
   message,
   preferences,
   virtualItem,
+  onShowInOverlay,
+  isShowingInOverlay,
+  isCurrentlyDisplayed,
+  measureRef,
 }: {
   message: ChatMessage;
   preferences: StreamerbotChatMessageListProps["preferences"];
-  virtualItem: { size: number; start: number };
+  virtualItem: { size: number; start: number; index: number };
+  onShowInOverlay?: () => void;
+  isShowingInOverlay?: boolean;
+  isCurrentlyDisplayed?: boolean;
+  measureRef: (node: HTMLDivElement | null) => void;
 }) {
   // Event messages (follow, sub, raid, etc.)
   if (message.eventType !== "message") {
     return (
       <div
+        ref={measureRef}
+        data-index={virtualItem.index}
         className="absolute top-0 left-0 w-full px-2"
         style={{
-          height: `${virtualItem.size}px`,
           transform: `translateY(${virtualItem.start}px)`,
         }}
       >
@@ -67,15 +76,16 @@ function ChatMessageRow({
 
   return (
     <div
+      ref={measureRef}
+      data-index={virtualItem.index}
       className={cn(
-        "absolute top-0 left-0 w-full px-2 py-1 hover:bg-muted/30 transition-colors",
+        "absolute top-0 left-0 w-full px-2 py-1 group hover:bg-muted/30 transition-colors",
         roleClasses,
         highlights.keyword && `border-l-2`,
         message.metadata?.isHighlighted && "bg-purple-500/10",
         preferences.compactMode ? "text-xs" : "text-sm"
       )}
       style={{
-        height: `${virtualItem.size}px`,
         transform: `translateY(${virtualItem.start}px)`,
         borderLeftColor: highlights.keyword?.color,
       }}
@@ -134,15 +144,40 @@ function ChatMessageRow({
           parts={message.parts}
           fallbackText={message.message}
           isMe={message.metadata?.isMe}
-          className="break-words min-w-0"
+          className="break-words min-w-0 flex-1"
         />
+
+        {/* Show in Overlay button (visible on hover) */}
+        {onShowInOverlay && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity",
+              (isShowingInOverlay || isCurrentlyDisplayed) && "opacity-100",
+              isCurrentlyDisplayed && "text-green-500"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowInOverlay();
+            }}
+            disabled={isShowingInOverlay}
+            title={isCurrentlyDisplayed ? "Currently on overlay" : "Show in overlay"}
+          >
+            {isShowingInOverlay ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Monitor className="h-3 w-3" />
+            )}
+          </Button>
+        )}
       </div>
     </div>
   );
 }
 
 /**
- * Virtualized message list component
+ * Virtualized message list component with optional overlay support
  */
 export function StreamerbotChatMessageList({
   messages,
@@ -151,15 +186,19 @@ export function StreamerbotChatMessageList({
   isAtBottom,
   onScrollChange,
   onScrollToBottom,
+  onShowInOverlay,
+  showingInOverlayId,
+  currentlyDisplayedId,
 }: StreamerbotChatMessageListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Virtual list configuration
+  // Virtual list configuration with dynamic row heights
   const rowVirtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => (preferences.compactMode ? 28 : 44),
     overscan: 10,
+    measureElement: (element) => element?.getBoundingClientRect().height ?? (preferences.compactMode ? 28 : 44),
   });
 
   // Auto-scroll to bottom when new messages arrive
@@ -228,6 +267,10 @@ export function StreamerbotChatMessageList({
                   message={message}
                   preferences={preferences}
                   virtualItem={virtualItem}
+                  onShowInOverlay={onShowInOverlay ? () => onShowInOverlay(message) : undefined}
+                  isShowingInOverlay={showingInOverlayId === message.id}
+                  isCurrentlyDisplayed={currentlyDisplayedId === message.id}
+                  measureRef={rowVirtualizer.measureElement}
                 />
               );
             })}

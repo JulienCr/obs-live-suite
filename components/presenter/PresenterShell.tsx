@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { VdoNinjaPanel } from "./panels/VdoNinjaPanel";
 import { CueFeedPanel } from "./panels/CueFeedPanel";
 import { QuickReplyPanel } from "./panels/QuickReplyPanel";
@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { Room } from "@/lib/models/Room";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
+import { useToast } from "@/hooks/use-toast";
+import type { CueMessage } from "@/lib/models/Cue";
 
 const DEFAULT_QUICK_REPLIES = ["Ready", "Need more context", "Delay 1 min", "Audio issue"];
 
@@ -35,10 +37,87 @@ export function PresenterShell() {
   } = usePresenterWebSocket(roomId, role);
 
   const overlayState = useOverlayState();
+  const { toast } = useToast();
+
+  const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
+  const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
 
   const handleClearHistory = async () => {
     await clearHistory();
   };
+
+  // Show/hide in overlay handler - toggle display of chat highlight overlay
+  const handleShowInOverlay = useCallback(async (message: CueMessage) => {
+    if (showingInOverlayId) return;
+    if (!message.questionPayload) return;
+
+    // Toggle: if already displayed, hide it
+    const isCurrentlyDisplayed = currentlyDisplayedId === message.id;
+    const action = isCurrentlyDisplayed ? "hide" : "show";
+
+    setShowingInOverlayId(message.id);
+    try {
+      const payload = message.questionPayload;
+      const response = await fetch("/api/overlays/chat-highlight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          action === "show"
+            ? {
+                action: "show",
+                payload: {
+                  messageId: message.id,
+                  platform: payload.platform || "twitch",
+                  username: payload.author?.toLowerCase() || "",
+                  displayName: payload.author || "",
+                  message: payload.text || "",
+                  parts: payload.parts,
+                  metadata: {
+                    color: payload.color,
+                    badges: payload.badges,
+                  },
+                  duration: 10,
+                },
+              }
+            : { action: "hide" }
+        ),
+      });
+
+      if (response.ok) {
+        if (action === "show") {
+          setCurrentlyDisplayedId(message.id);
+          toast({
+            title: "Showing in overlay",
+            description: `Message from ${payload.author}`,
+          });
+
+          // Auto-clear the displayed ID after duration
+          setTimeout(() => {
+            setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
+          }, 10000);
+        } else {
+          setCurrentlyDisplayedId(null);
+        }
+      } else {
+        const errorText = await response.text();
+        console.error("Failed to update overlay:", errorText);
+        toast({
+          title: "Error",
+          description: "Failed to update overlay",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to update overlay:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update overlay",
+        variant: "destructive",
+      });
+    } finally {
+      setShowingInOverlayId(null);
+    }
+  }, [showingInOverlayId, currentlyDisplayedId, toast]);
 
   // Fetch room configuration
   useEffect(() => {
@@ -141,6 +220,9 @@ export function PresenterShell() {
               onAction={sendAction}
               isPresenter={role === "presenter"}
               overlayState={overlayState}
+              onShowInOverlay={handleShowInOverlay}
+              showingInOverlayId={showingInOverlayId}
+              currentlyDisplayedId={currentlyDisplayedId}
             />
           </div>
 

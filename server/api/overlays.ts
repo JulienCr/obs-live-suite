@@ -11,10 +11,11 @@ import {
   LowerThirdEventType,
   CountdownEventType,
   PosterEventType,
+  ChatHighlightEventType,
   OverlayChannel
 } from "../../lib/models/OverlayEvents";
-import { lowerThirdShowPayloadSchema } from "../../lib/models/OverlayEvents";
-import { enrichLowerThirdPayload, enrichCountdownPayload, enrichPosterPayload } from "../../lib/utils/themeEnrichment";
+import { lowerThirdShowPayloadSchema, chatHighlightShowPayloadSchema } from "../../lib/models/OverlayEvents";
+import { enrichLowerThirdPayload, enrichCountdownPayload, enrichPosterPayload, enrichChatHighlightPayload } from "../../lib/utils/themeEnrichment";
 import { updatePosterSourceInOBS } from "./obs-helpers";
 import { Logger } from "../../lib/utils/Logger";
 
@@ -240,6 +241,38 @@ router.post("/poster-bigpicture", async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("[Overlays] BigPicture Poster error:", error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+/**
+ * POST /api/overlays/chat-highlight
+ * Control chat highlight overlay (displays a Twitch/YouTube chat message)
+ */
+router.post("/chat-highlight", async (req, res) => {
+  try {
+    const { action, payload } = req.body;
+
+    switch (action) {
+      case "show":
+        const validated = chatHighlightShowPayloadSchema.parse(payload);
+        const enrichedPayload = enrichChatHighlightPayload(validated, db);
+        console.log("[Backend] Chat highlight show:", validated.displayName, "- enriched:", !!enrichedPayload.theme);
+
+        await channelManager.publish(OverlayChannel.CHAT_HIGHLIGHT, ChatHighlightEventType.SHOW, enrichedPayload);
+        break;
+
+      case "hide":
+        await channelManager.publish(OverlayChannel.CHAT_HIGHLIGHT, ChatHighlightEventType.HIDE);
+        break;
+
+      default:
+        return res.status(400).json({ error: "Invalid action" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("[Overlays] Chat highlight error:", error);
     res.status(500).json({ error: String(error) });
   }
 });

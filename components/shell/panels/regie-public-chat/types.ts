@@ -18,6 +18,9 @@ export interface RegiePublicChatMessageListProps {
   onScrollToBottom: () => void;
   onHighlightMessage: (message: ChatMessage) => Promise<void>;
   highlightingMessageId: string | null;
+  onShowInOverlay: (message: ChatMessage) => Promise<void>;
+  showingInOverlayId: string | null;
+  currentlyDisplayedId: string | null;
 }
 
 // Re-export for convenience

@@ -10,6 +10,7 @@ export enum OverlayChannel {
   POSTER_BIGPICTURE = "poster-bigpicture",
   QUIZ = "quiz",
   SYSTEM = "system",
+  CHAT_HIGHLIGHT = "chat-highlight",
 }
 
 /**
@@ -59,6 +60,14 @@ export enum PosterEventType {
   SEEK = "seek",
   MUTE = "mute",
   UNMUTE = "unmute",
+}
+
+/**
+ * Chat highlight event types
+ */
+export enum ChatHighlightEventType {
+  SHOW = "show",
+  HIDE = "hide",
 }
 
 /**
@@ -199,6 +208,56 @@ export const posterSeekPayloadSchema = z.object({
 });
 
 export type PosterSeekPayload = z.infer<typeof posterSeekPayloadSchema>;
+
+/**
+ * Chat highlight message part schema
+ */
+export const chatHighlightMessagePartSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("text"), text: z.string() }),
+  z.object({ type: z.literal("emote"), name: z.string(), imageUrl: z.string() }),
+]);
+
+export type ChatHighlightMessagePart = z.infer<typeof chatHighlightMessagePartSchema>;
+
+/**
+ * Chat highlight show event payload
+ */
+export const chatHighlightShowPayloadSchema = z.object({
+  messageId: z.string(),
+  platform: z.enum(["twitch", "youtube", "trovo"]),
+  username: z.string(),
+  displayName: z.string(),
+  message: z.string(),
+  parts: z.array(chatHighlightMessagePartSchema).optional(),
+  metadata: z.object({
+    color: z.string().optional(),
+    badges: z.array(z.object({
+      name: z.string(),
+      imageUrl: z.string().optional(),
+    })).optional(),
+    isMod: z.boolean().optional(),
+    isVip: z.boolean().optional(),
+    isSubscriber: z.boolean().optional(),
+    isBroadcaster: z.boolean().optional(),
+  }).optional(),
+  duration: z.number().int().positive().default(10),
+  side: z.enum(["left", "right", "center"]).default("center"),
+  theme: z.object({
+    colors: z.object({
+      primary: z.string(),
+      accent: z.string(),
+      surface: z.string(),
+      text: z.string(),
+    }),
+    font: z.object({
+      family: z.string(),
+      size: z.number(),
+      weight: z.number(),
+    }),
+  }).optional(),
+});
+
+export type ChatHighlightShowPayload = z.infer<typeof chatHighlightShowPayloadSchema>;
 
 /**
  * Base overlay event schema

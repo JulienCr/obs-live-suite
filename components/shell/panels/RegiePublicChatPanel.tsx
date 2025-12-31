@@ -26,6 +26,8 @@ function RegiePublicChatContent() {
   const [connectionSettings, setConnectionSettings] = useState<StreamerbotConnectionSettings | null>(null);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [highlightingMessageId, setHighlightingMessageId] = useState<string | null>(null);
+  const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
+  const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
 
   // Fetch connection settings from default room
   useEffect(() => {
@@ -135,6 +137,74 @@ function RegiePublicChatContent() {
     }
   }, [highlightingMessageId, toast]);
 
+  // Show/hide in overlay handler - toggle display of chat highlight overlay
+  const handleShowInOverlay = useCallback(async (message: ChatMessage) => {
+    if (showingInOverlayId) return;
+
+    // Toggle: if already displayed, hide it
+    const isCurrentlyDisplayed = currentlyDisplayedId === message.id;
+    const action = isCurrentlyDisplayed ? "hide" : "show";
+
+    setShowingInOverlayId(message.id);
+    try {
+      const response = await fetch("/api/overlays/chat-highlight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          action === "show"
+            ? {
+                action: "show",
+                payload: {
+                  messageId: message.id,
+                  platform: message.platform,
+                  username: message.username,
+                  displayName: message.displayName,
+                  message: message.message,
+                  parts: message.parts,
+                  metadata: message.metadata,
+                  duration: 10,
+                },
+              }
+            : { action: "hide" }
+        ),
+      });
+
+      if (response.ok) {
+        if (action === "show") {
+          setCurrentlyDisplayedId(message.id);
+          toast({
+            title: "Showing in overlay",
+            description: `Message from ${message.displayName}`,
+          });
+
+          // Auto-clear the displayed ID after duration
+          setTimeout(() => {
+            setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
+          }, 10000);
+        } else {
+          setCurrentlyDisplayedId(null);
+        }
+      } else {
+        const errorText = await response.text();
+        console.error("Failed to update overlay:", errorText);
+        toast({
+          title: "Error",
+          description: "Failed to update overlay",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to update overlay:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update overlay",
+        variant: "destructive",
+      });
+    } finally {
+      setShowingInOverlayId(null);
+    }
+  }, [showingInOverlayId, currentlyDisplayedId, toast]);
+
   // Loading state
   if (loadingSettings) {
     return (
@@ -183,7 +253,7 @@ function RegiePublicChatContent() {
         onUpdatePreferences={updatePreferences}
       />
 
-      {/* Virtualized message list with highlight button */}
+      {/* Virtualized message list with highlight and overlay buttons */}
       <RegiePublicChatMessageList
         messages={filteredMessages}
         preferences={preferences}
@@ -193,6 +263,9 @@ function RegiePublicChatContent() {
         onScrollToBottom={() => setIsAtBottom(true)}
         onHighlightMessage={handleHighlightMessage}
         highlightingMessageId={highlightingMessageId}
+        onShowInOverlay={handleShowInOverlay}
+        showingInOverlayId={showingInOverlayId}
+        currentlyDisplayedId={currentlyDisplayedId}
       />
     </div>
   );

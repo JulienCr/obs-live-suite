@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { MessageSquare } from "lucide-react";
 import { useStreamerbotClient } from "../../hooks/useStreamerbotClient";
 import { useStreamerbotMessages } from "../../hooks/useStreamerbotMessages";
@@ -9,8 +9,9 @@ import { ChatMessageInput } from "../../chat/ChatMessageInput";
 import { StreamerbotChatHeader } from "./StreamerbotChatHeader";
 import { StreamerbotChatToolbar, SearchBar } from "./StreamerbotChatToolbar";
 import { StreamerbotChatMessageList } from "./StreamerbotChatMessageList";
-import type { StreamerbotChatPanelProps } from "./types";
+import type { StreamerbotChatPanelProps, ChatMessage } from "./types";
 import { StreamerbotConnectionStatus } from "./types";
+import { useToast } from "@/hooks/use-toast";
 
 /**
  * Streamer.bot Chat Panel - Main orchestrator component
@@ -23,8 +24,11 @@ export function StreamerbotChatPanel({
   roomId,
   allowSendMessage = false,
 }: StreamerbotChatPanelProps) {
+  const { toast } = useToast();
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
+  const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
+  const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
 
   // Chat settings from localStorage
   const {
@@ -67,6 +71,74 @@ export function StreamerbotChatPanel({
     },
   });
 
+  // Show/hide in overlay handler - toggle display of chat highlight overlay
+  const handleShowInOverlay = useCallback(async (message: ChatMessage) => {
+    if (showingInOverlayId) return;
+
+    // Toggle: if already displayed, hide it
+    const isCurrentlyDisplayed = currentlyDisplayedId === message.id;
+    const action = isCurrentlyDisplayed ? "hide" : "show";
+
+    setShowingInOverlayId(message.id);
+    try {
+      const response = await fetch("/api/overlays/chat-highlight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          action === "show"
+            ? {
+                action: "show",
+                payload: {
+                  messageId: message.id,
+                  platform: message.platform,
+                  username: message.username,
+                  displayName: message.displayName,
+                  message: message.message,
+                  parts: message.parts,
+                  metadata: message.metadata,
+                  duration: 10,
+                },
+              }
+            : { action: "hide" }
+        ),
+      });
+
+      if (response.ok) {
+        if (action === "show") {
+          setCurrentlyDisplayedId(message.id);
+          toast({
+            title: "Showing in overlay",
+            description: `Message from ${message.displayName}`,
+          });
+
+          // Auto-clear the displayed ID after duration
+          setTimeout(() => {
+            setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
+          }, 10000);
+        } else {
+          setCurrentlyDisplayedId(null);
+        }
+      } else {
+        const errorText = await response.text();
+        console.error("Failed to update overlay:", errorText);
+        toast({
+          title: "Error",
+          description: "Failed to update overlay",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to update overlay:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update overlay",
+        variant: "destructive",
+      });
+    } finally {
+      setShowingInOverlayId(null);
+    }
+  }, [showingInOverlayId, currentlyDisplayedId, toast]);
+
   // No settings configured - show placeholder
   if (!connectionSettings) {
     return (
@@ -105,7 +177,7 @@ export function StreamerbotChatPanel({
         onUpdatePreferences={updatePreferences}
       />
 
-      {/* Virtualized message list */}
+      {/* Virtualized message list with overlay button */}
       <StreamerbotChatMessageList
         messages={filteredMessages}
         preferences={preferences}
@@ -113,6 +185,9 @@ export function StreamerbotChatPanel({
         isAtBottom={isAtBottom}
         onScrollChange={setIsAtBottom}
         onScrollToBottom={() => setIsAtBottom(true)}
+        onShowInOverlay={handleShowInOverlay}
+        showingInOverlayId={showingInOverlayId}
+        currentlyDisplayedId={currentlyDisplayedId}
       />
 
       {/* Message input (when enabled) */}
