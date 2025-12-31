@@ -81,7 +81,7 @@ export type ContextPayload = z.infer<typeof contextPayloadSchema>;
  * Question-specific payload (promoted from Twitch chat)
  */
 export const questionPayloadSchema = z.object({
-  platform: z.literal("twitch"),
+  platform: z.enum(["twitch", "youtube", "trovo"]),
   author: z.string(),
   text: z.string(),
   messageUrl: z.string().url().optional(),
