@@ -27,77 +27,114 @@ Ce document liste toutes les pages et composants de l'application avec leur éta
 | Chat Event Message | `components/presenter/chat/ChatEventMessage.tsx` | ✅ Traduit |
 | Presenter Layout | `app/[locale]/presenter/layout.tsx` | ✅ Metadata traduits |
 
+### Dashboard
+| Page/Composant | Fichier | État |
+|----------------|---------|------|
+| Dashboard Header | `components/dashboard/DashboardHeader.tsx` | ✅ Traduit |
+| Lower Third Card | `components/dashboard/cards/LowerThirdCard.tsx` | ✅ Traduit |
+| Countdown Card | `components/dashboard/cards/CountdownCard.tsx` | ✅ Traduit |
+| Poster Card | `components/dashboard/cards/PosterCard.tsx` | ✅ Traduit |
+| Guests Card | `components/dashboard/cards/GuestsCard.tsx` | ✅ Traduit |
+| Event Log | `components/dashboard/EventLog.tsx` | ✅ Traduit |
+| Macros Bar | `components/dashboard/MacrosBar.tsx` | ✅ Traduit |
+| Widget Manager | `components/dashboard/widgets/WidgetManager.tsx` | ⏭️ N/A (no strings) |
+| Add Widget Dialog | `components/dashboard/widgets/AddWidgetDialog.tsx` | ✅ Traduit |
+| Widget Toolbar | `components/dashboard/widgets/WidgetToolbar.tsx` | ✅ Traduit |
+
+### Settings
+| Page/Composant | Fichier | État |
+|----------------|---------|------|
+| General Settings | `components/settings/GeneralSettings.tsx` | ✅ Traduit |
+| OBS Settings | `components/settings/OBSSettings.tsx` | ✅ Traduit |
+| Path Settings | `components/settings/PathSettings.tsx` | ✅ Traduit |
+| Plugin Settings | `components/settings/PluginSettings.tsx` | ✅ Traduit |
+| Room Settings | `components/settings/RoomSettings.tsx` | ✅ Traduit |
+
+### Profiles
+| Page/Composant | Fichier | État |
+|----------------|---------|------|
+| Profile Manager | `components/profiles/ProfileManager.tsx` | ✅ Traduit |
+
+### Quiz
+| Page/Composant | Fichier | État |
+|----------------|---------|------|
+| Quiz Host Top Bar | `components/quiz/host/QuizHostTopBar.tsx` | ✅ Traduit |
+| Quiz Host Navigator | `components/quiz/host/QuizHostNavigator.tsx` | ✅ Traduit |
+| Quiz Question Stage | `components/quiz/host/QuizQuestionStage.tsx` | ✅ Traduit |
+| Quiz Players Panel | `components/quiz/host/QuizPlayersPanel.tsx` | ✅ Traduit |
+| Live Scoreboard | `components/quiz/host/LiveScoreboard.tsx` | ✅ Traduit |
+| Question Editor | `components/quiz/manage/QuestionEditor.tsx` | ✅ Traduit |
+| Question List | `components/quiz/manage/QuestionList.tsx` | ✅ Traduit |
+| Round Editor | `components/quiz/manage/RoundEditor.tsx` | ✅ Traduit |
+
+### Theme Editor
+| Page/Composant | Fichier | État |
+|----------------|---------|------|
+| Theme Editor | `components/theme-editor/ThemeEditor.tsx` | ✅ Traduit |
+| Theme List | `components/theme-editor/ThemeList.tsx` | ✅ Traduit |
+| Theme Card | `components/theme-editor/ThemeCard.tsx` | ✅ Traduit |
+
+### Shell / Navigation
+| Page/Composant | Fichier | État |
+|----------------|---------|------|
+| Dashboard Shell | `components/shell/DashboardShell.tsx` | ✅ Traduit |
+| Admin Sidebar | `components/dashboard/AdminSidebar.tsx` | ✅ Traduit |
+| Command Palette | `components/shell/CommandPalette.tsx` | ✅ Traduit |
+| Header Overflow Menu | `components/dashboard/HeaderOverflowMenu.tsx` | ✅ Traduit |
+| Regie Internal Chat | `components/shell/panels/RegieInternalChatPanel.tsx` | ✅ Traduit |
+| App Shell | `components/shell/AppShell.tsx` | ⏭️ N/A (layout only) |
+
+### Shell Panels (Dockview)
+| Page/Composant | Fichier | État |
+|----------------|---------|------|
+| Lower Third Panel | `components/shell/panels/LowerThirdPanel.tsx` | ✅ Traduit |
+| Guests Panel | `components/shell/panels/GuestsPanel.tsx` | ✅ Traduit |
+| Poster Panel | `components/shell/panels/PosterPanel.tsx` | ⏭️ N/A (wrapper only) |
+| Countdown Panel | `components/shell/panels/CountdownPanel.tsx` | 📝 À traduire |
+| Macros Panel | `components/shell/panels/MacrosPanel.tsx` | 📝 À traduire |
+| Event Log Panel | `components/shell/panels/EventLogPanel.tsx` | 📝 À traduire |
+| Regie Public Chat | `components/shell/panels/RegiePublicChatPanel.tsx` | 📝 À traduire |
+| Regie Internal Chat View | `components/shell/panels/RegieInternalChatViewPanel.tsx` | 📝 À traduire |
+
+### Assets
+| Page/Composant | Fichier | État |
+|----------------|---------|------|
+| Guest Manager | `components/assets/GuestManager.tsx` | ✅ Traduit |
+| Poster Manager | `components/assets/PosterManager.tsx` | ✅ Traduit |
+| Guest Card | `components/assets/GuestCard.tsx` | ✅ Traduit |
+| Poster Uploader | `components/assets/PosterUploader.tsx` | ✅ Traduit |
+| Avatar Uploader | `components/assets/AvatarUploader.tsx` | ✅ Traduit |
+| Image Cropper | `components/assets/ImageCropper.tsx` | ✅ Traduit |
+| Poster Quick Add | `components/assets/PosterQuickAdd.tsx` | ✅ Traduit |
+
 ---
 
 ## Pages à traduire 📝
 
-### Dashboard
+### Shell Panels (Dockview)
 | Page/Composant | Fichier | Priorité |
 |----------------|---------|----------|
-| Dashboard Shell | `components/shell/DashboardShell.tsx` | Haute |
-| Dashboard Header | `components/dashboard/DashboardHeader.tsx` | Haute |
-| Admin Sidebar | `components/dashboard/AdminSidebar.tsx` | Haute |
-| Command Palette | `components/shell/CommandPalette.tsx` | Haute |
-| Countdown Card | `components/dashboard/cards/CountdownCard.tsx` | Moyenne |
-| Lower Third Card | `components/dashboard/cards/LowerThirdCard.tsx` | Moyenne |
-| Poster Card | `components/dashboard/cards/PosterCard.tsx` | Moyenne |
-| Widget Manager | `components/dashboard/widgets/WidgetManager.tsx` | Moyenne |
-| Add Widget Dialog | `components/dashboard/widgets/AddWidgetDialog.tsx` | Moyenne |
-| Event Log | `components/dashboard/EventLog.tsx` | Basse |
-| Macros Bar | `components/dashboard/MacrosBar.tsx` | Basse |
+| Countdown Panel | `components/shell/panels/CountdownPanel.tsx` | Moyenne |
+| Macros Panel | `components/shell/panels/MacrosPanel.tsx` | Moyenne |
+| Event Log Panel | `components/shell/panels/EventLogPanel.tsx` | Basse |
+| Regie Public Chat | `components/shell/panels/RegiePublicChatPanel.tsx` | Basse |
+| Regie Internal Chat View | `components/shell/panels/RegieInternalChatViewPanel.tsx` | Basse |
 
 ### Settings
 | Page/Composant | Fichier | Priorité |
 |----------------|---------|----------|
-| General Settings | `components/settings/GeneralSettings.tsx` | Haute |
-| OBS Settings | `components/settings/OBSSettings.tsx` | Haute |
-| Path Settings | `components/settings/PathSettings.tsx` | Moyenne |
-| Plugin Settings | `components/settings/PluginSettings.tsx` | Moyenne |
-| Room Settings | `components/settings/RoomSettings.tsx` | Haute |
 | Ollama Settings | `components/settings/OllamaSettings.tsx` | Basse |
 
 ### Assets
 | Page/Composant | Fichier | Priorité |
 |----------------|---------|----------|
-| Guest Manager | `components/assets/GuestManager.tsx` | Haute |
-| Guest Card | `components/assets/GuestCard.tsx` | Haute |
-| Poster Manager | `components/assets/PosterManager.tsx` | Haute |
-| Poster Card | `components/assets/PosterCard.tsx` | Haute |
-| Poster Uploader | `components/assets/PosterUploader.tsx` | Moyenne |
+| Poster Card (assets) | `components/assets/PosterCard.tsx` | Moyenne |
 | Theme Manager | `components/assets/ThemeManager.tsx` | Moyenne |
-| Avatar Uploader | `components/assets/AvatarUploader.tsx` | Basse |
-| Image Cropper | `components/assets/ImageCropper.tsx` | Basse |
-
-### Profiles
-| Page/Composant | Fichier | Priorité |
-|----------------|---------|----------|
-| Profile Manager | `components/profiles/ProfileManager.tsx` | Haute |
 
 ### Quiz
 | Page/Composant | Fichier | Priorité |
 |----------------|---------|----------|
-| Quiz Host Top Bar | `components/quiz/host/QuizHostTopBar.tsx` | Haute |
-| Quiz Host Navigator | `components/quiz/host/QuizHostNavigator.tsx` | Haute |
-| Quiz Question Stage | `components/quiz/host/QuizQuestionStage.tsx` | Haute |
-| Quiz Players Panel | `components/quiz/host/QuizPlayersPanel.tsx` | Haute |
-| Live Scoreboard | `components/quiz/host/LiveScoreboard.tsx` | Moyenne |
-| Question Editor | `components/quiz/manage/QuestionEditor.tsx` | Moyenne |
-| Question List | `components/quiz/manage/QuestionList.tsx` | Moyenne |
-| Round Editor | `components/quiz/manage/RoundEditor.tsx` | Moyenne |
 | Bulk Question Import | `components/quiz/manage/BulkQuestionImport.tsx` | Basse |
-
-### Theme Editor
-| Page/Composant | Fichier | Priorité |
-|----------------|---------|----------|
-| Theme Editor | `components/theme-editor/ThemeEditor.tsx` | Moyenne |
-| Theme List | `components/theme-editor/ThemeList.tsx` | Moyenne |
-| Theme Card | `components/theme-editor/ThemeCard.tsx` | Moyenne |
-
-### Shell / Navigation
-| Page/Composant | Fichier | Priorité |
-|----------------|---------|----------|
-| App Shell | `components/shell/AppShell.tsx` | Haute |
-| Navigation links | Sidebar, menus | Haute |
 
 ### Updater
 | Page/Composant | Fichier | Priorité |
@@ -187,6 +224,7 @@ assets          # Gestion des assets (invités, posters, thèmes)
 profiles        # Gestion des profils
 quiz            # Module Quiz
 navigation      # Liens de navigation, sidebar
+regieChat       # Panel chat interne régie
 ```
 
 ---
@@ -195,7 +233,7 @@ navigation      # Liens de navigation, sidebar
 
 | Fichier | Description |
 |---------|-------------|
-| `i18n/routing.ts` | Configuration des locales (fr, en) |
+| `i18n/routing.ts` | Configuration des locales (fr, en), `localeDetection: false` |
 | `i18n/request.ts` | Chargement des messages côté serveur |
 | `i18n/navigation.ts` | Helpers de navigation typés |
 | `middleware.ts` | Routing i18n (exclut /overlays et /api) |
@@ -209,11 +247,17 @@ navigation      # Liens de navigation, sidebar
 | Section | Composants | Traduits | Progression |
 |---------|------------|----------|-------------|
 | Presenter | 11 | 11 | 100% ✅ |
-| Dashboard | 11 | 0 | 0% |
-| Settings | 6 | 0 | 0% |
-| Assets | 8 | 0 | 0% |
-| Profiles | 1 | 0 | 0% |
-| Quiz | 9 | 0 | 0% |
-| Theme Editor | 3 | 0 | 0% |
-| Shell | 2 | 0 | 0% |
-| **Total** | **51** | **11** | **~22%** |
+| Dashboard | 11 | 11 | 100% ✅ |
+| Shell / Navigation | 6 | 5 | 83% |
+| Shell Panels (Dockview) | 8 | 3 | 38% |
+| Settings | 6 | 5 | 83% |
+| Assets | 9 | 7 | 78% |
+| Profiles | 1 | 1 | 100% ✅ |
+| Quiz | 9 | 8 | 89% |
+| Theme Editor | 3 | 3 | 100% ✅ |
+| Updater | 1 | 0 | 0% |
+| **Total** | **65** | **54** | **~83%** |
+
+> Note: Shell/Navigation - AppShell n'a pas besoin de traduction (layout uniquement).
+> Note: Shell Panels - PosterPanel est un wrapper qui utilise PosterCard (déjà traduit).
+> Note: Widget Manager n'a pas de strings à traduire (composant logique uniquement).

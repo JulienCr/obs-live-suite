@@ -1,5 +1,6 @@
 import { type IDockviewPanelProps } from "dockview-react";
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ interface WikipediaSearchOption {
  * Lower Third panel for Dockview - displays lower third controls without Card wrapper
  */
 export function LowerThirdPanel(props: IDockviewPanelProps) {
+  const t = useTranslations("dashboard.lowerThird");
   const [mode, setMode] = useState<"guest" | "text">("guest");
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -148,12 +150,12 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
     const queryToUse = selectedTitle || markdown;
     
     if (!queryToUse || typeof queryToUse !== 'string' || queryToUse.trim().length < 2) {
-      toast.error("Please enter at least 2 characters to search");
+      toast.error(t("toasts.searchMinChars"));
       return;
     }
 
     setIsWikipediaLoading(true);
-    const toastId = toast.loading(selectedTitle ? "Loading Wikipedia page..." : "Searching Wikipedia...");
+    const toastId = toast.loading(selectedTitle ? t("toasts.loadingWikipediaPage") : t("toasts.searchingWikipedia"));
 
     try {
       if (!selectedTitle) {
@@ -169,7 +171,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
           if (searchData.success && searchData.results && searchData.results.length > 1) {
             setWikipediaOptions(searchData.results);
             setShowWikipediaOptions(true);
-            toast.info(`Found ${searchData.results.length} options - please select one`, { id: toastId });
+            toast.info(t("toasts.foundOptions", { count: searchData.results.length }), { id: toastId });
             setIsWikipediaLoading(false);
             return;
           }
@@ -211,23 +213,23 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
         setShowWikipediaOptions(false);
         setWikipediaOptions([]);
 
-        toast.success("✓ Wikipedia content loaded - click Summarize or edit manually", {
+        toast.success("✓ " + t("toasts.wikiContentLoaded"), {
           id: toastId,
         });
       } else {
-        throw new Error(data.error || "Failed to load Wikipedia page");
+        throw new Error(data.error || t("toasts.failedLoadWiki"));
       }
     } catch (error) {
       console.error("Wikipedia search error:", error);
-      
-      let errorMessage = "Failed to load Wikipedia page";
+
+      let errorMessage = t("toasts.failedLoadWiki");
       if (error instanceof Error) {
         if (error.message.includes("not found")) {
-          errorMessage = "No Wikipedia page found. Try rephrasing your query.";
+          errorMessage = t("toasts.wikiPageNotFound");
         } else if (error.message.includes("timeout")) {
-          errorMessage = "Request timed out. Please try again.";
+          errorMessage = t("toasts.requestTimeout");
         } else if (error.message.includes("rate limit")) {
-          errorMessage = "Too many requests. Please wait a moment.";
+          errorMessage = t("toasts.rateLimitHit");
         } else {
           errorMessage = error.message;
         }
@@ -241,12 +243,12 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
 
   const handleSummarize = async () => {
     if (!markdown || markdown.trim().length < 50) {
-      toast.error("Please enter at least 50 characters to summarize");
+      toast.error(t("toasts.summarizeMinChars"));
       return;
     }
 
     setIsSummarizing(true);
-    const toastId = toast.loading("Summarizing with AI...");
+    const toastId = toast.loading(t("toasts.summarizingAI"));
 
     try {
       const response = await fetch("/api/llm/summarize", {
@@ -266,21 +268,21 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
         const summaryText = data.data.summary.join("\n");
         setMarkdown(summaryText);
 
-        toast.success("✓ Summary ready - edit and click Show", {
+        toast.success("✓ " + t("toasts.summaryReady"), {
           id: toastId,
         });
       } else {
-        throw new Error(data.error || "Summarization failed");
+        throw new Error(data.error || t("toasts.failedGenerateSummary"));
       }
     } catch (error) {
       console.error("Summarization error:", error);
-      
-      let errorMessage = "Failed to generate summary";
+
+      let errorMessage = t("toasts.failedGenerateSummary");
       if (error instanceof Error) {
         if (error.message.includes("rate limit")) {
-          errorMessage = "Too many requests. Please wait a moment.";
+          errorMessage = t("toasts.rateLimitHit");
         } else if (error.message.includes("LLM")) {
-          errorMessage = "LLM service unavailable. Check your settings.";
+          errorMessage = t("toasts.llmUnavailable");
         } else {
           errorMessage = error.message;
         }
@@ -303,7 +305,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
             onClick={() => setMode("guest")}
             className="flex-1"
           >
-            Guest
+            {t("guest")}
           </Button>
           <Button
             variant={mode === "text" ? "default" : "outline"}
@@ -311,24 +313,24 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
             onClick={() => setMode("text")}
             className="flex-1"
           >
-            Text
+            {t("text")}
           </Button>
         </div>
 
         {mode === "guest" ? (
         <div className="space-y-2">
-          <Label htmlFor="title">Title</Label>
+          <Label htmlFor="title">{t("titleLabel")}</Label>
           <Input
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter name..."
+            placeholder={t("enterName")}
           />
         </div>
         ) : (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="markdown">Markdown</Label>
+              <Label htmlFor="markdown">{t("markdown")}</Label>
               <div className="flex gap-2">
                 <Button
                   variant="ghost"
@@ -336,14 +338,14 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
                   onClick={() => handleWikipediaSearch()}
                   disabled={isWikipediaLoading || markdown.trim().length < 2}
                   className="h-8 gap-2"
-                  title="Search Wikipedia and load raw content"
+                  title={t("wikiSearchTooltip")}
                 >
                   {isWikipediaLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Search className="h-4 w-4" />
                   )}
-                  Wiki Search
+                  {t("wikiSearch")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -351,14 +353,14 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
                   onClick={() => handleSummarize()}
                   disabled={isSummarizing || markdown.trim().length < 50}
                   className="h-8 gap-2"
-                  title="Summarize text with AI"
+                  title={t("summarizeTooltip")}
                 >
                   {isSummarizing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Sparkles className="h-4 w-4" />
                   )}
-                  Summarize
+                  {t("summarize")}
                 </Button>
               </div>
             </div>
@@ -366,12 +368,12 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
               id="markdown"
               value={markdown}
               onChange={(e) => setMarkdown(e.target.value)}
-              placeholder="Write your lower third copy, paste text to summarize, or type a query and click Wiki Search"
+              placeholder={t("markdownPlaceholder")}
               className="min-h-[120px] w-full rounded border border-input bg-background px-2.5 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               disabled={isWikipediaLoading || isSummarizing}
             />
             <p className="text-xs text-muted-foreground">
-              Markdown supported. Use Wiki Search for Wikipedia content or Summarize to condense any text.
+              {t("markdownSupported")}
             </p>
           </div>
         )}
@@ -381,7 +383,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
           <div className="rounded-lg border border-yellow-200 bg-yellow-50/50 dark:border-yellow-900 dark:bg-yellow-950/20 p-3 space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-semibold text-yellow-900 dark:text-yellow-100">
-                Multiple pages found - select one:
+                {t("multiplePagesFound")}
               </h4>
               <Button
                 variant="ghost"
@@ -435,7 +437,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
                   rel="noopener noreferrer"
                   className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                 >
-                  Open Wikipedia page
+                  {t("openWikipediaPage")}
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
@@ -452,7 +454,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
             {/* Raw Extract Preview */}
             <details className="text-xs">
               <summary className="cursor-pointer text-blue-700 dark:text-blue-300 font-medium hover:underline">
-                View original Wikipedia extract
+                {t("viewOriginalExtract")}
               </summary>
               <div className="mt-2 p-2 bg-white dark:bg-gray-900 rounded border border-blue-200 dark:border-blue-800 text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto text-xs">
                 {wikipediaPreview.rawExtract}
@@ -463,23 +465,23 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
 
         {mode === "guest" && (
           <div className="space-y-2">
-            <Label htmlFor="subtitle">Subtitle</Label>
+            <Label htmlFor="subtitle">{t("subtitle")}</Label>
             <Input
               id="subtitle"
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
-              placeholder="Enter role..."
+              placeholder={t("enterRole")}
             />
           </div>
         )}
 
         {mode === "text" && (
           <div className="space-y-2">
-            <Label>Image (optional)</Label>
+            <Label>{t("imageOptional")}</Label>
             <PosterQuickAdd
               mode="picker"
               allowedTypes={["image"]}
-              title="Quick Add Image"
+              title={t("quickAddImage")}
               showTitleEditor={false}
               onMediaSelected={(media) => {
                 setImageUrl(media.fileUrl);
@@ -494,7 +496,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
                   className="h-16 w-28 rounded object-cover"
                 />
                 <div className="flex-1 text-xs text-muted-foreground">
-                  {imageAlt || "Selected image"}
+                  {imageAlt || t("selectedImage")}
                 </div>
                 <Button
                   variant="ghost"
@@ -504,7 +506,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
                     setImageAlt("");
                   }}
                 >
-                  Clear
+                  {t("clear")}
                 </Button>
               </div>
             )}
@@ -518,7 +520,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
             onClick={() => setSide("left")}
             className="flex-1"
           >
-            Left
+            {t("left")}
           </Button>
           <Button
             variant={side === "right" ? "default" : "outline"}
@@ -526,7 +528,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
             onClick={() => setSide("right")}
             className="flex-1"
           >
-            Right
+            {t("right")}
           </Button>
           <Button
             variant={side === "center" ? "default" : "outline"}
@@ -534,7 +536,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
             onClick={() => setSide("center")}
             className="flex-1"
           >
-            Center
+            {t("center")}
           </Button>
         </div>
 
@@ -547,7 +549,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
             className="flex-1"
           >
             <Eye className="w-4 h-4 mr-2" />
-            Show
+            {t("show")}
           </Button>
           <Button
             variant="secondary"
@@ -557,7 +559,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
             className="flex-1"
           >
             <EyeOff className="w-4 h-4 mr-2" />
-            Hide
+            {t("hide")}
           </Button>
           <Button
             variant="outline"

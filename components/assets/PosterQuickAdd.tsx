@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, ChangeEvent, DragEvent, ClipboardEvent as ReactClipboardEvent } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -53,9 +54,12 @@ export function PosterQuickAdd({
   onMediaSelected,
   mode = "poster",
   allowedTypes = ["image", "video", "youtube"],
-  title = "Quick Add Media",
+  title,
   showTitleEditor = true,
 }: PosterQuickAddProps) {
+  const t = useTranslations("assets.quickAdd");
+  const isImageOnly = allowedTypes.length === 1 && allowedTypes[0] === "image";
+  const displayTitle = title ?? (isImageOnly ? t("titleImageOnly") : t("title"));
   const [urlInput, setUrlInput] = useState("");
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -85,7 +89,7 @@ export function PosterQuickAdd({
     const fileType: MediaType | null = isImage ? "image" : isVideo ? "video" : null;
 
     if (!fileType || !isTypeAllowed(fileType)) {
-      showError(`Only ${allowedTypes.join(", ")} uploads are allowed here.`);
+      showError(t("errors.typesNotAllowed", { types: allowedTypes.join(", ") }));
       return;
     }
 
@@ -131,7 +135,7 @@ export function PosterQuickAdd({
    */
   const handleYouTubeUrl = async (url: string) => {
     if (!isTypeAllowed("youtube")) {
-      showError("YouTube links are not allowed here.");
+      showError(t("errors.youtubeNotAllowed"));
       return;
     }
 
@@ -141,7 +145,7 @@ export function PosterQuickAdd({
     try {
       const videoId = extractYouTubeId(url);
       if (!videoId) {
-        throw new Error("Invalid YouTube URL. Use youtube.com/watch?v=... or youtu.be/...");
+        throw new Error(t("errors.invalidYoutubeUrl"));
       }
 
       const embedUrl = `https://www.youtube.com/embed/${videoId}`;
@@ -186,7 +190,7 @@ export function PosterQuickAdd({
   const handleDirectMediaUrl = async (url: string) => {
     const mediaType = getMediaTypeFromUrl(url);
     if (!mediaType || !isTypeAllowed(mediaType)) {
-      showError(`Only ${allowedTypes.join(", ")} URLs are allowed here.`);
+      showError(t("errors.urlTypesNotAllowed", { types: allowedTypes.join(", ") }));
       return;
     }
 
@@ -247,11 +251,7 @@ export function PosterQuickAdd({
     } else if (isDirectMediaUrl(trimmed)) {
       handleDirectMediaUrl(trimmed);
     } else {
-      showError(
-        allowedTypes.length === 1 && allowedTypes[0] === "image"
-          ? "Invalid URL. Paste a direct link to an image file."
-          : "Invalid URL. Paste a YouTube URL or a direct link to an image/video file."
-      );
+      showError(isImageOnly ? t("errors.invalidUrlImage") : t("errors.invalidUrlFull"));
     }
   };
 
@@ -423,7 +423,7 @@ export function PosterQuickAdd({
 
   return (
     <div className="space-y-3 mb-4 pb-4 border-b">
-      <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+      <h3 className="text-sm font-medium text-muted-foreground">{displayTitle}</h3>
 
       {/* Input Row */}
       <div className="flex gap-2">
@@ -440,11 +440,7 @@ export function PosterQuickAdd({
           <Input
             ref={urlInputRef}
             type="text"
-            placeholder={
-              allowedTypes.length === 1 && allowedTypes[0] === "image"
-                ? "Paste image URL, or Ctrl+V a file..."
-                : "Paste YouTube URL, image/video URL, or Ctrl+V a file..."
-            }
+            placeholder={isImageOnly ? t("placeholderImageOnly") : t("placeholderFull")}
             value={urlInput}
             onChange={handleUrlInputChange}
             onPaste={handleInputPaste}
@@ -465,7 +461,7 @@ export function PosterQuickAdd({
           disabled={uploading || processing || !!preview}
         >
           <Upload className="w-4 h-4 mr-2" />
-          Browse Files
+          {t("browseFiles")}
         </Button>
 
         <input
@@ -480,9 +476,7 @@ export function PosterQuickAdd({
       {/* Hint text */}
       {!preview && !uploading && !processing && (
         <p className="text-xs text-muted-foreground">
-          💡 {allowedTypes.length === 1 && allowedTypes[0] === "image"
-            ? "Paste an image URL, or Ctrl+V a file from your clipboard"
-            : "Paste YouTube URL, image/video URL, or Ctrl+V a file from your clipboard"}
+          💡 {isImageOnly ? t("hintImageOnly") : t("hintFull")}
         </p>
       )}
 
@@ -490,7 +484,7 @@ export function PosterQuickAdd({
       {(uploading || processing) && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span>{uploading ? "Uploading..." : "Processing..."}</span>
+          <span>{uploading ? t("uploading") : t("processing")}</span>
         </div>
       )}
 
@@ -534,13 +528,13 @@ export function PosterQuickAdd({
             <div className="flex-1 space-y-2">
               {showTitleEditor && (
                 <div>
-                  <label className="text-xs text-muted-foreground">Title</label>
+                  <label className="text-xs text-muted-foreground">{t("titleLabel")}</label>
                   <Input
                     value={preview.title}
                     onChange={(e) =>
                       setPreview({ ...preview, title: e.target.value })
                     }
-                    placeholder="Enter title"
+                    placeholder={t("enterTitle")}
                     className="h-8"
                   />
                 </div>
@@ -568,7 +562,7 @@ export function PosterQuickAdd({
                 onClick={handleUseMedia}
                 disabled={processing}
               >
-                {allowedTypes.length === 1 && allowedTypes[0] === "image" ? "Use Image" : "Use Media"}
+                {isImageOnly ? t("useImage") : t("useMedia")}
               </Button>
             ) : (
               <>
@@ -578,7 +572,7 @@ export function PosterQuickAdd({
                   onClick={handleAddToAssets}
                   disabled={!preview.title || processing}
                 >
-                  Add to Assets
+                  {t("addToAssets")}
                 </Button>
 
                 <Button
@@ -587,7 +581,7 @@ export function PosterQuickAdd({
                   onClick={() => handleDisplay("left")}
                   disabled={!preview.title || processing}
                 >
-                  Display Left
+                  {t("displayLeft")}
                 </Button>
 
                 <Button
@@ -596,7 +590,7 @@ export function PosterQuickAdd({
                   onClick={() => handleDisplay("right")}
                   disabled={!preview.title || processing}
                 >
-                  Display Right
+                  {t("displayRight")}
                 </Button>
 
                 <Button
@@ -605,7 +599,7 @@ export function PosterQuickAdd({
                   onClick={() => handleDisplay("bigpicture")}
                   disabled={!preview.title || processing}
                 >
-                  Display Big
+                  {t("displayBig")}
                 </Button>
               </>
             )}
@@ -617,7 +611,7 @@ export function PosterQuickAdd({
               disabled={processing}
               className="ml-auto"
             >
-              Clear
+              {t("clear")}
             </Button>
           </div>
         </div>
