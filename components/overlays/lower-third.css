@@ -5,6 +5,11 @@
   --lt-timing-bar-expand: 0.45s;
   --lt-timing-text-fade: 0.25s;
   --lt-timing-text-slide: 0.35s;
+  /* Exit animation timings */
+  --lt-exit-text-duration: 250ms;
+  --lt-exit-bar-duration: 250ms;
+  --lt-exit-avatar-delay: 200ms;
+  --lt-exit-avatar-duration: 300ms;
   --lt-color-title: white;
   --lt-color-subtitle: rgba(255, 255, 255, 0.75);
   --lt-color-bar-bg: rgba(15, 16, 20, 0.75);
@@ -16,9 +21,6 @@
 }
 
 .lowerthird {
-  position: fixed;
-  left: 60px;
-  bottom: 80px;
   display: flex;
   align-items: center;
   pointer-events: none;
@@ -27,6 +29,7 @@
 .lowerthird--center {
   justify-content: center;
 }
+
 
 /* Set max-width constraint on text mode container */
 .lowerthird--text {
@@ -236,21 +239,53 @@
   color: var(--lt-color-subtitle);
 }
 
-/* Animation out states */
-.lowerthird.animate-out .face.front {
-  opacity: 0;
-  transform: scale(0.9);
+/* Keyframes for exit animations */
+@keyframes lt-text-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
 }
 
-.lowerthird.animate-out .avatar.flip .avatar-inner {
-  transform: rotateY(0deg);
+@keyframes lt-bar-out {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes lt-avatar-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+
+/* Animation out states - sequenced timeline:
+   Phase 1 (0-250ms): Text fades + bar shrinks to left
+   Phase 2 (200-500ms): Avatar shrinks from center + fades */
+
+.lowerthird.animate-out .text {
+  animation: lt-text-out var(--lt-exit-text-duration) ease forwards;
 }
 
 .lowerthird.animate-out .bar {
-  transform: scaleX(0);
+  transform-origin: left;
+  animation: lt-bar-out var(--lt-exit-bar-duration) ease forwards;
 }
 
-.lowerthird.animate-out .text {
-  opacity: 0;
-  transform: translateX(-10px);
+/* Avatar: shrinks from center with delay (after text/bar) */
+.lowerthird.animate-out .avatar {
+  animation: lt-avatar-out var(--lt-exit-avatar-duration) ease var(--lt-exit-avatar-delay) forwards;
+  transform-origin: center;
 }
