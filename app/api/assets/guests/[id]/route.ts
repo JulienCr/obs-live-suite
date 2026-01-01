@@ -2,38 +2,42 @@ import { NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { updateGuestSchema } from "@/lib/models/Guest";
 
+type RouteParams = { params: Promise<{ id: string }> };
+
 /**
  * PATCH /api/assets/guests/[id]
  * Update guest
  */
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: Request, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const body = await request.json();
     console.log("[PATCH Guest] Received body:", body);
-    
+
     // Clean up empty strings - convert to null for optional fields
     // Don't use || because it converts empty string to undefined
     const cleanedBody = {
-      id: params.id, // Add the ID from URL params
+      id, // Add the ID from URL params
       ...body,
-      ...(body.subtitle !== undefined && { subtitle: body.subtitle === "" ? null : body.subtitle }),
-      ...(body.avatarUrl !== undefined && { avatarUrl: body.avatarUrl === "" ? null : body.avatarUrl }),
+      ...(body.subtitle !== undefined && {
+        subtitle: body.subtitle === "" ? null : body.subtitle,
+      }),
+      ...(body.avatarUrl !== undefined && {
+        avatarUrl: body.avatarUrl === "" ? null : body.avatarUrl,
+      }),
     };
-    
+
     console.log("[PATCH Guest] Cleaned body:", cleanedBody);
     const updates = updateGuestSchema.parse(cleanedBody);
     console.log("[PATCH Guest] Validated updates:", updates);
-    
+
     const db = DatabaseService.getInstance();
-    db.updateGuest(params.id, {
+    db.updateGuest(id, {
       ...updates,
       updatedAt: new Date(),
     });
-    
-    const guest = db.getGuestById(params.id);
+
+    const guest = db.getGuestById(id);
     console.log("[PATCH Guest] Updated guest:", guest);
     return NextResponse.json({ guest });
   } catch (error) {
@@ -49,14 +53,12 @@ export async function PATCH(
  * DELETE /api/assets/guests/[id]
  * Delete guest
  */
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const db = DatabaseService.getInstance();
-    db.deleteGuest(params.id);
-    
+    db.deleteGuest(id);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

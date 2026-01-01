@@ -13,10 +13,12 @@ import { LowerThirdTab } from "./tabs/LowerThirdTab";
 import { CountdownTab } from "./tabs/CountdownTab";
 import { PositioningTab } from "./tabs/PositioningTab";
 import { useThemeEditor } from "./ThemeEditorContext";
+import { useTranslations } from "next-intl";
+import { CreateThemeInput } from "@/lib/models/Theme";
 
 interface ThemeEditorProps {
   isCreating: boolean;
-  onSave: () => void;
+  onSave: (data: Partial<CreateThemeInput>) => void;
   onCancel: () => void;
 }
 
@@ -24,6 +26,7 @@ interface ThemeEditorProps {
  * Main theme editor with tabs and canvas
  */
 export function ThemeEditor({ isCreating, onSave, onCancel }: ThemeEditorProps) {
+  const t = useTranslations("themeEditor");
   const {
     formData,
     updateName,
@@ -33,39 +36,43 @@ export function ThemeEditor({ isCreating, onSave, onCancel }: ThemeEditorProps) 
     enableOBSPreview,
   } = useThemeEditor();
 
+  const handleSave = () => {
+    onSave(formData);
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-semibold">
-            {isCreating ? "Create Theme" : "Edit Theme"}
+            {isCreating ? t("createTheme") : t("editTheme")}
           </h2>
           {enableOBSPreview && (
             <Badge variant="secondary" className="text-xs">
               <Eye className="w-3 h-3 mr-1" />
-              Live Preview
+              {t("livePreview")}
             </Badge>
           )}
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={onCancel}>
             <X className="w-4 h-4 mr-2" />
-            Cancel
+            {t("cancel")}
           </Button>
-          <Button onClick={onSave}>Save Theme</Button>
+          <Button onClick={handleSave}>{t("saveTheme")}</Button>
         </div>
       </div>
 
       {/* Theme Name */}
       <Card className="p-4">
         <div className="space-y-2">
-          <Label htmlFor="theme-name">Theme Name</Label>
+          <Label htmlFor="theme-name">{t("themeName")}</Label>
           <Input
             id="theme-name"
             value={formData.name || ""}
             onChange={(e) => updateName(e.target.value)}
-            placeholder="Enter theme name..."
+            placeholder={t("themeNamePlaceholder")}
           />
         </div>
       </Card>
@@ -73,7 +80,7 @@ export function ThemeEditor({ isCreating, onSave, onCancel }: ThemeEditorProps) 
       {/* Live Preview Canvas */}
       <Card className="p-4">
         <div className="space-y-3">
-          <div className="text-sm font-semibold">Live Preview Canvas</div>
+          <div className="text-sm font-semibold">{t("livePreviewCanvas")}</div>
           <OverlayCanvas
             lowerThirdColors={formData.colors || { primary: "#3B82F6", accent: "#60A5FA", surface: "#1E293B", text: "#F8FAFC", success: "#10B981", warn: "#F59E0B" }}
             lowerThirdFont={formData.lowerThirdFont || { family: "Inter, sans-serif", size: 28, weight: 700 }}
@@ -92,10 +99,10 @@ export function ThemeEditor({ isCreating, onSave, onCancel }: ThemeEditorProps) 
       {/* Tabbed Settings */}
       <Tabs defaultValue="colors" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="colors">Colors</TabsTrigger>
-          <TabsTrigger value="lower-third">Lower Third</TabsTrigger>
-          <TabsTrigger value="countdown">Countdown</TabsTrigger>
-          <TabsTrigger value="positioning">Positioning</TabsTrigger>
+          <TabsTrigger value="colors">{t("tabs.colors")}</TabsTrigger>
+          <TabsTrigger value="lower-third">{t("tabs.lowerThird")}</TabsTrigger>
+          <TabsTrigger value="countdown">{t("tabs.countdown")}</TabsTrigger>
+          <TabsTrigger value="positioning">{t("tabs.positioning")}</TabsTrigger>
         </TabsList>
 
         <Card className="p-6">

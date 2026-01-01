@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { updateThemeSchema, ThemeModel } from "@/lib/models/Theme";
 
+type RouteParams = { params: Promise<{ id: string }> };
+
 /**
  * GET a single theme by ID
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const db = DatabaseService.getInstance();
-    const theme = db.getThemeById(params.id);
+    const theme = db.getThemeById(id);
 
     if (!theme) {
       return NextResponse.json({ error: "Theme not found" }, { status: 404 });
@@ -30,16 +30,14 @@ export async function GET(
 /**
  * PUT update a theme
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const body = await request.json();
-    const validated = updateThemeSchema.parse({ ...body, id: params.id });
+    const validated = updateThemeSchema.parse({ ...body, id });
 
     const db = DatabaseService.getInstance();
-    const existing = db.getThemeById(params.id);
+    const existing = db.getThemeById(id);
 
     if (!existing) {
       return NextResponse.json({ error: "Theme not found" }, { status: 404 });
@@ -51,7 +49,7 @@ export async function PUT(
       updatedAt: new Date(),
     });
 
-    db.updateTheme(params.id, theme.toJSON());
+    db.updateTheme(id, theme.toJSON());
 
     return NextResponse.json({ theme: theme.toJSON() }, { status: 200 });
   } catch (error) {
@@ -66,13 +64,11 @@ export async function PUT(
 /**
  * DELETE a theme
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const db = DatabaseService.getInstance();
-    const theme = db.getThemeById(params.id);
+    const theme = db.getThemeById(id);
 
     if (!theme) {
       return NextResponse.json({ error: "Theme not found" }, { status: 404 });
@@ -80,7 +76,7 @@ export async function DELETE(
 
     // Check if theme is in use by any profile
     const profiles = db.getAllProfiles();
-    const inUse = profiles.some((p) => p.themeId === params.id);
+    const inUse = profiles.some((p) => p.themeId === id);
 
     if (inUse) {
       return NextResponse.json(
@@ -89,7 +85,7 @@ export async function DELETE(
       );
     }
 
-    db.deleteTheme(params.id);
+    db.deleteTheme(id);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
