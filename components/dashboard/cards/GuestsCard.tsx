@@ -30,11 +30,25 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
   const [loading, setLoading] = useState(true);
   const [totalEnabledGuests, setTotalEnabledGuests] = useState(0);
   const [activeGuestId, setActiveGuestId] = useState<string | null>(null);
+  const [lowerThirdDuration, setLowerThirdDuration] = useState(8); // Default, will be updated from settings
   const wsRef = useRef<WebSocket | null>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchGuests();
+    // Fetch overlay settings
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/settings/overlay");
+        const data = await res.json();
+        if (data.settings?.lowerThirdDuration) {
+          setLowerThirdDuration(data.settings.lowerThirdDuration);
+        }
+      } catch (error) {
+        console.error("Failed to fetch overlay settings:", error);
+      }
+    };
+    fetchSettings();
   }, []);
 
   // WebSocket connection to track active lower third
@@ -171,7 +185,7 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          duration: 8, // Auto-hide after 8 seconds
+          duration: lowerThirdDuration,
         }),
       });
     } catch (error) {

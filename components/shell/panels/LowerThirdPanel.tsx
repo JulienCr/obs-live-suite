@@ -1,5 +1,5 @@
 import { type IDockviewPanelProps } from "dockview-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +38,23 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
   const [wikipediaPreview, setWikipediaPreview] = useState<WikipediaPreview | null>(null);
   const [wikipediaOptions, setWikipediaOptions] = useState<WikipediaSearchOption[]>([]);
   const [showWikipediaOptions, setShowWikipediaOptions] = useState(false);
+  const [lowerThirdDuration, setLowerThirdDuration] = useState(8); // Default, will be updated from settings
+
+  // Fetch overlay settings on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/settings/overlay");
+        const data = await res.json();
+        if (data.settings?.lowerThirdDuration) {
+          setLowerThirdDuration(data.settings.lowerThirdDuration);
+        }
+      } catch (error) {
+        console.error("Failed to fetch overlay settings:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const handleShow = async () => {
     try {
@@ -100,14 +117,14 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
               imageUrl: imageUrl || undefined,
               imageAlt: imageAlt || undefined,
               side,
-              duration: 5,
+              duration: lowerThirdDuration,
             }
           : {
               contentType: "guest",
               title,
               subtitle,
               side,
-              duration: 5,
+              duration: lowerThirdDuration,
             };
 
       const response = await fetch("/api/actions/lower/show", {
@@ -121,7 +138,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
       }
 
       setIsVisible(true);
-      setTimeout(() => setIsVisible(false), 5000);
+      setTimeout(() => setIsVisible(false), lowerThirdDuration * 1000);
     } catch (error) {
       console.error("Error showing lower third:", error);
     }

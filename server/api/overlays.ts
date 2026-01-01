@@ -6,6 +6,7 @@
 import { Router } from "express";
 import { ChannelManager } from "../../lib/services/ChannelManager";
 import { DatabaseService } from "../../lib/services/DatabaseService";
+import { SettingsService } from "../../lib/services/SettingsService";
 import { OBSConnectionManager } from "../../lib/adapters/obs/OBSConnectionManager";
 import {
   LowerThirdEventType,
@@ -256,8 +257,27 @@ router.post("/chat-highlight", async (req, res) => {
     switch (action) {
       case "show":
         const validated = chatHighlightShowPayloadSchema.parse(payload);
-        const enrichedPayload = enrichChatHighlightPayload(validated, db);
-        console.log("[Backend] Chat highlight show:", validated.displayName, "- enriched:", !!enrichedPayload.theme);
+
+        // Get overlay settings for duration and auto-hide
+        const settingsService = SettingsService.getInstance();
+        const overlaySettings = settingsService.getOverlaySettings();
+
+        // Apply duration from settings if not explicitly provided in payload
+        // If autoHide is disabled, set duration to 0 (no auto-hide)
+        let finalPayload = { ...validated };
+        if (!overlaySettings.chatHighlightAutoHide) {
+          // Auto-hide disabled: set duration to 0 (overlay won't auto-hide)
+          finalPayload.duration = 0;
+        } else if (!payload.duration) {
+          // Auto-hide enabled but no duration specified: use settings default
+          finalPayload.duration = overlaySettings.chatHighlightDuration;
+        }
+
+        const enrichedPayload = enrichChatHighlightPayload(finalPayload, db);
+        console.log("[Backend] Chat highlight show:", validated.displayName,
+          "- duration:", finalPayload.duration,
+          "- autoHide:", overlaySettings.chatHighlightAutoHide,
+          "- enriched:", !!enrichedPayload.theme);
 
         await channelManager.publish(OverlayChannel.CHAT_HIGHLIGHT, ChatHighlightEventType.SHOW, enrichedPayload);
         break;
