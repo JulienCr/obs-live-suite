@@ -5,7 +5,7 @@
 
 import WebSocket from "ws";
 import { streamDeck } from "@elgato/streamdeck";
-import { WS_PORT } from "../../../../lib/config/urls";
+import { ConfigManager } from "./config-manager";
 
 export interface CountdownState {
 	running: boolean;
@@ -23,7 +23,6 @@ export class WebSocketManager {
 	private ws: WebSocket | null = null;
 	private reconnectTimeout: NodeJS.Timeout | null = null;
 	private readonly reconnectDelay = 3000;
-	private readonly wsUrl = `ws://127.0.0.1:${WS_PORT}`;
 	private countdownCallbacks: Set<CountdownCallback> = new Set();
 	private countdownState: CountdownState = {
 		running: false,
@@ -31,6 +30,23 @@ export class WebSocketManager {
 		seconds: 0,
 		totalSeconds: 0,
 	};
+	private configChangeHandler: (() => void) | null = null;
+
+	constructor() {
+		// Register for config changes to reconnect when settings change
+		this.configChangeHandler = () => {
+			streamDeck.logger.info("[WS] Config changed, reconnecting...");
+			this.reconnect();
+		};
+		ConfigManager.onConfigChange(this.configChangeHandler);
+	}
+
+	/**
+	 * Get current WebSocket URL from ConfigManager
+	 */
+	private getWsUrl(): string {
+		return ConfigManager.getWebSocketUrl();
+	}
 
 	/**
 	 * Connect to the WebSocket server
@@ -40,8 +56,16 @@ export class WebSocketManager {
 			return;
 		}
 
+		const wsUrl = this.getWsUrl();
+
 		try {
-			this.ws = new WebSocket(this.wsUrl);
+			// Create WebSocket with options for self-signed certificates
+			const wsOptions: WebSocket.ClientOptions = {};
+			if (ConfigManager.shouldTrustSelfSigned()) {
+				wsOptions.rejectUnauthorized = false;
+			}
+
+			this.ws = new WebSocket(wsUrl, wsOptions);
 
 			this.ws.on("open", () => {
 				streamDeck.logger.info("[WS] Connected to backend");
@@ -188,11 +212,24 @@ export class WebSocketManager {
 	}
 
 	/**
+	 * Reconnect to WebSocket (disconnect and connect again)
+	 * Called when configuration changes
+	 */
+	reconnect(): void {
+		this.disconnect();
+		// Small delay before reconnecting
+		setTimeout(() => {
+			this.connect();
+		}, 100);
+	}
+
+	/**
 	 * Disconnect from WebSocket
 	 */
 	disconnect(): void {
 		if (this.reconnectTimeout) {
 			clearTimeout(this.reconnectTimeout);
+			this.reconnectTimeout = null;
 		}
 		if (this.ws) {
 			this.ws.close();

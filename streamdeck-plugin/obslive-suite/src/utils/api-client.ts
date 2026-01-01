@@ -5,7 +5,7 @@
 
 import http from "http";
 import https from "https";
-import { APP_PORT, BACKEND_PORT } from "../../../../lib/config/urls";
+import { ConfigManager } from "./config-manager";
 
 export interface Guest {
 	id: string;
@@ -26,16 +26,19 @@ export interface Poster {
 }
 
 /**
- * Configuration for API endpoints
- * Port values imported from lib/config/urls.ts (single source of truth)
+ * Get API configuration from ConfigManager
+ * URLs are computed dynamically based on global settings
  */
-export const API_CONFIG = {
-	nextjs: `http://127.0.0.1:${APP_PORT}`,
-	backend: `http://127.0.0.1:${BACKEND_PORT}`,
-};
+function getApiConfig(): { nextjs: string; backend: string } {
+	return {
+		nextjs: ConfigManager.getNextjsUrl(),
+		backend: ConfigManager.getBackendUrl(),
+	};
+}
 
 /**
  * Makes an HTTP/HTTPS request and returns parsed JSON
+ * Supports self-signed certificates based on ConfigManager settings
  */
 async function request<T>(url: string, options: { method?: string; body?: string } = {}): Promise<T> {
 	return new Promise((resolve, reject) => {
@@ -44,7 +47,7 @@ async function request<T>(url: string, options: { method?: string; body?: string
 			const isHttps = urlObj.protocol === "https:";
 			const client = isHttps ? https : http;
 
-			const requestOptions: http.RequestOptions = {
+			const requestOptions: http.RequestOptions | https.RequestOptions = {
 				hostname: urlObj.hostname,
 				port: urlObj.port || (isHttps ? 443 : 80),
 				path: urlObj.pathname + urlObj.search,
@@ -54,6 +57,11 @@ async function request<T>(url: string, options: { method?: string; body?: string
 					...(options.body ? { "Content-Length": Buffer.byteLength(options.body) } : {}),
 				},
 			};
+
+			// For HTTPS, handle self-signed certificates
+			if (isHttps && ConfigManager.shouldTrustSelfSigned()) {
+				(requestOptions as https.RequestOptions).rejectUnauthorized = false;
+			}
 
 			const req = client.request(requestOptions, (res) => {
 				let data = "";
@@ -92,6 +100,28 @@ async function request<T>(url: string, options: { method?: string; body?: string
 }
 
 /**
+ * Test connection to the backend server
+ * Returns health status information
+ */
+export async function testConnection(): Promise<{ success: boolean; status?: string; wsRunning?: boolean; obsConnected?: boolean; error?: string }> {
+	try {
+		const config = getApiConfig();
+		const result = await request<{ status: string; wsRunning: boolean; obsConnected: boolean }>(`${config.backend}/health`);
+		return {
+			success: true,
+			status: result.status,
+			wsRunning: result.wsRunning,
+			obsConnected: result.obsConnected,
+		};
+	} catch (error) {
+		return {
+			success: false,
+			error: (error as Error).message,
+		};
+	}
+}
+
+/**
  * API Client class
  */
 export class APIClient {
@@ -100,7 +130,7 @@ export class APIClient {
 	 */
 	static async getGuests(): Promise<Guest[]> {
 		try {
-			const data = await request<{ guests: Guest[] }>(`${API_CONFIG.nextjs}/api/assets/guests`);
+			const data = await request<{ guests: Guest[] }>(`${getApiConfig().nextjs}/api/assets/guests`);
 			const guests = Array.isArray(data.guests) ? data.guests : [];
 			// Filter to show only enabled guests in Stream Deck dropdowns
 			return guests.filter((guest) => guest.isEnabled !== false);
@@ -115,7 +145,7 @@ export class APIClient {
 	 */
 	static async getPosters(): Promise<Poster[]> {
 		try {
-			const data = await request<{ posters: Poster[] }>(`${API_CONFIG.nextjs}/api/assets/posters`);
+			const data = await request<{ posters: Poster[] }>(`${getApiConfig().nextjs}/api/assets/posters`);
 			const posters = Array.isArray(data.posters) ? data.posters : [];
 			// Filter to show only enabled posters in Stream Deck dropdowns
 			return posters.filter((poster) => poster.isEnabled !== false);
@@ -129,7 +159,7 @@ export class APIClient {
 	 * Show a guest lower third
 	 */
 	static async showGuestLowerThird(guestId: string, side: string, duration: number): Promise<void> {
-		await request(`${API_CONFIG.nextjs}/api/actions/lower/guest/${guestId}`, {
+		await request(`${getApiConfig().nextjs}/api/actions/lower/guest/${guestId}`, {
 			method: "POST",
 			body: JSON.stringify({ side, duration }),
 		});
@@ -139,7 +169,7 @@ export class APIClient {
 	 * Show a custom lower third
 	 */
 	static async showCustomLowerThird(title: string, subtitle: string, side: string, duration: number): Promise<void> {
-		await request(`${API_CONFIG.nextjs}/api/actions/lower/show`, {
+		await request(`${getApiConfig().nextjs}/api/actions/lower/show`, {
 			method: "POST",
 			body: JSON.stringify({ title, subtitle, side, duration }),
 		});
@@ -149,7 +179,7 @@ export class APIClient {
 	 * Hide lower third
 	 */
 	static async hideLowerThird(): Promise<void> {
-		await request(`${API_CONFIG.nextjs}/api/actions/lower/hide`, {
+		await request(`${getApiConfig().nextjs}/api/actions/lower/hide`, {
 			method: "POST",
 		});
 	}
@@ -158,7 +188,7 @@ export class APIClient {
 	 * Start countdown
 	 */
 	static async startCountdown(seconds: number): Promise<void> {
-		await request(`${API_CONFIG.nextjs}/api/actions/countdown/start`, {
+		await request(`${getApiConfig().nextjs}/api/actions/countdown/start`, {
 			method: "POST",
 			body: JSON.stringify({ seconds }),
 		});
@@ -168,7 +198,7 @@ export class APIClient {
 	 * Control countdown (pause, start, reset)
 	 */
 	static async controlCountdown(action: string): Promise<void> {
-		await request(`${API_CONFIG.backend}/api/overlays/countdown`, {
+		await request(`${getApiConfig().backend}/api/overlays/countdown`, {
 			method: "POST",
 			body: JSON.stringify({ action }),
 		});
@@ -178,7 +208,7 @@ export class APIClient {
 	 * Add time to countdown
 	 */
 	static async addCountdownTime(seconds: number): Promise<void> {
-		await request(`${API_CONFIG.backend}/api/overlays/countdown`, {
+		await request(`${getApiConfig().backend}/api/overlays/countdown`, {
 			method: "POST",
 			body: JSON.stringify({ action: "add-time", payload: { seconds } }),
 		});
@@ -188,7 +218,7 @@ export class APIClient {
 	 * Show a poster
 	 */
 	static async showPoster(posterId: string): Promise<void> {
-		await request(`${API_CONFIG.nextjs}/api/actions/poster/show/${posterId}`, {
+		await request(`${getApiConfig().nextjs}/api/actions/poster/show/${posterId}`, {
 			method: "POST",
 		});
 	}
@@ -197,7 +227,7 @@ export class APIClient {
 	 * Control poster (hide, next, previous)
 	 */
 	static async controlPoster(action: string): Promise<void> {
-		await request(`${API_CONFIG.nextjs}/api/actions/poster/${action}`, {
+		await request(`${getApiConfig().nextjs}/api/actions/poster/${action}`, {
 			method: "POST",
 		});
 	}
@@ -206,8 +236,36 @@ export class APIClient {
 	 * Panic button - clear all overlays
 	 */
 	static async triggerPanic(): Promise<void> {
-		await request(`${API_CONFIG.nextjs}/api/actions/panic`, {
+		await request(`${getApiConfig().nextjs}/api/actions/panic`, {
 			method: "POST",
+		});
+	}
+
+	/**
+	 * Show a poster in bigpicture (fullscreen) mode
+	 */
+	static async showPosterBigpicture(posterId: string, fileUrl: string, type: string): Promise<void> {
+		await request(`${getApiConfig().nextjs}/api/overlays/poster-bigpicture`, {
+			method: "POST",
+			body: JSON.stringify({
+				action: "show",
+				payload: {
+					posterId,
+					fileUrl,
+					type,
+					source: "streamdeck"
+				}
+			}),
+		});
+	}
+
+	/**
+	 * Hide bigpicture poster
+	 */
+	static async hidePosterBigpicture(): Promise<void> {
+		await request(`${getApiConfig().nextjs}/api/overlays/poster-bigpicture`, {
+			method: "POST",
+			body: JSON.stringify({ action: "hide" }),
 		});
 	}
 }

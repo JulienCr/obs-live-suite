@@ -5,16 +5,18 @@
 
 import http from "http";
 import https from "https";
-import { APP_PORT } from "../../../../lib/config/urls";
+import { ConfigManager } from "./config-manager";
 
 /**
- * Default base URL for API requests
- * Port value imported from lib/config/urls.ts (single source of truth)
+ * Get default base URL from ConfigManager
  */
-const DEFAULT_BASE_URL = `http://127.0.0.1:${APP_PORT}`;
+function getDefaultBaseUrl(): string {
+	return ConfigManager.getNextjsUrl();
+}
 
 /**
  * Fetch an image from a URL and convert to base64 data URI
+ * Supports self-signed certificates based on ConfigManager settings
  */
 export async function fetchImageAsBase64(url: string): Promise<string> {
 	return new Promise((resolve, reject) => {
@@ -23,13 +25,18 @@ export async function fetchImageAsBase64(url: string): Promise<string> {
 			const isHttps = urlObj.protocol === "https:";
 			const client = isHttps ? https : http;
 
-			const requestOptions: http.RequestOptions = {
+			const requestOptions: http.RequestOptions | https.RequestOptions = {
 				hostname: urlObj.hostname,
 				port: urlObj.port || (isHttps ? 443 : 80),
 				path: urlObj.pathname + urlObj.search,
 				method: "GET",
 				timeout: 5000, // 5 second timeout
 			};
+
+			// For HTTPS, handle self-signed certificates
+			if (isHttps && ConfigManager.shouldTrustSelfSigned()) {
+				(requestOptions as https.RequestOptions).rejectUnauthorized = false;
+			}
 
 			const req = client.request(requestOptions, (res) => {
 				if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
@@ -101,7 +108,8 @@ export function generateInitialsAvatar(name: string, color: string = "#3b82f6"):
 /**
  * Fetch guest avatar or generate fallback
  */
-export async function getGuestAvatar(avatarUrl: string | null | undefined, displayName: string, baseUrl: string = DEFAULT_BASE_URL): Promise<string> {
+export async function getGuestAvatar(avatarUrl: string | null | undefined, displayName: string, baseUrl?: string): Promise<string> {
+	const effectiveBaseUrl = baseUrl || getDefaultBaseUrl();
 	// If no avatar URL, generate initials
 	if (!avatarUrl) {
 		return generateInitialsAvatar(displayName);
@@ -109,7 +117,7 @@ export async function getGuestAvatar(avatarUrl: string | null | undefined, displ
 
 	try {
 		// Convert relative paths to absolute URLs
-		const fullUrl = avatarUrl.startsWith("http") ? avatarUrl : `${baseUrl}${avatarUrl}`;
+		const fullUrl = avatarUrl.startsWith("http") ? avatarUrl : `${effectiveBaseUrl}${avatarUrl}`;
 		
 		// Try to fetch the actual avatar
 		return await fetchImageAsBase64(fullUrl);
@@ -149,7 +157,8 @@ export function generatePosterFallbackIcon(title: string, color: string = "#8b5c
 /**
  * Fetch poster image or generate fallback
  */
-export async function getPosterImage(fileUrl: string | null | undefined, posterType: string, title: string, baseUrl: string = DEFAULT_BASE_URL): Promise<string> {
+export async function getPosterImage(fileUrl: string | null | undefined, posterType: string, title: string, baseUrl?: string): Promise<string> {
+	const effectiveBaseUrl = baseUrl || getDefaultBaseUrl();
 	// If no file URL or not an image type, generate fallback
 	if (!fileUrl || posterType !== "image") {
 		return generatePosterFallbackIcon(title);
@@ -157,7 +166,7 @@ export async function getPosterImage(fileUrl: string | null | undefined, posterT
 
 	try {
 		// Convert relative paths to absolute URLs
-		const fullUrl = fileUrl.startsWith("http") ? fileUrl : `${baseUrl}${fileUrl}`;
+		const fullUrl = fileUrl.startsWith("http") ? fileUrl : `${effectiveBaseUrl}${fileUrl}`;
 		
 		// Try to fetch the actual poster image
 		return await fetchImageAsBase64(fullUrl);

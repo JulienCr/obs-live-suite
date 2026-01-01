@@ -29,6 +29,20 @@
 	"UUID": "com.julien-cruau.obslive-suite",
 	"Actions": [
 		{
+			"Name": "Setup Connection",
+			"UUID": "com.julien-cruau.obslive-suite.setup",
+			"Icon": "imgs/actions/setup/icon",
+			"Tooltip": "Configure connection to OBS Live Suite server",
+			"PropertyInspectorPath": "ui/setup-connection.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/setup/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
 			"Name": "Show Guest",
 			"UUID": "com.julien-cruau.obslive-suite.lower.guest",
 			"Icon": "imgs/actions/lower-guest/icon",
@@ -180,6 +194,74 @@
 			"States": [
 				{
 					"Image": "imgs/actions/panic/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Toggle Recording",
+			"UUID": "com.julien-cruau.obslive-suite.obs.record",
+			"Icon": "imgs/actions/obs-record/icon",
+			"Tooltip": "Start/stop OBS recording with live state",
+			"PropertyInspectorPath": "ui/obs-record-toggle.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/obs-record/key-off",
+					"TitleAlignment": "middle"
+				},
+				{
+					"Image": "imgs/actions/obs-record/key-on",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Toggle Streaming",
+			"UUID": "com.julien-cruau.obslive-suite.obs.stream",
+			"Icon": "imgs/actions/obs-stream/icon",
+			"Tooltip": "Start/stop OBS streaming with live state",
+			"PropertyInspectorPath": "ui/obs-stream-toggle.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/obs-stream/key-off",
+					"TitleAlignment": "middle"
+				},
+				{
+					"Image": "imgs/actions/obs-stream/key-on",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Scene Switch",
+			"UUID": "com.julien-cruau.obslive-suite.obs.scene",
+			"Icon": "imgs/actions/obs-scene/icon",
+			"Tooltip": "Switch to OBS scene with active indicator",
+			"PropertyInspectorPath": "ui/obs-scene-switch.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/obs-scene/key-off",
+					"TitleAlignment": "middle"
+				},
+				{
+					"Image": "imgs/actions/obs-scene/key-on",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Poster Bigpicture",
+			"UUID": "com.julien-cruau.obslive-suite.poster.bigpicture",
+			"Icon": "imgs/actions/poster-bigpicture/icon",
+			"Tooltip": "Show poster in fullscreen mode",
+			"PropertyInspectorPath": "ui/poster-bigpicture.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/poster-bigpicture/key",
 					"TitleAlignment": "middle"
 				}
 			]
