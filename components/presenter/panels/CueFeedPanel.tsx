@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Pin } from "lucide-react";
 import { CueCard } from "../CueCard";
 import type { CueMessage, CueAction } from "@/lib/models/Cue";
@@ -28,6 +29,7 @@ export function CueFeedPanel({
   showingInOverlayId,
   currentlyDisplayedId,
 }: CueFeedPanelProps) {
+  const t = useTranslations("presenter");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to new messages
@@ -46,7 +48,7 @@ export function CueFeedPanel({
         <div className="flex-shrink-0 border-b bg-muted/30">
           <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground">
             <Pin className="h-3 w-3" />
-            <span>Pinned</span>
+            <span>{t("labels.pinned")}</span>
           </div>
           <div className="px-3 pb-2 space-y-2">
             {pinnedMessages.map((message) => (
@@ -71,7 +73,7 @@ export function CueFeedPanel({
         <div ref={scrollRef} className="p-3 space-y-2">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground text-sm py-8">
-              No messages yet
+              {t("emptyStates.noMessages")}
             </div>
           ) : (
             messages

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ export function QuickReplyPanel({
   onSend,
   canSendCustomMessages = true
 }: QuickReplyPanelProps) {
+  const t = useTranslations("presenter");
   const [customText, setCustomText] = useState("");
 
   const handleQuickReply = (text: string) => {
@@ -57,7 +59,7 @@ export function QuickReplyPanel({
       {canSendCustomMessages && (
         <div className="flex gap-2">
           <Input
-            placeholder="Type a custom reply..."
+            placeholder={t("quickReplies.customPlaceholder")}
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
             onKeyDown={handleKeyDown}

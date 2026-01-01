@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import {
   AlertCircle,
   AlertTriangle,
@@ -119,6 +120,7 @@ function CountdownTimer({
 }
 
 export function CueCard({ message, onAction, isPresenter, compact, overlayState, onShowInOverlay, isShowingInOverlay, isCurrentlyDisplayed }: CueCardProps) {
+  const t = useTranslations("presenter");
   const TypeIcon = typeIcons[message.type as CueType] || FileText;
   const severity = message.severity as CueSeverity | undefined;
   const SeverityIcon = severity ? severityIcons[severity] : null;
@@ -184,7 +186,7 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
 
             {/* Title - for questions show "Highlight" */}
             {isQuestion ? (
-              <span className="font-medium text-sm">Highlight</span>
+              <span className="font-medium text-sm">{t("labels.highlight")}</span>
             ) : message.title ? (
               <span className="font-medium text-sm">{message.title}</span>
             ) : null}
@@ -213,10 +215,10 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
             {!isQuestion && (
               <span>
                 {isFromControl
-                  ? "Régie"
+                  ? t("labels.controlRoom")
                   : isFromSystem
-                    ? "System"
-                    : "Presenter"}
+                    ? t("labels.system")
+                    : t("labels.presenter")}
               </span>
             )}
 
@@ -229,7 +231,7 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
              (message.contextPayload.guestId || message.contextPayload.posterId) && (
               <div
                 className="flex items-center gap-1"
-                title={isContentOnScreen ? "À l'écran" : "Hors écran"}
+                title={isContentOnScreen ? t("cueCard.onScreen") : t("cueCard.offScreen")}
               >
                 {isContentOnScreen ? (
                   <Play className="h-3 w-3 text-green-500 fill-green-500" />
@@ -372,7 +374,7 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
                   }}
                 >
                   <Check className="h-3 w-3 mr-1" />
-                  OK
+                  {t("actions.ok")}
                 </Button>
               )}
 
@@ -390,7 +392,7 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
                       }
                     }}
                   >
-                    Take
+                    {t("actions.take")}
                   </Button>
                   <Button
                     variant="ghost"
@@ -400,7 +402,7 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
                       onAction(message.id, CueAction.SKIP);
                     }}
                   >
-                    Skip
+                    {t("actions.skip")}
                   </Button>
                 </>
               )}
@@ -420,7 +422,7 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
                     onShowInOverlay(message);
                   }}
                   disabled={isShowingInOverlay}
-                  title={isCurrentlyDisplayed ? "Hide from overlay" : "Show in overlay"}
+                  title={isCurrentlyDisplayed ? t("cueCard.hideFromOverlay") : t("cueCard.showInOverlay")}
                 >
                   {isShowingInOverlay ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -446,7 +448,7 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
                   e.stopPropagation();
                   onAction(message.id, CueAction.CLEAR);
                 }}
-                title="Delete message"
+                title={t("cueCard.deleteMessage")}
               >
                 <X className="h-3 w-3" />
               </Button>

@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { BodyThemeSync } from "@/components/BodyThemeSync";
-import { AppModeProvider } from "@/components/shell/AppModeContext";
-import { AppShell } from "@/components/shell/AppShell";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,7 +10,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * Root layout component for the application
+ * Root layout - minimal wrapper for non-localized routes (overlays, etc.)
+ * Localized routes use app/[locale]/layout.tsx instead
  */
 export default function RootLayout({
   children,
@@ -22,21 +19,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <AppModeProvider>
-            <BodyThemeSync />
-            <AppShell>
-              {children}
-            </AppShell>
-          </AppModeProvider>
-        </ThemeProvider>
+        {children}
       </body>
     </html>
   );

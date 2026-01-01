@@ -1,0 +1,131 @@
+{
+  "common": {
+    "error": "Error",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "settings": "Settings",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "presenter": {
+    "meta": {
+      "title": "Presenter Dashboard - OBS Live Suite",
+      "description": "Private presenter dashboard for live shows"
+    },
+    "status": {
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "connecting": "Connecting...",
+      "authenticating": "Authenticating...",
+      "loadingRoom": "Loading room configuration...",
+      "error": "Error"
+    },
+    "roles": {
+      "presenter": "Presenter",
+      "control": "Control Room",
+      "producer": "Producer"
+    },
+    "actions": {
+      "clear": "Clear",
+      "clearHistory": "Clear history",
+      "ok": "OK",
+      "take": "Take",
+      "skip": "Skip",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "refresh": "Refresh",
+      "tryAgain": "Try Again",
+      "send": "Send"
+    },
+    "labels": {
+      "pinned": "Pinned",
+      "autoScroll": "Auto-scroll",
+      "timestamps": "Timestamps",
+      "presenter": "Presenter",
+      "controlRoom": "Control Room",
+      "system": "System",
+      "room": "Room: {roomId}",
+      "highlight": "Highlight"
+    },
+    "quickReplies": {
+      "ready": "Ready",
+      "needMoreContext": "Need more context",
+      "delay1min": "Delay 1 min",
+      "audioIssue": "Audio issue",
+      "customPlaceholder": "Type a custom reply..."
+    },
+    "emptyStates": {
+      "noMessages": "No messages yet",
+      "waitingForMessages": "Waiting for messages...",
+      "connectToSeeMessages": "Connect to see chat messages"
+    },
+    "chat": {
+      "searchPlaceholder": "Search messages...",
+      "sendPlaceholder": "Send a message to chat...",
+      "newMessages": "New messages",
+      "replyingTo": "Replying to @{displayName}"
+    },
+    "vdoNinja": {
+      "notConfigured": "VDO.Ninja URL not configured",
+      "configureInSettings": "Configure it in the room settings",
+      "loadingVideo": "Loading video...",
+      "failedToLoad": "Failed to load video",
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "openInNewTab": "Open in new tab",
+      "refresh": "Refresh",
+      "tryAgain": "Try Again"
+    },
+    "streamerbot": {
+      "notConfigured": "Chat not configured",
+      "configureConnection": "Configure Streamer.bot connection in Room Settings"
+    },
+    "cueCard": {
+      "onScreen": "On screen",
+      "offScreen": "Off screen",
+      "acknowledged": "Acknowledged",
+      "showInOverlay": "Show in overlay",
+      "hideFromOverlay": "Hide from overlay",
+      "currentlyOnOverlay": "Currently on overlay",
+      "deleteMessage": "Delete message"
+    },
+    "overlay": {
+      "showingInOverlay": "Showing in overlay",
+      "messageFrom": "Message from {author}",
+      "failedToUpdate": "Failed to update overlay"
+    },
+    "events": {
+      "justFollowed": "just followed!",
+      "subscribed": "subscribed!",
+      "becameMember": "became a member!",
+      "resubscribed": "resubscribed for {months} months!",
+      "giftedSub": "gifted a sub!",
+      "raiding": "is raiding with",
+      "viewers": "{count} viewers!",
+      "cheered": "cheered",
+      "bits": "{count} bits!",
+      "sent": "sent",
+      "sentSuperSticker": "sent a Super Sticker for"
+    },
+    "tiers": {
+      "tier2": "(Tier 2)",
+      "tier3": "(Tier 3)"
+    },
+    "presence": {
+      "presenterOnline": "Presenter online",
+      "presenterOffline": "Presenter offline",
+      "controlOnline": "Control room online",
+      "controlOffline": "Control room offline"
+    }
+  }
+}

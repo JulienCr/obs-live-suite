@@ -1,0 +1,131 @@
+{
+  "common": {
+    "error": "Erreur",
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "search": "Rechercher",
+    "settings": "Paramètres",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "presenter": {
+    "meta": {
+      "title": "Tableau de bord Présentateur - OBS Live Suite",
+      "description": "Tableau de bord privé du présentateur pour les émissions en direct"
+    },
+    "status": {
+      "connected": "Connecté",
+      "disconnected": "Déconnecté",
+      "connecting": "Connexion...",
+      "authenticating": "Authentification...",
+      "loadingRoom": "Chargement de la configuration de la salle...",
+      "error": "Erreur"
+    },
+    "roles": {
+      "presenter": "Présentateur",
+      "control": "Régie",
+      "producer": "Producteur"
+    },
+    "actions": {
+      "clear": "Vider",
+      "clearHistory": "Vider l'historique",
+      "ok": "OK",
+      "take": "Take",
+      "skip": "Skip",
+      "connect": "Connecter",
+      "disconnect": "Déconnecter",
+      "refresh": "Actualiser",
+      "tryAgain": "Réessayer",
+      "send": "Envoyer"
+    },
+    "labels": {
+      "pinned": "Épinglé",
+      "autoScroll": "Défilement auto",
+      "timestamps": "Horodatage",
+      "presenter": "Présentateur",
+      "controlRoom": "Régie",
+      "system": "Système",
+      "room": "Salle : {roomId}",
+      "highlight": "Highlight"
+    },
+    "quickReplies": {
+      "ready": "Prêt",
+      "needMoreContext": "Besoin de plus de contexte",
+      "delay1min": "Délai 1 min",
+      "audioIssue": "Problème audio",
+      "customPlaceholder": "Tapez une réponse personnalisée..."
+    },
+    "emptyStates": {
+      "noMessages": "Aucun message",
+      "waitingForMessages": "En attente de messages...",
+      "connectToSeeMessages": "Connectez-vous pour voir les messages"
+    },
+    "chat": {
+      "searchPlaceholder": "Rechercher des messages...",
+      "sendPlaceholder": "Envoyer un message au chat...",
+      "newMessages": "Nouveaux messages",
+      "replyingTo": "Réponse à @{displayName}"
+    },
+    "vdoNinja": {
+      "notConfigured": "URL VDO.Ninja non configurée",
+      "configureInSettings": "Configurez-la dans les paramètres de la salle",
+      "loadingVideo": "Chargement de la vidéo...",
+      "failedToLoad": "Échec du chargement de la vidéo",
+      "mute": "Couper le son",
+      "unmute": "Activer le son",
+      "openInNewTab": "Ouvrir dans un nouvel onglet",
+      "refresh": "Actualiser",
+      "tryAgain": "Réessayer"
+    },
+    "streamerbot": {
+      "notConfigured": "Chat non configuré",
+      "configureConnection": "Configurez la connexion Streamer.bot dans les paramètres de la salle"
+    },
+    "cueCard": {
+      "onScreen": "À l'écran",
+      "offScreen": "Hors écran",
+      "acknowledged": "Accusé de réception",
+      "showInOverlay": "Afficher dans l'overlay",
+      "hideFromOverlay": "Masquer de l'overlay",
+      "currentlyOnOverlay": "Actuellement sur l'overlay",
+      "deleteMessage": "Supprimer le message"
+    },
+    "overlay": {
+      "showingInOverlay": "Affichage dans l'overlay",
+      "messageFrom": "Message de {author}",
+      "failedToUpdate": "Échec de la mise à jour de l'overlay"
+    },
+    "events": {
+      "justFollowed": "vient de suivre !",
+      "subscribed": "s'est abonné !",
+      "becameMember": "est devenu membre !",
+      "resubscribed": "s'est réabonné pour {months} mois !",
+      "giftedSub": "a offert un abonnement !",
+      "raiding": "raid avec",
+      "viewers": "{count} viewers !",
+      "cheered": "a encouragé avec",
+      "bits": "{count} bits !",
+      "sent": "a envoyé",
+      "sentSuperSticker": "a envoyé un Super Sticker pour"
+    },
+    "tiers": {
+      "tier2": "(Niveau 2)",
+      "tier3": "(Niveau 3)"
+    },
+    "presence": {
+      "presenterOnline": "Présentateur en ligne",
+      "presenterOffline": "Présentateur hors ligne",
+      "controlOnline": "Régie en ligne",
+      "controlOffline": "Régie hors ligne"
+    }
+  }
+}

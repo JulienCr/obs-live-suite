@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { RefreshCw, Volume2, VolumeX, ExternalLink, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,6 +11,7 @@ interface VdoNinjaPanelProps {
 }
 
 export function VdoNinjaPanel({ url }: VdoNinjaPanelProps) {
+  const t = useTranslations("presenter.vdoNinja");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -50,8 +52,8 @@ export function VdoNinjaPanel({ url }: VdoNinjaPanelProps) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-muted/50 text-muted-foreground">
         <AlertCircle className="h-8 w-8 mb-2" />
-        <p className="text-sm">VDO.Ninja URL not configured</p>
-        <p className="text-xs mt-1">Configure it in the room settings</p>
+        <p className="text-sm">{t("notConfigured")}</p>
+        <p className="text-xs mt-1">{t("configureInSettings")}</p>
       </div>
     );
   }
@@ -65,7 +67,7 @@ export function VdoNinjaPanel({ url }: VdoNinjaPanelProps) {
           size="icon"
           className="h-8 w-8 bg-background/80 backdrop-blur-sm"
           onClick={handleRefresh}
-          title="Refresh"
+          title={t("refresh")}
         >
           <RefreshCw className="h-4 w-4" />
         </Button>
@@ -74,7 +76,7 @@ export function VdoNinjaPanel({ url }: VdoNinjaPanelProps) {
           size="icon"
           className="h-8 w-8 bg-background/80 backdrop-blur-sm"
           onClick={handleMuteToggle}
-          title={isMuted ? "Unmute" : "Mute"}
+          title={isMuted ? t("unmute") : t("mute")}
         >
           {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </Button>
@@ -83,7 +85,7 @@ export function VdoNinjaPanel({ url }: VdoNinjaPanelProps) {
           size="icon"
           className="h-8 w-8 bg-background/80 backdrop-blur-sm"
           onClick={handleOpenNewTab}
-          title="Open in new tab"
+          title={t("openInNewTab")}
         >
           <ExternalLink className="h-4 w-4" />
         </Button>
@@ -92,16 +94,16 @@ export function VdoNinjaPanel({ url }: VdoNinjaPanelProps) {
       {/* Loading/Error state */}
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
-          <div className="text-muted-foreground text-sm">Loading video...</div>
+          <div className="text-muted-foreground text-sm">{t("loadingVideo")}</div>
         </div>
       )}
 
       {hasError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/50">
           <AlertCircle className="h-8 w-8 mb-2 text-destructive" />
-          <p className="text-sm text-destructive">Failed to load video</p>
+          <p className="text-sm text-destructive">{t("failedToLoad")}</p>
           <Button variant="outline" size="sm" className="mt-2" onClick={handleRefresh}>
-            Try Again
+            {t("tryAgain")}
           </Button>
         </div>
       )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -9,11 +10,12 @@ import type { StreamerbotChatToolbarProps, SearchBarProps } from "./types";
  * Search bar for filtering messages
  */
 export function SearchBar({ searchTerm, onSearchChange }: SearchBarProps) {
+  const t = useTranslations("presenter");
   return (
     <div className="flex-shrink-0 px-2 py-1.5 border-b bg-muted/30">
       <Input
         type="search"
-        placeholder="Search messages..."
+        placeholder={t("chat.searchPlaceholder")}
         value={searchTerm}
         onChange={(e) => onSearchChange(e.target.value)}
         className="h-7 text-xs"
@@ -29,6 +31,7 @@ export function StreamerbotChatToolbar({
   preferences,
   onUpdatePreferences,
 }: StreamerbotChatToolbarProps) {
+  const t = useTranslations("presenter");
   return (
     <div className="flex-shrink-0 px-3 py-1 flex items-center justify-between border-b bg-muted/20">
       <div className="flex items-center gap-2">
@@ -41,7 +44,7 @@ export function StreamerbotChatToolbar({
           className="scale-75"
         />
         <Label htmlFor="autoscroll" className="text-xs cursor-pointer">
-          Auto-scroll
+          {t("labels.autoScroll")}
         </Label>
       </div>
 
@@ -55,7 +58,7 @@ export function StreamerbotChatToolbar({
           className="scale-75"
         />
         <Label htmlFor="timestamps" className="text-xs cursor-pointer">
-          Timestamps
+          {t("labels.timestamps")}
         </Label>
       </div>
     </div>

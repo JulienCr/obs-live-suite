@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { VdoNinjaPanel } from "./panels/VdoNinjaPanel";
 import { CueFeedPanel } from "./panels/CueFeedPanel";
 import { QuickReplyPanel } from "./panels/QuickReplyPanel";
@@ -16,15 +17,22 @@ import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { useToast } from "@/hooks/use-toast";
 import type { CueMessage } from "@/lib/models/Cue";
 
-const DEFAULT_QUICK_REPLIES = ["Ready", "Need more context", "Delay 1 min", "Audio issue"];
-
 export function PresenterShell() {
+  const t = useTranslations("presenter");
   const searchParams = useSearchParams();
   const roomId = searchParams.get("room") || DEFAULT_ROOM_ID;
   const role = (searchParams.get("role") as "presenter" | "control" | "producer") || "presenter";
 
   const [roomConfig, setRoomConfig] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Default quick replies with translations
+  const DEFAULT_QUICK_REPLIES = [
+    t("quickReplies.ready"),
+    t("quickReplies.needMoreContext"),
+    t("quickReplies.delay1min"),
+    t("quickReplies.audioIssue"),
+  ];
 
   const {
     connected,
@@ -87,8 +95,8 @@ export function PresenterShell() {
         if (action === "show") {
           setCurrentlyDisplayedId(message.id);
           toast({
-            title: "Showing in overlay",
-            description: `Message from ${payload.author}`,
+            title: t("overlay.showingInOverlay"),
+            description: t("overlay.messageFrom", { author: payload.author }),
           });
 
           // Auto-clear the displayed ID after duration
@@ -102,22 +110,22 @@ export function PresenterShell() {
         const errorText = await response.text();
         console.error("Failed to update overlay:", errorText);
         toast({
-          title: "Error",
-          description: "Failed to update overlay",
+          title: t("status.error"),
+          description: t("overlay.failedToUpdate"),
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Failed to update overlay:", error);
       toast({
-        title: "Error",
-        description: "Failed to update overlay",
+        title: t("status.error"),
+        description: t("overlay.failedToUpdate"),
         variant: "destructive",
       });
     } finally {
       setShowingInOverlayId(null);
     }
-  }, [showingInOverlayId, currentlyDisplayedId, toast]);
+  }, [showingInOverlayId, currentlyDisplayedId, toast, t]);
 
   // Fetch room configuration
   useEffect(() => {
@@ -146,7 +154,7 @@ export function PresenterShell() {
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
-        <div className="text-muted-foreground">Loading room configuration...</div>
+        <div className="text-muted-foreground">{t("status.loadingRoom")}</div>
       </div>
     );
   }
@@ -170,10 +178,10 @@ export function PresenterShell() {
             size="sm"
             onClick={handleClearHistory}
             className="h-7 text-xs"
-            title="Vider l'historique"
+            title={t("actions.clearHistory")}
           >
             <Trash2 className="h-3 w-3 mr-1" />
-            Vider
+            {t("actions.clear")}
           </Button>
           {/* Connection status */}
           <div className="flex items-center gap-2">
@@ -183,7 +191,7 @@ export function PresenterShell() {
               <WifiOff className="h-4 w-4 text-red-500" />
             )}
             <span className="text-xs text-muted-foreground">
-              {connected ? "Connected" : "Disconnected"}
+              {connected ? t("status.connected") : t("status.disconnected")}
             </span>
           </div>
           {/* Presence indicators */}
@@ -193,11 +201,11 @@ export function PresenterShell() {
               <span className={cn(
                 "h-2 w-2 rounded-full",
                 presenterOnline ? "bg-green-500" : "bg-gray-400"
-              )} title="Presenter" />
+              )} title={t("labels.presenter")} />
               <span className={cn(
                 "h-2 w-2 rounded-full",
                 controlOnline ? "bg-blue-500" : "bg-gray-400"
-              )} title="Control Room" />
+              )} title={t("labels.controlRoom")} />
             </div>
           </div>
         </div>

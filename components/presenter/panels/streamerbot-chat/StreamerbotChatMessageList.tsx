@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { ArrowDown, MessageSquare, Monitor, Loader2 } from "lucide-react";
@@ -50,6 +51,7 @@ function ChatMessageRow({
   isCurrentlyDisplayed?: boolean;
   measureRef: (node: HTMLDivElement | null) => void;
 }) {
+  const t = useTranslations("presenter");
   // Event messages (follow, sub, raid, etc.)
   if (message.eventType !== "message") {
     return (
@@ -162,7 +164,7 @@ function ChatMessageRow({
               onShowInOverlay();
             }}
             disabled={isShowingInOverlay}
-            title={isCurrentlyDisplayed ? "Currently on overlay" : "Show in overlay"}
+            title={isCurrentlyDisplayed ? t("cueCard.currentlyOnOverlay") : t("cueCard.showInOverlay")}
           >
             {isShowingInOverlay ? (
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -190,6 +192,7 @@ export function StreamerbotChatMessageList({
   showingInOverlayId,
   currentlyDisplayedId,
 }: StreamerbotChatMessageListProps) {
+  const t = useTranslations("presenter");
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Virtual list configuration with dynamic row heights
@@ -246,8 +249,8 @@ export function StreamerbotChatMessageList({
               <MessageSquare className="h-6 w-6 mx-auto mb-2 opacity-50" />
               <p className="text-xs">
                 {status === StreamerbotConnectionStatus.CONNECTED
-                  ? "Waiting for messages..."
-                  : "Connect to see chat messages"}
+                  ? t("emptyStates.waitingForMessages")
+                  : t("emptyStates.connectToSeeMessages")}
               </p>
             </div>
           </div>
@@ -287,7 +290,7 @@ export function StreamerbotChatMessageList({
           onClick={handleScrollToBottom}
         >
           <ArrowDown className="h-4 w-4 mr-1" />
-          New messages
+          {t("chat.newMessages")}
         </Button>
       )}
     </>
