@@ -58,7 +58,11 @@ export type CountdownPayload = z.infer<typeof countdownPayloadSchema>;
  * Context link schema
  */
 export const contextLinkSchema = z.object({
-  url: z.string().url(),
+  // Accept both absolute URLs (http://, https://) and relative paths (/data/...)
+  url: z.string().refine(
+    (val) => val.startsWith('/') || val.startsWith('http://') || val.startsWith('https://'),
+    { message: 'Must be a valid URL or relative path starting with /' }
+  ),
   title: z.string().optional(),
 });
 

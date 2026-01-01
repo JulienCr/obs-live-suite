@@ -291,13 +291,13 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
                 : "space-y-2"
             )}
           >
-            {/* Left column: Image (80x80px) */}
+            {/* Left column: Image (max 128px wide, auto height, supports various ratios) */}
             {message.contextPayload.imageUrl && (
               <div className="flex-shrink-0">
                 <img
                   src={message.contextPayload.imageUrl}
                   alt="Context"
-                  className="w-20 h-20 rounded object-cover"
+                  className="max-w-32 h-auto max-h-24 rounded object-contain"
                 />
               </div>
             )}
