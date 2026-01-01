@@ -170,6 +170,19 @@
 					"TitleAlignment": "middle"
 				}
 			]
+		},
+		{
+			"Name": "Panic Button",
+			"UUID": "com.julien-cruau.obslive-suite.panic",
+			"Icon": "imgs/actions/panic/icon",
+			"Tooltip": "Clear all overlays immediately",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/panic/key",
+					"TitleAlignment": "middle"
+				}
+			]
 		}
 	]
 }

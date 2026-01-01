@@ -201,5 +201,14 @@ export class APIClient {
 			method: "POST",
 		});
 	}
+
+	/**
+	 * Panic button - clear all overlays
+	 */
+	static async triggerPanic(): Promise<void> {
+		await request(`${API_CONFIG.nextjs}/api/actions/panic`, {
+			method: "POST",
+		});
+	}
 }
 

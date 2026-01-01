@@ -297,5 +297,26 @@ router.post("/chat-highlight", async (req, res) => {
   }
 });
 
+/**
+ * POST /api/overlays/clear-all
+ * Panic button - clears all overlays immediately
+ */
+router.post("/clear-all", async (req, res) => {
+  try {
+    logger.info("Panic button triggered - clearing all overlays");
+
+    await channelManager.publish(OverlayChannel.LOWER, LowerThirdEventType.HIDE);
+    await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.RESET);
+    await channelManager.publish(OverlayChannel.POSTER, PosterEventType.HIDE);
+    await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.HIDE);
+    await channelManager.publish(OverlayChannel.CHAT_HIGHLIGHT, ChatHighlightEventType.HIDE);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("[Overlays] Clear-all error:", error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 export default router;
 

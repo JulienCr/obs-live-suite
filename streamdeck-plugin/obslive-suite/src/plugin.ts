@@ -16,6 +16,7 @@ import { PosterShow } from "./actions/poster-show";
 import { PosterControl } from "./actions/poster-control";
 import { OBSSendAction } from "./actions/obs-send-action";
 import { DSKSetScene } from "./actions/dsk-set-scene";
+import { PanicButton } from "./actions/panic-button";
 
 // Import WebSocket manager
 import { wsManager } from "./utils/websocket-manager";
@@ -34,8 +35,9 @@ streamDeck.actions.registerAction(new PosterShow());
 streamDeck.actions.registerAction(new PosterControl());
 streamDeck.actions.registerAction(new OBSSendAction());
 streamDeck.actions.registerAction(new DSKSetScene());
+streamDeck.actions.registerAction(new PanicButton());
 
-streamDeck.logger.info("OBS Live Suite plugin loaded - 10 actions registered");
+streamDeck.logger.info("OBS Live Suite plugin loaded - 11 actions registered");
 
 // Connect WebSocket for real-time updates
 wsManager.connect();
