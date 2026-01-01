@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { getQuestionTypeColor } from "@/lib/utils/questionTypeColors";
 
 interface Question {
@@ -23,6 +24,7 @@ interface RoundEditorProps {
 }
 
 export function RoundEditor({ round, onSave, onCancel }: RoundEditorProps) {
+  const t = useTranslations("quiz.manage.roundEditor");
   const [title, setTitle] = useState("");
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
   const [availableQuestions, setAvailableQuestions] = useState<Question[]>([]);
@@ -52,7 +54,7 @@ export function RoundEditor({ round, onSave, onCancel }: RoundEditorProps) {
 
   const addQuestion = (q: Question) => {
     if (selectedQuestions.some(sq => sq.id === q.id)) {
-      alert("Question already added");
+      alert(t("questionAlreadyAdded"));
       return;
     }
     setSelectedQuestions([...selectedQuestions, q]);
@@ -78,11 +80,11 @@ export function RoundEditor({ round, onSave, onCancel }: RoundEditorProps) {
 
   const handleSave = () => {
     if (!title.trim()) {
-      alert("Please enter a round title");
+      alert(t("enterRoundTitle"));
       return;
     }
     if (selectedQuestions.length === 0) {
-      alert("Please add at least one question");
+      alert(t("addAtLeastOneQuestion"));
       return;
     }
     onSave({
@@ -123,23 +125,23 @@ export function RoundEditor({ round, onSave, onCancel }: RoundEditorProps) {
   return (
     <div className="space-y-4">
       <div className="border rounded-lg p-4 bg-white">
-        <h3 className="text-lg font-semibold mb-4">{round ? "Edit" : "Create"} Round</h3>
-        
+        <h3 className="text-lg font-semibold mb-4">{round ? t("editRound") : t("createRound")}</h3>
+
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Round Title</label>
+          <label className="block text-sm font-medium mb-1">{t("roundTitle")}</label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full border rounded px-3 py-2"
-            placeholder="e.g., Round 1: General Knowledge"
+            placeholder={t("roundTitlePlaceholder")}
           />
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Questions ({selectedQuestions.length})</label>
+          <label className="block text-sm font-medium mb-2">{t("questions", { count: selectedQuestions.length })}</label>
           {selectedQuestions.length === 0 && (
-            <div className="text-sm text-gray-400 mb-2">No questions added yet</div>
+            <div className="text-sm text-gray-400 mb-2">{t("noQuestionsAdded")}</div>
           )}
           <div className="space-y-2 mb-4">
             {selectedQuestions.map((q, idx) => (
@@ -171,7 +173,7 @@ export function RoundEditor({ round, onSave, onCancel }: RoundEditorProps) {
                     onClick={() => removeQuestion(q.id)}
                     className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
                   >
-                    Remove
+                    {t("remove")}
                   </button>
                 </div>
               </div>
@@ -181,23 +183,23 @@ export function RoundEditor({ round, onSave, onCancel }: RoundEditorProps) {
 
         <div className="flex gap-2 mb-4">
           <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-            Save Round
+            {t("saveRound")}
           </button>
           <button onClick={onCancel} className="px-4 py-2 border rounded hover:bg-gray-50">
-            Cancel
+            {t("cancel")}
           </button>
         </div>
       </div>
 
       <div className="border rounded-lg p-4 bg-white">
-        <h3 className="font-semibold mb-3">Add Questions</h3>
+        <h3 className="font-semibold mb-3">{t("addQuestions")}</h3>
 
         {/* Search and Filter Bar */}
         <div className="flex gap-3 mb-4">
           <div className="flex-1">
             <input
               type="text"
-              placeholder="Search questions..."
+              placeholder={t("searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -209,7 +211,7 @@ export function RoundEditor({ round, onSave, onCancel }: RoundEditorProps) {
               onChange={(e) => setTypeFilter(e.target.value)}
               className="px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All Types</option>
+              <option value="all">{t("allTypes")}</option>
               {questionTypes.map(type => (
                 <option key={type} value={type}>{type}</option>
               ))}
@@ -219,19 +221,19 @@ export function RoundEditor({ round, onSave, onCancel }: RoundEditorProps) {
 
         {/* Results Count */}
         <div className="text-sm text-gray-600 mb-3">
-          {filteredAvailableQuestions.length} question(s) available
-          {selectedQuestions.length > 0 && ` (${selectedQuestions.length} already added)`}
+          {t("questionsAvailable", { count: filteredAvailableQuestions.length })}
+          {selectedQuestions.length > 0 && ` ${t("alreadyAdded", { count: selectedQuestions.length })}`}
         </div>
 
-        {loading && <div className="text-sm text-gray-500">Loading questions...</div>}
+        {loading && <div className="text-sm text-gray-500">{t("loadingQuestions")}</div>}
         {!loading && availableQuestions.length === 0 && (
-          <div className="text-sm text-gray-400">No questions available. Create some first!</div>
+          <div className="text-sm text-gray-400">{t("noQuestionsAvailable")}</div>
         )}
         {!loading && filteredAvailableQuestions.length === 0 && availableQuestions.length > 0 && (
           <div className="text-sm text-gray-400">
-            {selectedQuestions.length === availableQuestions.length 
-              ? 'All questions have been added to this round.' 
-              : 'No questions match your search.'}
+            {selectedQuestions.length === availableQuestions.length
+              ? t("allQuestionsAdded")
+              : t("noQuestionsMatch")}
           </div>
         )}
         

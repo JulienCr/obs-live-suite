@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ interface Theme {
  * Profile management component
  */
 export function ProfileManager() {
+  const t = useTranslations("profiles");
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [themes, setThemes] = useState<Theme[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +141,7 @@ export function ProfileManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this profile? This action cannot be undone.")) return;
+    if (!confirm(t("deleteConfirm"))) return;
 
     try {
       await fetch(`/api/profiles/${id}`, { method: "DELETE" });
@@ -150,21 +152,21 @@ export function ProfileManager() {
   };
 
   if (loading) {
-    return <div>Loading profiles...</div>;
+    return <div>{t("loading")}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">Show Profiles</h2>
+          <h2 className="text-2xl font-semibold">{t("title")}</h2>
           <p className="text-sm text-muted-foreground">
-            Create different profiles for different shows
+            {t("description")}
           </p>
         </div>
         <Button onClick={() => setShowForm(!showForm)}>
           <Plus className="w-4 h-4 mr-2" />
-          New Profile
+          {t("newProfile")}
         </Button>
       </div>
 
@@ -175,7 +177,7 @@ export function ProfileManager() {
             <div className="space-y-4 mt-2">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-medium">
-                  {editingProfile ? "Edit Profile" : "Create New Profile"}
+                  {editingProfile ? t("editProfile") : t("createNewProfile")}
                 </h3>
                 <Button
                   variant="ghost"
@@ -187,32 +189,32 @@ export function ProfileManager() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="name">Profile Name</Label>
+                <Label htmlFor="name">{t("profileName")}</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  placeholder="My Show Profile"
+                  placeholder={t("profileNamePlaceholder")}
                   autoFocus
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
+                <Label htmlFor="description">{t("descriptionOptional")}</Label>
                 <Input
                   id="description"
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  placeholder="Profile description"
+                  placeholder={t("descriptionPlaceholder")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="theme">Theme</Label>
+                <Label htmlFor="theme">{t("theme")}</Label>
                 <Select
                   id="theme"
                   value={formData.themeId}
@@ -221,11 +223,11 @@ export function ProfileManager() {
                   }
                 >
                   {themes.length === 0 ? (
-                    <option value="">No themes available</option>
+                    <option value="">{t("noThemes")}</option>
                   ) : (
                     themes.map((theme) => (
                       <option key={theme.id} value={theme.id}>
-                        {theme.name} {theme.isGlobal ? "(Global)" : ""}
+                        {theme.name} {theme.isGlobal ? t("global") : ""}
                       </option>
                     ))
                   )}
@@ -237,10 +239,10 @@ export function ProfileManager() {
                   onClick={editingProfile ? handleUpdate : handleCreate}
                   disabled={!formData.name || !formData.themeId}
                 >
-                  {editingProfile ? "Update Profile" : "Create Profile"}
+                  {editingProfile ? t("updateProfile") : t("createProfile")}
                 </Button>
                 <Button variant="outline" onClick={handleCancelEdit}>
-                  Cancel
+                  {t("cancel")}
                 </Button>
               </div>
             </div>
@@ -252,9 +254,9 @@ export function ProfileManager() {
       {profiles.length === 0 ? (
         <div className="text-center py-12 border-2 border-dashed rounded-lg">
           <Folder className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">No profiles yet</p>
+          <p className="text-muted-foreground">{t("noProfiles")}</p>
           <p className="text-sm text-muted-foreground">
-            Click &ldquo;New Profile&rdquo; to create one
+            {t("noProfilesHelp")}
           </p>
         </div>
       ) : (
@@ -286,7 +288,7 @@ export function ProfileManager() {
                     {profile.isActive && (
                       <Badge variant="default">
                         <Check className="w-3 h-3 mr-1" />
-                        Active
+                        {t("active")}
                       </Badge>
                     )}
                   </div>
@@ -306,7 +308,7 @@ export function ProfileManager() {
                     onClick={() => handleActivate(profile.id)}
                   >
                     <Check className="w-3 h-3 mr-2" />
-                    Activate
+                    {t("activate")}
                   </Button>
                 )}
                 <Button
@@ -315,7 +317,7 @@ export function ProfileManager() {
                   onClick={() => handleEdit(profile)}
                 >
                   <Edit className="w-3 h-3 mr-2" />
-                  Edit
+                  {t("edit")}
                 </Button>
                 <Button
                   variant="destructive"
@@ -324,7 +326,7 @@ export function ProfileManager() {
                   disabled={profile.isActive}
                 >
                   <Trash2 className="w-3 h-3 mr-2" />
-                  Delete
+                  {t("delete")}
                 </Button>
               </div>
             </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,6 +32,8 @@ interface PosterCardProps {
 type DisplayMode = "left" | "right" | "bigpicture";
 
 export function PosterCard({ size, className, settings }: PosterCardProps = {}) {
+  const t = useTranslations("dashboard.poster");
+  const tCommon = useTranslations("common");
   const [activePoster, setActivePoster] = useState<string | null>(null);
   const [displayMode, setDisplayMode] = useState<DisplayMode | null>(null);
   const [activeSide, setActiveSide] = useState<"left" | "right" | null>(null); // kept for backwards compatibility
@@ -338,7 +341,7 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
       <Card className={cn(className)}>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            Posters
+            {t("title")}
             <div
               className={`w-3 h-3 rounded-full ${activePoster ? "bg-green-500" : "bg-gray-300"
                 }`}
@@ -355,10 +358,10 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
           />
 
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading...</div>
+            <div className="text-center py-8 text-muted-foreground">{tCommon("loading")}</div>
           ) : posters.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No posters
+              {t("noPoster")}
             </div>
           ) : (
             <ScrollArea className="h-[500px] w-full">
@@ -412,9 +415,9 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
                           "px-2 py-1 h-auto",
                           displayMode === "left" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
                         )}
-                        aria-label={`Show ${poster.title} on left`}
+                        aria-label={t("ariaShowLeft", { title: poster.title })}
                       >
-                        ← Left
+                        ← {t("positions.left")}
                       </Button>
                       <Button
                         size="sm"
@@ -427,9 +430,9 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
                           "px-2 py-1 h-auto",
                           displayMode === "right" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
                         )}
-                        aria-label={`Show ${poster.title} on right`}
+                        aria-label={t("ariaShowRight", { title: poster.title })}
                       >
-                        Right →
+                        {t("positions.right")} →
                       </Button>
                       <Button
                         size="sm"
@@ -442,9 +445,9 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
                           "px-2 py-1 h-auto",
                           displayMode === "bigpicture" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
                         )}
-                        aria-label={`Show ${poster.title} in big picture mode`}
+                        aria-label={t("ariaShowBig", { title: poster.title })}
                       >
-                        🖼️ Big
+                        🖼️ {t("positions.big")}
                       </Button>
                     </div>
 

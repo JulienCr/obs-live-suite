@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { getAllWidgets } from "@/lib/widgets/registry";
 import { Widget } from "@/lib/models/Widget";
 import { cn } from "@/lib/utils/cn";
+import { useTranslations } from "next-intl";
 
 interface AddWidgetDialogProps {
   open: boolean;
@@ -27,6 +28,7 @@ export function AddWidgetDialog({
   onAddWidget,
   existingWidgets,
 }: AddWidgetDialogProps) {
+  const t = useTranslations("dashboard.widgets");
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const allWidgets = getAllWidgets();
 
@@ -53,16 +55,16 @@ export function AddWidgetDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Add Widget</DialogTitle>
+          <DialogTitle>{t("addWidgetDialog.title")}</DialogTitle>
           <DialogDescription>
-            Choose a widget to add to your dashboard
+            {t("addWidgetDialog.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
           {availableWidgets.length === 0 ? (
             <div className="col-span-2 text-center text-muted-foreground py-8">
-              All available widgets have been added
+              {t("addWidgetDialog.allAdded")}
             </div>
           ) : (
             availableWidgets.map((metadata) => {
@@ -107,10 +109,10 @@ export function AddWidgetDialog({
               onOpenChange(false);
             }}
           >
-            Cancel
+            {t("addWidgetDialog.cancel")}
           </Button>
           <Button onClick={handleAddWidget} disabled={!selectedType}>
-            Add Widget
+            {t("addWidget")}
           </Button>
         </div>
       </DialogContent>

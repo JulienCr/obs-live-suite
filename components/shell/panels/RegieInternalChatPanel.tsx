@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { type IDockviewPanelProps } from "dockview-react";
 import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText, Megaphone, Tv, Wrench } from "lucide-react";
 import { PanelColorMenu } from "../PanelColorMenu";
@@ -10,24 +11,25 @@ import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { cn } from "@/lib/utils";
 
 const cueTypeOptions = [
-  { value: CueType.CUE, label: "Cue", icon: AlertCircle },
-  { value: CueType.NOTE, label: "Note", icon: FileText },
-  { value: CueType.COUNTDOWN, label: "Timer", icon: Clock },
+  { value: CueType.CUE, labelKey: "cueTypes.cue", icon: AlertCircle },
+  { value: CueType.NOTE, labelKey: "cueTypes.note", icon: FileText },
+  { value: CueType.COUNTDOWN, labelKey: "cueTypes.timer", icon: Clock },
 ];
 
 const severityOptions = [
-  { value: CueSeverity.INFO, label: "Info", icon: Info, color: "blue" },
-  { value: CueSeverity.WARN, label: "Warn", icon: AlertTriangle, color: "yellow" },
-  { value: CueSeverity.URGENT, label: "Urgent", icon: AlertCircle, color: "red" },
+  { value: CueSeverity.INFO, labelKey: "severity.info", icon: Info, color: "blue" },
+  { value: CueSeverity.WARN, labelKey: "severity.warn", icon: AlertTriangle, color: "yellow" },
+  { value: CueSeverity.URGENT, labelKey: "severity.urgent", icon: AlertCircle, color: "red" },
 ];
 
 const quickTemplates = [
-  { label: "Ad", icon: Tv, severity: CueSeverity.WARN, body: "Ad break in 30 seconds" },
-  { label: "Tech", icon: Wrench, severity: CueSeverity.URGENT, body: "Technical issue - please stand by" },
-  { label: "Wrap", icon: Megaphone, severity: CueSeverity.INFO, body: "Wrap up current topic" },
+  { labelKey: "templates.ad", icon: Tv, severity: CueSeverity.WARN, bodyKey: "templates.adBody" },
+  { labelKey: "templates.tech", icon: Wrench, severity: CueSeverity.URGENT, bodyKey: "templates.techBody" },
+  { labelKey: "templates.wrap", icon: Megaphone, severity: CueSeverity.INFO, bodyKey: "templates.wrapBody" },
 ];
 
 function RegieInternalChatContent() {
+  const t = useTranslations("regieChat");
   const [cueType, setCueType] = useState<CueType>(CueType.CUE);
   const [severity, setSeverity] = useState<CueSeverity>(CueSeverity.INFO);
   const [body, setBody] = useState("");
@@ -95,7 +97,7 @@ function RegieInternalChatContent() {
   const handleQuickTemplate = (template: typeof quickTemplates[0]) => {
     setCueType(CueType.CUE);
     setSeverity(template.severity);
-    setBody(template.body);
+    setBody(t(template.bodyKey));
     textareaRef.current?.focus();
   };
 
@@ -115,7 +117,7 @@ function RegieInternalChatContent() {
               onClick={() => setCueType(option.value)}
             >
               <Icon className="h-4 w-4 mr-1" />
-              {option.label}
+              {t(option.labelKey)}
             </Button>
           );
         })}
@@ -141,7 +143,7 @@ function RegieInternalChatContent() {
                 onClick={() => setSeverity(option.value)}
               >
                 <Icon className="h-4 w-4 mr-1" />
-                {option.label}
+                {t(option.labelKey)}
               </Button>
             );
           })}
@@ -151,7 +153,7 @@ function RegieInternalChatContent() {
       {/* Countdown Duration (only for COUNTDOWN type) */}
       {cueType === CueType.COUNTDOWN && (
         <div className="flex gap-2 items-center">
-          <span className="text-sm text-muted-foreground">Duration:</span>
+          <span className="text-sm text-muted-foreground">{t("duration")}:</span>
           <div className="flex gap-1">
             {[30, 60, 120, 300].map((secs) => (
               <Button
@@ -170,7 +172,7 @@ function RegieInternalChatContent() {
       {/* Message Textarea */}
       <textarea
         ref={textareaRef}
-        placeholder="Message... (Ctrl+Enter to send)"
+        placeholder={t("placeholder")}
         value={body}
         onChange={(e) => setBody(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -196,14 +198,14 @@ function RegieInternalChatContent() {
             const Icon = template.icon;
             return (
               <Button
-                key={template.label}
+                key={template.labelKey}
                 variant="ghost"
                 size="sm"
                 onClick={() => handleQuickTemplate(template)}
-                title={template.body}
+                title={t(template.bodyKey)}
               >
                 <Icon className="h-4 w-4 mr-1" />
-                {template.label}
+                {t(template.labelKey)}
               </Button>
             );
           })}
@@ -216,7 +218,7 @@ function RegieInternalChatContent() {
           className="px-6"
         >
           <Send className="h-4 w-4 mr-1" />
-          {sending ? "..." : "Send"}
+          {sending ? "..." : t("send")}
         </Button>
       </div>
     </div>

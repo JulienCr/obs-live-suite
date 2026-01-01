@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, DragEvent } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,8 @@ interface PosterUploaderProps {
  * Poster uploader with file upload, drag-drop, and YouTube support
  */
 export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
+  const t = useTranslations("assets.posterUpload");
+  const tCommon = useTranslations("common");
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -61,13 +64,13 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
 
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Upload failed");
+        throw new Error(error.error || t("uploadFailed"));
       }
 
       const data = await res.json();
       onUpload(data.url, data.type);
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Upload failed");
+      alert(error instanceof Error ? error.message : t("uploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -105,7 +108,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
     }
 
     if (!videoId) {
-      alert("Invalid YouTube URL");
+      alert(t("invalidYoutubeUrl"));
       return;
     }
 
@@ -125,7 +128,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
               onClick={() => setMode("file")}
             >
               <Upload className="w-3 h-3 mr-2" />
-              Upload File
+              {t("uploadFile")}
             </Button>
             <Button
               variant={mode === "youtube" ? "default" : "outline"}
@@ -133,7 +136,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
               onClick={() => setMode("youtube")}
             >
               <Link2 className="w-3 h-3 mr-2" />
-              YouTube Video
+              {t("youtubeVideo")}
             </Button>
           </div>
 
@@ -156,16 +159,16 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
                 {uploading ? (
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Uploading...</p>
+                    <p className="text-sm text-muted-foreground">{t("uploading")}</p>
                   </div>
                 ) : (
                   <>
                     <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-sm font-medium mb-2">
-                      Drag and drop a file here, or click to browse
+                      {t("dragAndDrop")}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Supported: JPG, PNG, GIF, WebP, MP4, WebM, MOV
+                      {t("supportedFormats")}
                     </p>
                   </>
                 )}
@@ -184,7 +187,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
           {/* YouTube Mode */}
           {mode === "youtube" && (
             <div className="space-y-2">
-              <Label htmlFor="youtubeUrl">YouTube Video URL</Label>
+              <Label htmlFor="youtubeUrl">{t("youtubeUrlLabel")}</Label>
               <Input
                 id="youtubeUrl"
                 value={youtubeUrl}
@@ -192,10 +195,10 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
                 placeholder="https://www.youtube.com/watch?v=..."
               />
               <p className="text-xs text-muted-foreground">
-                Paste a YouTube video URL or video ID
+                {t("youtubeUrlHint")}
               </p>
               <Button onClick={handleYouTubeSubmit} disabled={!youtubeUrl}>
-                Add YouTube Video
+                {t("addYoutubeVideo")}
               </Button>
             </div>
           )}
@@ -203,7 +206,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
           {/* Actions */}
           <div className="flex gap-2 pt-2">
             <Button variant="outline" onClick={onCancel}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
           </div>
         </div>

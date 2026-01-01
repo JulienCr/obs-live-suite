@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import Cropper, { Area } from "react-easy-crop";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -15,6 +16,8 @@ interface ImageCropperProps {
  * Image cropper modal for avatar cropping
  */
 export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperProps) {
+  const t = useTranslations("assets.imageCropper");
+  const tCommon = useTranslations("common");
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -72,7 +75,7 @@ export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperPr
       }, "image/jpeg", 0.95);
     } catch (error) {
       console.error("Error cropping image:", error);
-      alert("Failed to crop image");
+      alert(t("cropFailed"));
     } finally {
       setProcessing(false);
     }
@@ -81,7 +84,7 @@ export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperPr
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
       <div className="bg-background rounded-lg p-6 max-w-2xl w-full mx-4">
-        <h3 className="text-lg font-semibold mb-4">Crop Avatar</h3>
+        <h3 className="text-lg font-semibold mb-4">{t("title")}</h3>
         
         <div className="relative h-[400px] bg-muted rounded-lg mb-4">
           <Cropper
@@ -99,7 +102,7 @@ export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperPr
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Zoom</label>
+            <label className="text-sm font-medium">{t("zoom")}</label>
             <Slider
               value={[zoom]}
               min={1}
@@ -111,10 +114,10 @@ export function ImageCropper({ image, onCropComplete, onCancel }: ImageCropperPr
 
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={onCancel} disabled={processing}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button onClick={createCroppedImage} disabled={processing}>
-              {processing ? "Processing..." : "Crop & Save"}
+              {processing ? t("processing") : t("cropAndSave")}
             </Button>
           </div>
         </div>

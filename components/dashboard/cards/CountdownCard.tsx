@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ interface CountdownCardProps {
  * CountdownCard - Control card for countdown timer
  */
 export function CountdownCard({ size, className, settings }: CountdownCardProps = {}) {
+  const t = useTranslations("dashboard.countdown");
   const [minutes, setMinutes] = useState(5);
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -41,15 +43,15 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
 
   // Position presets for 1920x1080 resolution (arranged logically: top row, middle row, bottom row)
   const positionPresets = [
-    { name: "Top Left", x: 200, y: 150 },
-    { name: "Top Center", x: 960, y: 150 },
-    { name: "Top Right", x: 1720, y: 150 },
-    { name: "Middle Left", x: 200, y: 540 },
-    { name: "Center", x: 960, y: 540 },
-    { name: "Middle Right", x: 1720, y: 540 },
-    { name: "Bottom Left", x: 200, y: 930 },
-    { name: "Bottom Center", x: 960, y: 930 },
-    { name: "Bottom Right", x: 1720, y: 930 },
+    { nameKey: "topLeft" as const, x: 200, y: 150 },
+    { nameKey: "topCenter" as const, x: 960, y: 150 },
+    { nameKey: "topRight" as const, x: 1720, y: 150 },
+    { nameKey: "middleLeft" as const, x: 200, y: 540 },
+    { nameKey: "center" as const, x: 960, y: 540 },
+    { nameKey: "middleRight" as const, x: 1720, y: 540 },
+    { nameKey: "bottomLeft" as const, x: 200, y: 930 },
+    { nameKey: "bottomCenter" as const, x: 960, y: 930 },
+    { nameKey: "bottomRight" as const, x: 1720, y: 930 },
   ];
 
   const presets = [
@@ -66,7 +68,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
     setSeconds(secs);
   };
 
-  const handlePositionPreset = (preset: { name: string; x: number; y: number }) => {
+  const handlePositionPreset = (preset: { nameKey: string; x: number; y: number }) => {
     setPosition({ x: preset.x, y: preset.y });
   };
 
@@ -235,7 +237,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
     <Card className={cn(className)}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Countdown
+          {t("title")}
           <div
             className={`w-3 h-3 rounded-full ${
               isRunning ? "bg-green-500 animate-pulse" : "bg-gray-300"
@@ -260,7 +262,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="minutes">Minutes</Label>
+            <Label htmlFor="minutes">{t("minutes")}</Label>
             <Input
               id="minutes"
               type="number"
@@ -271,7 +273,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="seconds">Seconds</Label>
+            <Label htmlFor="seconds">{t("seconds")}</Label>
             <Input
               id="seconds"
               type="number"
@@ -294,7 +296,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
               className="flex-1"
             >
               <Play className="w-4 h-4 mr-2" />
-              Start
+              {t("start")}
             </Button>
           ) : (
             <Button
@@ -304,7 +306,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
               className="flex-1"
             >
               <Pause className="w-4 h-4 mr-2" />
-              Pause
+              {t("pause")}
             </Button>
           )}
           <Button
@@ -320,11 +322,11 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
           <Button
             variant="default"
             size="sm"
-            onClick={() => handleAddTime(30)}
+            onClick={() => handleAddTime(60)}
             className="w-full"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Ajouter 30 secondes
+            {t("add1Min")}
           </Button>
         )}
 
@@ -335,52 +337,52 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
           className="w-full"
         >
           <Settings className="w-4 h-4 mr-2" />
-          {showAdvanced ? "Hide" : "Show"} Advanced Options
+          {t("advancedSettings")}
         </Button>
 
         {showAdvanced && (
           <div className="space-y-4 border-t pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Style</Label>
+                <Label>{t("style")}</Label>
                 <Select value={style} onValueChange={(value: "bold" | "corner" | "banner") => setStyle(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="bold">Bold</SelectItem>
-                    <SelectItem value="corner">Corner</SelectItem>
-                    <SelectItem value="banner">Banner</SelectItem>
+                    <SelectItem value="bold">{t("styles.bold")}</SelectItem>
+                    <SelectItem value="corner">{t("styles.corner")}</SelectItem>
+                    <SelectItem value="banner">{t("styles.banner")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Format</Label>
+                <Label>{t("format")}</Label>
                 <Select value={format} onValueChange={(value: "mm:ss" | "hh:mm:ss" | "seconds") => setFormat(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="mm:ss">MM:SS</SelectItem>
-                    <SelectItem value="hh:mm:ss">HH:MM:SS</SelectItem>
-                    <SelectItem value="seconds">Seconds</SelectItem>
+                    <SelectItem value="mm:ss">{t("formats.mmss")}</SelectItem>
+                    <SelectItem value="hh:mm:ss">{t("formats.hhmmss")}</SelectItem>
+                    <SelectItem value="seconds">{t("formats.seconds")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Position Presets</Label>
+              <Label>{t("presets")}</Label>
               <div className="grid grid-cols-3 gap-2">
                 {positionPresets.map((preset) => (
                   <Button
-                    key={preset.name}
+                    key={preset.nameKey}
                     variant={position.x === preset.x && position.y === preset.y ? "default" : "outline"}
                     size="sm"
                     onClick={() => handlePositionPreset(preset)}
                     className="text-xs"
                   >
-                    {preset.name}
+                    {t(`positionPresets.${preset.nameKey}`)}
                   </Button>
                 ))}
               </div>
@@ -388,7 +390,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Position X</Label>
+                <Label>{t("positionX")}</Label>
                 <Input
                   type="number"
                   value={position.x}
@@ -396,7 +398,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
                 />
               </div>
               <div className="space-y-2">
-                <Label>Position Y</Label>
+                <Label>{t("positionY")}</Label>
                 <Input
                   type="number"
                   value={position.y}
@@ -406,7 +408,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
             </div>
 
             <div className="space-y-2">
-              <Label>Scale: {scale}x</Label>
+              <Label>{t("scale")}: {scale}x</Label>
               <Input
                 type="range"
                 min="0.1"
@@ -419,7 +421,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Color</Label>
+                <Label>{t("color")}</Label>
                 <Input
                   type="color"
                   value={color}
@@ -427,7 +429,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
                 />
               </div>
               <div className="space-y-2">
-                <Label>Font Size</Label>
+                <Label>{t("fontSize")}</Label>
                 <Input
                   type="number"
                   min="12"
@@ -439,7 +441,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
             </div>
 
             <div className="space-y-2">
-              <Label>Font Family</Label>
+              <Label>{t("font")}</Label>
               <Select value={fontFamily} onValueChange={setFontFamily}>
                 <SelectTrigger>
                   <SelectValue />
@@ -457,17 +459,17 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Font Weight</Label>
+                <Label>{t("fontWeight")}</Label>
                 <Select value={fontWeight.toString()} onValueChange={(value) => setFontWeight(parseInt(value))}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="300">Light (300)</SelectItem>
-                    <SelectItem value="400">Normal (400)</SelectItem>
-                    <SelectItem value="600">Semi-Bold (600)</SelectItem>
-                    <SelectItem value="700">Bold (700)</SelectItem>
-                    <SelectItem value="900">Black (900)</SelectItem>
+                    <SelectItem value="300">{t("weights.light")}</SelectItem>
+                    <SelectItem value="400">{t("weights.normal")}</SelectItem>
+                    <SelectItem value="600">{t("weights.semiBold")}</SelectItem>
+                    <SelectItem value="700">{t("weights.bold")}</SelectItem>
+                    <SelectItem value="900">{t("weights.black")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -477,7 +479,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
                   checked={shadow}
                   onCheckedChange={setShadow}
                 />
-                <Label htmlFor="shadow">Text Shadow</Label>
+                <Label htmlFor="shadow">{t("shadow")}</Label>
               </div>
             </div>
           </div>

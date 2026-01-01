@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit2, Trash2, Zap, Play } from "lucide-react";
 import { Theme } from "@/lib/models/Theme";
+import { useTranslations } from "next-intl";
 
 interface ThemeCardProps {
   theme: Theme;
@@ -28,6 +29,7 @@ export function ThemeCard({
   onTestLowerThird,
   onTestCountdown,
 }: ThemeCardProps) {
+  const t = useTranslations("themeEditor.card");
   return (
     <Card className="p-4">
       <div className="space-y-3">
@@ -38,13 +40,13 @@ export function ThemeCard({
               <h3 className="font-semibold">{theme.name}</h3>
               {isActive && (
                 <Badge variant="default" className="text-xs">
-                  Active
+                  {t("active")}
                 </Badge>
               )}
             </div>
             {theme.isGlobal && (
               <Badge variant="secondary" className="mt-1 text-xs">
-                Global
+                {t("global")}
               </Badge>
             )}
           </div>
@@ -53,7 +55,7 @@ export function ThemeCard({
               size="sm"
               variant="ghost"
               onClick={() => onEdit(theme)}
-              title="Edit theme"
+              title={t("editTheme")}
             >
               <Edit2 className="w-4 h-4" />
             </Button>
@@ -62,7 +64,7 @@ export function ThemeCard({
                 size="sm"
                 variant="ghost"
                 onClick={() => onDelete(theme.id)}
-                title="Delete theme"
+                title={t("deleteTheme")}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -72,7 +74,7 @@ export function ThemeCard({
 
         {/* Mini Preview */}
         <div className="border rounded p-2 bg-muted/30">
-          <div className="text-[10px] text-muted-foreground mb-1">Preview</div>
+          <div className="text-[10px] text-muted-foreground mb-1">{t("preview")}</div>
           <div
             className="h-16 rounded flex items-center gap-2 px-2"
             style={{
@@ -111,7 +113,7 @@ export function ThemeCard({
 
         {/* Color Swatches */}
         <div>
-          <div className="text-xs text-muted-foreground mb-2">Colors</div>
+          <div className="text-xs text-muted-foreground mb-2">{t("colors")}</div>
           <div className="flex gap-1">
             {Object.entries(theme.colors).map(([key, value]) => (
               <div
@@ -127,11 +129,11 @@ export function ThemeCard({
         {/* Template Info */}
         <div className="text-xs space-y-1">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Lower Third:</span>
+            <span className="text-muted-foreground">{t("lowerThird")}</span>
             <span className="font-medium capitalize">{theme.lowerThirdTemplate}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Countdown:</span>
+            <span className="text-muted-foreground">{t("countdown")}</span>
             <span className="font-medium capitalize">{theme.countdownStyle}</span>
           </div>
         </div>
@@ -146,7 +148,7 @@ export function ThemeCard({
               onClick={() => onApply(theme.id)}
             >
               <Zap className="w-4 h-4 mr-2" />
-              Apply Theme
+              {t("applyTheme")}
             </Button>
           ) : (
             <>
@@ -155,20 +157,20 @@ export function ThemeCard({
                 variant="outline"
                 size="sm"
                 onClick={onTestLowerThird}
-                title="Test Lower Third"
+                title={t("testLowerThird")}
               >
                 <Play className="w-4 h-4 mr-2" />
-                Test L3
+                {t("testL3")}
               </Button>
               <Button
                 className="flex-1"
                 variant="outline"
                 size="sm"
                 onClick={onTestCountdown}
-                title="Test Countdown"
+                title={t("testCountdown")}
               >
                 <Play className="w-4 h-4 mr-2" />
-                Test CD
+                {t("testCD")}
               </Button>
             </>
           )}

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { getQuestionTypeColor } from "@/lib/utils/questionTypeColors";
 
 interface Question {
@@ -19,6 +20,7 @@ interface QuestionListProps {
 const ITEMS_PER_PAGE = 20;
 
 export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListProps) {
+  const t = useTranslations("quiz.manage.questionList");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,7 +44,7 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this question?")) return;
+    if (!confirm(t("deleteConfirm"))) return;
     try {
       await fetch(`/api/quiz/questions/${id}`, { method: "DELETE" });
       await load();
@@ -90,7 +92,7 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
     return Array.from(types).sort();
   }, [questions]);
 
-  if (loading) return <div className="text-gray-500">Loading...</div>;
+  if (loading) return <div className="text-gray-500">{t("loading")}</div>;
 
   return (
     <div className="space-y-4">
@@ -101,7 +103,7 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
             onClick={onNewQuestion}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex items-center gap-2"
           >
-            ➕ New Question
+            ➕ {t("newQuestion")}
           </button>
         )}
         {onImport && (
@@ -109,7 +111,7 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
             onClick={onImport}
             className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm flex items-center gap-2"
           >
-            📥 Bulk Import
+            📥 {t("bulkImport")}
           </button>
         )}
       </div>
@@ -119,7 +121,7 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
         <div className="flex-1">
           <input
             type="text"
-            placeholder="Search questions..."
+            placeholder={t("searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -131,7 +133,7 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
             onChange={(e) => setTypeFilter(e.target.value)}
             className="px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">All Types</option>
+            <option value="all">{t("allTypes")}</option>
             {questionTypes.map(type => (
               <option key={type} value={type}>{type}</option>
             ))}
@@ -141,15 +143,15 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
 
       {/* Results Count */}
       <div className="text-sm text-gray-600">
-        Showing {paginatedQuestions.length} of {filteredQuestions.length} questions
-        {filteredQuestions.length !== questions.length && ` (filtered from ${questions.length} total)`}
+        {t("showingResults", { shown: paginatedQuestions.length, filtered: filteredQuestions.length })}
+        {filteredQuestions.length !== questions.length && ` ${t("showingFiltered", { total: questions.length })}`}
       </div>
-      
+
       {/* Question List */}
       <div className="space-y-2">
         {paginatedQuestions.length === 0 && (
           <div className="text-gray-500 text-sm">
-            {questions.length === 0 ? 'No questions yet. Create one!' : 'No questions match your search.'}
+            {questions.length === 0 ? t("noQuestionsYet") : t("noQuestionsMatch")}
           </div>
         )}
         {paginatedQuestions.map((q) => (
@@ -167,13 +169,13 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
                   onClick={() => onEdit(q.id)}
                   className="text-sm px-3 py-1 bg-gray-100 rounded hover:bg-gray-200"
                 >
-                  Edit
+                  {t("edit")}
                 </button>
                 <button
                   onClick={() => handleDelete(q.id)}
                   className="text-sm px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
                 >
-                  Delete
+                  {t("delete")}
                 </button>
               </div>
             </div>
@@ -189,7 +191,7 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
             disabled={currentPage === 1}
             className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
           >
-            Previous
+            {t("previous")}
           </button>
           
           <div className="flex gap-1">
@@ -229,7 +231,7 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
             disabled={currentPage === totalPages}
             className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
           >
-            Next
+            {t("next")}
           </button>
         </div>
       )}

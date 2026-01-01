@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { PlayerAvatarChip } from "./PlayerAvatarChip";
 import { useState } from "react";
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 interface PlayerScore {
   id: string;
@@ -78,6 +79,7 @@ export function QuizQuestionStage({
   questionFinished,
   selectedWinners = [],
 }: QuestionStageProps) {
+  const t = useTranslations("quiz.host.stage");
   const [draggedPlayer, setDraggedPlayer] = useState<string | null>(null);
   const [zoomRunning, setZoomRunning] = useState(false);
   const [zoomStarted, setZoomStarted] = useState(false);
@@ -88,7 +90,7 @@ export function QuizQuestionStage({
   if (!question) {
     return (
       <main className="flex-1 flex items-center justify-center bg-white">
-        <p className="text-gray-400">No question loaded</p>
+        <p className="text-gray-400">{t("noQuestionLoaded")}</p>
       </main>
     );
   }
@@ -144,7 +146,7 @@ export function QuizQuestionStage({
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-semibold">{roundTitle}</h2>
             <span className="text-sm text-gray-500">
-              Question {questionNumber}/{totalQuestions}
+              {t("questionOf", { current: questionNumber, total: totalQuestions })}
             </span>
           </div>
           <span
@@ -156,10 +158,10 @@ export function QuizQuestionStage({
               phase === "reveal" && "bg-blue-100 text-blue-700"
             )}
           >
-            {phase === "idle" && "⏸ Ready (Not Shown)"}
-            {phase === "accept_answers" && "✓ Live & Accepting"}
-            {phase === "lock" && "🔒 Locked"}
-            {phase === "reveal" && "👁 Revealed"}
+            {phase === "idle" && t("phaseLabels.idle")}
+            {phase === "accept_answers" && t("phaseLabels.acceptAnswers")}
+            {phase === "lock" && t("phaseLabels.lock")}
+            {phase === "reveal" && t("phaseLabels.reveal")}
           </span>
         </div>
       </div>
@@ -171,10 +173,7 @@ export function QuizQuestionStage({
           <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center gap-2 text-blue-800">
               <span className="text-lg">ℹ️</span>
-              <p className="font-medium">
-                This question is loaded but <strong>not visible</strong> to viewers yet.
-                Click <strong>&ldquo;Show Question&rdquo;</strong> in the top bar to display it.
-              </p>
+              <p className="font-medium" dangerouslySetInnerHTML={{ __html: t.raw("idleBanner") }} />
             </div>
           </div>
         )}
@@ -182,8 +181,8 @@ export function QuizQuestionStage({
           <div className="mb-6">
             <h3 className="text-2xl font-bold mb-2">{question.text}</h3>
             <div className="flex items-center gap-4 text-sm text-gray-600">
-              <span>Type: {question.type}</span>
-              <span>Points: {question.points}</span>
+              <span>{t("type")}: {question.type}</span>
+              <span>{t("points")}: {question.points}</span>
             </div>
           </div>
 
@@ -191,7 +190,7 @@ export function QuizQuestionStage({
             <div className="mb-6">
               <img
                 src={question.media}
-                alt="Question media"
+                alt={t("questionMedia")}
                 className="max-w-md rounded-lg shadow"
               />
             </div>
@@ -203,7 +202,7 @@ export function QuizQuestionStage({
               <div className="flex items-start gap-3">
                 <span className="text-lg">💡</span>
                 <div>
-                  <div className="font-semibold text-blue-800 mb-2">Explication :</div>
+                  <div className="font-semibold text-blue-800 mb-2">{t("explanation")}</div>
                   <div className="text-blue-700">{question.explanation}</div>
                 </div>
               </div>
@@ -216,7 +215,7 @@ export function QuizQuestionStage({
               <div className="flex items-start gap-3">
                 <span className="text-lg">📝</span>
                 <div>
-                  <div className="font-semibold text-gray-800 mb-2">Notes :</div>
+                  <div className="font-semibold text-gray-800 mb-2">{t("notes")}</div>
                   <div className="text-gray-700 text-sm">{question.notes}</div>
                 </div>
               </div>
@@ -293,7 +292,7 @@ export function QuizQuestionStage({
                         {/* Correct answer indicator for host in lock state */}
                         {isLocked && isCorrect && (
                           <span className="ml-2 px-2 py-0.5 bg-green-600 text-white text-xs font-bold rounded-full">
-                            ✓ CORRECT
+                            ✓ {t("correct")}
                           </span>
                         )}
                       </div>
@@ -301,7 +300,7 @@ export function QuizQuestionStage({
                       <div className="flex items-center gap-3">
                         {/* Viewer stats */}
                         <div className="text-sm text-gray-600">
-                          {voteCount} votes ({percentage.toFixed(0)}%)
+                          {t("votes", { count: voteCount, percentage: percentage.toFixed(0) })}
                         </div>
 
                         {/* Player avatars with reveal badges */}
@@ -346,34 +345,34 @@ export function QuizQuestionStage({
                 (phase === "lock" || phase === "reveal") && typeof question.correct === "number" && "bg-green-50 border-green-400"
               )}>
                 <label className="block text-sm font-medium mb-2">
-                  Target Value
+                  {t("closest.targetValue")}
                 </label>
                 {(phase === "lock" || phase === "reveal" || phase === "score_update") && typeof question.correct === "number" ? (
                   <div className="text-3xl font-bold text-green-700">
                     {question.correct}
                     <span className="ml-3 px-2 py-0.5 bg-green-600 text-white text-xs font-bold rounded-full align-middle">
-                      ✓ CORRECT ANSWER
+                      ✓ {t("closest.correctAnswer")}
                     </span>
                   </div>
                 ) : (
                   <input
                     type="number"
-                    placeholder="Enter correct value"
+                    placeholder={t("closest.enterCorrectValue")}
                     className="border rounded px-3 py-2 w-full"
                     readOnly
                   />
                 )}
                 <p className="text-xs text-gray-500 mt-2">
-                  Viewers: {totalVotes} guesses
+                  {t("closest.viewersGuesses", { count: totalVotes })}
                 </p>
               </div>
 
               {/* Winner Selection for Closest Questions */}
               {(phase === "reveal" || phase === "score_update") && (
                 <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-                  <h4 className="font-semibold mb-3 text-blue-800">Select Winners</h4>
+                  <h4 className="font-semibold mb-3 text-blue-800">{t("winners.selectWinners")}</h4>
                   <p className="text-sm text-blue-600 mb-3">
-                    Click on players to mark them as winners (multiple winners allowed), then Validate
+                    {t("winners.clickToMarkWinners")}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {players.map((player) => {
@@ -405,7 +404,7 @@ export function QuizQuestionStage({
                     })}
                   </div>
                   <p className="mt-3 text-sm text-green-600">
-                    Click a player to toggle winner status. Points are applied immediately.
+                    {t("winners.toggleWinnerStatus")}
                   </p>
                 </div>
               )}
@@ -416,19 +415,18 @@ export function QuizQuestionStage({
           {isZoomMode && (
             <div className="space-y-4">
               <div className="p-4 border rounded-lg bg-indigo-50 border-indigo-200">
-                <h4 className="font-semibold mb-2 text-indigo-800">Zoom Reveal Question</h4>
+                <h4 className="font-semibold mb-2 text-indigo-800">{t("zoom.title")}</h4>
                 <p className="text-sm text-indigo-600">
-                  The image will gradually zoom out in the overlay.
-                  Use the controls below to start/pause the reveal.
+                  {t("zoom.description")}
                 </p>
               </div>
 
               {/* Winner Selection for Zoom Reveal Questions */}
               {(phase === "reveal" || phase === "score_update") && (
                 <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-                  <h4 className="font-semibold mb-3 text-blue-800">Select Winners</h4>
+                  <h4 className="font-semibold mb-3 text-blue-800">{t("winners.selectWinners")}</h4>
                   <p className="text-sm text-blue-600 mb-3">
-                    Click on players who correctly identified the image (multiple winners allowed)
+                    {t("winners.clickIdentifiedImage")}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {players.map((player) => {
@@ -461,11 +459,11 @@ export function QuizQuestionStage({
                   </div>
                   {selectedWinners.length > 0 && (
                     <p className="text-sm text-green-600 mt-2">
-                      {selectedWinners.length} winner{selectedWinners.length > 1 ? 's' : ''} selected
+                      {t("winners.winnersSelected", { count: selectedWinners.length })}
                     </p>
                   )}
                   <p className="mt-3 text-sm text-blue-600">
-                    Click a player to toggle winner status. Points are applied immediately.
+                    {t("winners.toggleWinnerStatus")}
                   </p>
                 </div>
               )}
@@ -476,14 +474,13 @@ export function QuizQuestionStage({
           {isMysteryImageMode && (
             <div className="space-y-4">
               <div className="p-4 border rounded-lg bg-purple-50 border-purple-200">
-                <h4 className="font-semibold mb-2 text-purple-800">Mystery Image Question</h4>
+                <h4 className="font-semibold mb-2 text-purple-800">{t("mystery.title")}</h4>
                 <p className="text-sm text-purple-600">
-                  The image will be revealed square by square in the overlay.
-                  Use the controls below to start/pause the reveal.
+                  {t("mystery.description")}
                 </p>
                 {mysteryTotalSquares > 0 && (
                   <p className="text-xs text-purple-500 mt-2">
-                    Grid: {mysteryTotalSquares} squares total
+                    {t("mystery.gridSquares", { count: mysteryTotalSquares })}
                   </p>
                 )}
               </div>
@@ -491,9 +488,9 @@ export function QuizQuestionStage({
               {/* Winner Selection for Mystery Image Questions */}
               {(phase === "reveal" || phase === "score_update") && (
                 <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-                  <h4 className="font-semibold mb-3 text-blue-800">Select Winners</h4>
+                  <h4 className="font-semibold mb-3 text-blue-800">{t("winners.selectWinners")}</h4>
                   <p className="text-sm text-blue-600 mb-3">
-                    Click on players who correctly identified the image (multiple winners allowed)
+                    {t("winners.clickIdentifiedImage")}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {players.map((player) => {
@@ -526,11 +523,11 @@ export function QuizQuestionStage({
                   </div>
                   {selectedWinners.length > 0 && (
                     <p className="text-sm text-green-600 mt-2">
-                      {selectedWinners.length} winner{selectedWinners.length > 1 ? 's' : ''} selected
+                      {t("winners.winnersSelected", { count: selectedWinners.length })}
                     </p>
                   )}
                   <p className="mt-3 text-sm text-blue-600">
-                    Click a player to toggle winner status. Points are applied immediately.
+                    {t("winners.toggleWinnerStatus")}
                   </p>
                 </div>
               )}
@@ -541,18 +538,18 @@ export function QuizQuestionStage({
           {question.type === "open" && (
             <div className="space-y-4">
               <div className="p-4 border rounded-lg">
-                <h4 className="font-semibold mb-2">Open Answers (Viewers)</h4>
+                <h4 className="font-semibold mb-2">{t("open.title")}</h4>
                 <p className="text-sm text-gray-600">
-                  {totalVotes} responses received
+                  {t("open.responsesReceived", { count: totalVotes })}
                 </p>
               </div>
 
               {/* Winner Selection for Open Questions */}
               {(phase === "reveal" || phase === "score_update") && (
                 <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-                  <h4 className="font-semibold mb-3 text-blue-800">Select Winners</h4>
+                  <h4 className="font-semibold mb-3 text-blue-800">{t("winners.selectWinners")}</h4>
                   <p className="text-sm text-blue-600 mb-3">
-                    Click on players to mark them as winners (multiple winners allowed)
+                    {t("winners.clickToMarkWinners")}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {players.map((player) => {
@@ -585,7 +582,7 @@ export function QuizQuestionStage({
                   </div>
                   {selectedWinners.length > 0 && (
                     <p className="text-sm text-green-600 mt-2">
-                      {selectedWinners.length} winner{selectedWinners.length > 1 ? 's' : ''} selected
+                      {t("winners.winnersSelected", { count: selectedWinners.length })}
                     </p>
                   )}
                 </div>
@@ -634,12 +631,12 @@ export function QuizQuestionStage({
           {isZoomMode && onZoomStart && onZoomStop && onZoomResume && (
             <div className="flex items-center gap-3 border-l pl-4">
               <span className="text-sm font-medium text-gray-600">
-                Zoom Reveal:
+                {t("zoom.label")}
               </span>
               <div className="flex gap-2">
                 {zoomRunning ? (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => {
                       onZoomStop();
@@ -647,11 +644,11 @@ export function QuizQuestionStage({
                     }}
                   >
                     <Pause className="w-3 h-3 mr-1" />
-                    Pause
+                    {t("zoom.pause")}
                   </Button>
                 ) : (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="default"
                     onClick={() => {
                       if (zoomStarted) {
@@ -664,7 +661,7 @@ export function QuizQuestionStage({
                     }}
                   >
                     <Play className="w-3 h-3 mr-1" />
-                    {zoomStarted ? "Resume" : "Start"}
+                    {zoomStarted ? t("zoom.resume") : t("zoom.start")}
                   </Button>
                 )}
               </div>
@@ -675,25 +672,27 @@ export function QuizQuestionStage({
           {isMysteryImageMode && onMysteryStart && onMysteryStop && onMysteryResume && (
             <div className="flex items-center gap-3 border-l pl-4">
               <span className="text-sm font-medium text-gray-600">
-                Mystery Reveal {mysteryTotalSquares > 0 && `(${mysteryTotalSquares} squares)`}:
+                {mysteryTotalSquares > 0
+                  ? t("mystery.labelWithSquares", { count: mysteryTotalSquares })
+                  : t("mystery.label")}
               </span>
               <div className="flex gap-2">
                 {mysteryRunning ? (
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={() => {
                       onMysteryStop();
                       setMysteryRunning(false);
                     }}
                   >
                     <Pause className="w-4 h-4 mr-1" />
-                    Pause
+                    {t("zoom.pause")}
                   </Button>
                 ) : (
-                  <Button 
-                    size="sm" 
-                    variant="default" 
+                  <Button
+                    size="sm"
+                    variant="default"
                     onClick={() => {
                       if (mysteryStarted) {
                         // Resume from where we paused
@@ -710,7 +709,7 @@ export function QuizQuestionStage({
                     disabled={mysteryTotalSquares === 0}
                   >
                     <Play className="w-4 h-4 mr-1" />
-                    {mysteryStarted ? "Resume" : "Start"}
+                    {mysteryStarted ? t("zoom.resume") : t("zoom.start")}
                   </Button>
                 )}
               </div>
@@ -726,7 +725,7 @@ export function QuizQuestionStage({
               disabled={phase !== "accept_answers"}
               className="bg-yellow-600 hover:bg-yellow-700"
             >
-              Lock
+              {t("controls.lock")}
             </Button>
             <Button
               size="sm"
@@ -735,7 +734,7 @@ export function QuizQuestionStage({
               disabled={phase !== "lock"}
               className="bg-orange-600 hover:bg-orange-700"
             >
-              Reveal
+              {t("controls.reveal")}
             </Button>
 
             <div className="h-6 w-px bg-gray-300 mx-2" />
@@ -745,7 +744,7 @@ export function QuizQuestionStage({
               variant="destructive"
               onClick={onResetQuestion}
             >
-              Reset Question
+              {t("controls.resetQuestion")}
             </Button>
           </div>
         </div>

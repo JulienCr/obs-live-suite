@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ interface OBSConfig {
  * OBS WebSocket connection settings
  */
 export function OBSSettings() {
+  const t = useTranslations("settings.obs");
   const [config, setConfig] = useState<OBSConfig>({
     url: "ws://localhost:4455",
     password: "",
@@ -177,7 +179,7 @@ export function OBSSettings() {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="w-6 h-6 animate-spin mr-2" />
-        Loading settings...
+        {t("loading")}
       </div>
     );
   }
@@ -185,39 +187,39 @@ export function OBSSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold mb-2">OBS WebSocket Settings</h2>
+        <h2 className="text-2xl font-semibold mb-2">{t("title")}</h2>
         <p className="text-sm text-muted-foreground">
-          Configure connection to OBS Studio WebSocket server
+          {t("description")}
         </p>
       </div>
 
       {/* Current Status */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm font-medium">Current Status:</span>
+        <span className="text-sm font-medium">{t("currentStatus")}:</span>
         {currentStatus?.connected ? (
           <Badge variant="default" className="flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3" />
-            Connected
+            {t("connected")}
           </Badge>
         ) : (
           <Badge variant="destructive" className="flex items-center gap-1">
             <XCircle className="w-3 h-3" />
-            Disconnected
+            {t("disconnected")}
           </Badge>
         )}
         {currentStatus?.currentScene && (
           <span className="text-sm text-muted-foreground">
-            Scene: {currentStatus.currentScene}
+            {t("scene")}: {currentStatus.currentScene}
           </span>
         )}
         <Badge variant="outline" className="ml-auto">
-          Source: {sourceIsDatabase ? "Database (UI)" : ".env file"}
+          {t("source")}: {sourceIsDatabase ? t("database") : t("envFile")}
         </Badge>
       </div>
 
       {/* WebSocket URL */}
       <div className="space-y-2">
-        <Label htmlFor="obs-url">WebSocket URL</Label>
+        <Label htmlFor="obs-url">{t("websocketUrl")}</Label>
         <Input
           id="obs-url"
           type="text"
@@ -226,17 +228,17 @@ export function OBSSettings() {
           onChange={(e) => setConfig({ ...config, url: e.target.value })}
         />
         <p className="text-xs text-muted-foreground">
-          Default: ws://localhost:4455 (OBS WebSocket default port)
+          {t("websocketUrlDefault")}
         </p>
       </div>
 
       {/* Password */}
       <div className="space-y-2">
-        <Label htmlFor="obs-password">Password (Optional)</Label>
+        <Label htmlFor="obs-password">{t("password")}</Label>
         <Input
           id="obs-password"
           type={showPassword ? "text" : "password"}
-          placeholder="Enter OBS WebSocket password"
+          placeholder={t("passwordPlaceholder")}
           value={config.password}
           onChange={(e) => setConfig({ ...config, password: e.target.value })}
         />
@@ -250,11 +252,11 @@ export function OBSSettings() {
             htmlFor="show-password"
             className="text-sm cursor-pointer select-none"
           >
-            Show password
+            {t("showPassword")}
           </label>
         </div>
         <p className="text-xs text-muted-foreground">
-          Find in OBS: Tools → obs-websocket Settings → Show Connect Info
+          {t("passwordHelp")}
         </p>
       </div>
 
@@ -285,12 +287,12 @@ export function OBSSettings() {
           {testing ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Testing...
+              {t("testing")}
             </>
           ) : (
             <>
               <TestTube className="w-4 h-4 mr-2" />
-              Test Connection
+              {t("testConnection")}
             </>
           )}
         </Button>
@@ -298,15 +300,15 @@ export function OBSSettings() {
           {saving ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Saving...
+              {t("saving")}
             </>
           ) : (
-            "Save Settings"
+            t("saveSettings")
           )}
         </Button>
         {sourceIsDatabase && (
           <Button onClick={handleClearSettings} variant="outline" disabled={testing || saving}>
-            Clear & Use .env
+            {t("clearUseEnv")}
           </Button>
         )}
       </div>
@@ -315,22 +317,19 @@ export function OBSSettings() {
       <Alert>
         <AlertDescription className="text-sm space-y-3">
           <div>
-            <strong>Setup Guide:</strong>
+            <strong>{t("setupGuide")}</strong>
             <ol className="list-decimal list-inside mt-2 space-y-1">
-              <li>Open OBS Studio</li>
-              <li>Go to Tools → obs-websocket Settings</li>
-              <li>Check &ldquo;Enable WebSocket server&rdquo;</li>
-              <li>
-                Note the Server Port (default: 4455) and Password (if enabled)
-              </li>
-              <li>Enter the connection details above and test</li>
+              <li>{t("setupStep1")}</li>
+              <li>{t("setupStep2")}</li>
+              <li>{t("setupStep3")}</li>
+              <li>{t("setupStep4")}</li>
+              <li>{t("setupStep5")}</li>
             </ol>
           </div>
           <div>
-            <strong>Configuration Priority:</strong>
+            <strong>{t("configPriority")}</strong>
             <p className="mt-1">
-              Settings saved here take priority over .env file. 
-              Use &ldquo;Clear & Use .env&rdquo; to revert to environment variables.
+              {t("configPriorityDesc")}
             </p>
           </div>
         </AlertDescription>

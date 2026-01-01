@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Zap, Edit, Power, PowerOff, Trash2 } from "lucide-react";
@@ -34,6 +35,7 @@ export function GuestCard({
   onToggleEnabled,
   onDelete,
 }: GuestCardProps) {
+  const t = useTranslations("assets.guestCard");
   const isEnabled = variant === "enabled";
 
   return (
@@ -77,7 +79,7 @@ export function GuestCard({
 
         {/* Status Badge */}
         <Badge variant={isEnabled ? "default" : "secondary"} className="text-xs">
-          {isEnabled ? "Active" : "Disabled"}
+          {isEnabled ? t("active") : t("disabled")}
         </Badge>
       </div>
 
@@ -89,10 +91,10 @@ export function GuestCard({
             size="sm"
             className="w-full"
             onClick={() => onQuickLowerThird(guest)}
-            title="Show Lower Third (8s auto-hide)"
+            title={t("quickLTTitle")}
           >
             <Zap className="w-3 h-3 mr-2" />
-            Quick LT
+            {t("quickLT")}
           </Button>
         )}
 
@@ -103,19 +105,19 @@ export function GuestCard({
               variant="outline"
               size="sm"
               onClick={() => onEdit(guest)}
-              title="Edit"
+              title={t("edit")}
               className="px-2"
             >
               <Edit className="w-3 h-3" />
             </Button>
           )}
-          
+
           {onToggleEnabled && (
             <Button
               variant={isEnabled ? "outline" : "default"}
               size="sm"
               onClick={() => onToggleEnabled(guest)}
-              title={isEnabled ? "Disable" : "Enable"}
+              title={isEnabled ? t("disable") : t("enable")}
               className="px-2"
             >
               {isEnabled ? (
@@ -125,13 +127,13 @@ export function GuestCard({
               )}
             </Button>
           )}
-          
+
           {onDelete && (
             <Button
               variant="destructive"
               size="sm"
               onClick={() => onDelete(guest)}
-              title="Delete"
+              title={t("delete")}
               className="px-2"
             >
               <Trash2 className="w-3 h-3" />

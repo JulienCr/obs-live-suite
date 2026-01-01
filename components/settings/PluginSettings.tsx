@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  RefreshCw, 
-  Package, 
-  Download, 
+import {
+  RefreshCw,
+  Package,
+  Download,
   AlertCircle,
   CheckCircle,
   HelpCircle,
@@ -38,6 +39,7 @@ interface Plugin {
  * PluginSettings component for managing OBS plugins
  */
 export function PluginSettings() {
+  const t = useTranslations("settings.plugins");
   const [plugins, setPlugins] = useState<Plugin[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
@@ -112,28 +114,28 @@ export function PluginSettings() {
         return (
           <Badge variant="default" className="gap-1">
             <Download className="w-3 h-3" />
-            Update Available
+            {t("status.updateAvailable")}
           </Badge>
         );
       case "up_to_date":
         return (
           <Badge variant="outline" className="gap-1 text-green-600 border-green-600">
             <CheckCircle className="w-3 h-3" />
-            Up to Date
+            {t("status.upToDate")}
           </Badge>
         );
       case "ignored":
         return (
           <Badge variant="outline" className="gap-1 text-gray-500">
             <AlertCircle className="w-3 h-3" />
-            Ignored
+            {t("status.ignored")}
           </Badge>
         );
       default:
         return (
           <Badge variant="outline" className="gap-1">
             <HelpCircle className="w-3 h-3" />
-            Unknown
+            {t("status.unknown")}
           </Badge>
         );
     }
@@ -164,34 +166,34 @@ export function PluginSettings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold mb-2">OBS Plugin Manager</h2>
+        <h2 className="text-2xl font-bold mb-2">{t("title")}</h2>
         <p className="text-muted-foreground">
-          Scan for installed OBS plugins and check for updates
+          {t("description")}
         </p>
       </div>
 
       {/* Actions */}
       <div className="flex gap-3 flex-wrap items-center">
-        <Button 
-          onClick={handleScan} 
+        <Button
+          onClick={handleScan}
           disabled={isScanning || isChecking}
           className="gap-2"
         >
           {isScanning ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Scanning...
+              {t("scanning")}
             </>
           ) : (
             <>
               <Package className="w-4 h-4" />
-              Scan Plugins
+              {t("scanPlugins")}
             </>
           )}
         </Button>
 
-        <Button 
-          onClick={handleCheckUpdates} 
+        <Button
+          onClick={handleCheckUpdates}
           disabled={isChecking || isScanning || plugins.length === 0}
           variant="outline"
           className="gap-2"
@@ -199,12 +201,12 @@ export function PluginSettings() {
           {isChecking ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Checking...
+              {t("checking")}
             </>
           ) : (
             <>
               <RefreshCw className="w-4 h-4" />
-              Check for Updates
+              {t("checkUpdates")}
             </>
           )}
         </Button>
@@ -227,7 +229,7 @@ export function PluginSettings() {
             className="w-4 h-4 rounded border-gray-300"
           />
           <label htmlFor="showBuiltIn" className="text-sm cursor-pointer">
-            Show built-in plugins
+            {t("showBuiltIn")}
           </label>
         </div>
       </div>
@@ -235,7 +237,7 @@ export function PluginSettings() {
       {/* Last scan info */}
       {lastScan && (
         <div className="text-sm text-muted-foreground">
-          Last scan: {lastScan.toLocaleString()}
+          {t("lastScan")}: {lastScan.toLocaleString()}
         </div>
       )}
 
@@ -249,10 +251,10 @@ export function PluginSettings() {
 
       {/* Plugin count */}
       <div className="text-sm font-medium">
-        {filteredPlugins.length} plugin{filteredPlugins.length !== 1 ? "s" : ""} found
+        {t("pluginsFound", { count: filteredPlugins.length })}
         {!showBuiltIn && plugins.length > filteredPlugins.length && (
           <span className="text-muted-foreground ml-2">
-            ({plugins.length - filteredPlugins.length} built-in hidden)
+            ({t("builtInHidden", { count: plugins.length - filteredPlugins.length })})
           </span>
         )}
       </div>
@@ -262,11 +264,11 @@ export function PluginSettings() {
         {filteredPlugins.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
             <Package className="w-16 h-16 mb-4 opacity-20" />
-            <p className="text-lg font-medium">No plugins found</p>
+            <p className="text-lg font-medium">{t("noPlugins")}</p>
             <p className="text-sm">
-              {plugins.length > 0 
-                ? "All plugins are built-in. Enable 'Show built-in plugins' to see them."
-                : "Click 'Scan Plugins' to discover installed plugins"}
+              {plugins.length > 0
+                ? t("allBuiltIn")
+                : t("clickScan")}
             </p>
           </div>
         ) : (
@@ -297,21 +299,21 @@ export function PluginSettings() {
                       <div className="space-y-1 text-sm text-muted-foreground">
                         {plugin.localVersion && (
                           <div>
-                            <span className="font-medium">Local version:</span>{" "}
+                            <span className="font-medium">{t("localVersion")}:</span>{" "}
                             {plugin.localVersion}
                           </div>
                         )}
-                        
+
                         {plugin.latestVersion && (
                           <div>
-                            <span className="font-medium">Latest version:</span>{" "}
+                            <span className="font-medium">{t("latestVersion")}:</span>{" "}
                             {plugin.latestVersion}
                           </div>
                         )}
 
                         {paths.length > 0 && (
                           <div>
-                            <span className="font-medium">Path:</span>{" "}
+                            <span className="font-medium">{t("path")}:</span>{" "}
                             <code className="text-xs bg-muted px-1 py-0.5 rounded">
                               {paths[0]}
                             </code>
@@ -320,7 +322,7 @@ export function PluginSettings() {
 
                         {plugin.lastChecked && (
                           <div className="text-xs">
-                            Last checked: {new Date(plugin.lastChecked).toLocaleString()}
+                            {t("lastChecked")}: {new Date(plugin.lastChecked).toLocaleString()}
                           </div>
                         )}
                       </div>
@@ -329,7 +331,7 @@ export function PluginSettings() {
                     {/* Status and actions */}
                     <div className="flex flex-col items-end gap-2">
                       {getStatusBadge(plugin)}
-                      
+
                       {plugin.releaseUrl && (
                         <Button
                           size="sm"
@@ -338,7 +340,7 @@ export function PluginSettings() {
                           onClick={() => window.open(plugin.releaseUrl!, "_blank")}
                         >
                           <ExternalLink className="w-3 h-3" />
-                          View Release
+                          {t("viewRelease")}
                         </Button>
                       )}
                     </div>
@@ -347,7 +349,7 @@ export function PluginSettings() {
                   {/* Release notes */}
                   {plugin.releaseNotes && hasUpdate && (
                     <div className="mt-3 p-3 bg-muted rounded text-sm">
-                      <div className="font-medium mb-1">Release Notes:</div>
+                      <div className="font-medium mb-1">{t("releaseNotes")}:</div>
                       <div className="text-muted-foreground whitespace-pre-wrap">
                         {plugin.releaseNotes}
                       </div>

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useTranslations } from "next-intl";
 
 interface PlayerScore {
   id: string;
@@ -42,6 +43,7 @@ export function QuizPlayersPanel({
   onScoreUpdate,
   onScoreUpdateComplete,
 }: PlayersPanelProps) {
+  const t = useTranslations("quiz.host.playersPanel");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingScores, setEditingScores] = useState<Record<string, string>>({});
 
@@ -95,14 +97,14 @@ export function QuizPlayersPanel({
       {/* Studio Players */}
       <div className="p-4 border-b bg-white">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm">Studio Players</h3>
+          <h3 className="font-semibold text-sm">{t("studioPlayers")}</h3>
           <Button
             size="sm"
             variant="outline"
             onClick={openScoreModal}
             className="text-xs h-6 px-2"
           >
-            Edit Scores
+            {t("editScores")}
           </Button>
         </div>
         <div className="space-y-3">
@@ -128,7 +130,7 @@ export function QuizPlayersPanel({
                   {player.name}
                 </div>
                 <div className="text-xs text-gray-600">
-                  Score: {player.score}
+                  {t("score")}: {player.score}
                 </div>
               </div>
             </div>
@@ -138,7 +140,7 @@ export function QuizPlayersPanel({
 
       {/* Top Viewers */}
       <div className="p-4 border-b">
-        <h3 className="font-semibold text-sm mb-3">Top Viewers</h3>
+        <h3 className="font-semibold text-sm mb-3">{t("topViewers")}</h3>
         {topViewers.length > 0 ? (
           <div className="space-y-2">
             {topViewers.map((viewer, idx) => (
@@ -157,13 +159,13 @@ export function QuizPlayersPanel({
             ))}
           </div>
         ) : (
-          <p className="text-xs text-gray-400">No viewers yet</p>
+          <p className="text-xs text-gray-400">{t("noViewersYet")}</p>
         )}
       </div>
 
       {/* Viewer Input Control */}
       <div className="p-4 border-b">
-        <h3 className="font-semibold text-sm mb-2">Viewer Input</h3>
+        <h3 className="font-semibold text-sm mb-2">{t("viewerInput")}</h3>
         <Button
           size="sm"
           variant={viewerInputEnabled ? "default" : "outline"}
@@ -173,10 +175,10 @@ export function QuizPlayersPanel({
             viewerInputEnabled && "bg-green-600 hover:bg-green-700"
           )}
         >
-          {viewerInputEnabled ? "Accepting Answers" : "Closed"}
+          {viewerInputEnabled ? t("acceptingAnswers") : t("closed")}
         </Button>
         <p className="text-xs text-gray-500 mt-2">
-          ⚡ Active viewers: {viewers.length}
+          ⚡ {t("activeViewers", { count: viewers.length })}
         </p>
       </div>
 
@@ -186,7 +188,7 @@ export function QuizPlayersPanel({
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Player Scores</DialogTitle>
+            <DialogTitle>{t("editPlayerScores")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 max-h-96 overflow-y-auto">
             {players.map((player) => (
@@ -219,10 +221,10 @@ export function QuizPlayersPanel({
           </div>
           <div className="flex gap-2 pt-4">
             <Button onClick={handleScoreUpdate} className="flex-1">
-              Update All Scores
+              {t("updateAllScores")}
             </Button>
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-              Cancel
+              {t("cancel")}
             </Button>
           </div>
         </DialogContent>

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface QuestionEditorProps {
   questionId: string | null;
@@ -8,6 +9,7 @@ interface QuestionEditorProps {
 }
 
 export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorProps) {
+  const t = useTranslations("quiz.manage.questionEditor");
   const [type, setType] = useState<string>("qcm");
   const [mode, setMode] = useState<string | undefined>(undefined);
   const [text, setText] = useState("");
@@ -68,7 +70,7 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
       const data = await res.json();
       setMedia(data.url);
     } catch (err) {
-      alert("Upload failed");
+      alert(t("uploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -110,62 +112,62 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
       
       onSave();
     } catch (err) {
-      alert("Save failed");
+      alert(t("saveFailed"));
     }
   };
 
   return (
     <div className="p-4 border rounded bg-white">
-      <h3 className="text-lg font-semibold mb-4">{questionId ? "Edit" : "Create"} Question</h3>
+      <h3 className="text-lg font-semibold mb-4">{questionId ? t("editQuestion") : t("createQuestion")}</h3>
 
       <div className="space-y-4">
         {/* Type */}
         <div>
-          <label className="block text-sm font-medium mb-1">Type</label>
+          <label className="block text-sm font-medium mb-1">{t("type")}</label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
             className="w-full border rounded px-3 py-2"
           >
-            <option value="qcm">QCM (Text Options)</option>
-            <option value="image">Image Question</option>
-            <option value="closest">Closest Number</option>
-            <option value="open">Open Question</option>
+            <option value="qcm">{t("typeOptions.qcm")}</option>
+            <option value="image">{t("typeOptions.image")}</option>
+            <option value="closest">{t("typeOptions.closest")}</option>
+            <option value="open">{t("typeOptions.open")}</option>
           </select>
         </div>
 
         {/* Mode (for image type) */}
         {type === "image" && (
           <div>
-            <label className="block text-sm font-medium mb-1">Image Mode</label>
+            <label className="block text-sm font-medium mb-1">{t("imageMode")}</label>
             <select
               value={mode || ""}
               onChange={(e) => setMode(e.target.value || undefined)}
               className="w-full border rounded px-3 py-2"
             >
-              <option value="">Standard Image QCM</option>
-              <option value="image_zoombuzz">Zoom Reveal (Progressive Dezoom)</option>
-              <option value="mystery_image">Mystery Image (Square Reveal)</option>
+              <option value="">{t("imageModeOptions.standard")}</option>
+              <option value="image_zoombuzz">{t("imageModeOptions.zoomReveal")}</option>
+              <option value="mystery_image">{t("imageModeOptions.mysteryImage")}</option>
             </select>
           </div>
         )}
 
         {/* Question Text */}
         <div>
-          <label className="block text-sm font-medium mb-1">Question</label>
+          <label className="block text-sm font-medium mb-1">{t("question")}</label>
           <input
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
             className="w-full border rounded px-3 py-2"
-            placeholder="Enter question text"
+            placeholder={t("questionPlaceholder")}
           />
         </div>
 
         {/* Image Upload */}
         {(type === "image" || type === "closest") && (
           <div>
-            <label className="block text-sm font-medium mb-1">Image</label>
+            <label className="block text-sm font-medium mb-1">{t("image")}</label>
             <input
               type="file"
               accept="image/*"
@@ -184,7 +186,7 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
         {/* Options (QCM) */}
         {type === "qcm" && (
           <div>
-            <label className="block text-sm font-medium mb-1">Options</label>
+            <label className="block text-sm font-medium mb-1">{t("optionsLabel")}</label>
             {options.map((opt, idx) => (
               <div key={idx} className="flex gap-2 mb-2">
                 <input
@@ -201,7 +203,7 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
                     setOptions(newOpts);
                   }}
                   className="flex-1 border rounded px-3 py-1"
-                  placeholder={`Option ${String.fromCharCode(65 + idx)}`}
+                  placeholder={t("optionPlaceholder", { letter: String.fromCharCode(65 + idx) })}
                 />
               </div>
             ))}
@@ -211,7 +213,7 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
         {/* Points & Time */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Points</label>
+            <label className="block text-sm font-medium mb-1">{t("pointsLabel")}</label>
             <input
               type="number"
               value={points}
@@ -220,7 +222,7 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Time (s)</label>
+            <label className="block text-sm font-medium mb-1">{t("timeLabel")}</label>
             <input
               type="number"
               value={timeS}
@@ -232,28 +234,28 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
 
         {/* Explanation */}
         <div>
-          <label className="block text-sm font-medium mb-1">Explanation (optional)</label>
+          <label className="block text-sm font-medium mb-1">{t("explanationLabel")}</label>
           <textarea
             value={explanation}
             onChange={(e) => setExplanation(e.target.value)}
             className="w-full border rounded px-3 py-2"
             rows={3}
-            placeholder="Explanation shown to host after lock/reveal"
+            placeholder={t("explanationPlaceholder")}
           />
-          <p className="text-xs text-gray-500 mt-1">💡 Visible to host only during lock/reveal phases</p>
+          <p className="text-xs text-gray-500 mt-1">{t("explanationHelp")}</p>
         </div>
 
         {/* Notes */}
         <div>
-          <label className="block text-sm font-medium mb-1">Notes (optional)</label>
+          <label className="block text-sm font-medium mb-1">{t("notesLabel")}</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="w-full border rounded px-3 py-2"
             rows={2}
-            placeholder="Internal notes, sources, or metadata"
+            placeholder={t("notesPlaceholder")}
           />
-          <p className="text-xs text-gray-500 mt-1">📝 For reference only, shown below explanation</p>
+          <p className="text-xs text-gray-500 mt-1">{t("notesHelp")}</p>
         </div>
 
         {/* Actions */}
@@ -262,13 +264,13 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
             onClick={onCancel}
             className="px-4 py-2 border rounded hover:bg-gray-50"
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             onClick={handleSave}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            Save
+            {t("save")}
           </button>
         </div>
       </div>

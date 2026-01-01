@@ -5,6 +5,7 @@ import { Plus, RotateCcw, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddWidgetDialog } from "./AddWidgetDialog";
 import { Widget } from "@/lib/models/Widget";
+import { useTranslations } from "next-intl";
 
 interface WidgetToolbarProps {
   widgets: Widget[];
@@ -21,14 +22,11 @@ export function WidgetToolbar({
   onResetLayout,
   onToggleLock,
 }: WidgetToolbarProps) {
+  const t = useTranslations("dashboard.widgets");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const handleResetLayout = () => {
-    if (
-      confirm(
-        "Are you sure you want to reset the dashboard to its default layout? This will remove all custom widgets and settings."
-      )
-    ) {
+    if (confirm(t("resetConfirm"))) {
       onResetLayout();
     }
   };
@@ -37,11 +35,11 @@ export function WidgetToolbar({
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold">Dashboard Widgets</h2>
+          <h2 className="text-xl font-semibold">{t("title")}</h2>
           <p className="text-sm text-muted-foreground">
             {isLocked
-              ? "Dashboard is locked. Click unlock to customize."
-              : "Customize your dashboard by adding, removing, and arranging widgets"
+              ? t("lockedDescription")
+              : t("unlockedDescription")
             }
           </p>
         </div>
@@ -50,17 +48,17 @@ export function WidgetToolbar({
             variant={isLocked ? "default" : "outline"}
             size="sm"
             onClick={onToggleLock}
-            title={isLocked ? "Unlock dashboard to edit" : "Lock dashboard to prevent changes"}
+            title={isLocked ? t("unlockToEdit") : t("lockToPrevent")}
           >
             {isLocked ? (
               <>
                 <Lock className="h-4 w-4 mr-2" />
-                Unlock
+                {t("unlock")}
               </>
             ) : (
               <>
                 <Unlock className="h-4 w-4 mr-2" />
-                Lock
+                {t("lock")}
               </>
             )}
           </Button>
@@ -68,11 +66,11 @@ export function WidgetToolbar({
             variant="outline"
             size="sm"
             onClick={handleResetLayout}
-            title="Reset to default layout"
+            title={t("resetToDefault")}
             disabled={isLocked}
           >
             <RotateCcw className="h-4 w-4 mr-2" />
-            Reset
+            {t("reset")}
           </Button>
           <Button
             variant="default"
@@ -81,7 +79,7 @@ export function WidgetToolbar({
             disabled={isLocked}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Widget
+            {t("addWidget")}
           </Button>
         </div>
       </div>

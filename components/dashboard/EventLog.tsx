@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Clock } from "lucide-react";
@@ -16,6 +17,7 @@ interface LogEvent {
  * EventLog - Display recent actions for audit
  */
 export function EventLog() {
+  const t = useTranslations("dashboard.eventLog");
   // TODO: Load from API and update in real-time
   const [events] = useState<LogEvent[]>([
     {
@@ -35,7 +37,7 @@ export function EventLog() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="w-5 h-5" />
-          Event Log
+          {t("title")}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -59,7 +61,7 @@ export function EventLog() {
             </div>
           ) : (
             <div className="text-sm text-muted-foreground text-center py-8">
-              No events yet
+              {t("noEvents")}
             </div>
           )}
         </ScrollArea>

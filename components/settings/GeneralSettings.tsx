@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,6 +11,7 @@ import { CheckCircle2, Loader2, MonitorPlay } from "lucide-react";
  * General UI settings
  */
 export function GeneralSettings() {
+  const t = useTranslations("settings.general");
   const [defaultDisplayMode, setDefaultDisplayMode] = useState<string>("left");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -72,7 +74,7 @@ export function GeneralSettings() {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="w-6 h-6 animate-spin mr-2" />
-        Loading settings...
+        {t("loading")}
       </div>
     );
   }
@@ -80,9 +82,9 @@ export function GeneralSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold mb-2">General Settings</h2>
+        <h2 className="text-2xl font-semibold mb-2">{t("title")}</h2>
         <p className="text-sm text-muted-foreground">
-          Configure general application preferences
+          {t("description")}
         </p>
       </div>
 
@@ -90,10 +92,10 @@ export function GeneralSettings() {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <MonitorPlay className="w-4 h-4" />
-          <Label className="text-base font-medium">Default Poster Display Position</Label>
+          <Label className="text-base font-medium">{t("posterDisplayPosition")}</Label>
         </div>
         <p className="text-sm text-muted-foreground">
-          When clicking on a poster card, it will be displayed in this position by default.
+          {t("posterDisplayDescription")}
         </p>
 
         <select
@@ -101,18 +103,18 @@ export function GeneralSettings() {
           onChange={(e) => setDefaultDisplayMode(e.target.value)}
           className="w-full p-2 border rounded bg-background text-foreground border-input"
         >
-          <option value="left">Left side</option>
-          <option value="right">Right side</option>
-          <option value="bigpicture">Big Picture (centered)</option>
+          <option value="left">{t("leftSide")}</option>
+          <option value="right">{t("rightSide")}</option>
+          <option value="bigpicture">{t("bigPicture")}</option>
         </select>
 
         <Alert>
           <AlertDescription className="text-sm">
-            <strong>How it works:</strong>
+            <strong>{t("howItWorks")}</strong>
             <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>Click on a poster card to show it in the default position</li>
-              <li>Click again to hide the poster</li>
-              <li>Use the Left/Right/Big buttons for specific positions</li>
+              <li>{t("howItWorksClickShow")}</li>
+              <li>{t("howItWorksClickHide")}</li>
+              <li>{t("howItWorksButtons")}</li>
             </ul>
           </AlertDescription>
         </Alert>
@@ -133,10 +135,10 @@ export function GeneralSettings() {
         {saving ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Saving...
+            {t("saving")}
           </>
         ) : (
-          "Save Settings"
+          t("saveSettings")
         )}
       </Button>
     </div>

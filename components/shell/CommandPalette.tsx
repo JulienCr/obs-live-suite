@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Omnibar, type ItemRenderer } from "@blueprintjs/select";
 import { MenuItem } from "@blueprintjs/core";
 import { useDockview } from "./DockviewContext";
@@ -44,9 +45,11 @@ const filterCommand = (query: string, command: Command) => {
 export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const { api } = useDockview();
+  const t = useTranslations("dashboard.commandPalette");
+  const tPanels = useTranslations("dashboard.panels");
 
   // Function to add panel if not already open
-  const addPanel = (id: string, component: string, title: string) => {
+  const addPanel = (id: string, component: string, titleKey: string) => {
     if (!api) return;
 
     // Check if panel already exists
@@ -61,7 +64,7 @@ export function CommandPalette() {
     api.addPanel({
       id,
       component,
-      title,
+      title: tPanels(titleKey),
     });
   };
 
@@ -69,81 +72,81 @@ export function CommandPalette() {
     // Navigation
     {
       id: "nav-dashboard",
-      label: "Go to Dashboard",
+      label: t("goToDashboard"),
       keywords: ["navigate", "home", "main"],
       action: () => (window.location.href = "/dashboard"),
     },
     {
       id: "nav-assets",
-      label: "Go to Assets",
+      label: t("goToAssets"),
       keywords: ["navigate", "assets", "images", "media", "upload"],
       action: () => (window.location.href = "/assets"),
     },
     {
       id: "nav-settings",
-      label: "Go to Settings",
+      label: t("goToSettings"),
       keywords: ["navigate", "preferences", "config", "configure"],
       action: () => (window.location.href = "/settings"),
     },
     {
       id: "nav-profiles",
-      label: "Go to Profiles",
+      label: t("goToProfiles"),
       keywords: ["navigate", "profiles", "guests", "people"],
       action: () => (window.location.href = "/profiles"),
     },
     {
       id: "nav-quiz-manage",
-      label: "Go to Quiz Management",
+      label: t("goToQuizManagement"),
       keywords: ["navigate", "quiz", "questions", "manage"],
       action: () => (window.location.href = "/quiz/manage"),
     },
     {
       id: "nav-quiz-host",
-      label: "Go to Quiz Host",
+      label: t("goToQuizHost"),
       keywords: ["navigate", "quiz", "host", "control"],
       action: () => (window.location.href = "/quiz/host"),
     },
     // Panel management
     {
       id: "panel-lower-third",
-      label: "Show Lower Third Panel",
+      label: t("showLowerThirdPanel"),
       keywords: ["panel", "widget", "lower", "third", "overlay", "add"],
-      action: () => addPanel("lowerThird", "lowerThird", "Lower Third"),
+      action: () => addPanel("lowerThird", "lowerThird", "lowerThird"),
     },
     {
       id: "panel-countdown",
-      label: "Show Countdown Panel",
+      label: t("showCountdownPanel"),
       keywords: ["panel", "widget", "countdown", "timer", "add"],
-      action: () => addPanel("countdown", "countdown", "Countdown"),
+      action: () => addPanel("countdown", "countdown", "countdown"),
     },
     {
       id: "panel-guests",
-      label: "Show Guests Panel",
+      label: t("showGuestsPanel"),
       keywords: ["panel", "widget", "guests", "people", "add"],
-      action: () => addPanel("guests", "guests", "Guests"),
+      action: () => addPanel("guests", "guests", "guests"),
     },
     {
       id: "panel-poster",
-      label: "Show Poster Panel",
+      label: t("showPosterPanel"),
       keywords: ["panel", "widget", "poster", "gallery", "add"],
-      action: () => addPanel("poster", "poster", "Poster"),
+      action: () => addPanel("poster", "poster", "poster"),
     },
     {
       id: "panel-macros",
-      label: "Show Macros Panel",
+      label: t("showMacrosPanel"),
       keywords: ["panel", "widget", "macros", "shortcuts", "add"],
-      action: () => addPanel("macros", "macros", "Macros"),
+      action: () => addPanel("macros", "macros", "macros"),
     },
     {
       id: "panel-event-log",
-      label: "Show Event Log Panel",
+      label: t("showEventLogPanel"),
       keywords: ["panel", "widget", "event", "log", "history", "add"],
-      action: () => addPanel("eventLog", "eventLog", "Event Log"),
+      action: () => addPanel("eventLog", "eventLog", "eventLog"),
     },
     // Layout management
     {
       id: "reset-layout",
-      label: "Reset Layout to Default",
+      label: t("resetLayout"),
       keywords: ["layout", "reset", "default", "restore"],
       action: () => {
         if (api) {
@@ -186,7 +189,7 @@ export function CommandPalette() {
       onItemSelect={handleItemSelect}
       onClose={() => setIsOpen(false)}
       resetOnSelect
-      inputProps={{ placeholder: "Type a command or search... (Cmd/Ctrl+P)" }}
+      inputProps={{ placeholder: t("placeholder") }}
     />
   );
 }
