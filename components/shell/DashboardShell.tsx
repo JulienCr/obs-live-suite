@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   DockviewReact,
   DockviewReadyEvent,
@@ -49,6 +50,7 @@ const components = {
 };
 
 export function DashboardShell() {
+  const t = useTranslations("dashboard");
   const { theme } = useTheme();
   const { mode, isFullscreenMode } = useAppMode();
   const [mounted, setMounted] = useState(false);
@@ -70,27 +72,27 @@ export function DashboardShell() {
     const lowerThird = apiRef.current.addPanel({
       id: "lowerThird",
       component: "lowerThird",
-      title: "Lower Third",
+      title: t("panels.lowerThird"),
     });
 
     apiRef.current.addPanel({
       id: "countdown",
       component: "countdown",
-      title: "Countdown",
+      title: t("panels.countdown"),
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
     apiRef.current.addPanel({
       id: "guests",
       component: "guests",
-      title: "Guests",
+      title: t("panels.guests"),
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
     apiRef.current.addPanel({
       id: "poster",
       component: "poster",
-      title: "Poster",
+      title: t("panels.poster"),
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
@@ -98,14 +100,14 @@ export function DashboardShell() {
     const macros = apiRef.current.addPanel({
       id: "macros",
       component: "macros",
-      title: "Macros",
+      title: t("panels.macros"),
       position: { referencePanel: lowerThird, direction: "below" },
     });
 
     apiRef.current.addPanel({
       id: "eventLog",
       component: "eventLog",
-      title: "Event Log",
+      title: t("panels.eventLog"),
       position: { referencePanel: macros, direction: "within" },
     });
 
@@ -116,7 +118,7 @@ export function DashboardShell() {
     }
 
     localStorage.setItem(PRESET_KEY, "live");
-  }, []);
+  }, [t]);
 
   const applyPrepPreset = useCallback(() => {
     if (!apiRef.current) return;
@@ -128,46 +130,46 @@ export function DashboardShell() {
     const lowerThird = apiRef.current.addPanel({
       id: "lowerThird",
       component: "lowerThird",
-      title: "Lower Third",
+      title: t("panels.lowerThird"),
     });
 
     const countdown = apiRef.current.addPanel({
       id: "countdown",
       component: "countdown",
-      title: "Countdown",
+      title: t("panels.countdown"),
       position: { referencePanel: lowerThird, direction: "right" },
     });
 
     const guests = apiRef.current.addPanel({
       id: "guests",
       component: "guests",
-      title: "Guests",
+      title: t("panels.guests"),
       position: { referencePanel: countdown, direction: "right" },
     });
 
     const poster = apiRef.current.addPanel({
       id: "poster",
       component: "poster",
-      title: "Poster",
+      title: t("panels.poster"),
       position: { referencePanel: lowerThird, direction: "below" },
     });
 
     const macros = apiRef.current.addPanel({
       id: "macros",
       component: "macros",
-      title: "Macros",
+      title: t("panels.macros"),
       position: { referencePanel: poster, direction: "right" },
     });
 
     apiRef.current.addPanel({
       id: "eventLog",
       component: "eventLog",
-      title: "Event Log",
+      title: t("panels.eventLog"),
       position: { referencePanel: macros, direction: "right" },
     });
 
     localStorage.setItem(PRESET_KEY, "prep");
-  }, []);
+  }, [t]);
 
   const applyMinimalPreset = useCallback(() => {
     if (!apiRef.current) return;
@@ -179,13 +181,13 @@ export function DashboardShell() {
     const lowerThird = apiRef.current.addPanel({
       id: "lowerThird",
       component: "lowerThird",
-      title: "Lower Third",
+      title: t("panels.lowerThird"),
     });
 
     const macros = apiRef.current.addPanel({
       id: "macros",
       component: "macros",
-      title: "Macros",
+      title: t("panels.macros"),
       position: { referencePanel: lowerThird, direction: "below" },
     });
 
@@ -196,7 +198,7 @@ export function DashboardShell() {
     }
 
     localStorage.setItem(PRESET_KEY, "minimal");
-  }, []);
+  }, [t]);
 
   const applyPreset = useCallback((preset: LayoutPreset) => {
     switch (preset) {
@@ -235,27 +237,27 @@ export function DashboardShell() {
     const lowerThird = event.api.addPanel({
       id: "lowerThird",
       component: "lowerThird",
-      title: "Lower Third",
+      title: t("panels.lowerThird"),
     });
 
     const countdown = event.api.addPanel({
       id: "countdown",
       component: "countdown",
-      title: "Countdown",
+      title: t("panels.countdown"),
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
     const guests = event.api.addPanel({
       id: "guests",
       component: "guests",
-      title: "Guests",
+      title: t("panels.guests"),
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
     const poster = event.api.addPanel({
       id: "poster",
       component: "poster",
-      title: "Poster",
+      title: t("panels.poster"),
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
@@ -263,7 +265,7 @@ export function DashboardShell() {
     const macros = event.api.addPanel({
       id: "macros",
       component: "macros",
-      title: "Macros",
+      title: t("panels.macros"),
       position: { referencePanel: lowerThird, direction: "below" },
     });
 
@@ -271,7 +273,7 @@ export function DashboardShell() {
     const eventLog = event.api.addPanel({
       id: "eventLog",
       component: "eventLog",
-      title: "Event Log",
+      title: t("panels.eventLog"),
       position: { referencePanel: macros, direction: "within" },
     });
 
@@ -282,7 +284,7 @@ export function DashboardShell() {
       // Ignore if setSize API has changed
       console.warn("Failed to set panel size:", err);
     }
-  }, []);
+  }, [t]);
 
   // Set up layout change listener to persist layout
   useEffect(() => {
@@ -305,7 +307,7 @@ export function DashboardShell() {
       <LayoutPresetsProvider applyPreset={applyPreset}>
         <DockviewContext.Provider value={{ api }}>
           <PanelColorStyles />
-          <div style={{ height: "100vh", width: "100vw", display: "flex" }}>
+          <div style={{ height: "100vh", width: "100%", display: "flex" }}>
             {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
             <div style={{ flex: 1 }}>
               <DockviewReact

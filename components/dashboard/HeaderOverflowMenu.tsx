@@ -57,18 +57,18 @@ export function HeaderOverflowMenu() {
   };
 
   const switchMode = (targetMode: "LIVE" | "ADMIN") => {
-    setMode(targetMode);
-
-    // Navigate to appropriate page based on mode
+    // Navigate first - AppShell will sync mode from URL
     if (targetMode === "LIVE") {
-      // Always navigate to dashboard in LIVE mode
       if (pathname !== "/dashboard" && pathname !== "/") {
         router.push("/dashboard");
+      } else {
+        setMode(targetMode);
       }
     } else {
-      // In ADMIN mode, if we're on dashboard, navigate to settings
       if (pathname === "/dashboard" || pathname === "/") {
         router.push("/settings/general");
+      } else {
+        setMode(targetMode);
       }
     }
   };
