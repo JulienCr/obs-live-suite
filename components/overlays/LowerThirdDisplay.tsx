@@ -106,7 +106,7 @@ export function LowerThirdDisplay({
 
   // Determine images
   const finalLogoImage = logoImage || DEFAULT_LOGO_IMAGE;
-  const finalAvatarImage = avatarImage;
+  const finalAvatarImage = avatarImage || undefined; // Ensure empty string becomes undefined
 
   // Animation sequence
   useEffect(() => {
@@ -133,23 +133,31 @@ export function LowerThirdDisplay({
     const initTimeout = setTimeout(() => {
       // 1. Logo appears
       setLogoVisible(true);
-      
-      // 2. Flip starts
-      const flipTimeout = setTimeout(() => {
-        setFlipped(true);
-      }, config.timing.flipDelay);
-      
+
+      // Calculate timing based on whether we have an avatar to flip
+      const hasAvatar = !!finalAvatarImage;
+      const barDelay = hasAvatar ? config.timing.barAppearDelay : 300; // Quick delay if no flip
+      const textDelay = hasAvatar ? config.timing.textAppearDelay : 500;
+
+      // 2. Flip starts (only if avatar image is provided)
+      if (hasAvatar) {
+        const flipTimeout = setTimeout(() => {
+          setFlipped(true);
+        }, config.timing.flipDelay);
+        timeoutsRef.current.push(flipTimeout);
+      }
+
       // 3. Bar appears
       const barTimeout = setTimeout(() => {
         setBarVisible(true);
-      }, config.timing.barAppearDelay);
-      
+      }, barDelay);
+
       // 4. Text appears
       const textTimeout = setTimeout(() => {
         setTextVisible(true);
-      }, config.timing.textAppearDelay);
-      
-      timeoutsRef.current.push(flipTimeout, barTimeout, textTimeout);
+      }, textDelay);
+
+      timeoutsRef.current.push(barTimeout, textTimeout);
     }, 50);
 
     timeoutsRef.current.push(initTimeout);
@@ -158,7 +166,7 @@ export function LowerThirdDisplay({
       timeoutsRef.current.forEach(clearTimeout);
       timeoutsRef.current = [];
     };
-  }, [animating, config.timing.flipDelay, config.timing.barAppearDelay, config.timing.textAppearDelay]);
+  }, [animating, finalAvatarImage, config.timing.flipDelay, config.timing.barAppearDelay, config.timing.textAppearDelay]);
 
   // Generate CSS variables
   const freeTextMaxWidth = config.styles.freeTextMaxWidth?.[side] ?? (side === 'center' ? 90 : 65);
@@ -176,6 +184,7 @@ export function LowerThirdDisplay({
     '--lt-bar-border-radius': `${config.styles.barBorderRadius}px`,
     '--lt-bar-min-width': `${config.styles.barMinWidth}px`,
     '--lt-free-text-max-width': `${freeTextMaxWidth}vw`,
+    '--lt-avatar-border-width': `${config.styles.avatarBorderWidth}px`,
   } as React.CSSProperties;
 
   const centeredBottomOffset = 80;

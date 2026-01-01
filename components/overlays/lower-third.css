@@ -12,6 +12,7 @@
   --lt-bar-border-radius: 16px;
   --lt-bar-min-width: 200px;
   --lt-free-text-max-width: 65%;
+  --lt-avatar-border-width: 4px;
 }
 
 .lowerthird {
@@ -94,9 +95,9 @@
 }
 
 .face.back img {
-  width: calc(100% + 8px);
-  height: calc(100% + 8px);
-  margin: -4px;
+  width: calc(100% + var(--lt-avatar-border-width) * 2);
+  height: calc(100% + var(--lt-avatar-border-width) * 2);
+  margin-top: calc(var(--lt-avatar-border-width) * -1);
 }
 
 /* ===== BAR ===== */
@@ -114,6 +115,7 @@
   transition: transform var(--lt-timing-bar-expand) cubic-bezier(0.16, 1, 0.3, 1);
   min-width: var(--lt-bar-min-width);
   overflow: hidden;
+  z-index: 1;
 }
 
 .lowerthird--center .bar {
