@@ -1,6 +1,6 @@
 import { CueType, CueFrom, CueSeverity } from "@/lib/models/Cue";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
-import { BACKEND_URL, APP_URL } from "@/lib/config/urls";
+import { BACKEND_URL } from "@/lib/config/urls";
 
 /**
  * Options for sending a presenter notification
@@ -18,9 +18,9 @@ export interface NotificationOptions {
 }
 
 /**
- * Convert relative URLs to absolute URLs
+ * Normalize URL for display
  * @param url - URL to normalize (can be relative or absolute)
- * @returns Absolute URL or undefined if invalid
+ * @returns Normalized URL or undefined if invalid
  */
 function normalizeUrl(url: string): string | undefined {
   if (!url || !url.trim()) return undefined;
@@ -32,13 +32,9 @@ function normalizeUrl(url: string): string | undefined {
     return trimmedUrl;
   }
 
-  // Relative URL - convert to absolute
+  // Relative URL - keep as-is (browser will resolve based on current domain)
   if (trimmedUrl.startsWith('/')) {
-    try {
-      return new URL(trimmedUrl, APP_URL).toString();
-    } catch {
-      return undefined;
-    }
+    return trimmedUrl;
   }
 
   // Invalid format

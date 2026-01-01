@@ -68,7 +68,11 @@ export type ContextLink = z.infer<typeof contextLinkSchema>;
  * Context-specific payload (image + bullets + links)
  */
 export const contextPayloadSchema = z.object({
-  imageUrl: z.string().url().optional(),
+  // Accept both absolute URLs (http://, https://) and relative paths (/data/...)
+  imageUrl: z.string().refine(
+    (val) => val.startsWith('/') || val.startsWith('http://') || val.startsWith('https://'),
+    { message: 'Must be a valid URL or relative path starting with /' }
+  ).optional(),
   links: z.array(contextLinkSchema).optional(),
   bullets: z.array(z.string()).optional(),
   guestId: z.string().optional(), // For tracking guest on screen
