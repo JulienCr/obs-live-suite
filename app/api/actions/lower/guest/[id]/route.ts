@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
+import { SettingsService } from "@/lib/services/SettingsService";
 import { BackendClient } from "@/lib/utils/BackendClient";
 import { LowerThirdEventType, OverlayChannel } from "@/lib/models/OverlayEvents";
 import { enrichLowerThirdPayload } from "@/lib/utils/themeEnrichment";
@@ -26,9 +27,11 @@ export async function POST(
       );
     }
 
-    // Optional: override duration from request body
+    // Optional: override duration from request body, fallback to settings
     const body = await request.json().catch(() => ({}));
-    const duration = body.duration || 8;
+    const settingsService = SettingsService.getInstance();
+    const overlaySettings = settingsService.getOverlaySettings();
+    const duration = body.duration || overlaySettings.lowerThirdDuration;
 
     // Build base payload and enrich with theme data using shared utility
     const basePayload = {

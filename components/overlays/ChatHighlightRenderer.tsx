@@ -71,15 +71,19 @@ export function ChatHighlightRenderer() {
             theme: data.payload.theme,
           });
 
-          // Auto-hide after duration
-          const duration = data.payload.duration || 10;
-          hideTimeout.current = setTimeout(() => {
-            setState((prev) => ({ ...prev, animating: false }));
-            // Wait for animation to complete before hiding
-            setTimeout(() => {
-              setState((prev) => ({ ...prev, visible: false }));
-            }, 500);
-          }, duration * 1000);
+          // Auto-hide after duration (if duration > 0)
+          // duration=0 means auto-hide is disabled - stay visible until manual hide
+          const duration = data.payload.duration;
+          if (duration && duration > 0) {
+            hideTimeout.current = setTimeout(() => {
+              setState((prev) => ({ ...prev, animating: false }));
+              // Wait for animation to complete before hiding
+              setTimeout(() => {
+                setState((prev) => ({ ...prev, visible: false }));
+              }, 500);
+            }, duration * 1000);
+          }
+          // If duration is 0 or undefined/null, no auto-hide timeout is set
         }
         break;
 

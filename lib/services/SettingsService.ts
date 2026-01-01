@@ -19,6 +19,24 @@ export interface StreamerbotSettings extends StreamerbotConnectionSettings {
 }
 
 /**
+ * Overlay settings interface
+ */
+export interface OverlaySettings {
+  lowerThirdDuration: number;      // seconds
+  chatHighlightDuration: number;   // seconds
+  chatHighlightAutoHide: boolean;  // toggle on/off
+}
+
+/**
+ * Default overlay settings
+ */
+export const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
+  lowerThirdDuration: 8,
+  chatHighlightDuration: 10,
+  chatHighlightAutoHide: true,
+};
+
+/**
  * SettingsService manages application settings with fallback to environment variables
  */
 export class SettingsService {
@@ -191,6 +209,43 @@ export class SettingsService {
     this.db.deleteSetting("streamerbot.password");
     this.db.deleteSetting("streamerbot.autoConnect");
     this.logger.info("Streamerbot settings cleared from database");
+  }
+
+  /**
+   * Get overlay settings
+   */
+  getOverlaySettings(): OverlaySettings {
+    const lowerThirdDuration = this.db.getSetting("overlay.lowerThird.defaultDuration");
+    const chatHighlightDuration = this.db.getSetting("overlay.chatHighlight.defaultDuration");
+    const chatHighlightAutoHide = this.db.getSetting("overlay.chatHighlight.autoHideEnabled");
+
+    return {
+      lowerThirdDuration: lowerThirdDuration
+        ? parseInt(lowerThirdDuration, 10)
+        : DEFAULT_OVERLAY_SETTINGS.lowerThirdDuration,
+      chatHighlightDuration: chatHighlightDuration
+        ? parseInt(chatHighlightDuration, 10)
+        : DEFAULT_OVERLAY_SETTINGS.chatHighlightDuration,
+      chatHighlightAutoHide: chatHighlightAutoHide !== null
+        ? chatHighlightAutoHide === "true"
+        : DEFAULT_OVERLAY_SETTINGS.chatHighlightAutoHide,
+    };
+  }
+
+  /**
+   * Save overlay settings to database
+   */
+  saveOverlaySettings(settings: Partial<OverlaySettings>): void {
+    if (settings.lowerThirdDuration !== undefined) {
+      this.db.setSetting("overlay.lowerThird.defaultDuration", settings.lowerThirdDuration.toString());
+    }
+    if (settings.chatHighlightDuration !== undefined) {
+      this.db.setSetting("overlay.chatHighlight.defaultDuration", settings.chatHighlightDuration.toString());
+    }
+    if (settings.chatHighlightAutoHide !== undefined) {
+      this.db.setSetting("overlay.chatHighlight.autoHideEnabled", settings.chatHighlightAutoHide.toString());
+    }
+    this.logger.info("Overlay settings saved to database");
   }
 }
 

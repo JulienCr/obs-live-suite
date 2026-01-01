@@ -5,8 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import { Copy, ExternalLink, Info, MonitorPlay } from "lucide-react";
 import { APP_URL } from "@/lib/config/urls";
+import { OverlaySettings } from "@/components/settings/OverlaySettings";
 
 interface Overlay {
   id: string;
@@ -169,6 +171,11 @@ export default function OverlaysPage() {
           Browser sources disponibles pour OBS Studio. Copiez les URLs ci-dessous pour configurer vos sources.
         </p>
       </div>
+
+      {/* Overlay Timeout Settings */}
+      <OverlaySettings />
+
+      <Separator className="my-6" />
 
       {/* OBS Instructions */}
       <Alert>
