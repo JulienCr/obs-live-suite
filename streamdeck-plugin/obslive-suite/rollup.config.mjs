@@ -1,9 +1,13 @@
+import alias from "@rollup/plugin-alias";
 import commonjs from "@rollup/plugin-commonjs";
 import nodeResolve from "@rollup/plugin-node-resolve";
 import terser from "@rollup/plugin-terser";
 import typescript from "@rollup/plugin-typescript";
 import path from "node:path";
 import url from "node:url";
+
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, "../..");
 
 const isWatching = !!process.env.ROLLUP_WATCH;
 const sdPlugin = "com.julien-cruau.obslive-suite.sdPlugin";
@@ -27,13 +31,19 @@ const config = {
 				this.addWatchFile(`${sdPlugin}/manifest.json`);
 			},
 		},
+		alias({
+			entries: [
+				{ find: "@lib", replacement: path.resolve(projectRoot, "lib") }
+			]
+		}),
 		typescript({
 			mapRoot: isWatching ? "./" : undefined
 		}),
 		nodeResolve({
 			browser: false,
 			exportConditions: ["node"],
-			preferBuiltins: true
+			preferBuiltins: true,
+			extensions: [".ts", ".js", ".mjs", ".json"]
 		}),
 		commonjs(),
 		!isWatching && terser(),
