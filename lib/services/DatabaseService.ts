@@ -298,6 +298,33 @@ export class DatabaseService {
     } catch (error) {
       this.logger.error("Migration error for panel_colors table (scheme):", error);
     }
+
+    // Add chatMessage column to guests and posters tables
+    try {
+      const guestTableInfo = this.db.prepare("PRAGMA table_info(guests)").all() as Array<{ name: string }>;
+      const hasChatMessage = guestTableInfo.some((col) => col.name === "chatMessage");
+
+      if (!hasChatMessage) {
+        this.logger.info("Adding chatMessage column to guests table");
+        this.db.exec(`ALTER TABLE guests ADD COLUMN chatMessage TEXT;`);
+        this.logger.info("Guests table chatMessage migration completed");
+      }
+    } catch (error) {
+      this.logger.error("Migration error for guests table (chatMessage):", error);
+    }
+
+    try {
+      const posterTableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
+      const hasChatMessage = posterTableInfo.some((col) => col.name === "chatMessage");
+
+      if (!hasChatMessage) {
+        this.logger.info("Adding chatMessage column to posters table");
+        this.db.exec(`ALTER TABLE posters ADD COLUMN chatMessage TEXT;`);
+        this.logger.info("Posters table chatMessage migration completed");
+      }
+    } catch (error) {
+      this.logger.error("Migration error for posters table (chatMessage):", error);
+    }
   }
 
   /**
@@ -551,12 +578,13 @@ export class DatabaseService {
       subtitle: guest.subtitle,
       accentColor: guest.accentColor,
       avatarUrl: guest.avatarUrl,
+      chatMessage: guest.chatMessage,
       isEnabled: guest.isEnabled,
     });
 
     const stmt = this.db.prepare(`
-      INSERT INTO guests (id, displayName, subtitle, accentColor, avatarUrl, isEnabled, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO guests (id, displayName, subtitle, accentColor, avatarUrl, chatMessage, isEnabled, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       guest.id,
@@ -564,6 +592,7 @@ export class DatabaseService {
       guest.subtitle || null,
       guest.accentColor,
       guest.avatarUrl || null,
+      guest.chatMessage || null,
       guest.isEnabled ? 1 : 0,
       (guest.createdAt || now).toISOString(),
       (guest.updatedAt || now).toISOString()
@@ -588,6 +617,7 @@ export class DatabaseService {
       subtitle: updates.subtitle !== undefined ? updates.subtitle : existing.subtitle,
       accentColor: updates.accentColor !== undefined ? updates.accentColor : existing.accentColor,
       avatarUrl: updates.avatarUrl !== undefined ? updates.avatarUrl : existing.avatarUrl,
+      chatMessage: updates.chatMessage !== undefined ? updates.chatMessage : existing.chatMessage,
       isEnabled: updates.isEnabled !== undefined ? updates.isEnabled : existing.isEnabled,
       updatedAt: updates.updatedAt || new Date(),
     };
@@ -596,7 +626,7 @@ export class DatabaseService {
 
     const stmt = this.db.prepare(`
       UPDATE guests
-      SET displayName = ?, subtitle = ?, accentColor = ?, avatarUrl = ?, isEnabled = ?, updatedAt = ?
+      SET displayName = ?, subtitle = ?, accentColor = ?, avatarUrl = ?, chatMessage = ?, isEnabled = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
@@ -604,6 +634,7 @@ export class DatabaseService {
       merged.subtitle || null,
       merged.accentColor,
       merged.avatarUrl || null,
+      merged.chatMessage || null,
       merged.isEnabled ? 1 : 0,
       merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
       id
@@ -661,8 +692,8 @@ export class DatabaseService {
   createPoster(poster: DbPosterInput): void {
     const now = new Date();
     const stmt = this.db.prepare(`
-      INSERT INTO posters (id, title, description, source, fileUrl, type, duration, tags, profileIds, metadata, isEnabled, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO posters (id, title, description, source, fileUrl, type, duration, tags, profileIds, metadata, chatMessage, isEnabled, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       poster.id,
@@ -675,6 +706,7 @@ export class DatabaseService {
       JSON.stringify(poster.tags || []),
       JSON.stringify(poster.profileIds || []),
       poster.metadata ? JSON.stringify(poster.metadata) : null,
+      poster.chatMessage || null,
       poster.isEnabled ? 1 : 0,
       (poster.createdAt || now).toISOString(),
       (poster.updatedAt || now).toISOString()
@@ -702,13 +734,14 @@ export class DatabaseService {
       tags: updates.tags !== undefined ? updates.tags : existing.tags,
       profileIds: updates.profileIds !== undefined ? updates.profileIds : existing.profileIds,
       metadata: updates.metadata !== undefined ? updates.metadata : existing.metadata,
+      chatMessage: updates.chatMessage !== undefined ? updates.chatMessage : existing.chatMessage,
       isEnabled: updates.isEnabled !== undefined ? updates.isEnabled : existing.isEnabled,
       updatedAt: updates.updatedAt || new Date(),
     };
 
     const stmt = this.db.prepare(`
       UPDATE posters
-      SET title = ?, description = ?, source = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, isEnabled = ?, updatedAt = ?
+      SET title = ?, description = ?, source = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, chatMessage = ?, isEnabled = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
@@ -721,6 +754,7 @@ export class DatabaseService {
       JSON.stringify(merged.tags || []),
       JSON.stringify(merged.profileIds || []),
       merged.metadata ? JSON.stringify(merged.metadata) : null,
+      merged.chatMessage || null,
       merged.isEnabled ? 1 : 0,
       merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
       id

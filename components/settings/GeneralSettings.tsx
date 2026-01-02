@@ -5,14 +5,18 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, Loader2, MonitorPlay } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { CheckCircle2, Loader2, MonitorPlay, MessageSquare } from "lucide-react";
 
 /**
  * General UI settings
  */
 export function GeneralSettings() {
   const t = useTranslations("settings.general");
+  const tChatMessage = useTranslations("settings.general.chatMessage");
   const [defaultDisplayMode, setDefaultDisplayMode] = useState<string>("left");
+  const [posterChatMessageEnabled, setPosterChatMessageEnabled] = useState(false);
+  const [guestChatMessageEnabled, setGuestChatMessageEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<{
@@ -29,6 +33,8 @@ export function GeneralSettings() {
       const res = await fetch("/api/settings/general");
       const data = await res.json();
       setDefaultDisplayMode(data.settings?.defaultPosterDisplayMode || "left");
+      setPosterChatMessageEnabled(data.settings?.posterChatMessageEnabled || false);
+      setGuestChatMessageEnabled(data.settings?.guestChatMessageEnabled || false);
     } catch (error) {
       console.error("Failed to load general settings:", error);
     } finally {
@@ -44,7 +50,11 @@ export function GeneralSettings() {
       const res = await fetch("/api/settings/general", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ defaultPosterDisplayMode: defaultDisplayMode }),
+        body: JSON.stringify({
+          defaultPosterDisplayMode: defaultDisplayMode,
+          posterChatMessageEnabled,
+          guestChatMessageEnabled,
+        }),
       });
 
       const data = await res.json();
@@ -52,18 +62,18 @@ export function GeneralSettings() {
       if (data.success) {
         setSaveResult({
           success: true,
-          message: "Settings saved successfully!",
+          message: t("settingsSaved"),
         });
       } else {
         setSaveResult({
           success: false,
-          message: data.error || "Failed to save settings",
+          message: data.error || t("saveFailed"),
         });
       }
     } catch (error) {
       setSaveResult({
         success: false,
-        message: error instanceof Error ? error.message : "Failed to save settings",
+        message: error instanceof Error ? error.message : t("saveFailed"),
       });
     } finally {
       setSaving(false);
@@ -118,6 +128,49 @@ export function GeneralSettings() {
             </ul>
           </AlertDescription>
         </Alert>
+      </div>
+
+      {/* Chat Message Settings */}
+      <div className="space-y-4 pt-4 border-t">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-4 h-4" />
+          <Label className="text-base font-medium">{tChatMessage("title")}</Label>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {tChatMessage("description")}
+        </p>
+
+        <div className="space-y-4">
+          {/* Poster Chat Message Toggle */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="posterChatMessage">{tChatMessage("posterEnabled")}</Label>
+              <p className="text-sm text-muted-foreground">
+                {tChatMessage("posterEnabledDescription")}
+              </p>
+            </div>
+            <Switch
+              id="posterChatMessage"
+              checked={posterChatMessageEnabled}
+              onCheckedChange={setPosterChatMessageEnabled}
+            />
+          </div>
+
+          {/* Guest Chat Message Toggle */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="guestChatMessage">{tChatMessage("guestEnabled")}</Label>
+              <p className="text-sm text-muted-foreground">
+                {tChatMessage("guestEnabledDescription")}
+              </p>
+            </div>
+            <Switch
+              id="guestChatMessage"
+              checked={guestChatMessageEnabled}
+              onCheckedChange={setGuestChatMessageEnabled}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Save Result */}

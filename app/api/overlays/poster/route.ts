@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
+import { SettingsService } from "@/lib/services/SettingsService";
 import { enrichPosterPayload } from "@/lib/utils/themeEnrichment";
 import { sendPresenterNotification } from "@/lib/utils/presenterNotifications";
 import { BACKEND_URL } from "@/lib/config/urls";
@@ -118,6 +119,28 @@ export async function POST(request: NextRequest) {
           links: links.length > 0 ? links : undefined,
           posterId: posterId, // Include poster ID for tracking
         });
+
+        // Send chat message if enabled and defined (non-blocking)
+        if (posterId) {
+          const poster = db.getPosterById(posterId);
+          if (poster?.chatMessage) {
+            const settingsService = SettingsService.getInstance();
+            const chatSettings = settingsService.getChatMessageSettings();
+
+            if (chatSettings.posterChatMessageEnabled) {
+              fetch(`${BACKEND_URL}/api/streamerbot-chat/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  platform: 'twitch',
+                  message: poster.chatMessage,
+                }),
+              }).catch((error) => {
+                console.error("[PosterAction] Failed to send chat message:", error);
+              });
+            }
+          }
+        }
       } catch (error) {
         console.error('[PosterAction] Failed to send presenter notification:', error);
       }

@@ -37,6 +37,23 @@ export const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
 };
 
 /**
+ * Chat message settings interface
+ * Controls automatic chat message sending when posters/guests are triggered
+ */
+export interface ChatMessageSettings {
+  posterChatMessageEnabled: boolean;
+  guestChatMessageEnabled: boolean;
+}
+
+/**
+ * Default chat message settings (disabled by default)
+ */
+export const DEFAULT_CHAT_MESSAGE_SETTINGS: ChatMessageSettings = {
+  posterChatMessageEnabled: false,
+  guestChatMessageEnabled: false,
+};
+
+/**
  * SettingsService manages application settings with fallback to environment variables
  */
 export class SettingsService {
@@ -246,6 +263,36 @@ export class SettingsService {
       this.db.setSetting("overlay.chatHighlight.autoHideEnabled", settings.chatHighlightAutoHide.toString());
     }
     this.logger.info("Overlay settings saved to database");
+  }
+
+  /**
+   * Get chat message settings
+   */
+  getChatMessageSettings(): ChatMessageSettings {
+    const posterEnabled = this.db.getSetting("chatMessage.poster.enabled");
+    const guestEnabled = this.db.getSetting("chatMessage.guest.enabled");
+
+    return {
+      posterChatMessageEnabled: posterEnabled !== null
+        ? posterEnabled === "true"
+        : DEFAULT_CHAT_MESSAGE_SETTINGS.posterChatMessageEnabled,
+      guestChatMessageEnabled: guestEnabled !== null
+        ? guestEnabled === "true"
+        : DEFAULT_CHAT_MESSAGE_SETTINGS.guestChatMessageEnabled,
+    };
+  }
+
+  /**
+   * Save chat message settings to database
+   */
+  saveChatMessageSettings(settings: Partial<ChatMessageSettings>): void {
+    if (settings.posterChatMessageEnabled !== undefined) {
+      this.db.setSetting("chatMessage.poster.enabled", settings.posterChatMessageEnabled.toString());
+    }
+    if (settings.guestChatMessageEnabled !== undefined) {
+      this.db.setSetting("chatMessage.guest.enabled", settings.guestChatMessageEnabled.toString());
+    }
+    this.logger.info("Chat message settings saved to database");
   }
 }
 

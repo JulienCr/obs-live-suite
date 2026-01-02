@@ -9,8 +9,14 @@ export async function GET() {
   try {
     const settingsService = SettingsService.getInstance();
     const settings = settingsService.getGeneralSettings();
+    const chatMessageSettings = settingsService.getChatMessageSettings();
 
-    return NextResponse.json({ settings });
+    return NextResponse.json({
+      settings: {
+        ...settings,
+        ...chatMessageSettings,
+      }
+    });
   } catch (error) {
     console.error("Failed to get general settings:", error);
     return NextResponse.json(
@@ -27,9 +33,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { defaultPosterDisplayMode } = body;
+    const { defaultPosterDisplayMode, posterChatMessageEnabled, guestChatMessageEnabled } = body;
 
-    // Validate display mode
+    const settingsService = SettingsService.getInstance();
+
+    // Validate display mode if provided
     const validModes = ["left", "right", "bigpicture"];
     if (defaultPosterDisplayMode && !validModes.includes(defaultPosterDisplayMode)) {
       return NextResponse.json(
@@ -38,8 +46,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const settingsService = SettingsService.getInstance();
-    settingsService.saveGeneralSettings({ defaultPosterDisplayMode });
+    // Save general settings
+    if (defaultPosterDisplayMode) {
+      settingsService.saveGeneralSettings({ defaultPosterDisplayMode });
+    }
+
+    // Save chat message settings
+    if (posterChatMessageEnabled !== undefined || guestChatMessageEnabled !== undefined) {
+      settingsService.saveChatMessageSettings({
+        posterChatMessageEnabled,
+        guestChatMessageEnabled,
+      });
+    }
 
     return NextResponse.json({
       success: true,

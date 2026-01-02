@@ -238,6 +238,8 @@
       "saveSettings": "Enregistrer les paramètres",
       "savedSuccess": "Paramètres enregistrés avec succès !",
       "savedError": "Échec de l'enregistrement des paramètres",
+      "settingsSaved": "Paramètres enregistrés avec succès !",
+      "saveFailed": "Échec de l'enregistrement des paramètres",
       "posterDisplayPosition": "Position d'affichage par défaut des affiches",
       "posterDisplayDescription": "Lors du clic sur une carte d'affiche, elle sera affichée à cette position par défaut.",
       "leftSide": "Côté gauche",
@@ -246,7 +248,15 @@
       "howItWorks": "Comment ça marche :",
       "howItWorksClickShow": "Cliquez sur une carte d'affiche pour l'afficher à la position par défaut",
       "howItWorksClickHide": "Cliquez à nouveau pour masquer l'affiche",
-      "howItWorksButtons": "Utilisez les boutons Gauche/Droite/Grand pour des positions spécifiques"
+      "howItWorksButtons": "Utilisez les boutons Gauche/Droite/Grand pour des positions spécifiques",
+      "chatMessage": {
+        "title": "Messages Chat Automatiques",
+        "description": "Envoyer automatiquement un message dans le chat Twitch lors de l'affichage",
+        "posterEnabled": "Activer pour les Affiches",
+        "posterEnabledDescription": "Envoie le message chat défini sur l'affiche lors de son affichage",
+        "guestEnabled": "Activer pour les Invités",
+        "guestEnabledDescription": "Envoie le message chat défini sur l'invité lors de l'affichage du synthé"
+      }
     },
     "obs": {
       "title": "Paramètres OBS WebSocket",
@@ -425,7 +435,9 @@
       "disabled": "Désactivé",
       "showDisabled": "Afficher désactivés",
       "hideDisabled": "Masquer désactivés",
-      "activeCount": "{count} actifs · {total} total"
+      "activeCount": "{count} actifs · {total} total",
+      "chatMessage": "Message Chat",
+      "chatMessagePlaceholder": "Message envoyé dans le chat lors de l'affichage (optionnel)"
     },
     "posters": {
       "title": "Affiches",
@@ -470,7 +482,9 @@
       "disabled": "Désactivé",
       "postersSelected": "{count} affiche(s) sélectionnée(s)",
       "clear": "Effacer",
-      "deleting": "Suppression..."
+      "deleting": "Suppression...",
+      "chatMessage": "Message Chat",
+      "chatMessagePlaceholder": "Message envoyé dans le chat lors de l'affichage (optionnel)"
     },
     "themes": {
       "title": "Thèmes",

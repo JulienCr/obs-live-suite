@@ -23,6 +23,7 @@ interface Poster {
   fileUrl: string;
   type: "image" | "video" | "youtube";
   tags: string[];
+  chatMessage?: string;
   isEnabled?: boolean;
   createdAt?: string;
 }
@@ -56,6 +57,7 @@ export function PosterManager() {
     fileUrl: "",
     type: "image" as "image" | "video" | "youtube",
     tags: [] as string[],
+    chatMessage: "",
   });
   // Track selected poster IDs for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -190,6 +192,7 @@ export function PosterManager() {
       fileUrl: poster.fileUrl,
       type: poster.type,
       tags: poster.tags,
+      chatMessage: poster.chatMessage || "",
     });
     setShowForm(true);
     setShowUploader(false);
@@ -236,7 +239,7 @@ export function PosterManager() {
     setShowUploader(false);
     setShowImageReplacer(false);
     setShowImageReplacer(false);
-    setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [] });
+    setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [], chatMessage: "" });
   };
 
   const handleToggleEnabled = async (poster: Poster) => {
@@ -363,7 +366,7 @@ export function PosterManager() {
             setEditingId(null);
             setShowForm(false);
             setShowImageReplacer(false);
-            setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [] });
+            setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [], chatMessage: "" });
             setShowUploader(true);
           }}
         >
@@ -621,6 +624,20 @@ export function PosterManager() {
               suggestions={tagSuggestions}
               placeholder={t("tagsPlaceholder")}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="chatMessage">{t("chatMessage")}</Label>
+            <Input
+              id="chatMessage"
+              value={formData.chatMessage}
+              onChange={(e) => setFormData({ ...formData, chatMessage: e.target.value })}
+              placeholder={t("chatMessagePlaceholder")}
+              maxLength={500}
+            />
+            <p className="text-xs text-muted-foreground">
+              {formData.chatMessage.length}/500
+            </p>
           </div>
 
           <div className="flex gap-2">

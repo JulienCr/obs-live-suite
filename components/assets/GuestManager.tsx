@@ -19,6 +19,7 @@ interface Guest {
   subtitle?: string;
   accentColor: string;
   avatarUrl?: string;
+  chatMessage?: string;
   isEnabled: boolean;
   createdAt?: string;
 }
@@ -41,6 +42,7 @@ export function GuestManager() {
     subtitle: "",
     accentColor: "#3b82f6",
     avatarUrl: "",
+    chatMessage: "",
   });
 
   useEffect(() => {
@@ -108,6 +110,7 @@ export function GuestManager() {
       subtitle: guest.subtitle || "",
       accentColor: guest.accentColor,
       avatarUrl: guest.avatarUrl || "",
+      chatMessage: guest.chatMessage || "",
     });
     setShowForm(true);
   };
@@ -124,6 +127,7 @@ export function GuestManager() {
       subtitle: "",
       accentColor: "#3b82f6",
       avatarUrl: "",
+      chatMessage: "",
     });
   };
 
@@ -361,6 +365,20 @@ export function GuestManager() {
                   onUpload={(url) => setFormData({ ...formData, avatarUrl: url })}
                   accentColor={formData.accentColor}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="chatMessage">{t("chatMessage")}</Label>
+                <Input
+                  id="chatMessage"
+                  value={formData.chatMessage}
+                  onChange={(e) => setFormData({ ...formData, chatMessage: e.target.value })}
+                  placeholder={t("chatMessagePlaceholder")}
+                  maxLength={500}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {formData.chatMessage.length}/500
+                </p>
               </div>
 
               <div className="flex gap-2">

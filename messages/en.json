@@ -238,6 +238,8 @@
       "saveSettings": "Save Settings",
       "savedSuccess": "Settings saved successfully!",
       "savedError": "Failed to save settings",
+      "settingsSaved": "Settings saved successfully!",
+      "saveFailed": "Failed to save settings",
       "posterDisplayPosition": "Default Poster Display Position",
       "posterDisplayDescription": "When clicking on a poster card, it will be displayed in this position by default.",
       "leftSide": "Left side",
@@ -246,7 +248,15 @@
       "howItWorks": "How it works:",
       "howItWorksClickShow": "Click on a poster card to show it in the default position",
       "howItWorksClickHide": "Click again to hide the poster",
-      "howItWorksButtons": "Use the Left/Right/Big buttons for specific positions"
+      "howItWorksButtons": "Use the Left/Right/Big buttons for specific positions",
+      "chatMessage": {
+        "title": "Automatic Chat Messages",
+        "description": "Automatically send a message to Twitch chat when displaying",
+        "posterEnabled": "Enable for Posters",
+        "posterEnabledDescription": "Sends the chat message defined on the poster when displayed",
+        "guestEnabled": "Enable for Guests",
+        "guestEnabledDescription": "Sends the chat message defined on the guest when lower third is displayed"
+      }
     },
     "obs": {
       "title": "OBS WebSocket Settings",
@@ -425,7 +435,9 @@
       "disabled": "Disabled",
       "showDisabled": "Show Disabled",
       "hideDisabled": "Hide Disabled",
-      "activeCount": "{count} active · {total} total"
+      "activeCount": "{count} active · {total} total",
+      "chatMessage": "Chat Message",
+      "chatMessagePlaceholder": "Message sent to chat when displayed (optional)"
     },
     "posters": {
       "title": "Posters",
@@ -470,7 +482,9 @@
       "disabled": "Disabled",
       "postersSelected": "{count} poster(s) selected",
       "clear": "Clear",
-      "deleting": "Deleting..."
+      "deleting": "Deleting...",
+      "chatMessage": "Chat Message",
+      "chatMessagePlaceholder": "Message sent to chat when displayed (optional)"
     },
     "themes": {
       "title": "Themes",
