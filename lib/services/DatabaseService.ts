@@ -282,6 +282,22 @@ export class DatabaseService {
     } catch (error) {
       this.logger.error("Migration error for rooms table (allowPresenterToSendMessage):", error);
     }
+
+    // Migrate panel_colors table to use scheme instead of individual color columns
+    try {
+      const panelColorTableInfo = this.db.prepare("PRAGMA table_info(panel_colors)").all() as Array<{ name: string }>;
+      const hasScheme = panelColorTableInfo.some((col) => col.name === "scheme");
+
+      if (!hasScheme) {
+        this.logger.info("Adding scheme column to panel_colors table");
+        this.db.exec(`
+          ALTER TABLE panel_colors ADD COLUMN scheme TEXT NOT NULL DEFAULT 'neutral';
+        `);
+        this.logger.info("Panel colors table scheme migration completed");
+      }
+    } catch (error) {
+      this.logger.error("Migration error for panel_colors table (scheme):", error);
+    }
   }
 
   /**
@@ -1478,52 +1494,26 @@ export class DatabaseService {
   }
 
   /**
-   * Upsert panel color (create or update)
+   * Upsert panel color scheme (create or update)
    */
-  upsertPanelColor(panelId: string, colors: DbPanelColorUpdate): DbPanelColor {
+  upsertPanelColor(panelId: string, scheme: string): DbPanelColor {
     const existing = this.getPanelColorByPanelId(panelId);
     const now = new Date();
 
     if (existing) {
       // Update existing
-      const merged = {
-        lightBackground: colors.lightBackground !== undefined ? colors.lightBackground : existing.lightBackground,
-        lightHeader: colors.lightHeader !== undefined ? colors.lightHeader : existing.lightHeader,
-        darkBackground: colors.darkBackground !== undefined ? colors.darkBackground : existing.darkBackground,
-        darkHeader: colors.darkHeader !== undefined ? colors.darkHeader : existing.darkHeader,
-        updatedAt: now,
-      };
-
       const stmt = this.db.prepare(`
-        UPDATE panel_colors
-        SET lightBackground = ?, lightHeader = ?, darkBackground = ?, darkHeader = ?, updatedAt = ?
-        WHERE panelId = ?
+        UPDATE panel_colors SET scheme = ?, updatedAt = ? WHERE panelId = ?
       `);
-      stmt.run(
-        merged.lightBackground,
-        merged.lightHeader,
-        merged.darkBackground,
-        merged.darkHeader,
-        merged.updatedAt.toISOString(),
-        panelId
-      );
+      stmt.run(scheme, now.toISOString(), panelId);
     } else {
       // Create new
       const id = crypto.randomUUID();
       const stmt = this.db.prepare(`
-        INSERT INTO panel_colors (id, panelId, lightBackground, lightHeader, darkBackground, darkHeader, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO panel_colors (id, panelId, scheme, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?)
       `);
-      stmt.run(
-        id,
-        panelId,
-        colors.lightBackground || null,
-        colors.lightHeader || null,
-        colors.darkBackground || null,
-        colors.darkHeader || null,
-        now.toISOString(),
-        now.toISOString()
-      );
+      stmt.run(id, panelId, scheme, now.toISOString(), now.toISOString());
     }
 
     return this.getPanelColorByPanelId(panelId)!;

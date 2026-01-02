@@ -59,6 +59,167 @@
   }
 }
 
+/* =============================================================================
+   Panel Color Schemes
+   Override Tailwind CSS variables within panel scope for form element theming
+
+   Contrast hierarchy (light mode):
+   - background: lightest (panel bg)
+   - card/input: white or near-white (form fields stand out)
+   - muted: medium (headers, disabled states)
+   - border: darker (visible borders)
+
+   Contrast hierarchy (dark mode):
+   - background: darkest (panel bg)
+   - card/input: slightly lighter (form fields stand out)
+   - muted: medium (headers)
+   - border: lighter (visible borders)
+   ============================================================================= */
+
+/* Red scheme - Light mode */
+.panel-scheme-red {
+  --background: 0 60% 94%;
+  --card: 0 30% 99%;
+  --muted: 0 50% 88%;
+  --accent: 0 45% 92%;
+  --border: 0 40% 75%;
+  --input: 0 30% 99%;
+}
+.dark .panel-scheme-red {
+  --background: 0 35% 10%;
+  --card: 0 30% 15%;
+  --muted: 0 28% 18%;
+  --accent: 0 28% 20%;
+  --border: 0 25% 28%;
+  --input: 0 30% 15%;
+}
+
+/* Blue scheme - Light mode */
+.panel-scheme-blue {
+  --background: 210 60% 94%;
+  --card: 210 30% 99%;
+  --muted: 210 50% 88%;
+  --accent: 210 45% 92%;
+  --border: 210 40% 75%;
+  --input: 210 30% 99%;
+}
+.dark .panel-scheme-blue {
+  --background: 210 35% 10%;
+  --card: 210 30% 15%;
+  --muted: 210 28% 18%;
+  --accent: 210 28% 20%;
+  --border: 210 25% 28%;
+  --input: 210 30% 15%;
+}
+
+/* Green scheme - Light mode */
+.panel-scheme-green {
+  --background: 140 45% 92%;
+  --card: 140 25% 99%;
+  --muted: 140 40% 85%;
+  --accent: 140 35% 90%;
+  --border: 140 35% 70%;
+  --input: 140 25% 99%;
+}
+.dark .panel-scheme-green {
+  --background: 140 28% 9%;
+  --card: 140 22% 14%;
+  --muted: 140 20% 17%;
+  --accent: 140 20% 19%;
+  --border: 140 18% 26%;
+  --input: 140 22% 14%;
+}
+
+/* Yellow scheme - Light mode */
+.panel-scheme-yellow {
+  --background: 45 70% 92%;
+  --card: 45 40% 99%;
+  --muted: 45 60% 84%;
+  --accent: 45 55% 90%;
+  --border: 45 50% 68%;
+  --input: 45 40% 99%;
+}
+.dark .panel-scheme-yellow {
+  --background: 45 35% 9%;
+  --card: 45 28% 14%;
+  --muted: 45 25% 17%;
+  --accent: 45 25% 19%;
+  --border: 45 22% 26%;
+  --input: 45 28% 14%;
+}
+
+/* Purple scheme - Light mode */
+.panel-scheme-purple {
+  --background: 270 45% 94%;
+  --card: 270 25% 99%;
+  --muted: 270 40% 88%;
+  --accent: 270 35% 92%;
+  --border: 270 30% 75%;
+  --input: 270 25% 99%;
+}
+.dark .panel-scheme-purple {
+  --background: 270 28% 11%;
+  --card: 270 22% 16%;
+  --muted: 270 20% 19%;
+  --accent: 270 20% 21%;
+  --border: 270 18% 28%;
+  --input: 270 22% 16%;
+}
+
+/* Orange scheme - Light mode */
+.panel-scheme-orange {
+  --background: 25 70% 92%;
+  --card: 25 40% 99%;
+  --muted: 25 60% 85%;
+  --accent: 25 55% 90%;
+  --border: 25 50% 68%;
+  --input: 25 40% 99%;
+}
+.dark .panel-scheme-orange {
+  --background: 25 35% 9%;
+  --card: 25 28% 14%;
+  --muted: 25 25% 17%;
+  --accent: 25 25% 19%;
+  --border: 25 22% 26%;
+  --input: 25 28% 14%;
+}
+
+/* Pink scheme - Light mode */
+.panel-scheme-pink {
+  --background: 330 55% 94%;
+  --card: 330 30% 99%;
+  --muted: 330 45% 88%;
+  --accent: 330 40% 92%;
+  --border: 330 35% 75%;
+  --input: 330 30% 99%;
+}
+.dark .panel-scheme-pink {
+  --background: 330 28% 11%;
+  --card: 330 22% 16%;
+  --muted: 330 20% 19%;
+  --accent: 330 20% 21%;
+  --border: 330 18% 28%;
+  --input: 330 22% 16%;
+}
+
+/* Cyan scheme - Light mode */
+.panel-scheme-cyan {
+  --background: 180 45% 92%;
+  --card: 180 25% 99%;
+  --muted: 180 40% 85%;
+  --accent: 180 35% 90%;
+  --border: 180 35% 70%;
+  --input: 180 25% 99%;
+}
+.dark .panel-scheme-cyan {
+  --background: 180 28% 9%;
+  --card: 180 22% 14%;
+  --muted: 180 20% 17%;
+  --accent: 180 20% 19%;
+  --border: 180 18% 26%;
+  --input: 180 22% 14%;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -79,14 +240,32 @@
   }
 }
 
-/* Panel Color Customization - Dynamic styles injected by PanelColorStyles component */
-/* Base styles to ensure panel content inherits background colors */
+/* Panel Color Customization - Dynamic styles applied via PanelColorStyles component */
+/* Base styles to ensure panel content uses CSS variable for background */
 [data-panel-id] {
+  background-color: hsl(var(--background));
   transition: background-color 0.2s ease;
 }
 
-/* Dockview tab transition for smooth color changes */
-.dv-tab[data-panel-id] {
+/* Dockview tab styling - uses muted color for header */
+.dv-default-tab[data-panel-id] {
+  background-color: hsl(var(--muted));
   transition: background-color 0.2s ease;
+}
+
+/* Active tab styling */
+.dv-default-tab[data-panel-id].dv-active-tab,
+.dv-default-tab[data-panel-id]:hover {
+  background-color: hsl(var(--accent));
+}
+
+/* Form elements inside colored panels should use --card for contrast */
+[class*="panel-scheme-"] input,
+[class*="panel-scheme-"] textarea,
+[class*="panel-scheme-"] select,
+[class*="panel-scheme-"] [role="combobox"],
+[class*="panel-scheme-"] [role="listbox"],
+[class*="panel-scheme-"] .bg-background {
+  background-color: hsl(var(--card)) !important;
 }
 

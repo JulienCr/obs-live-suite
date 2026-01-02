@@ -26,6 +26,7 @@ import { RegieInternalChatViewPanel } from "./panels/RegieInternalChatViewPanel"
 import { RegiePublicChatPanel } from "./panels/RegiePublicChatPanel";
 import { DockviewContext } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
+import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { LiveModeRail } from "./LiveModeRail";
 import { useAppMode } from "./AppModeContext";
@@ -47,6 +48,10 @@ const components = {
   regieInternalChat: RegieInternalChatPanel,
   regieInternalChatView: RegieInternalChatViewPanel,
   regiePublicChat: RegiePublicChatPanel,
+};
+
+const tabComponents = {
+  default: PanelTab,
 };
 
 export function DashboardShell() {
@@ -312,6 +317,8 @@ export function DashboardShell() {
             <div style={{ flex: 1 }}>
               <DockviewReact
                 components={components}
+                tabComponents={tabComponents}
+                defaultTabComponent={PanelTab}
                 onReady={onReady}
                 theme={!mounted || theme === "dark" ? themeDark : themeLight}
               />

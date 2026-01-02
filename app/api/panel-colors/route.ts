@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
-import { panelColorUpdateSchema, PANEL_IDS } from "@/lib/models/PanelColor";
+import { PANEL_IDS, COLOR_SCHEMES } from "@/lib/models/PanelColor";
 
 /**
  * GET all panel colors
@@ -20,13 +20,13 @@ export async function GET() {
 }
 
 /**
- * POST upsert a panel color
- * Body: { panelId: string, ...colors }
+ * POST upsert a panel color scheme
+ * Body: { panelId: string, scheme: ColorScheme }
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { panelId, ...colorUpdates } = body;
+    const { panelId, scheme } = body;
 
     // Validate panelId
     if (!panelId || !PANEL_IDS.includes(panelId)) {
@@ -36,11 +36,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate color updates
-    const validated = panelColorUpdateSchema.parse(colorUpdates);
+    // Validate scheme
+    if (!scheme || !COLOR_SCHEMES.includes(scheme)) {
+      return NextResponse.json(
+        { error: `Invalid scheme. Must be one of: ${COLOR_SCHEMES.join(", ")}` },
+        { status: 400 }
+      );
+    }
 
     const db = DatabaseService.getInstance();
-    const panelColor = db.upsertPanelColor(panelId, validated);
+    const panelColor = db.upsertPanelColor(panelId, scheme);
 
     return NextResponse.json({ panelColor }, { status: 200 });
   } catch (error) {
