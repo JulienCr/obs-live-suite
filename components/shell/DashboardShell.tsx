@@ -24,7 +24,7 @@ import { PresenceStatusPanel } from "./panels/PresenceStatusPanel";
 import { RegieInternalChatPanel } from "./panels/RegieInternalChatPanel";
 import { RegieInternalChatViewPanel } from "./panels/RegieInternalChatViewPanel";
 import { RegiePublicChatPanel } from "./panels/RegiePublicChatPanel";
-import { DockviewContext } from "./DockviewContext";
+import { DockviewContext, usePanelPositions } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
@@ -61,6 +61,7 @@ export function DashboardShell() {
   const [mounted, setMounted] = useState(false);
   const apiRef = useRef<DockviewReadyEvent["api"] | null>(null);
   const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);
+  const { savePositionBeforeClose, getSavedPosition } = usePanelPositions(api);
 
   // Handle hydration
   useEffect(() => {
@@ -310,9 +311,9 @@ export function DashboardShell() {
   return (
     <PanelColorsProvider>
       <LayoutPresetsProvider applyPreset={applyPreset}>
-        <DockviewContext.Provider value={{ api }}>
+        <DockviewContext.Provider value={{ api, savePositionBeforeClose, getSavedPosition }}>
           <PanelColorStyles />
-          <div style={{ height: "100vh", width: "100%", display: "flex" }}>
+          <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--header-height))", width: "100%", display: "flex" }}>
             {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
             <div style={{ flex: 1 }}>
               <DockviewReact

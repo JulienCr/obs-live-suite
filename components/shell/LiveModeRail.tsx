@@ -42,34 +42,50 @@ const RAIL_WIDTH_EXPANDED = 200;
 
 export function LiveModeRail() {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { api } = useDockview();
+  const { api, savePositionBeforeClose, getSavedPosition } = useDockview();
   const t = useTranslations("dashboard.panels");
 
   const handlePanelToggle = (panelId: string, component: string, labelKey: string) => {
-    if (!api) {
-      console.log("API not available yet");
-      return;
-    }
+    if (!api) return;
 
-    // Check if panel exists
     const panel = api.getPanel(panelId);
 
     if (panel) {
-      // Panel exists - focus it
-      console.log(`Focusing existing panel: ${panelId}`);
-      panel.api.setActive();
+      // Save position before closing
+      savePositionBeforeClose(panelId);
+      panel.api.close();
     } else {
-      // Panel doesn't exist - add it
-      console.log(`Adding new panel: ${panelId}`);
-      try {
-        api.addPanel({
-          id: panelId,
-          component,
-          title: t(labelKey),
-        });
-      } catch (error) {
-        console.error(`Failed to add panel ${panelId}:`, error);
+      // Try to restore to saved position
+      const saved = getSavedPosition(panelId);
+      let position: Parameters<typeof api.addPanel>[0]["position"];
+
+      if (saved?.siblingPanelId) {
+        // Restore as tab next to sibling
+        const sibling = api.getPanel(saved.siblingPanelId);
+        if (sibling) {
+          position = {
+            referencePanel: saved.siblingPanelId,
+            direction: "within",
+            index: saved.tabIndex,
+          };
+        }
+      } else if (saved?.neighborPanelId) {
+        // Restore next to neighbor
+        const neighbor = api.getPanel(saved.neighborPanelId);
+        if (neighbor) {
+          position = {
+            referencePanel: saved.neighborPanelId,
+            direction: saved.direction || "right",
+          };
+        }
       }
+
+      api.addPanel({
+        id: panelId,
+        component,
+        title: t(labelKey),
+        position,
+      });
     }
   };
 

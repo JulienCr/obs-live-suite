@@ -2,6 +2,7 @@
 
 import { IDockviewPanelHeaderProps } from "dockview-react";
 import { usePanelColors } from "./PanelColorsContext";
+import { useDockview } from "./DockviewContext";
 import type { PanelId } from "@/lib/models/PanelColor";
 
 /**
@@ -14,6 +15,7 @@ import type { PanelId } from "@/lib/models/PanelColor";
  */
 export function PanelTab(props: IDockviewPanelHeaderProps) {
   const { colors } = usePanelColors();
+  const { savePositionBeforeClose } = useDockview();
   const panelId = props.api.id as PanelId;
   const scheme = colors[panelId]?.scheme ?? "neutral";
 
@@ -23,6 +25,19 @@ export function PanelTab(props: IDockviewPanelHeaderProps) {
       className={`dv-default-tab ${scheme !== "neutral" ? `panel-scheme-${scheme}` : ""}`}
     >
       <span className="dv-default-tab-content">{props.api.title}</span>
+      <div
+        className="dv-default-tab-action"
+        onClick={(e) => {
+          e.stopPropagation();
+          savePositionBeforeClose(panelId);
+          props.api.close();
+        }}
+      >
+        <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="2">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </div>
     </div>
   );
 }
