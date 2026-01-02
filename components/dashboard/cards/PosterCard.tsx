@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,26 @@ interface PosterCardProps {
  */
 type DisplayMode = "left" | "right" | "bigpicture";
 
+// Aspect ratio classification for masonry layout
+type AspectRatioClass = '16:9' | '1:1' | '1:1.414';
+
+const ASPECT_RATIOS: Record<AspectRatioClass, { paddingBottom: string; heightRatio: number }> = {
+  '16:9': { paddingBottom: '56.25%', heightRatio: 0.5625 },
+  '1:1': { paddingBottom: '100%', heightRatio: 1.0 },
+  '1:1.414': { paddingBottom: '141.4%', heightRatio: 1.414 },
+};
+
+// Grid masonry settings
+const GRID_ROW_UNIT = 4;
+const GRID_GAP = 4;
+
+const classifyAspectRatio = (width: number, height: number): AspectRatioClass => {
+  const ratio = width / height;
+  if (ratio >= 1.5) return '16:9';
+  if (ratio >= 0.85) return '1:1';
+  return '1:1.414';
+};
+
 interface PosterContentProps {
   className?: string;
 }
@@ -54,8 +74,66 @@ export function PosterContent({ className }: PosterContentProps) {
     duration: 0,
   });
   const [localSeekTime, setLocalSeekTime] = useState<number | null>(null);
+  const [aspectRatios, setAspectRatios] = useState<Record<string, AspectRatioClass>>({});
+  const [columnCount, setColumnCount] = useState(2);
+  const [containerWidth, setContainerWidth] = useState(400);
   const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Column width constraints
+  const MIN_COLUMN_WIDTH = 170;
+  const MAX_COLUMN_WIDTH = 240;
+
+  const calculateColumnCount = useCallback((width: number) => {
+    if (width <= 0) return 1;
+    // Calculate optimal column count to keep columns between min and max width
+    const minCols = Math.ceil(width / MAX_COLUMN_WIDTH);
+    const maxCols = Math.floor(width / MIN_COLUMN_WIDTH);
+    // Use the larger of minCols (to not exceed max width) clamped by maxCols (to not go below min width)
+    return Math.max(1, Math.min(minCols, maxCols) || minCols);
+  }, []);
+
+  // Calculate row span for an item based on its aspect ratio
+  // Formula: actualHeight = N * GRID_ROW_UNIT + (N-1) * GRID_GAP = N * (ROW + GAP) - GAP
+  // So: N = (targetHeight + GAP) / (ROW + GAP)
+  const calculateRowSpan = useCallback((ratioClass: AspectRatioClass) => {
+    const columnWidth = (containerWidth - (columnCount - 1) * GRID_GAP) / columnCount;
+    const itemHeight = columnWidth * ASPECT_RATIOS[ratioClass].heightRatio;
+    return Math.ceil((itemHeight + GRID_GAP) / (GRID_ROW_UNIT + GRID_GAP));
+  }, [containerWidth, columnCount]);
+
+  // ResizeObserver for responsive column count
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        setContainerWidth(width);
+        setColumnCount(calculateColumnCount(width));
+      }
+    });
+
+    observer.observe(container);
+    // Initial calculation
+    const initialWidth = container.offsetWidth;
+    setContainerWidth(initialWidth);
+    setColumnCount(calculateColumnCount(initialWidth));
+
+    return () => observer.disconnect();
+  }, [calculateColumnCount]);
+
+  const handleImageLoad = (posterId: string, e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setAspectRatios(prev => ({ ...prev, [posterId]: classifyAspectRatio(img.naturalWidth, img.naturalHeight) }));
+  };
+
+  const handleVideoLoad = (posterId: string, e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = e.currentTarget;
+    setAspectRatios(prev => ({ ...prev, [posterId]: classifyAspectRatio(video.videoWidth, video.videoHeight) }));
+  };
 
   useEffect(() => {
     fetchPosters();
@@ -352,6 +430,7 @@ export function PosterContent({ className }: PosterContentProps) {
             }}
           />
 
+          <div ref={containerRef} className="h-full w-full">
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">{tCommon("loading")}</div>
           ) : posters.length === 0 ? (
@@ -359,114 +438,137 @@ export function PosterContent({ className }: PosterContentProps) {
               {t("noPoster")}
             </div>
           ) : (
-            <ScrollArea className="h-[500px] w-full">
-              <div className="grid grid-cols-2 gap-2 pr-4">
-                {posters.map((poster) => (
-                  <div
-                    key={poster.id}
-                    className={`group relative aspect-video rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${activePoster === poster.id
-                        ? "border-green-500 ring-2 ring-green-500 ring-offset-2"
-                        : "border-border hover:border-primary"
-                      }`}
-                    title={poster.title}
-                    onClick={() => handleCardClick(poster)}
-                  >
-                    {/* Preview */}
-                    {poster.type === "youtube" ? (
+            <ScrollArea className="h-full w-full">
+              <div
+                className="pr-4"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
+                  gridAutoRows: `${GRID_ROW_UNIT}px`,
+                  gap: `${GRID_GAP}px`,
+                }}
+              >
+                {posters.map((poster) => {
+                  const ratioClass = aspectRatios[poster.id] || '16:9';
+                  const { paddingBottom } = ASPECT_RATIOS[ratioClass];
+                  const rowSpan = calculateRowSpan(ratioClass);
+
+                  return (
+                    <div
+                      key={poster.id}
+                      className={cn(
+                        "group relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer",
+                        activePoster === poster.id
+                          ? "border-green-500 ring-2 ring-green-500 ring-offset-2"
+                          : "border-border hover:border-primary"
+                      )}
+                      style={{ gridRowEnd: `span ${rowSpan}` }}
+                      title={poster.title}
+                      onClick={() => handleCardClick(poster)}
+                    >
+                      {/* Aspect ratio container */}
                       <div className="relative w-full h-full">
-                        <img
-                          src={`https://img.youtube.com/vi/${poster.fileUrl.match(/(?:youtube\.com\/embed\/|youtu\.be\/)([^?&]+)/)?.[1]}/mqdefault.jpg`}
-                          alt={poster.title}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
-                          <Eye className="w-6 h-6 text-white" />
+                        {/* Preview */}
+                        {poster.type === "youtube" ? (
+                          <>
+                            <img
+                              src={`https://img.youtube.com/vi/${poster.fileUrl.match(/(?:youtube\.com\/embed\/|youtu\.be\/)([^?&]+)/)?.[1]}/mqdefault.jpg`}
+                              alt={poster.title}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+                              <Eye className="w-6 h-6 text-white" />
+                            </div>
+                          </>
+                        ) : poster.type === "video" ? (
+                          <video
+                            src={poster.fileUrl}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            muted
+                            onLoadedMetadata={(e) => handleVideoLoad(poster.id, e)}
+                          />
+                        ) : (
+                          <img
+                            src={poster.fileUrl}
+                            alt={poster.title}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            onLoad={(e) => handleImageLoad(poster.id, e)}
+                          />
+                        )}
+
+                        {/* Hover overlay with title */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2 pointer-events-none">
+                          <span className="text-white text-xs font-medium text-center line-clamp-2">
+                            {poster.title}
+                          </span>
                         </div>
                       </div>
-                    ) : poster.type === "video" ? (
-                      <video
-                        src={poster.fileUrl}
-                        className="w-full h-full object-cover"
-                        muted
-                      />
-                    ) : (
-                      <img
-                        src={poster.fileUrl}
-                        alt={poster.title}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
 
-                    {/* Three button controls on hover */}
-                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
-                      <Button
-                        size="sm"
-                        variant={displayMode === "left" && activePoster === poster.id ? "default" : "secondary"}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTogglePoster(poster, "left");
-                        }}
-                        className={cn(
-                          "px-2 py-1 h-auto",
-                          displayMode === "left" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
-                        )}
-                        aria-label={t("ariaShowLeft", { title: poster.title })}
-                      >
-                        ← {t("positions.left")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={displayMode === "right" && activePoster === poster.id ? "default" : "secondary"}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTogglePoster(poster, "right");
-                        }}
-                        className={cn(
-                          "px-2 py-1 h-auto",
-                          displayMode === "right" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
-                        )}
-                        aria-label={t("ariaShowRight", { title: poster.title })}
-                      >
-                        {t("positions.right")} →
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={displayMode === "bigpicture" && activePoster === poster.id ? "default" : "secondary"}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTogglePoster(poster, "bigpicture");
-                        }}
-                        className={cn(
-                          "px-2 py-1 h-auto",
-                          displayMode === "bigpicture" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
-                        )}
-                        aria-label={t("ariaShowBig", { title: poster.title })}
-                      >
-                        🖼️ {t("positions.big")}
-                      </Button>
-                    </div>
-
-                    {/* Active indicator badge */}
-                    {activePoster === poster.id && (
-                      <div className="absolute top-1 right-1 flex items-center gap-1 bg-green-500 rounded-full px-2 py-1 pointer-events-none">
-                        <Eye className="w-3 h-3 text-white" />
-                        <span className="text-white text-[10px] font-semibold">
-                          {displayMode === "left" ? "L" : displayMode === "right" ? "R" : "⛶"}
-                        </span>
+                      {/* Three button controls on hover */}
+                      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+                        <Button
+                          size="sm"
+                          variant={displayMode === "left" && activePoster === poster.id ? "default" : "secondary"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTogglePoster(poster, "left");
+                          }}
+                          className={cn(
+                            "px-2 py-1 h-auto",
+                            displayMode === "left" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
+                          )}
+                          aria-label={t("ariaShowLeft", { title: poster.title })}
+                        >
+                          ← {t("positions.left")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={displayMode === "right" && activePoster === poster.id ? "default" : "secondary"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTogglePoster(poster, "right");
+                          }}
+                          className={cn(
+                            "px-2 py-1 h-auto",
+                            displayMode === "right" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
+                          )}
+                          aria-label={t("ariaShowRight", { title: poster.title })}
+                        >
+                          {t("positions.right")} →
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={displayMode === "bigpicture" && activePoster === poster.id ? "default" : "secondary"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTogglePoster(poster, "bigpicture");
+                          }}
+                          className={cn(
+                            "px-2 py-1 h-auto",
+                            displayMode === "bigpicture" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
+                          )}
+                          aria-label={t("ariaShowBig", { title: poster.title })}
+                        >
+                          {t("positions.big")}
+                        </Button>
                       </div>
-                    )}
 
-                    {/* Hover overlay with title */}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2 pointer-events-none">
-                      <span className="text-white text-xs font-medium text-center line-clamp-2">
-                        {poster.title}
-                      </span>
+                      {/* Active indicator badge */}
+                      {activePoster === poster.id && (
+                        <div className="absolute top-1 right-1 flex items-center gap-1 bg-green-500 rounded-full px-2 py-1 pointer-events-none">
+                          <Eye className="w-3 h-3 text-white" />
+                          <span className="text-white text-[10px] font-semibold">
+                            {displayMode === "left" ? "L" : displayMode === "right" ? "R" : ""}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           )}
+          </div>
       </div>
 
       {/* Video/YouTube Controls - Fixed at bottom */}
