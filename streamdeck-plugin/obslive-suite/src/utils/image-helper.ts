@@ -129,6 +129,54 @@ export async function getGuestAvatar(avatarUrl: string | null | undefined, displ
 }
 
 /**
+ * Generate a grayed out video icon for video/youtube posters
+ */
+export function generateVideoIcon(): string {
+	const svg = `
+		<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
+			<rect width="144" height="144" fill="#2a2a2a" rx="8"/>
+			<rect x="30" y="40" width="84" height="64" rx="6" fill="#444"/>
+			<polygon points="60,55 60,89 90,72" fill="#666"/>
+		</svg>
+	`.trim();
+
+	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg)}`;
+}
+
+/**
+ * Generate a grayed out guest icon (person silhouette) for empty guest slots
+ */
+export function generateGrayedGuestIcon(): string {
+	const svg = `
+		<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
+			<rect width="144" height="144" fill="#1a1a1a" rx="8"/>
+			<circle cx="72" cy="55" r="20" fill="#444"/>
+			<path d="M 40 90 Q 72 70, 104 90" stroke="#444" stroke-width="8" fill="none" stroke-linecap="round"/>
+			<rect x="30" y="100" width="84" height="8" rx="4" fill="#444"/>
+			<rect x="45" y="112" width="54" height="6" rx="3" fill="#3a3a3a"/>
+		</svg>
+	`.trim();
+
+	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg)}`;
+}
+
+/**
+ * Generate a grayed out poster icon (landscape/image) for empty poster slots
+ */
+export function generateGrayedPosterIcon(): string {
+	const svg = `
+		<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
+			<rect width="144" height="144" fill="#1a1a1a" rx="8"/>
+			<rect x="30" y="35" width="84" height="74" rx="6" stroke="#444" stroke-width="4" fill="none"/>
+			<circle cx="50" cy="60" r="8" fill="#444"/>
+			<path d="M 30 95 L 50 75 L 70 90 L 95 60 L 114 80 L 114 109 L 30 109 Z" fill="#444" opacity="0.6"/>
+		</svg>
+	`.trim();
+
+	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg)}`;
+}
+
+/**
  * Generate a simple SVG icon for poster with title
  */
 export function generatePosterFallbackIcon(title: string, color: string = "#8b5cf6"): string {

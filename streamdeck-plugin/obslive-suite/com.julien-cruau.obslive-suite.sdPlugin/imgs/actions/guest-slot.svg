@@ -1,0 +1,11 @@
+<svg width="144" height="144" viewBox="0 0 144 144" xmlns="http://www.w3.org/2000/svg">
+  <rect width="144" height="144" fill="#1a1a1a"/>
+  <!-- Guest icon -->
+  <circle cx="72" cy="50" r="18" fill="#3b82f6"/>
+  <path d="M 45 82 Q 72 65, 99 82" stroke="#3b82f6" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <rect x="35" y="92" width="74" height="7" rx="3" fill="#3b82f6"/>
+  <rect x="48" y="102" width="48" height="5" rx="2" fill="#60a5fa"/>
+  <!-- Slot indicator (grid/hash) -->
+  <rect x="105" y="10" width="28" height="28" rx="4" fill="#10b981"/>
+  <text x="119" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="central">#</text>
+</svg>

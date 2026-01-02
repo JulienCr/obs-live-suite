@@ -57,6 +57,20 @@
 			]
 		},
 		{
+			"Name": "Guest Slot",
+			"UUID": "com.julien-cruau.obslive-suite.lower.guest.slot",
+			"Icon": "imgs/actions/guest-slot/icon",
+			"Tooltip": "Auto-populated guest based on slot number",
+			"PropertyInspectorPath": "ui/guest-slot.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/guest-slot/key",
+					"TitleAlignment": "bottom"
+				}
+			]
+		},
+		{
 			"Name": "Custom Lower Third",
 			"UUID": "com.julien-cruau.obslive-suite.lower.custom",
 			"Icon": "imgs/actions/lower-custom/icon",
@@ -136,6 +150,20 @@
 				{
 					"Image": "imgs/actions/poster-show/key",
 					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Poster Slot",
+			"UUID": "com.julien-cruau.obslive-suite.poster.show.slot",
+			"Icon": "imgs/actions/poster-slot/icon",
+			"Tooltip": "Auto-populated poster based on slot number",
+			"PropertyInspectorPath": "ui/poster-slot.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/poster-slot/key",
+					"TitleAlignment": "bottom"
 				}
 			]
 		},

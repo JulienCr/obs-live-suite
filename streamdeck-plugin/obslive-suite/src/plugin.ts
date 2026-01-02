@@ -25,6 +25,8 @@ import { OBSSceneSwitch } from "./actions/obs-scene-switch";
 import { DSKSetScene } from "./actions/dsk-set-scene";
 import { PanicButton } from "./actions/panic-button";
 import { SetupConnection } from "./actions/setup-connection";
+import { GuestSlot } from "./actions/guest-slot";
+import { PosterSlot } from "./actions/poster-slot";
 
 // Import WebSocket manager
 import { wsManager } from "./utils/websocket-manager";
@@ -49,8 +51,10 @@ streamDeck.actions.registerAction(new OBSSceneSwitch());
 streamDeck.actions.registerAction(new DSKSetScene());
 streamDeck.actions.registerAction(new PanicButton());
 streamDeck.actions.registerAction(new SetupConnection());
+streamDeck.actions.registerAction(new GuestSlot());
+streamDeck.actions.registerAction(new PosterSlot());
 
-streamDeck.logger.info("OBS Live Suite plugin loaded - 16 actions registered");
+streamDeck.logger.info("OBS Live Suite plugin loaded - 18 actions registered");
 
 // Initialize configuration and connect services
 async function initializePlugin(): Promise<void> {
