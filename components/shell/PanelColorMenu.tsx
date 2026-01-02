@@ -57,8 +57,8 @@ const SCHEME_PREVIEW_COLORS: Record<ColorScheme, {
     dark: { bg: "hsl(330, 28%, 11%)", header: "hsl(330, 20%, 19%)" },
   },
   cyan: {
-    light: { bg: "hsl(180, 45%, 92%)", header: "hsl(180, 40%, 85%)" },
-    dark: { bg: "hsl(180, 28%, 9%)", header: "hsl(180, 20%, 17%)" },
+    light: { bg: "hsl(195, 50%, 92%)", header: "hsl(195, 45%, 85%)" },
+    dark: { bg: "hsl(195, 32%, 9%)", header: "hsl(195, 22%, 17%)" },
   },
 };
 

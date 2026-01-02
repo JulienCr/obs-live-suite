@@ -202,22 +202,22 @@
   --input: 330 22% 16%;
 }
 
-/* Cyan scheme - Light mode */
+/* Cyan scheme - Light mode (hue 195 = more blue, less green) */
 .panel-scheme-cyan {
-  --background: 180 45% 92%;
-  --card: 180 25% 99%;
-  --muted: 180 40% 85%;
-  --accent: 180 35% 90%;
-  --border: 180 35% 70%;
-  --input: 180 25% 99%;
+  --background: 195 50% 92%;
+  --card: 195 30% 99%;
+  --muted: 195 45% 85%;
+  --accent: 195 40% 90%;
+  --border: 195 40% 70%;
+  --input: 195 30% 99%;
 }
 .dark .panel-scheme-cyan {
-  --background: 180 28% 9%;
-  --card: 180 22% 14%;
-  --muted: 180 20% 17%;
-  --accent: 180 20% 19%;
-  --border: 180 18% 26%;
-  --input: 180 22% 14%;
+  --background: 195 32% 9%;
+  --card: 195 25% 14%;
+  --muted: 195 22% 17%;
+  --accent: 195 22% 19%;
+  --border: 195 20% 26%;
+  --input: 195 25% 14%;
 }
 
 @layer base {
@@ -245,6 +245,14 @@
 [data-panel-id] {
   background-color: hsl(var(--background));
   transition: background-color 0.2s ease;
+}
+
+/* Dockview tabs container - pure white/black background */
+.dv-tabs-and-actions-container {
+  background-color: white !important;
+}
+.dark .dv-tabs-and-actions-container {
+  background-color: black !important;
 }
 
 /* Dockview tab styling - remove padding and make transparent */
