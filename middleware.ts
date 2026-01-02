@@ -9,7 +9,8 @@ export const config = {
   // - Next.js internals (/_next/*)
   // - Static files (files with extensions like .js, .css, .png, etc.)
   // - Overlays (OBS browser sources, should not have locale prefix)
+  // - Cert (certificate installation page for mobile devices)
   matcher: [
-    '/((?!api|_next|_vercel|overlays|.*\\..*).*)'
+    '/((?!api|_next|_vercel|overlays|cert|.*\\..*).*)'
   ],
 };

@@ -70,6 +70,7 @@ backups/
 
 # mkcert SSL certificates
 localhost+*.pem
+rootCA.pem
 
 # VDO.ninja static files (download separately)
 server/static/vdoninja/*

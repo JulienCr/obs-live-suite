@@ -159,6 +159,19 @@ async function generateCertificates(localIP) {
     });
     logSuccess('SSL certificates generated');
 
+    // Copy rootCA.pem to project for mobile installation
+    log('  Copying root CA certificate to project...');
+    const caRoot = execSync('mkcert -CAROOT', { encoding: 'utf-8' }).trim();
+    const rootCaSrc = path.join(caRoot, 'rootCA.pem');
+    const rootCaDest = path.join(ROOT_DIR, 'rootCA.pem');
+
+    if (fs.existsSync(rootCaSrc)) {
+      fs.copyFileSync(rootCaSrc, rootCaDest);
+      logSuccess(`Root CA copied to ${rootCaDest}`);
+    } else {
+      logWarning(`Root CA not found at ${rootCaSrc}`);
+    }
+
     return true;
   } catch (error) {
     logError(`Failed to generate certificates: ${error.message}`);
