@@ -27,11 +27,16 @@ interface PosterCardProps {
 }
 
 /**
- * PosterCard - Thumbnail gallery for quick poster triggering
+ * PosterContent - The inner content for poster management (without Card wrapper)
+ * Used by PosterPanel in Dockview and PosterCard for standalone use.
  */
 type DisplayMode = "left" | "right" | "bigpicture";
 
-export function PosterCard({ size, className, settings }: PosterCardProps = {}) {
+interface PosterContentProps {
+  className?: string;
+}
+
+export function PosterContent({ className }: PosterContentProps) {
   const t = useTranslations("dashboard.poster");
   const tCommon = useTranslations("common");
   const [activePoster, setActivePoster] = useState<string | null>(null);
@@ -338,19 +343,9 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
 
   return (
     <>
-      <Card className={cn(className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            {t("title")}
-            <div
-              className={`w-3 h-3 rounded-full ${activePoster ? "bg-green-500" : "bg-gray-300"
-                }`}
-            />
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Quick Add Component */}
-          <PosterQuickAdd
+      <div className={cn("space-y-3", className)}>
+        {/* Quick Add Component */}
+        <PosterQuickAdd
             onPosterAdded={fetchPosters}
             onPosterDisplayed={(poster, mode) => {
               showInMode(poster, mode);
@@ -472,8 +467,7 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
               </div>
             </ScrollArea>
           )}
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Video/YouTube Controls - Fixed at bottom */}
       {showControls && (
@@ -512,6 +506,25 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * PosterCard - Thumbnail gallery for quick poster triggering (with Card wrapper)
+ * For standalone use outside of Dockview panels.
+ */
+export function PosterCard({ size, className, settings }: PosterCardProps = {}) {
+  const t = useTranslations("dashboard.poster");
+
+  return (
+    <Card className={cn(className)}>
+      <CardHeader>
+        <CardTitle>{t("title")}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <PosterContent />
+      </CardContent>
+    </Card>
   );
 }
 
