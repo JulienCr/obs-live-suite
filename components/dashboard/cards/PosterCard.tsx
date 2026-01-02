@@ -504,38 +504,40 @@ export function PosterContent({ className }: PosterContentProps) {
                         </div>
                       </div>
 
-                      {/* Three button controls on hover */}
-                      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
-                        <Button
-                          size="sm"
-                          variant={displayMode === "left" && activePoster === poster.id ? "default" : "secondary"}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTogglePoster(poster, "left");
-                          }}
-                          className={cn(
-                            "px-2 py-1 h-auto",
-                            displayMode === "left" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
-                          )}
-                          aria-label={t("ariaShowLeft", { title: poster.title })}
-                        >
-                          ← {t("positions.left")}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={displayMode === "right" && activePoster === poster.id ? "default" : "secondary"}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTogglePoster(poster, "right");
-                          }}
-                          className={cn(
-                            "px-2 py-1 h-auto",
-                            displayMode === "right" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
-                          )}
-                          aria-label={t("ariaShowRight", { title: poster.title })}
-                        >
-                          {t("positions.right")} →
-                        </Button>
+                      {/* Button controls on hover - 2 rows layout */}
+                      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-1 z-10">
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant={displayMode === "left" && activePoster === poster.id ? "default" : "secondary"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTogglePoster(poster, "left");
+                            }}
+                            className={cn(
+                              "px-2 py-1 h-auto text-xs",
+                              displayMode === "left" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
+                            )}
+                            aria-label={t("ariaShowLeft", { title: poster.title })}
+                          >
+                            ← {t("positions.left")}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={displayMode === "right" && activePoster === poster.id ? "default" : "secondary"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTogglePoster(poster, "right");
+                            }}
+                            className={cn(
+                              "px-2 py-1 h-auto text-xs",
+                              displayMode === "right" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
+                            )}
+                            aria-label={t("ariaShowRight", { title: poster.title })}
+                          >
+                            {t("positions.right")} →
+                          </Button>
+                        </div>
                         <Button
                           size="sm"
                           variant={displayMode === "bigpicture" && activePoster === poster.id ? "default" : "secondary"}
@@ -544,7 +546,7 @@ export function PosterContent({ className }: PosterContentProps) {
                             handleTogglePoster(poster, "bigpicture");
                           }}
                           className={cn(
-                            "px-2 py-1 h-auto",
+                            "px-2 py-1 h-auto text-xs",
                             displayMode === "bigpicture" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
                           )}
                           aria-label={t("ariaShowBig", { title: poster.title })}
