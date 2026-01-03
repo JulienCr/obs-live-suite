@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { PathManager } from "../config/PathManager";
 import { Logger } from "../utils/Logger";
 import { safeJsonParse, safeJsonParseOptional } from "../utils/safeJsonParse";
-import { DATABASE } from "../config/Constants";
+import { DATABASE, LAYOUT_DEFAULTS, LOWER_THIRD_ANIMATION } from "../config/Constants";
 import {
   DbGuest,
   DbGuestInput,
