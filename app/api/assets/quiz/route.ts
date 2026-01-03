@@ -1,34 +1,31 @@
-import { NextResponse } from "next/server";
 import { uploadFile } from "@/lib/utils/fileUpload";
 import { IMAGE_TYPES } from "@/lib/filetypes";
+import {
+  ApiResponses,
+  withSimpleErrorHandler,
+} from "@/lib/utils/ApiResponses";
+
+const LOG_CONTEXT = "[AssetsAPI:Quiz]";
 
 /**
  * POST /api/assets/quiz
  * Upload a quiz image asset (no posters usage)
  */
-export async function POST(request: Request) {
-  try {
-    const formData = await request.formData();
-    const file = formData.get("file") as File;
+export const POST = withSimpleErrorHandler(async (request: Request) => {
+  const formData = await request.formData();
+  const file = formData.get("file") as File;
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
-
-    const result = await uploadFile(file, {
-      subfolder: "quiz",
-      allowedTypes: [...IMAGE_TYPES],
-      maxSizeMB: 25,
-    });
-
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("Quiz upload error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to upload file" },
-      { status: 500 }
-    );
+  if (!file) {
+    return ApiResponses.badRequest("No file provided");
   }
-}
+
+  const result = await uploadFile(file, {
+    subfolder: "quiz",
+    allowedTypes: [...IMAGE_TYPES],
+    maxSizeMB: 25,
+  });
+
+  return ApiResponses.ok(result);
+}, LOG_CONTEXT);
 
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { BACKEND_URL } from "@/lib/config/urls";
+import { ApiResponses } from "@/lib/utils/ApiResponses";
 
 /**
  * HTTP methods supported by the proxy helper
@@ -108,13 +109,7 @@ export async function proxyToBackend(
       console.error(`[ProxyHelper] ${errorMessage}:`, error);
     }
 
-    return NextResponse.json(
-      {
-        error: errorMessage,
-        details: errorDetails,
-      },
-      { status: 503 }
-    );
+    return ApiResponses.serviceUnavailable(`${errorMessage}: ${errorDetails}`);
   }
 }
 

@@ -16,6 +16,15 @@ Si un rapport d'audit récent existe dans `docs/audit-reports/`:
 
 Si pas de rapport récent, utiliser le workflow classique ci-dessous.
 
+## Intégration avec /audit
+
+Si un rapport d'audit récent existe dans `docs/audit-reports/`:
+1. Lire le dernier rapport `{date}_audit-report.md` ou `comparison-{date}.json`
+2. Utiliser le "Batch de Corrections Proposé" comme source de tâches
+3. Exécuter les corrections validées par l'utilisateur
+
+Si pas de rapport récent, utiliser le workflow classique ci-dessous.
+
 ## Instructions
 
 ### Étape 1: Analyser l'État Actuel

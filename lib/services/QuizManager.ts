@@ -97,9 +97,9 @@ export class QuizManager {
         percentages: { A: 0, B: 0, C: 0, D: 0 },
       });
     } catch (error) {
-      console.error("Failed to reset viewer inputs:", error);
+      this.logger.error("showCurrentQuestion: Failed to reset viewer inputs", error);
     }
-    
+
     this.phase = "show_question";
     
     // Send zoom config with question so overlay can initialize with correct values
@@ -196,9 +196,9 @@ export class QuizManager {
         const { resetViewerInputs } = await import("../../server/api/quiz-bot");
         resetViewerInputs();
       } catch (error) {
-        console.error("Failed to reset viewer inputs:", error);
+        this.logger.error("nextQuestion: Failed to reset viewer inputs", error);
       }
-      
+
       // Emit question change to clear UI state
       const nextQ = round.questions[sess.currentQuestionIndex];
       await this.channel.publish(OverlayChannel.QUIZ, "question.change", { 
@@ -226,9 +226,9 @@ export class QuizManager {
         const { resetViewerInputs } = await import("../../server/api/quiz-bot");
         resetViewerInputs();
       } catch (error) {
-        console.error("Failed to reset viewer inputs:", error);
+        this.logger.error("prevQuestion: Failed to reset viewer inputs", error);
       }
-      
+
       // Emit question change to clear UI state
       const prevQ = round.questions[sess.currentQuestionIndex];
       await this.channel.publish(OverlayChannel.QUIZ, "question.change", { 
@@ -258,9 +258,9 @@ export class QuizManager {
         const { resetViewerInputs } = await import("../../server/api/quiz-bot");
         resetViewerInputs();
       } catch (error) {
-        console.error("Failed to reset viewer inputs:", error);
+        this.logger.error(`selectQuestion: Failed to reset viewer inputs for question ${questionId}`, error);
       }
-      
+
       // Emit question change to clear UI state
       const selectedQ = round.questions[qIdx];
       await this.channel.publish(OverlayChannel.QUIZ, "question.change", { 
@@ -288,9 +288,9 @@ export class QuizManager {
         percentages: { A: 0, B: 0, C: 0, D: 0 },
       });
     } catch (error) {
-      console.error("Failed to reset viewer inputs:", error);
+      this.logger.error("resetQuestion: Failed to reset viewer inputs", error);
     }
-    
+
     // Stop timer
     await this.timer.stop();
     this.phase = "idle";

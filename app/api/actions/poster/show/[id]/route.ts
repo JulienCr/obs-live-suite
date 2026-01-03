@@ -1,29 +1,25 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { SettingsService } from "@/lib/services/SettingsService";
 import { enrichPosterPayload } from "@/lib/utils/themeEnrichment";
-import { DbPoster } from "@/lib/models/Database";
 import { BACKEND_URL } from "@/lib/config/urls";
 import { sendChatMessageIfEnabled } from "@/lib/utils/chatMessaging";
+import { ApiResponses, withErrorHandler, RouteContext } from "@/lib/utils/ApiResponses";
+
+const LOG_CONTEXT = "[ActionsAPI:Poster]";
 
 /**
  * POST /api/actions/poster/show/[id]
  * Show a poster by ID (Stream Deck compatible)
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
+export const POST = withErrorHandler<{ id: string }>(
+  async (_request: Request, context: RouteContext<{ id: string }>) => {
+    const { id } = await context.params;
     const db = DatabaseService.getInstance();
     const poster = db.getPosterById(id);
 
     if (!poster) {
-      return NextResponse.json(
-        { error: `Poster with ID ${id} not found` },
-        { status: 404 }
-      );
+      return ApiResponses.notFound(`Poster with ID ${id}`);
     }
 
     // Build base payload and enrich with theme data
@@ -35,7 +31,7 @@ export async function POST(
     };
 
     const enrichedPayload = enrichPosterPayload(basePayload, db);
-    console.log("[PosterAction] Publishing with theme:", !!enrichedPayload.theme);
+    console.log(`${LOG_CONTEXT} Publishing with theme:`, !!enrichedPayload.theme);
 
     const response = await fetch(`${BACKEND_URL}/api/overlays/poster`, {
       method: 'POST',
@@ -56,7 +52,7 @@ export async function POST(
     const chatSettings = settingsService.getChatMessageSettings();
     sendChatMessageIfEnabled({ enabled: chatSettings.posterChatMessageEnabled }, poster.chatMessage);
 
-    return NextResponse.json({
+    return ApiResponses.ok({
       success: true,
       poster: {
         id: poster.id,
@@ -64,12 +60,7 @@ export async function POST(
         fileUrl: poster.fileUrl
       }
     });
-  } catch (error) {
-    console.error("Poster show API error:", error);
-    return NextResponse.json(
-      { error: "Failed to show poster" },
-      { status: 500 }
-    );
-  }
-}
+  },
+  LOG_CONTEXT
+);
 

@@ -1,13 +1,18 @@
-import { NextRequest } from "next/server";
-import { createPostProxy } from "@/lib/utils/ProxyHelper";
+import { proxyToBackend } from "@/lib/utils/ProxyHelper";
+import { withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
 
-const proxyPost = createPostProxy("/api/overlays/chat-highlight", "Failed to control chat highlight");
+const LOG_CONTEXT = "[OverlaysAPI:ChatHighlight]";
 
 /**
  * POST /api/overlays/chat-highlight
  * Proxy to backend server for chat highlight overlay control
  */
-export async function POST(request: NextRequest) {
+export const POST = withSimpleErrorHandler(async (request: Request) => {
   const body = await request.json();
-  return proxyPost(body);
-}
+  return proxyToBackend("/api/overlays/chat-highlight", {
+    method: "POST",
+    body,
+    errorMessage: "Failed to control chat highlight",
+    logPrefix: LOG_CONTEXT,
+  });
+}, LOG_CONTEXT);

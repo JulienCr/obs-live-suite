@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { SettingsService } from "@/lib/services/SettingsService";
 import { BackendClient } from "@/lib/utils/BackendClient";
@@ -6,25 +5,22 @@ import { LowerThirdEventType, OverlayChannel } from "@/lib/models/OverlayEvents"
 import { enrichLowerThirdPayload } from "@/lib/utils/themeEnrichment";
 import { sendPresenterNotification } from "@/lib/utils/presenterNotifications";
 import { sendChatMessageIfEnabled } from "@/lib/utils/chatMessaging";
+import { ApiResponses, withErrorHandler, RouteContext } from "@/lib/utils/ApiResponses";
+
+const LOG_CONTEXT = "[ActionsAPI:Lower:Guest]";
 
 /**
  * POST /api/actions/lower/guest/[id]
  * Show a guest's lower third by ID (Stream Deck compatible)
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
+export const POST = withErrorHandler<{ id: string }>(
+  async (request: Request, context: RouteContext<{ id: string }>) => {
+    const { id } = await context.params;
     const db = DatabaseService.getInstance();
     const guest = db.getGuestById(id);
 
     if (!guest) {
-      return NextResponse.json(
-        { error: `Guest with ID ${id} not found` },
-        { status: 404 }
-      );
+      return ApiResponses.notFound(`Guest with ID ${id}`);
     }
 
     // Optional: override duration from request body, fallback to settings
@@ -46,7 +42,7 @@ export async function POST(
     };
 
     const enrichedPayload = enrichLowerThirdPayload(basePayload, db);
-    console.log("[GuestAction] Publishing with theme:", !!enrichedPayload.theme);
+    console.log(`${LOG_CONTEXT} Publishing with theme:`, !!enrichedPayload.theme);
 
     await BackendClient.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, enrichedPayload);
 
@@ -60,14 +56,14 @@ export async function POST(
         guestId: guest.id, // Include guest ID for tracking
       });
     } catch (error) {
-      console.error("[GuestAction] Failed to send presenter notification:", error);
+      console.error(`${LOG_CONTEXT} Failed to send presenter notification:`, error);
     }
 
     // Send chat message if enabled and defined (non-blocking)
     const chatSettings = settingsService.getChatMessageSettings();
     sendChatMessageIfEnabled({ enabled: chatSettings.guestChatMessageEnabled }, guest.chatMessage);
 
-    return NextResponse.json({
+    return ApiResponses.ok({
       success: true,
       guest: {
         id: guest.id,
@@ -75,12 +71,7 @@ export async function POST(
         subtitle: guest.subtitle
       }
     });
-  } catch (error) {
-    console.error("Guest lower third API error:", error);
-    return NextResponse.json(
-      { error: "Failed to show guest lower third" },
-      { status: 500 }
-    );
-  }
-}
+  },
+  LOG_CONTEXT
+);
 
