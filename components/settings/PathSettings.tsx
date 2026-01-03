@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, FolderOpen, Info, ExternalLink } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface DataPaths {
   dataDir: string;
@@ -44,11 +45,8 @@ export function PathSettings() {
 
   const fetchDataPaths = async () => {
     try {
-      const response = await fetch("/api/settings/paths");
-      if (response.ok) {
-        const paths = await response.json();
-        setDataPaths(paths);
-      }
+      const paths = await apiGet<DataPaths>("/api/settings/paths");
+      setDataPaths(paths);
     } catch (error) {
       console.error("Failed to fetch data paths:", error);
     } finally {
@@ -58,17 +56,13 @@ export function PathSettings() {
 
   const openFolder = async (path: string) => {
     try {
-      const response = await fetch("/api/settings/open-folder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path }),
-      });
-      
-      if (!response.ok) {
-        console.error("Failed to open folder");
-      }
+      await apiPost("/api/settings/open-folder", { path });
     } catch (error) {
-      console.error("Failed to open folder:", error);
+      if (isClientFetchError(error)) {
+        console.error("Failed to open folder:", error.errorMessage);
+      } else {
+        console.error("Failed to open folder:", error);
+      }
     }
   };
 

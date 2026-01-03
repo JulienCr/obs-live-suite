@@ -10,10 +10,29 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, XCircle, Loader2, TestTube } from "lucide-react";
 import { getBackendUrl } from "@/lib/utils/websocket";
+import { apiGet, apiPost, apiDelete, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface OBSConfig {
   url: string;
   password: string;
+}
+
+interface OBSSettingsResponse {
+  url?: string;
+  password?: string;
+  sourceIsDatabase?: boolean;
+}
+
+interface OBSStatusResponse {
+  connected: boolean;
+  currentScene?: string;
+}
+
+interface OBSSaveResponse {
+  success: boolean;
+  error?: string;
+  obsVersion?: string;
+  obsWebSocketVersion?: string;
 }
 
 /**
@@ -48,13 +67,12 @@ export function OBSSettings() {
 
   const loadSettings = async () => {
     try {
-      const res = await fetch("/api/settings/obs");
-      const data = await res.json();
+      const data = await apiGet<OBSSettingsResponse>("/api/settings/obs");
       setConfig({
         url: data.url || "ws://localhost:4455",
         password: data.password || "", // Load password to show current value
       });
-      setSourceIsDatabase(data.sourceIsDatabase);
+      setSourceIsDatabase(data.sourceIsDatabase || false);
     } catch (error) {
       console.error("Failed to load OBS settings:", error);
     } finally {
@@ -64,8 +82,7 @@ export function OBSSettings() {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch(`${getBackendUrl()}/api/obs/status`);
-      const data = await res.json();
+      const data = await apiGet<OBSStatusResponse>(`${getBackendUrl()}/api/obs/status`);
       setCurrentStatus({
         connected: data.connected,
         currentScene: data.currentScene,
@@ -80,17 +97,11 @@ export function OBSSettings() {
     setTestResult(null);
 
     try {
-      const res = await fetch("/api/settings/obs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: config.url,
-          password: config.password || undefined,
-          testOnly: true, // Don't save, just test
-        }),
+      const data = await apiPost<OBSSaveResponse>("/api/settings/obs", {
+        url: config.url,
+        password: config.password || undefined,
+        testOnly: true, // Don't save, just test
       });
-
-      const data = await res.json();
 
       if (data.success) {
         setTestResult({
@@ -106,10 +117,17 @@ export function OBSSettings() {
         });
       }
     } catch (error) {
-      setTestResult({
-        success: false,
-        message: error instanceof Error ? error.message : "Connection failed",
-      });
+      if (isClientFetchError(error)) {
+        setTestResult({
+          success: false,
+          message: error.errorMessage,
+        });
+      } else {
+        setTestResult({
+          success: false,
+          message: error instanceof Error ? error.message : "Connection failed",
+        });
+      }
     } finally {
       setTesting(false);
     }
@@ -120,17 +138,11 @@ export function OBSSettings() {
     setTestResult(null);
 
     try {
-      const res = await fetch("/api/settings/obs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: config.url,
-          password: config.password || undefined,
-          testOnly: false, // Save settings
-        }),
+      const data = await apiPost<OBSSaveResponse>("/api/settings/obs", {
+        url: config.url,
+        password: config.password || undefined,
+        testOnly: false, // Save settings
       });
-
-      const data = await res.json();
 
       if (data.success) {
         setTestResult({
@@ -147,10 +159,17 @@ export function OBSSettings() {
         });
       }
     } catch (error) {
-      setTestResult({
-        success: false,
-        message: error instanceof Error ? error.message : "Failed to save settings",
-      });
+      if (isClientFetchError(error)) {
+        setTestResult({
+          success: false,
+          message: error.errorMessage,
+        });
+      } else {
+        setTestResult({
+          success: false,
+          message: error instanceof Error ? error.message : "Failed to save settings",
+        });
+      }
     } finally {
       setSaving(false);
     }
@@ -160,7 +179,7 @@ export function OBSSettings() {
     if (!confirm("Clear saved settings and use .env defaults?")) return;
 
     try {
-      await fetch("/api/settings/obs", { method: "DELETE" });
+      await apiDelete("/api/settings/obs");
       await loadSettings();
       setTestResult({
         success: true,

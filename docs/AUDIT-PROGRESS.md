@@ -310,22 +310,52 @@
 
 ---
 
+## Batch 10: OBS Fix + ClientFetch Expansion ✅
+
+**Completed:** January 3, 2026
+
+| Task | Status | Files |
+|------|--------|-------|
+| Fix OBS scene item ID lookup | ✅ | `server/api/obs.ts` |
+| Refactor settings to ClientFetch | ✅ | 5 settings components |
+| Refactor assets to ClientFetch | ✅ | 3 asset components |
+
+### Details
+
+**OBS scene item ID lookup fix:**
+- Replaced incorrect `sceneItemId: sourceName as any` with proper lookup
+- Now uses `OBSSceneController.toggleSceneItemVisibility()` which correctly calls `GetSceneItemId` first
+- Proper error handling for source not found
+
+**Settings components refactored (5 files):**
+- `GeneralSettings.tsx`, `OBSSettings.tsx`, `PathSettings.tsx`
+- `OverlaySettings.tsx`, `RoomSettings.tsx`
+- Added response types, replaced fetch() with apiGet/apiPost/apiPut/apiDelete
+- Added `isClientFetchError` handling
+
+**Asset components refactored (3 files):**
+- `GuestManager.tsx`, `PosterManager.tsx`, `ThemeManager.tsx`
+- Replaced all JSON fetch calls with ClientFetch utilities
+- File uploads (FormData) unchanged as designed
+
+---
+
 ## Remaining Work
 
 ### Phase 1: Critical Fixes ✅
 - [x] Add comprehensive types for WikipediaResolverService (Critical Issue 2) ✅
 - [x] Validate quiz config against schema before applying ✅
 
-### Phase 2: High Priority (Partially Done)
-- [ ] Implement scene item ID lookup in OBS API route
+### Phase 2: High Priority (Nearly Complete)
+- [x] Implement scene item ID lookup in OBS API route ✅
 - [x] Replace console.error with Logger in QuizManager ✅
 - [ ] Add error boundaries for async operations in quiz system
 - [x] Create payload type definitions with discriminated unions ✅
 - [x] Use exponential backoff for WebSocket reconnection (done in hook)
 
-### Phase 3: DRY Improvements (Partially Done)
-- [x] Refactor components to use useWebSocketChannel hook (6/7 done - QuizRenderer added)
-- [x] Refactor components to use ClientFetch utility (started: GuestsPanel, GuestsCard)
+### Phase 3: DRY Improvements (Mostly Done)
+- [x] Refactor components to use useWebSocketChannel hook (6/7 done)
+- [x] Refactor components to use ClientFetch utility (10 components done)
 - [x] Refactor API routes to use ApiResponses helper (49 routes done)
 - [ ] Standardize proxy request patterns
 - [ ] Create CardShell wrapper component
@@ -344,9 +374,10 @@
 | Metric | Value |
 |--------|-------|
 | Files Created | 3 |
-| Files Modified | 63 |
+| Files Modified | 72 |
 | Critical Issues Fixed | 2/2 |
-| High Issues Fixed | 5/14 |
+| High Issues Fixed | 6/14 |
 | Quick Wins Completed | 6/6 |
 | API Routes Standardized | 49 |
-| Lines Removed (boilerplate) | ~410 |
+| Components using ClientFetch | 10 |
+| Lines Removed (boilerplate) | ~480 |

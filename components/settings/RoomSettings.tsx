@@ -28,6 +28,7 @@ import {
 import { Room, CreateRoomInput, DEFAULT_ROOM_ID, DEFAULT_QUICK_REPLIES } from "@/lib/models/Room";
 import { type StreamerbotConnectionSettings } from "@/lib/models/StreamerbotChat";
 import { StreamerbotConnectionForm } from "./StreamerbotConnectionForm";
+import { apiGet, apiPost, apiPut, apiDelete, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 type FormMode = "create" | "edit" | null;
 
@@ -40,6 +41,20 @@ interface RoomFormData {
   canSendCustomMessages: boolean;
   streamerbotConnection?: StreamerbotConnectionSettings;
   allowPresenterToSendMessage: boolean;
+}
+
+interface RoomsResponse {
+  rooms?: Room[];
+}
+
+interface RoomResponse {
+  room?: Room;
+  error?: string;
+}
+
+interface DeleteResponse {
+  success: boolean;
+  error?: string;
 }
 
 const emptyFormData: RoomFormData = {
@@ -77,8 +92,7 @@ export function RoomSettings() {
   const loadRooms = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/presenter/rooms");
-      const data = await res.json();
+      const data = await apiGet<RoomsResponse>("/api/presenter/rooms");
       if (data.rooms) {
         setRooms(data.rooms);
       }
@@ -164,13 +178,7 @@ export function RoomSettings() {
           allowPresenterToSendMessage: formData.allowPresenterToSendMessage,
         };
 
-        const res = await fetch("/api/presenter/rooms", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(createData),
-        });
-
-        const data = await res.json();
+        const data = await apiPost<RoomResponse>("/api/presenter/rooms", createData);
 
         if (data.room) {
           setActionResult({
@@ -198,13 +206,7 @@ export function RoomSettings() {
           allowPresenterToSendMessage: formData.allowPresenterToSendMessage,
         };
 
-        const res = await fetch(`/api/presenter/rooms/${editingRoom.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updateData),
-        });
-
-        const data = await res.json();
+        const data = await apiPut<RoomResponse>(`/api/presenter/rooms/${editingRoom.id}`, updateData);
 
         if (data.room) {
           setActionResult({
@@ -221,10 +223,17 @@ export function RoomSettings() {
         }
       }
     } catch (error) {
-      setActionResult({
-        success: false,
-        message: error instanceof Error ? error.message : "Failed to save room",
-      });
+      if (isClientFetchError(error)) {
+        setActionResult({
+          success: false,
+          message: error.errorMessage,
+        });
+      } else {
+        setActionResult({
+          success: false,
+          message: error instanceof Error ? error.message : "Failed to save room",
+        });
+      }
     } finally {
       setSaving(false);
     }
@@ -244,11 +253,7 @@ export function RoomSettings() {
     setActionResult(null);
 
     try {
-      const res = await fetch(`/api/presenter/rooms/${room.id}`, {
-        method: "DELETE",
-      });
-
-      const data = await res.json();
+      const data = await apiDelete<DeleteResponse>(`/api/presenter/rooms/${room.id}`);
 
       if (data.success) {
         setActionResult({
@@ -264,10 +269,17 @@ export function RoomSettings() {
         });
       }
     } catch (error) {
-      setActionResult({
-        success: false,
-        message: error instanceof Error ? error.message : t("failedToDelete"),
-      });
+      if (isClientFetchError(error)) {
+        setActionResult({
+          success: false,
+          message: error.errorMessage,
+        });
+      } else {
+        setActionResult({
+          success: false,
+          message: error instanceof Error ? error.message : t("failedToDelete"),
+        });
+      }
     } finally {
       setSaving(false);
     }

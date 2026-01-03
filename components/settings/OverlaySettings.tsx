@@ -7,11 +7,21 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { CheckCircle2, Loader2, Timer, MessageSquare } from "lucide-react";
+import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface OverlaySettingsData {
   lowerThirdDuration: number;
   chatHighlightDuration: number;
   chatHighlightAutoHide: boolean;
+}
+
+interface OverlaySettingsResponse {
+  settings?: OverlaySettingsData;
+}
+
+interface SaveResponse {
+  success: boolean;
+  error?: string;
 }
 
 /**
@@ -36,8 +46,7 @@ export function OverlaySettings() {
 
   const loadSettings = async () => {
     try {
-      const res = await fetch("/api/settings/overlay");
-      const data = await res.json();
+      const data = await apiGet<OverlaySettingsResponse>("/api/settings/overlay");
       if (data.settings) {
         setSettings(data.settings);
       }
@@ -53,13 +62,7 @@ export function OverlaySettings() {
     setSaveResult(null);
 
     try {
-      const res = await fetch("/api/settings/overlay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
-      });
-
-      const data = await res.json();
+      const data = await apiPost<SaveResponse>("/api/settings/overlay", settings);
 
       if (data.success) {
         setSaveResult({
@@ -73,10 +76,17 @@ export function OverlaySettings() {
         });
       }
     } catch (error) {
-      setSaveResult({
-        success: false,
-        message: error instanceof Error ? error.message : "Failed to save settings",
-      });
+      if (isClientFetchError(error)) {
+        setSaveResult({
+          success: false,
+          message: error.errorMessage,
+        });
+      } else {
+        setSaveResult({
+          success: false,
+          message: error instanceof Error ? error.message : "Failed to save settings",
+        });
+      }
     } finally {
       setSaving(false);
     }

@@ -18,6 +18,7 @@ import {
 import { LowerThirdPreview, CountdownPreview } from "./ThemePreviews";
 import { OverlayCanvas } from "./OverlayCanvas";
 import { LowerThirdAnimationEditor } from "./LowerThirdAnimationEditor";
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/utils/ClientFetch";
 
 /**
  * Theme management component
@@ -88,8 +89,7 @@ export function ThemeManager() {
   const loadThemes = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/themes");
-      const data = await response.json();
+      const data = await apiGet<{ themes: Theme[] }>("/api/themes");
       setThemes(data.themes || []);
     } catch (err) {
       setError("Failed to load themes");
@@ -98,11 +98,16 @@ export function ThemeManager() {
     }
   };
 
+  interface Profile {
+    id: string;
+    isActive: boolean;
+    themeId: string;
+  }
+
   const loadActiveProfile = async () => {
     try {
-      const response = await fetch("/api/profiles");
-      const data = await response.json();
-      const activeProfile = data.profiles?.find((p: { isActive: boolean; themeId: string }) => p.isActive);
+      const data = await apiGet<{ profiles: Profile[] }>("/api/profiles");
+      const activeProfile = data.profiles?.find((p) => p.isActive);
       if (activeProfile) {
         setActiveProfileThemeId(activeProfile.themeId);
       }
@@ -121,24 +126,20 @@ export function ThemeManager() {
     }
 
     try {
-      await fetch("/api/overlays/lower", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "show",
-          payload: {
-            title: "Live Preview",
-            subtitle: formData.name || "Theme Editor",
-            side: "left",
-            duration: 999999, // Keep visible indefinitely
-            theme: {
-              colors: formData.colors,
-              template: formData.lowerThirdTemplate,
-              font: formData.lowerThirdFont,
-              layout: formData.lowerThirdLayout,
-            },
+      await apiPost<{ success: boolean }>("/api/overlays/lower", {
+        action: "show",
+        payload: {
+          title: "Live Preview",
+          subtitle: formData.name || "Theme Editor",
+          side: "left",
+          duration: 999999, // Keep visible indefinitely
+          theme: {
+            colors: formData.colors,
+            template: formData.lowerThirdTemplate,
+            font: formData.lowerThirdFont,
+            layout: formData.lowerThirdLayout,
           },
-        }),
+        },
       });
     } catch (err) {
       console.error("Failed to send live preview:", err);
@@ -147,10 +148,9 @@ export function ThemeManager() {
 
   const hideLivePreview = async () => {
     try {
-      await fetch("/api/overlays/lower", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "hide", payload: {} }),
+      await apiPost<{ success: boolean }>("/api/overlays/lower", {
+        action: "hide",
+        payload: {},
       });
     } catch (err) {
       console.error("Failed to hide live preview:", err);
@@ -289,29 +289,11 @@ export function ThemeManager() {
   const handleSave = async () => {
     try {
       setError(null);
-      
+
       if (isCreating) {
-        const response = await fetch("/api/themes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to create theme");
-        }
+        await apiPost<{ theme: Theme }>("/api/themes", formData);
       } else if (editingTheme) {
-        const response = await fetch(`/api/themes/${editingTheme.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to update theme");
-        }
+        await apiPut<{ theme: Theme }>(`/api/themes/${editingTheme.id}`, formData);
       }
 
       setIsCreating(false);
@@ -329,15 +311,7 @@ export function ThemeManager() {
 
     try {
       setError(null);
-      const response = await fetch(`/api/themes/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to delete theme");
-      }
-
+      await apiDelete<{ success: boolean }>(`/api/themes/${id}`);
       await loadThemes();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete theme");
@@ -347,33 +321,23 @@ export function ThemeManager() {
   const handleApplyTheme = async (themeId: string) => {
     try {
       setError(null);
-      
+
       // Get active profile
-      const profilesResponse = await fetch("/api/profiles");
-      const profilesData = await profilesResponse.json();
-      const activeProfile = profilesData.profiles?.find((p: { isActive: boolean; id: string }) => p.isActive);
-      
+      const profilesData = await apiGet<{ profiles: Profile[] }>("/api/profiles");
+      const activeProfile = profilesData.profiles?.find((p) => p.isActive);
+
       if (!activeProfile) {
         throw new Error("No active profile found. Please create a profile first.");
       }
 
       // Update profile with new theme
-      const response = await fetch(`/api/profiles/${activeProfile.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...activeProfile,
-          themeId: themeId,
-        }),
+      await apiPut<{ profile: Profile }>(`/api/profiles/${activeProfile.id}`, {
+        ...activeProfile,
+        themeId: themeId,
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to apply theme");
-      }
-
       setActiveProfileThemeId(themeId);
-      
+
       // Show success with preview option
       if (confirm("Theme applied! Click OK to preview the lower third, or Cancel to continue editing.")) {
         await testLowerThird();
@@ -387,18 +351,14 @@ export function ThemeManager() {
 
   const testLowerThird = async () => {
     try {
-      await fetch("/api/overlays/lower", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "show",
-          payload: {
-            title: "Theme Preview",
-            subtitle: "Testing new theme",
-            side: "left",
-            duration: 5,
-          },
-        }),
+      await apiPost<{ success: boolean }>("/api/overlays/lower", {
+        action: "show",
+        payload: {
+          title: "Theme Preview",
+          subtitle: "Testing new theme",
+          side: "left",
+          duration: 5,
+        },
       });
     } catch (err) {
       console.error("Failed to test lower third:", err);
@@ -408,24 +368,16 @@ export function ThemeManager() {
   const testCountdown = async () => {
     try {
       // First set the countdown
-      await fetch("/api/overlays/countdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "set",
-          payload: {
-            seconds: 300, // 5 minutes
-          },
-        }),
+      await apiPost<{ success: boolean }>("/api/overlays/countdown", {
+        action: "set",
+        payload: {
+          seconds: 300, // 5 minutes
+        },
       });
-      
+
       // Then start it
-      await fetch("/api/overlays/countdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "start",
-        }),
+      await apiPost<{ success: boolean }>("/api/overlays/countdown", {
+        action: "start",
       });
     } catch (err) {
       console.error("Failed to test countdown:", err);

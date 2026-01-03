@@ -5,7 +5,6 @@ import { Router } from "express";
 import { OBSConnectionManager } from "../../lib/adapters/obs/OBSConnectionManager";
 import { OBSStateManager } from "../../lib/adapters/obs/OBSStateManager";
 import { OBSSceneController } from "../../lib/adapters/obs/OBSSceneController";
-import { OBSSourceController } from "../../lib/adapters/obs/OBSSourceController";
 import { expressError } from "../../lib/utils/apiError";
 
 const router = Router();
@@ -119,19 +118,15 @@ router.post("/scene", async (req, res) => {
 router.post("/source/visibility", async (req, res) => {
   try {
     const { sceneName, sourceName, visible } = req.body;
-    
+
     if (!sceneName || !sourceName || visible === undefined) {
-      return res.status(400).json({ 
-        error: "sceneName, sourceName, and visible are required" 
+      return res.status(400).json({
+        error: "sceneName, sourceName, and visible are required"
       });
     }
 
-    const connectionManager = OBSConnectionManager.getInstance();
-    await connectionManager.getOBS().call("SetSceneItemEnabled", {
-      sceneName,
-      sceneItemId: sourceName as any, // Will need scene item ID lookup
-      sceneItemEnabled: visible
-    });
+    const sceneController = OBSSceneController.getInstance();
+    await sceneController.toggleSceneItemVisibility(sceneName, sourceName, visible);
 
     res.json({ success: true });
   } catch (error) {
