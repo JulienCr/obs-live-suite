@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import type { Room } from "@/lib/models/Room";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { useToast } from "@/hooks/use-toast";
+import { usePwaStandalone } from "@/hooks/use-pwa-standalone";
 import type { CueMessage } from "@/lib/models/Cue";
 
 export function PresenterShell() {
@@ -46,6 +47,7 @@ export function PresenterShell() {
 
   const overlayState = useOverlayState();
   const { toast } = useToast();
+  const { isStandalone } = usePwaStandalone();
 
   const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
   const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
@@ -160,7 +162,10 @@ export function PresenterShell() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className={cn(
+      "h-screen flex flex-col bg-background",
+      isStandalone && "pwa-safe-top pwa-safe-bottom"
+    )}>
       {/* Status Bar */}
       <div className="flex-shrink-0 h-10 border-b flex items-center justify-between px-4 bg-card">
         <div className="flex items-center gap-4">

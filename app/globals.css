@@ -294,3 +294,31 @@
   background-color: hsl(var(--card)) !important;
 }
 
+/* =============================================================================
+   PWA Safe Area Utilities
+   For handling iOS notch and home indicator in standalone mode
+   ============================================================================= */
+
+.pwa-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pwa-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pwa-safe-left {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.pwa-safe-right {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.pwa-safe-all {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+}
+

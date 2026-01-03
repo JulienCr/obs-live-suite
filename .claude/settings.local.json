@@ -89,7 +89,8 @@
       "Bash(powershell:*)",
       "Bash(sqlite3:*)",
       "Bash(findstr:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(node scripts/generate-pwa-icons.js:*)"
     ],
     "deny": [],
     "ask": [
