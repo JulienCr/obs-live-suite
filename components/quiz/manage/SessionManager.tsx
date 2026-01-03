@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Play, Trash2, Edit2, Save, X, Plus, RefreshCw } from "lucide-react";
 import { getBackendUrl } from "@/lib/utils/websocket";
+import { apiGet, apiPost, apiPut, apiDelete, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface Session {
   id: string;
@@ -26,16 +27,18 @@ export function SessionManager({ onBuildNew, onEditSession }: SessionManagerProp
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${getBackendUrl()}/api/quiz/sessions`);
-      const data = await res.json();
+      const data = await apiGet<{ sessions?: Session[] }>(`${getBackendUrl()}/api/quiz/sessions`);
       setSessions(data.sessions || []);
-      
+
       // Get current session
-      const stateRes = await fetch(`${getBackendUrl()}/api/quiz/state`);
-      const stateData = await stateRes.json();
+      const stateData = await apiGet<{ session?: { id: string } }>(`${getBackendUrl()}/api/quiz/state`);
       setCurrentSessionId(stateData.session?.id || null);
     } catch (error) {
-      console.error("Failed to fetch sessions:", error);
+      if (isClientFetchError(error)) {
+        console.error("Failed to fetch sessions:", error.errorMessage);
+      } else {
+        console.error("Failed to fetch sessions:", error);
+      }
     } finally {
       setLoading(false);
     }
@@ -47,20 +50,15 @@ export function SessionManager({ onBuildNew, onEditSession }: SessionManagerProp
 
   const handleLoad = async (sessionId: string) => {
     try {
-      const res = await fetch(`${getBackendUrl()}/api/quiz/session/load`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: sessionId }),
-      });
-      
-      if (res.ok) {
-        setCurrentSessionId(sessionId);
-        alert("Session loaded successfully!");
-      } else {
-        alert("Failed to load session");
-      }
+      await apiPost(`${getBackendUrl()}/api/quiz/session/load`, { id: sessionId });
+      setCurrentSessionId(sessionId);
+      alert("Session loaded successfully!");
     } catch (error) {
-      console.error("Failed to load session:", error);
+      if (isClientFetchError(error)) {
+        console.error("Failed to load session:", error.errorMessage);
+      } else {
+        console.error("Failed to load session:", error);
+      }
       alert("Failed to load session");
     }
   };
@@ -71,58 +69,45 @@ export function SessionManager({ onBuildNew, onEditSession }: SessionManagerProp
     }
 
     try {
-      const res = await fetch(`${getBackendUrl()}/api/quiz/session/${sessionId}`, {
-        method: "DELETE",
-      });
-      
-      if (res.ok) {
-        await fetchSessions();
-      } else {
-        alert("Failed to delete session");
-      }
+      await apiDelete(`${getBackendUrl()}/api/quiz/session/${sessionId}`);
+      await fetchSessions();
     } catch (error) {
-      console.error("Failed to delete session:", error);
+      if (isClientFetchError(error)) {
+        console.error("Failed to delete session:", error.errorMessage);
+      } else {
+        console.error("Failed to delete session:", error);
+      }
       alert("Failed to delete session");
     }
   };
 
   const handleSaveEdit = async (sessionId: string) => {
     try {
-      const res = await fetch(`${getBackendUrl()}/api/quiz/session/${sessionId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: editTitle }),
-      });
-      
-      if (res.ok) {
-        setEditingId(null);
-        setEditTitle("");
-        await fetchSessions();
-      } else {
-        alert("Failed to update session");
-      }
+      await apiPut(`${getBackendUrl()}/api/quiz/session/${sessionId}`, { title: editTitle });
+      setEditingId(null);
+      setEditTitle("");
+      await fetchSessions();
     } catch (error) {
-      console.error("Failed to update session:", error);
+      if (isClientFetchError(error)) {
+        console.error("Failed to update session:", error.errorMessage);
+      } else {
+        console.error("Failed to update session:", error);
+      }
       alert("Failed to update session");
     }
   };
 
   const handleSaveCurrent = async () => {
     try {
-      const res = await fetch(`${getBackendUrl()}/api/quiz/session/save`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      
-      if (res.ok) {
-        await fetchSessions();
-        alert("Session saved successfully!");
-      } else {
-        alert("Failed to save session");
-      }
+      await apiPost(`${getBackendUrl()}/api/quiz/session/save`, {});
+      await fetchSessions();
+      alert("Session saved successfully!");
     } catch (error) {
-      console.error("Failed to save session:", error);
+      if (isClientFetchError(error)) {
+        console.error("Failed to save session:", error.errorMessage);
+      } else {
+        console.error("Failed to save session:", error);
+      }
       alert("Failed to save session");
     }
   };

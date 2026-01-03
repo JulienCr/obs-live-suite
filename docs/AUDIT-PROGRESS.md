@@ -340,6 +340,35 @@
 
 ---
 
+## Batch 11: Quiz ClientFetch + CardShell ✅
+
+**Completed:** January 3, 2026
+
+| Task | Status | Files |
+|------|--------|-------|
+| Refactor quiz manage components to ClientFetch | ✅ | 5 quiz components |
+| Refactor ProfileManager to ClientFetch | ✅ | `ProfileManager.tsx` |
+| Create CardShell wrapper component | ✅ | `components/ui/CardShell.tsx` |
+
+### Details
+
+**Quiz management refactored (5 files):**
+- `QuestionEditor.tsx`, `QuestionList.tsx`, `RoundEditor.tsx`
+- `SessionBuilder.tsx`, `SessionManager.tsx`
+- Replaced all JSON fetch() with ClientFetch utilities
+- Added typed responses and isClientFetchError handling
+
+**ProfileManager refactored:**
+- Replaced 6 fetch() calls with apiGet/apiPost/apiPut/apiDelete
+- Added structured error handling
+
+**CardShell component created:**
+- Reusable Card + CardHeader + CardContent wrapper
+- Props: title, icon, className, headerActions, contentClassName, children
+- Ready for card refactoring in future batch
+
+---
+
 ## Remaining Work
 
 ### Phase 1: Critical Fixes ✅
@@ -355,10 +384,10 @@
 
 ### Phase 3: DRY Improvements (Mostly Done)
 - [x] Refactor components to use useWebSocketChannel hook (6/7 done)
-- [x] Refactor components to use ClientFetch utility (10 components done)
+- [x] Refactor components to use ClientFetch utility (16 components done)
 - [x] Refactor API routes to use ApiResponses helper (49 routes done)
 - [ ] Standardize proxy request patterns
-- [ ] Create CardShell wrapper component
+- [x] Create CardShell wrapper component ✅
 - [ ] Build presenter notification factory
 
 ### Phase 4: Medium Priority (Pending)
@@ -373,11 +402,11 @@
 
 | Metric | Value |
 |--------|-------|
-| Files Created | 3 |
-| Files Modified | 72 |
+| Files Created | 4 |
+| Files Modified | 78 |
 | Critical Issues Fixed | 2/2 |
 | High Issues Fixed | 6/14 |
 | Quick Wins Completed | 6/6 |
 | API Routes Standardized | 49 |
-| Components using ClientFetch | 10 |
-| Lines Removed (boilerplate) | ~480 |
+| Components using ClientFetch | 16 |
+| Lines Removed (boilerplate) | ~520 |

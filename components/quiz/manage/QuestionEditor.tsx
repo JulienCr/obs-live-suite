@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { apiGet, apiPost, apiPut, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface QuestionEditorProps {
   questionId: string | null;
@@ -24,10 +25,9 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
 
   useEffect(() => {
     if (questionId) {
-      fetch(`/api/quiz/questions`)
-        .then(r => r.json())
+      apiGet<{ questions?: Array<{ id: string; type?: string; mode?: string; text?: string; media?: string; options?: string[]; correct?: number; points?: number; time_s?: number; explanation?: string; notes?: string }> }>("/api/quiz/questions")
         .then(data => {
-          const q = data.questions?.find((x: any) => x.id === questionId);
+          const q = data.questions?.find((x) => x.id === questionId);
           if (q) {
             setType(q.type || "qcm");
             setMode(q.mode || undefined);
@@ -40,6 +40,9 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
             setExplanation(q.explanation || "");
             setNotes(q.notes || "");
           }
+        })
+        .catch((err) => {
+          console.error("Failed to load question", err);
         });
     } else {
       // Reset for new question
@@ -99,19 +102,17 @@ export function QuestionEditor({ questionId, onSave, onCancel }: QuestionEditorP
     }
 
     try {
-      const url = questionId
-        ? `/api/quiz/questions/${questionId}`
-        : "/api/quiz/questions";
-      const method = questionId ? "PUT" : "POST";
-      
-      await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      
+      if (questionId) {
+        await apiPut(`/api/quiz/questions/${questionId}`, payload);
+      } else {
+        await apiPost("/api/quiz/questions", payload);
+      }
+
       onSave();
     } catch (err) {
+      if (isClientFetchError(err)) {
+        console.error("Failed to save question:", err.errorMessage);
+      }
       alert(t("saveFailed"));
     }
   };

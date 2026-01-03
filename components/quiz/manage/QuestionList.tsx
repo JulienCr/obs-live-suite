@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { getQuestionTypeColor } from "@/lib/utils/questionTypeColors";
+import { apiGet, apiDelete, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface Question {
   id: string;
@@ -29,11 +30,14 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
 
   const load = async () => {
     try {
-      const res = await fetch("/api/quiz/questions");
-      const data = await res.json();
+      const data = await apiGet<{ questions?: Question[] }>("/api/quiz/questions");
       setQuestions(data.questions || []);
     } catch (e) {
-      console.error("Failed to load questions", e);
+      if (isClientFetchError(e)) {
+        console.error("Failed to load questions:", e.errorMessage);
+      } else {
+        console.error("Failed to load questions", e);
+      }
     } finally {
       setLoading(false);
     }
@@ -46,10 +50,14 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
   const handleDelete = async (id: string) => {
     if (!confirm(t("deleteConfirm"))) return;
     try {
-      await fetch(`/api/quiz/questions/${id}`, { method: "DELETE" });
+      await apiDelete(`/api/quiz/questions/${id}`);
       await load();
     } catch (e) {
-      console.error("Failed to delete", e);
+      if (isClientFetchError(e)) {
+        console.error("Failed to delete:", e.errorMessage);
+      } else {
+        console.error("Failed to delete", e);
+      }
     }
   };
 

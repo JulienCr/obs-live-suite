@@ -9,6 +9,13 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Trash2, Check, Folder, Edit, X } from "lucide-react";
+import {
+  apiGet,
+  apiPost,
+  apiPut,
+  apiDelete,
+  isClientFetchError,
+} from "@/lib/utils/ClientFetch";
 
 interface Profile {
   id: string;
@@ -48,11 +55,14 @@ export function ProfileManager() {
 
   const fetchProfiles = async () => {
     try {
-      const res = await fetch("/api/profiles");
-      const data = await res.json();
+      const data = await apiGet<{ profiles: Profile[] }>("/api/profiles");
       setProfiles(data.profiles || []);
     } catch (error) {
-      console.error("Failed to fetch profiles:", error);
+      if (isClientFetchError(error)) {
+        console.error(`Failed to fetch profiles (${error.status}):`, error.errorMessage);
+      } else {
+        console.error("Failed to fetch profiles:", error);
+      }
     } finally {
       setLoading(false);
     }
@@ -60,37 +70,37 @@ export function ProfileManager() {
 
   const fetchThemes = async () => {
     try {
-      const res = await fetch("/api/themes");
-      const data = await res.json();
+      const data = await apiGet<{ themes: Theme[] }>("/api/themes");
       setThemes(data.themes || []);
       // Set default theme if not already set
       if (data.themes && data.themes.length > 0 && !formData.themeId) {
         setFormData(prev => ({ ...prev, themeId: data.themes[0].id }));
       }
     } catch (error) {
-      console.error("Failed to fetch themes:", error);
+      if (isClientFetchError(error)) {
+        console.error(`Failed to fetch themes (${error.status}):`, error.errorMessage);
+      } else {
+        console.error("Failed to fetch themes:", error);
+      }
     }
   };
 
   const handleCreate = async () => {
     try {
-      const res = await fetch("/api/profiles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          isActive: profiles.length === 0, // First profile is active
-        }),
+      await apiPost<{ profile: Profile }>("/api/profiles", {
+        ...formData,
+        isActive: profiles.length === 0, // First profile is active
       });
-
-      if (res.ok) {
-        fetchProfiles();
-        setShowForm(false);
-        setEditingProfile(null);
-        setFormData({ name: "", description: "", themeId: themes[0]?.id || "" });
-      }
+      fetchProfiles();
+      setShowForm(false);
+      setEditingProfile(null);
+      setFormData({ name: "", description: "", themeId: themes[0]?.id || "" });
     } catch (error) {
-      console.error("Failed to create profile:", error);
+      if (isClientFetchError(error)) {
+        console.error(`Failed to create profile (${error.status}):`, error.errorMessage);
+      } else {
+        console.error("Failed to create profile:", error);
+      }
     }
   };
 
@@ -98,20 +108,20 @@ export function ProfileManager() {
     if (!editingProfile) return;
 
     try {
-      const res = await fetch(`/api/profiles/${editingProfile.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.ok) {
-        fetchProfiles();
-        setShowForm(false);
-        setEditingProfile(null);
-        setFormData({ name: "", description: "", themeId: themes[0]?.id || "" });
-      }
+      await apiPut<{ profile: Profile }>(
+        `/api/profiles/${editingProfile.id}`,
+        formData
+      );
+      fetchProfiles();
+      setShowForm(false);
+      setEditingProfile(null);
+      setFormData({ name: "", description: "", themeId: themes[0]?.id || "" });
     } catch (error) {
-      console.error("Failed to update profile:", error);
+      if (isClientFetchError(error)) {
+        console.error(`Failed to update profile (${error.status}):`, error.errorMessage);
+      } else {
+        console.error("Failed to update profile:", error);
+      }
     }
   };
 
@@ -133,10 +143,14 @@ export function ProfileManager() {
 
   const handleActivate = async (id: string) => {
     try {
-      await fetch(`/api/profiles/${id}/activate`, { method: "POST" });
+      await apiPost<{ success: boolean }>(`/api/profiles/${id}/activate`);
       fetchProfiles();
     } catch (error) {
-      console.error("Failed to activate profile:", error);
+      if (isClientFetchError(error)) {
+        console.error(`Failed to activate profile (${error.status}):`, error.errorMessage);
+      } else {
+        console.error("Failed to activate profile:", error);
+      }
     }
   };
 
@@ -144,10 +158,14 @@ export function ProfileManager() {
     if (!confirm(t("deleteConfirm"))) return;
 
     try {
-      await fetch(`/api/profiles/${id}`, { method: "DELETE" });
+      await apiDelete<{ success: boolean }>(`/api/profiles/${id}`);
       fetchProfiles();
     } catch (error) {
-      console.error("Failed to delete profile:", error);
+      if (isClientFetchError(error)) {
+        console.error(`Failed to delete profile (${error.status}):`, error.errorMessage);
+      } else {
+        console.error("Failed to delete profile:", error);
+      }
     }
   };
 

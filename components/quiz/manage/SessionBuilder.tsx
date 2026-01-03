@@ -5,6 +5,7 @@ import { getBackendUrl } from "@/lib/utils/websocket";
 import { PlayerSelector } from "./PlayerSelector";
 import { RoundEditor } from "./RoundEditor";
 import { ArrowLeft } from "lucide-react";
+import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface Player {
   id: string;
@@ -57,29 +58,37 @@ export function SessionBuilder({ sessionId, onBack }: SessionBuilderProps) {
   const loadSession = async (id: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${getBackendUrl()}/api/quiz/session/load`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        const session = data.session;
-        setSessionName(session.title || "");
-        setPlayers(session.players?.map((p: any) => ({
-          id: p.id,
-          name: p.displayName,
-          avatar: p.avatarUrl,
-          buzzerId: p.buzzerId,
-        })) || []);
-        setRounds(session.rounds || []);
-        setCurrentSessionId(session.id);
-      } else {
-        alert("Failed to load session");
+      interface SessionPlayer {
+        id: string;
+        displayName: string;
+        avatarUrl?: string;
+        buzzerId?: string;
       }
+      interface LoadSessionResponse {
+        session: {
+          id: string;
+          title?: string;
+          players?: SessionPlayer[];
+          rounds?: Round[];
+        };
+      }
+      const data = await apiPost<LoadSessionResponse>(`${getBackendUrl()}/api/quiz/session/load`, { id });
+      const session = data.session;
+      setSessionName(session.title || "");
+      setPlayers(session.players?.map((p) => ({
+        id: p.id,
+        name: p.displayName,
+        avatar: p.avatarUrl,
+        buzzerId: p.buzzerId,
+      })) || []);
+      setRounds(session.rounds || []);
+      setCurrentSessionId(session.id);
     } catch (err) {
-      console.error("Error loading session:", err);
+      if (isClientFetchError(err)) {
+        console.error("Error loading session:", err.errorMessage);
+      } else {
+        console.error("Error loading session:", err);
+      }
       alert("Error loading session");
     } finally {
       setLoading(false);
@@ -141,28 +150,22 @@ export function SessionBuilder({ sessionId, onBack }: SessionBuilderProps) {
     };
 
     try {
-      const endpoint = isEditing 
+      const endpoint = isEditing
         ? `${getBackendUrl()}/api/quiz/session/${currentSessionId}/update`
         : "/api/quiz/session/create";
-      
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(session),
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        alert(isEditing ? "Session updated successfully!" : "Session created successfully!");
-        setCurrentSessionId(data.session?.id);
-        if (onBack) {
-          onBack();
-        }
-      } else {
-        alert(`Failed to ${isEditing ? "update" : "create"} session`);
+
+      const data = await apiPost<{ session?: { id: string } }>(endpoint, session);
+      alert(isEditing ? "Session updated successfully!" : "Session created successfully!");
+      setCurrentSessionId(data.session?.id);
+      if (onBack) {
+        onBack();
       }
     } catch (err) {
-      console.error(`Error ${isEditing ? "updating" : "creating"} session:`, err);
+      if (isClientFetchError(err)) {
+        console.error(`Error ${isEditing ? "updating" : "creating"} session:`, err.errorMessage);
+      } else {
+        console.error(`Error ${isEditing ? "updating" : "creating"} session:`, err);
+      }
       alert(`Error ${isEditing ? "updating" : "creating"} session`);
     }
   };

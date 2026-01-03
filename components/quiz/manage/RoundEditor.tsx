@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { getQuestionTypeColor } from "@/lib/utils/questionTypeColors";
+import { apiGet, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface Question {
   id: string;
@@ -43,13 +44,19 @@ export function RoundEditor({ round, onSave, onCancel }: RoundEditorProps) {
   }, [round]);
 
   useEffect(() => {
-    fetch("/api/quiz/questions")
-      .then(r => r.json())
+    apiGet<{ questions?: Question[] }>("/api/quiz/questions")
       .then(data => {
         setAvailableQuestions(data.questions || []);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        if (isClientFetchError(err)) {
+          console.error("Failed to load questions:", err.errorMessage);
+        } else {
+          console.error("Failed to load questions:", err);
+        }
+        setLoading(false);
+      });
   }, []);
 
   const addQuestion = (q: Question) => {
