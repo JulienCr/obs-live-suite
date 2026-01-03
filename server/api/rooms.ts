@@ -41,6 +41,7 @@ router.post("/", (req, res) => {
       twitchChatUrl: input.twitchChatUrl || null,
       quickReplies: input.quickReplies || ["Ready", "Need more context", "Delay 1 min", "Audio issue"],
       canSendCustomMessages: input.canSendCustomMessages ?? false,
+      allowPresenterToSendMessage: input.allowPresenterToSendMessage ?? false,
       streamerbotConnection: input.streamerbotConnection ? JSON.stringify(input.streamerbotConnection) : null,
     });
 

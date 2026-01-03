@@ -46,6 +46,7 @@ export class RoomService {
           twitchChatUrl: null,
           quickReplies: DEFAULT_QUICK_REPLIES,
           canSendCustomMessages: false,
+          allowPresenterToSendMessage: false,
           streamerbotConnection: null,
           createdAt: new Date(),
           updatedAt: new Date(),

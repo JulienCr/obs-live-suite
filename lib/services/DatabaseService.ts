@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { PathManager } from "../config/PathManager";
 import { Logger } from "../utils/Logger";
 import { safeJsonParse, safeJsonParseOptional } from "../utils/safeJsonParse";
-import { DATABASE, LAYOUT_DEFAULTS, LOWER_THIRD_ANIMATION } from "../config/Constants";
+import { DATABASE } from "../config/Constants";
 import {
   DbGuest,
   DbGuestInput,
@@ -27,6 +27,12 @@ import {
   DbPanelColor,
   DbPanelColorUpdate,
 } from "../models/Database";
+import { GuestRepository } from "@/lib/repositories/GuestRepository";
+import { PosterRepository } from "@/lib/repositories/PosterRepository";
+import { ProfileRepository } from "@/lib/repositories/ProfileRepository";
+import { RoomRepository } from "@/lib/repositories/RoomRepository";
+import { ThemeRepository } from "@/lib/repositories/ThemeRepository";
+import { CueMessageRepository } from "@/lib/repositories/CueMessageRepository";
 
 /**
  * DatabaseService handles SQLite database connections and operations
@@ -540,111 +546,35 @@ export class DatabaseService {
    * Get all guests
    */
   getAllGuests(): DbGuest[] {
-    const stmt = this.db.prepare("SELECT * FROM guests ORDER BY displayName ASC");
-    const rows = stmt.all() as Array<Omit<DbGuest, 'isEnabled' | 'createdAt' | 'updatedAt'> & { isEnabled: number; createdAt: string; updatedAt: string }>;
-    return rows.map((row) => ({
-      ...row,
-      isEnabled: row.isEnabled === 1,
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    }));
+    return GuestRepository.getInstance().getAll();
   }
 
   /**
    * Get guest by ID
    */
   getGuestById(id: string): DbGuest | null {
-    const stmt = this.db.prepare("SELECT * FROM guests WHERE id = ?");
-    const row = stmt.get(id) as (Omit<DbGuest, 'isEnabled' | 'createdAt' | 'updatedAt'> & { isEnabled: number; createdAt: string; updatedAt: string }) | undefined;
-    if (!row) return null;
-    return {
-      ...row,
-      isEnabled: row.isEnabled === 1,
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    };
+    return GuestRepository.getInstance().getById(id);
   }
 
   /**
    * Create a new guest
    */
   createGuest(guest: DbGuestInput): void {
-    const now = new Date();
-    console.log("[DB] Creating guest with data:", {
-      id: guest.id,
-      displayName: guest.displayName,
-      subtitle: guest.subtitle,
-      accentColor: guest.accentColor,
-      avatarUrl: guest.avatarUrl,
-      chatMessage: guest.chatMessage,
-      isEnabled: guest.isEnabled,
-    });
-
-    const stmt = this.db.prepare(`
-      INSERT INTO guests (id, displayName, subtitle, accentColor, avatarUrl, chatMessage, isEnabled, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(
-      guest.id,
-      guest.displayName,
-      guest.subtitle || null,
-      guest.accentColor,
-      guest.avatarUrl || null,
-      guest.chatMessage || null,
-      guest.isEnabled ? 1 : 0,
-      (guest.createdAt || now).toISOString(),
-      (guest.updatedAt || now).toISOString()
-    );
-
-    console.log("[DB] Guest created successfully");
+    GuestRepository.getInstance().create(guest);
   }
 
   /**
    * Update a guest
    */
   updateGuest(id: string, updates: DbGuestUpdate): void {
-    // Get existing guest to merge with updates
-    const existing = this.getGuestById(id);
-    if (!existing) {
-      throw new Error(`Guest with id ${id} not found`);
-    }
-
-    // Merge existing data with updates
-    const merged = {
-      displayName: updates.displayName !== undefined ? updates.displayName : existing.displayName,
-      subtitle: updates.subtitle !== undefined ? updates.subtitle : existing.subtitle,
-      accentColor: updates.accentColor !== undefined ? updates.accentColor : existing.accentColor,
-      avatarUrl: updates.avatarUrl !== undefined ? updates.avatarUrl : existing.avatarUrl,
-      chatMessage: updates.chatMessage !== undefined ? updates.chatMessage : existing.chatMessage,
-      isEnabled: updates.isEnabled !== undefined ? updates.isEnabled : existing.isEnabled,
-      updatedAt: updates.updatedAt || new Date(),
-    };
-
-    console.log("[DB] Updating guest:", id, "with merged data:", merged);
-
-    const stmt = this.db.prepare(`
-      UPDATE guests
-      SET displayName = ?, subtitle = ?, accentColor = ?, avatarUrl = ?, chatMessage = ?, isEnabled = ?, updatedAt = ?
-      WHERE id = ?
-    `);
-    stmt.run(
-      merged.displayName,
-      merged.subtitle || null,
-      merged.accentColor,
-      merged.avatarUrl || null,
-      merged.chatMessage || null,
-      merged.isEnabled ? 1 : 0,
-      merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
-      id
-    );
+    GuestRepository.getInstance().update(id, updates);
   }
 
   /**
    * Delete a guest
    */
   deleteGuest(id: string): void {
-    const stmt = this.db.prepare("DELETE FROM guests WHERE id = ?");
-    stmt.run(id);
+    GuestRepository.getInstance().delete(id);
   }
 
   // ==================== POSTERS ====================
@@ -653,118 +583,35 @@ export class DatabaseService {
    * Get all posters
    */
   getAllPosters(): DbPoster[] {
-    const stmt = this.db.prepare("SELECT * FROM posters ORDER BY createdAt DESC");
-    const rows = stmt.all() as Array<Omit<DbPoster, 'tags' | 'profileIds' | 'metadata' | 'isEnabled' | 'createdAt' | 'updatedAt'> & { tags: string; profileIds: string; metadata: string | null; isEnabled: number; createdAt: string; updatedAt: string }>;
-    return rows.map((row) => ({
-      ...row,
-      tags: safeJsonParse<string[]>(row.tags, []),
-      profileIds: safeJsonParse<string[]>(row.profileIds, []),
-      metadata: safeJsonParseOptional<Record<string, unknown>>(row.metadata),
-      isEnabled: row.isEnabled === 1,
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    }));
+    return PosterRepository.getInstance().getAll();
   }
 
   /**
    * Get poster by ID
    */
   getPosterById(id: string): DbPoster | null {
-    const stmt = this.db.prepare("SELECT * FROM posters WHERE id = ?");
-    const row = stmt.get(id) as (Omit<DbPoster, 'tags' | 'profileIds' | 'metadata' | 'isEnabled' | 'createdAt' | 'updatedAt'> & { tags: string; profileIds: string; metadata: string | null; isEnabled: number; createdAt: string; updatedAt: string }) | undefined;
-    if (!row) return null;
-    return {
-      ...row,
-      tags: safeJsonParse<string[]>(row.tags, []),
-      profileIds: safeJsonParse<string[]>(row.profileIds, []),
-      metadata: safeJsonParseOptional<Record<string, unknown>>(row.metadata),
-      isEnabled: row.isEnabled === 1,
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    };
+    return PosterRepository.getInstance().getById(id);
   }
 
   /**
    * Create a new poster
    */
   createPoster(poster: DbPosterInput): void {
-    const now = new Date();
-    const stmt = this.db.prepare(`
-      INSERT INTO posters (id, title, description, source, fileUrl, type, duration, tags, profileIds, metadata, chatMessage, isEnabled, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(
-      poster.id,
-      poster.title,
-      poster.description || null,
-      poster.source || null,
-      poster.fileUrl,
-      poster.type,
-      poster.duration || null,
-      JSON.stringify(poster.tags || []),
-      JSON.stringify(poster.profileIds || []),
-      poster.metadata ? JSON.stringify(poster.metadata) : null,
-      poster.chatMessage || null,
-      poster.isEnabled ? 1 : 0,
-      (poster.createdAt || now).toISOString(),
-      (poster.updatedAt || now).toISOString()
-    );
+    PosterRepository.getInstance().create(poster);
   }
 
   /**
    * Update a poster
    */
   updatePoster(id: string, updates: DbPosterUpdate): void {
-    // Get existing poster to merge with updates
-    const existing = this.getPosterById(id);
-    if (!existing) {
-      throw new Error(`Poster with id ${id} not found`);
-    }
-
-    // Merge existing data with updates
-    const merged = {
-      title: updates.title !== undefined ? updates.title : existing.title,
-      description: updates.description !== undefined ? updates.description : existing.description,
-      source: updates.source !== undefined ? updates.source : existing.source,
-      fileUrl: updates.fileUrl !== undefined ? updates.fileUrl : existing.fileUrl,
-      type: updates.type !== undefined ? updates.type : existing.type,
-      duration: updates.duration !== undefined ? updates.duration : existing.duration,
-      tags: updates.tags !== undefined ? updates.tags : existing.tags,
-      profileIds: updates.profileIds !== undefined ? updates.profileIds : existing.profileIds,
-      metadata: updates.metadata !== undefined ? updates.metadata : existing.metadata,
-      chatMessage: updates.chatMessage !== undefined ? updates.chatMessage : existing.chatMessage,
-      isEnabled: updates.isEnabled !== undefined ? updates.isEnabled : existing.isEnabled,
-      updatedAt: updates.updatedAt || new Date(),
-    };
-
-    const stmt = this.db.prepare(`
-      UPDATE posters
-      SET title = ?, description = ?, source = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, chatMessage = ?, isEnabled = ?, updatedAt = ?
-      WHERE id = ?
-    `);
-    stmt.run(
-      merged.title,
-      merged.description || null,
-      merged.source || null,
-      merged.fileUrl,
-      merged.type,
-      merged.duration || null,
-      JSON.stringify(merged.tags || []),
-      JSON.stringify(merged.profileIds || []),
-      merged.metadata ? JSON.stringify(merged.metadata) : null,
-      merged.chatMessage || null,
-      merged.isEnabled ? 1 : 0,
-      merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
-      id
-    );
+    PosterRepository.getInstance().update(id, updates);
   }
 
   /**
    * Delete a poster
    */
   deletePoster(id: string): void {
-    const stmt = this.db.prepare("DELETE FROM posters WHERE id = ?");
-    stmt.run(id);
+    PosterRepository.getInstance().delete(id);
   }
 
   // ==================== PROFILES ====================
@@ -773,116 +620,49 @@ export class DatabaseService {
    * Get all profiles
    */
   getAllProfiles(): DbProfile[] {
-    const stmt = this.db.prepare("SELECT * FROM profiles ORDER BY isActive DESC, name ASC");
-    const rows = stmt.all() as Array<Omit<DbProfile, 'isActive' | 'posterRotation' | 'audioSettings' | 'createdAt' | 'updatedAt'> & { isActive: number; posterRotation: string; audioSettings: string; createdAt: string; updatedAt: string }>;
-    return rows.map((row) => ({
-      ...row,
-      isActive: Boolean(row.isActive),
-      posterRotation: safeJsonParse<DbProfile['posterRotation']>(row.posterRotation, []),
-      audioSettings: safeJsonParse<DbProfile['audioSettings']>(row.audioSettings, {}),
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    }));
+    return ProfileRepository.getInstance().getAll();
   }
 
   /**
    * Get profile by ID
    */
   getProfileById(id: string): DbProfile | null {
-    const stmt = this.db.prepare("SELECT * FROM profiles WHERE id = ?");
-    const row = stmt.get(id) as (Omit<DbProfile, 'isActive' | 'posterRotation' | 'audioSettings' | 'createdAt' | 'updatedAt'> & { isActive: number; posterRotation: string; audioSettings: string; createdAt: string; updatedAt: string }) | undefined;
-    if (!row) return null;
-    return {
-      ...row,
-      isActive: Boolean(row.isActive),
-      posterRotation: safeJsonParse<DbProfile['posterRotation']>(row.posterRotation, []),
-      audioSettings: safeJsonParse<DbProfile['audioSettings']>(row.audioSettings, {}),
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    };
+    return ProfileRepository.getInstance().getById(id);
   }
 
   /**
    * Get active profile
    */
   getActiveProfile(): DbProfile | null {
-    const stmt = this.db.prepare("SELECT * FROM profiles WHERE isActive = 1 LIMIT 1");
-    const row = stmt.get() as (Omit<DbProfile, 'isActive' | 'posterRotation' | 'audioSettings' | 'createdAt' | 'updatedAt'> & { isActive: number; posterRotation: string; audioSettings: string; createdAt: string; updatedAt: string }) | undefined;
-    if (!row) return null;
-    return {
-      ...row,
-      isActive: Boolean(row.isActive),
-      posterRotation: safeJsonParse<DbProfile['posterRotation']>(row.posterRotation, []),
-      audioSettings: safeJsonParse<DbProfile['audioSettings']>(row.audioSettings, {}),
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    };
+    return ProfileRepository.getInstance().getActive();
   }
 
   /**
    * Create a new profile
    */
   createProfile(profile: DbProfileInput): void {
-    const now = new Date();
-    const stmt = this.db.prepare(`
-      INSERT INTO profiles (id, name, description, themeId, dskSourceName, defaultScene, posterRotation, audioSettings, isActive, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(
-      profile.id,
-      profile.name,
-      profile.description || null,
-      profile.themeId,
-      profile.dskSourceName || "Habillage",
-      profile.defaultScene || null,
-      JSON.stringify(profile.posterRotation || []),
-      JSON.stringify(profile.audioSettings || {}),
-      profile.isActive ? 1 : 0,
-      (profile.createdAt || now).toISOString(),
-      (profile.updatedAt || now).toISOString()
-    );
+    ProfileRepository.getInstance().create(profile);
   }
 
   /**
    * Update a profile
    */
   updateProfile(id: string, updates: DbProfileUpdate): void {
-    const stmt = this.db.prepare(`
-      UPDATE profiles
-      SET name = ?, description = ?, themeId = ?, dskSourceName = ?, defaultScene = ?, posterRotation = ?, audioSettings = ?, isActive = ?, updatedAt = ?
-      WHERE id = ?
-    `);
-    stmt.run(
-      updates.name,
-      updates.description || null,
-      updates.themeId,
-      updates.dskSourceName || "Habillage",
-      updates.defaultScene || null,
-      JSON.stringify(updates.posterRotation || []),
-      JSON.stringify(updates.audioSettings || {}),
-      updates.isActive ? 1 : 0,
-      (updates.updatedAt || new Date()).toISOString(),
-      id
-    );
+    ProfileRepository.getInstance().update(id, updates);
   }
 
   /**
    * Set active profile (deactivates all others)
    */
   setActiveProfile(id: string): void {
-    // Deactivate all profiles
-    this.db.prepare("UPDATE profiles SET isActive = 0").run();
-    // Activate the specified profile
-    this.db.prepare("UPDATE profiles SET isActive = 1, updatedAt = ? WHERE id = ?")
-      .run(new Date().toISOString(), id);
+    ProfileRepository.getInstance().setActive(id);
   }
 
   /**
    * Delete a profile
    */
   deleteProfile(id: string): void {
-    const stmt = this.db.prepare("DELETE FROM profiles WHERE id = ?");
-    stmt.run(id);
+    ProfileRepository.getInstance().delete(id);
   }
 
   // ==================== THEMES ====================
@@ -891,170 +671,35 @@ export class DatabaseService {
    * Get all themes
    */
   getAllThemes(): DbTheme[] {
-    const stmt = this.db.prepare("SELECT * FROM themes ORDER BY isGlobal DESC, name ASC");
-    const rows = stmt.all() as Array<Omit<DbTheme, 'colors' | 'lowerThirdFont' | 'lowerThirdLayout' | 'lowerThirdAnimation' | 'countdownFont' | 'countdownLayout' | 'posterLayout' | 'isGlobal' | 'createdAt' | 'updatedAt'> & { colors: string; lowerThirdFont: string; lowerThirdLayout: string; lowerThirdAnimation?: string; countdownFont: string; countdownLayout: string; posterLayout: string; isGlobal: number; createdAt: string; updatedAt: string }>;
-    const defaultColors: DbTheme['colors'] = { primary: '#000000', accent: '#ffffff', surface: '#333333', text: '#ffffff', success: '#00ff00', warn: '#ff0000' };
-    const defaultFont: DbTheme['lowerThirdFont'] = { family: 'Arial', size: 16, weight: 400 };
-    const defaultLayout: DbTheme['lowerThirdLayout'] = LAYOUT_DEFAULTS.LOWER_THIRD;
-    const defaultAnimation: DbTheme['lowerThirdAnimation'] = {
-      timing: {
-        logoFadeDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_FADE_DURATION,
-        logoScaleDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_SCALE_DURATION,
-        flipDuration: LOWER_THIRD_ANIMATION.TIMING.FLIP_DURATION,
-        flipDelay: LOWER_THIRD_ANIMATION.TIMING.FLIP_DELAY,
-        barAppearDelay: LOWER_THIRD_ANIMATION.TIMING.BAR_APPEAR_DELAY,
-        barExpandDuration: LOWER_THIRD_ANIMATION.TIMING.BAR_EXPAND_DURATION,
-        textAppearDelay: LOWER_THIRD_ANIMATION.TIMING.TEXT_APPEAR_DELAY,
-        textFadeDuration: LOWER_THIRD_ANIMATION.TIMING.TEXT_FADE_DURATION,
-      },
-      styles: {
-        barBorderRadius: LOWER_THIRD_ANIMATION.STYLES.BAR_BORDER_RADIUS,
-        barMinWidth: LOWER_THIRD_ANIMATION.STYLES.BAR_MIN_WIDTH,
-        avatarBorderWidth: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_WIDTH,
-        avatarBorderColor: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_COLOR,
-      },
-    };
-    return rows.map((row) => ({
-      ...row,
-      colors: safeJsonParse<DbTheme['colors']>(row.colors, defaultColors),
-      lowerThirdFont: safeJsonParse<DbTheme['lowerThirdFont']>(row.lowerThirdFont, defaultFont),
-      lowerThirdLayout: safeJsonParse<DbTheme['lowerThirdLayout']>(row.lowerThirdLayout, defaultLayout),
-      lowerThirdAnimation: safeJsonParse<DbTheme['lowerThirdAnimation']>(row.lowerThirdAnimation, defaultAnimation),
-      countdownFont: safeJsonParse<DbTheme['countdownFont']>(row.countdownFont, defaultFont),
-      countdownLayout: safeJsonParse<DbTheme['countdownLayout']>(row.countdownLayout, LAYOUT_DEFAULTS.COUNTDOWN),
-      posterLayout: safeJsonParse<DbTheme['posterLayout']>(row.posterLayout, LAYOUT_DEFAULTS.POSTER),
-      isGlobal: Boolean(row.isGlobal),
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    }));
+    return ThemeRepository.getInstance().getAll();
   }
 
   /**
    * Get theme by ID
    */
   getThemeById(id: string): DbTheme | null {
-    const stmt = this.db.prepare("SELECT * FROM themes WHERE id = ?");
-    const row = stmt.get(id) as (Omit<DbTheme, 'colors' | 'lowerThirdFont' | 'lowerThirdLayout' | 'lowerThirdAnimation' | 'countdownFont' | 'countdownLayout' | 'posterLayout' | 'isGlobal' | 'createdAt' | 'updatedAt'> & { colors: string; lowerThirdFont: string; lowerThirdLayout: string; lowerThirdAnimation?: string; countdownFont: string; countdownLayout: string; posterLayout: string; isGlobal: number; createdAt: string; updatedAt: string }) | undefined;
-    if (!row) return null;
-    const defaultColors: DbTheme['colors'] = { primary: '#000000', accent: '#ffffff', surface: '#333333', text: '#ffffff', success: '#00ff00', warn: '#ff0000' };
-    const defaultFont: DbTheme['lowerThirdFont'] = { family: 'Arial', size: 16, weight: 400 };
-    const defaultLayout: DbTheme['lowerThirdLayout'] = LAYOUT_DEFAULTS.LOWER_THIRD;
-    const defaultAnimation: DbTheme['lowerThirdAnimation'] = {
-      timing: {
-        logoFadeDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_FADE_DURATION,
-        logoScaleDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_SCALE_DURATION,
-        flipDuration: LOWER_THIRD_ANIMATION.TIMING.FLIP_DURATION,
-        flipDelay: LOWER_THIRD_ANIMATION.TIMING.FLIP_DELAY,
-        barAppearDelay: LOWER_THIRD_ANIMATION.TIMING.BAR_APPEAR_DELAY,
-        barExpandDuration: LOWER_THIRD_ANIMATION.TIMING.BAR_EXPAND_DURATION,
-        textAppearDelay: LOWER_THIRD_ANIMATION.TIMING.TEXT_APPEAR_DELAY,
-        textFadeDuration: LOWER_THIRD_ANIMATION.TIMING.TEXT_FADE_DURATION,
-      },
-      styles: {
-        barBorderRadius: LOWER_THIRD_ANIMATION.STYLES.BAR_BORDER_RADIUS,
-        barMinWidth: LOWER_THIRD_ANIMATION.STYLES.BAR_MIN_WIDTH,
-        avatarBorderWidth: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_WIDTH,
-        avatarBorderColor: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_COLOR,
-      },
-    };
-    return {
-      ...row,
-      colors: safeJsonParse<DbTheme['colors']>(row.colors, defaultColors),
-      lowerThirdFont: safeJsonParse<DbTheme['lowerThirdFont']>(row.lowerThirdFont, defaultFont),
-      lowerThirdLayout: safeJsonParse<DbTheme['lowerThirdLayout']>(row.lowerThirdLayout, defaultLayout),
-      lowerThirdAnimation: safeJsonParse<DbTheme['lowerThirdAnimation']>(row.lowerThirdAnimation, defaultAnimation),
-      countdownFont: safeJsonParse<DbTheme['countdownFont']>(row.countdownFont, defaultFont),
-      countdownLayout: safeJsonParse<DbTheme['countdownLayout']>(row.countdownLayout, LAYOUT_DEFAULTS.COUNTDOWN),
-      posterLayout: safeJsonParse<DbTheme['posterLayout']>(row.posterLayout, LAYOUT_DEFAULTS.POSTER),
-      isGlobal: Boolean(row.isGlobal),
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    };
-  }
-
-  /**
-   * Get the default lower third animation config using constants
-   */
-  private getDefaultLowerThirdAnimation(): DbTheme['lowerThirdAnimation'] {
-    return {
-      timing: {
-        logoFadeDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_FADE_DURATION,
-        logoScaleDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_SCALE_DURATION,
-        flipDuration: LOWER_THIRD_ANIMATION.TIMING.FLIP_DURATION,
-        flipDelay: LOWER_THIRD_ANIMATION.TIMING.FLIP_DELAY,
-        barAppearDelay: LOWER_THIRD_ANIMATION.TIMING.BAR_APPEAR_DELAY,
-        barExpandDuration: LOWER_THIRD_ANIMATION.TIMING.BAR_EXPAND_DURATION,
-        textAppearDelay: LOWER_THIRD_ANIMATION.TIMING.TEXT_APPEAR_DELAY,
-        textFadeDuration: LOWER_THIRD_ANIMATION.TIMING.TEXT_FADE_DURATION,
-      },
-      styles: {
-        barBorderRadius: LOWER_THIRD_ANIMATION.STYLES.BAR_BORDER_RADIUS,
-        barMinWidth: LOWER_THIRD_ANIMATION.STYLES.BAR_MIN_WIDTH,
-        avatarBorderWidth: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_WIDTH,
-        avatarBorderColor: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_COLOR,
-      },
-    };
+    return ThemeRepository.getInstance().getById(id);
   }
 
   /**
    * Create a new theme
    */
   createTheme(theme: DbThemeInput): void {
-    const now = new Date();
-    const stmt = this.db.prepare(`
-      INSERT INTO themes (id, name, colors, lowerThirdTemplate, lowerThirdFont, lowerThirdLayout, lowerThirdAnimation, countdownStyle, countdownFont, countdownLayout, posterLayout, isGlobal, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(
-      theme.id,
-      theme.name,
-      JSON.stringify(theme.colors),
-      theme.lowerThirdTemplate,
-      JSON.stringify(theme.lowerThirdFont),
-      JSON.stringify(theme.lowerThirdLayout || LAYOUT_DEFAULTS.LOWER_THIRD),
-      JSON.stringify(theme.lowerThirdAnimation || this.getDefaultLowerThirdAnimation()),
-      theme.countdownStyle,
-      JSON.stringify(theme.countdownFont),
-      JSON.stringify(theme.countdownLayout || LAYOUT_DEFAULTS.COUNTDOWN),
-      JSON.stringify(theme.posterLayout || LAYOUT_DEFAULTS.POSTER),
-      theme.isGlobal ? 1 : 0,
-      (theme.createdAt || now).toISOString(),
-      (theme.updatedAt || now).toISOString()
-    );
+    ThemeRepository.getInstance().create(theme);
   }
 
   /**
    * Update a theme
    */
   updateTheme(id: string, updates: DbThemeUpdate): void {
-    const stmt = this.db.prepare(`
-      UPDATE themes
-      SET name = ?, colors = ?, lowerThirdTemplate = ?, lowerThirdFont = ?, lowerThirdLayout = ?, lowerThirdAnimation = ?, countdownStyle = ?, countdownFont = ?, countdownLayout = ?, posterLayout = ?, isGlobal = ?, updatedAt = ?
-      WHERE id = ?
-    `);
-    stmt.run(
-      updates.name,
-      JSON.stringify(updates.colors),
-      updates.lowerThirdTemplate,
-      JSON.stringify(updates.lowerThirdFont),
-      JSON.stringify(updates.lowerThirdLayout || LAYOUT_DEFAULTS.LOWER_THIRD),
-      JSON.stringify(updates.lowerThirdAnimation || this.getDefaultLowerThirdAnimation()),
-      updates.countdownStyle,
-      JSON.stringify(updates.countdownFont),
-      JSON.stringify(updates.countdownLayout || LAYOUT_DEFAULTS.COUNTDOWN),
-      JSON.stringify(updates.posterLayout || LAYOUT_DEFAULTS.POSTER),
-      updates.isGlobal ? 1 : 0,
-      (updates.updatedAt || new Date()).toISOString(),
-      id
-    );
+    ThemeRepository.getInstance().update(id, updates);
   }
 
   /**
    * Delete a theme
    */
   deleteTheme(id: string): void {
-    const stmt = this.db.prepare("DELETE FROM themes WHERE id = ?");
-    stmt.run(id);
+    ThemeRepository.getInstance().delete(id);
   }
 
   // ==================== SETTINGS ====================
@@ -1105,104 +750,35 @@ export class DatabaseService {
    * Get all rooms
    */
   getAllRooms(): DbRoom[] {
-    const stmt = this.db.prepare("SELECT * FROM rooms ORDER BY name ASC");
-    const rows = stmt.all() as Array<Omit<DbRoom, 'quickReplies' | 'canSendCustomMessages' | 'streamerbotConnection' | 'allowPresenterToSendMessage' | 'createdAt' | 'updatedAt'> & { quickReplies: string; canSendCustomMessages: number; streamerbotConnection: string | null; allowPresenterToSendMessage: number; createdAt: string; updatedAt: string }>;
-    return rows.map((row) => ({
-      ...row,
-      quickReplies: safeJsonParse<DbRoom['quickReplies']>(row.quickReplies, []),
-      canSendCustomMessages: Boolean(row.canSendCustomMessages),
-      streamerbotConnection: safeJsonParseOptional<DbRoom['streamerbotConnection']>(row.streamerbotConnection) ?? null,
-      allowPresenterToSendMessage: Boolean(row.allowPresenterToSendMessage),
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    }));
+    return RoomRepository.getInstance().getAll();
   }
 
   /**
    * Get room by ID
    */
   getRoomById(id: string): DbRoom | null {
-    const stmt = this.db.prepare("SELECT * FROM rooms WHERE id = ?");
-    const row = stmt.get(id) as (Omit<DbRoom, 'quickReplies' | 'canSendCustomMessages' | 'streamerbotConnection' | 'allowPresenterToSendMessage' | 'createdAt' | 'updatedAt'> & { quickReplies: string; canSendCustomMessages: number; streamerbotConnection: string | null; allowPresenterToSendMessage: number; createdAt: string; updatedAt: string }) | undefined;
-    if (!row) return null;
-    return {
-      ...row,
-      quickReplies: safeJsonParse<DbRoom['quickReplies']>(row.quickReplies, []),
-      canSendCustomMessages: Boolean(row.canSendCustomMessages),
-      streamerbotConnection: safeJsonParseOptional<DbRoom['streamerbotConnection']>(row.streamerbotConnection) ?? null,
-      allowPresenterToSendMessage: Boolean(row.allowPresenterToSendMessage),
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    };
+    return RoomRepository.getInstance().getById(id);
   }
 
   /**
    * Create a new room
    */
   createRoom(room: DbRoomInput): void {
-    const now = new Date();
-    const stmt = this.db.prepare(`
-      INSERT INTO rooms (id, name, vdoNinjaUrl, twitchChatUrl, quickReplies, canSendCustomMessages, streamerbotConnection, allowPresenterToSendMessage, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(
-      room.id,
-      room.name,
-      room.vdoNinjaUrl || null,
-      room.twitchChatUrl || null,
-      JSON.stringify(room.quickReplies || []),
-      room.canSendCustomMessages ? 1 : 0,
-      room.streamerbotConnection || null,
-      room.allowPresenterToSendMessage ? 1 : 0,
-      (room.createdAt || now).toISOString(),
-      (room.updatedAt || now).toISOString()
-    );
+    RoomRepository.getInstance().create(room);
   }
 
   /**
    * Update a room
    */
   updateRoom(id: string, updates: DbRoomUpdate): void {
-    const existing = this.getRoomById(id);
-    if (!existing) {
-      throw new Error(`Room with id ${id} not found`);
-    }
-
-    const merged = {
-      name: updates.name !== undefined ? updates.name : existing.name,
-      vdoNinjaUrl: updates.vdoNinjaUrl !== undefined ? updates.vdoNinjaUrl : existing.vdoNinjaUrl,
-      twitchChatUrl: updates.twitchChatUrl !== undefined ? updates.twitchChatUrl : existing.twitchChatUrl,
-      quickReplies: updates.quickReplies !== undefined ? updates.quickReplies : existing.quickReplies,
-      canSendCustomMessages: updates.canSendCustomMessages !== undefined ? updates.canSendCustomMessages : existing.canSendCustomMessages,
-      streamerbotConnection: updates.streamerbotConnection !== undefined ? updates.streamerbotConnection : existing.streamerbotConnection,
-      allowPresenterToSendMessage: updates.allowPresenterToSendMessage !== undefined ? updates.allowPresenterToSendMessage : existing.allowPresenterToSendMessage,
-      updatedAt: updates.updatedAt || new Date(),
-    };
-
-    const stmt = this.db.prepare(`
-      UPDATE rooms
-      SET name = ?, vdoNinjaUrl = ?, twitchChatUrl = ?, quickReplies = ?, canSendCustomMessages = ?, streamerbotConnection = ?, allowPresenterToSendMessage = ?, updatedAt = ?
-      WHERE id = ?
-    `);
-    stmt.run(
-      merged.name,
-      merged.vdoNinjaUrl || null,
-      merged.twitchChatUrl || null,
-      JSON.stringify(merged.quickReplies || []),
-      merged.canSendCustomMessages ? 1 : 0,
-      merged.streamerbotConnection || null,
-      merged.allowPresenterToSendMessage ? 1 : 0,
-      merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
-      id
-    );
+    RoomRepository.getInstance().update(id, updates);
   }
 
   /**
    * Delete a room
    */
   deleteRoom(id: string): void {
-    const stmt = this.db.prepare("DELETE FROM rooms WHERE id = ?");
-    stmt.run(id);
+    RoomRepository.getInstance().delete(id);
   }
 
   // ==================== CUE MESSAGES ====================
@@ -1211,196 +787,56 @@ export class DatabaseService {
    * Get messages by room ID with optional limit and cursor
    */
   getMessagesByRoom(roomId: string, limit: number = 50, cursor?: number): DbCueMessage[] {
-    let query = "SELECT * FROM cue_messages WHERE roomId = ?";
-    const params: (string | number)[] = [roomId];
-
-    if (cursor) {
-      query += " AND createdAt < ?";
-      params.push(cursor);
-    }
-
-    query += " ORDER BY createdAt DESC LIMIT ?";
-    params.push(limit);
-
-    const stmt = this.db.prepare(query);
-    const rows = stmt.all(...params) as Array<Omit<DbCueMessage, 'pinned' | 'actions' | 'countdownPayload' | 'contextPayload' | 'questionPayload' | 'seenBy' | 'ackedBy'> & { pinned: number; actions: string; countdownPayload: string | null; contextPayload: string | null; questionPayload: string | null; seenBy: string; ackedBy: string }>;
-
-    return rows.map((row) => ({
-      ...row,
-      pinned: row.pinned === 1,
-      actions: safeJsonParse<string[]>(row.actions, []),
-      countdownPayload: safeJsonParseOptional<Record<string, unknown>>(row.countdownPayload) ?? null,
-      contextPayload: safeJsonParseOptional<Record<string, unknown>>(row.contextPayload) ?? null,
-      questionPayload: safeJsonParseOptional<Record<string, unknown>>(row.questionPayload) ?? null,
-      seenBy: safeJsonParse<string[]>(row.seenBy, []),
-      ackedBy: safeJsonParse<string[]>(row.ackedBy, []),
-    }));
+    return CueMessageRepository.getInstance().getByRoom(roomId, limit, cursor);
   }
 
   /**
    * Get pinned messages by room ID
    */
   getPinnedMessages(roomId: string): DbCueMessage[] {
-    const stmt = this.db.prepare("SELECT * FROM cue_messages WHERE roomId = ? AND pinned = 1 ORDER BY createdAt DESC");
-    const rows = stmt.all(roomId) as Array<Omit<DbCueMessage, 'pinned' | 'actions' | 'countdownPayload' | 'contextPayload' | 'questionPayload' | 'seenBy' | 'ackedBy'> & { pinned: number; actions: string; countdownPayload: string | null; contextPayload: string | null; questionPayload: string | null; seenBy: string; ackedBy: string }>;
-
-    return rows.map((row) => ({
-      ...row,
-      pinned: row.pinned === 1,
-      actions: safeJsonParse<string[]>(row.actions, []),
-      countdownPayload: safeJsonParseOptional<Record<string, unknown>>(row.countdownPayload) ?? null,
-      contextPayload: safeJsonParseOptional<Record<string, unknown>>(row.contextPayload) ?? null,
-      questionPayload: safeJsonParseOptional<Record<string, unknown>>(row.questionPayload) ?? null,
-      seenBy: safeJsonParse<string[]>(row.seenBy, []),
-      ackedBy: safeJsonParse<string[]>(row.ackedBy, []),
-    }));
+    return CueMessageRepository.getInstance().getPinned(roomId);
   }
 
   /**
    * Get message by ID
    */
   getMessageById(id: string): DbCueMessage | null {
-    const stmt = this.db.prepare("SELECT * FROM cue_messages WHERE id = ?");
-    const row = stmt.get(id) as (Omit<DbCueMessage, 'pinned' | 'actions' | 'countdownPayload' | 'contextPayload' | 'questionPayload' | 'seenBy' | 'ackedBy'> & { pinned: number; actions: string; countdownPayload: string | null; contextPayload: string | null; questionPayload: string | null; seenBy: string; ackedBy: string }) | undefined;
-
-    if (!row) return null;
-
-    return {
-      ...row,
-      pinned: row.pinned === 1,
-      actions: safeJsonParse<string[]>(row.actions, []),
-      countdownPayload: safeJsonParseOptional<Record<string, unknown>>(row.countdownPayload) ?? null,
-      contextPayload: safeJsonParseOptional<Record<string, unknown>>(row.contextPayload) ?? null,
-      questionPayload: safeJsonParseOptional<Record<string, unknown>>(row.questionPayload) ?? null,
-      seenBy: safeJsonParse<string[]>(row.seenBy, []),
-      ackedBy: safeJsonParse<string[]>(row.ackedBy, []),
-    };
+    return CueMessageRepository.getInstance().getById(id);
   }
 
   /**
    * Create a new cue message
    */
   createMessage(message: DbCueMessageInput): DbCueMessage {
-    const now = Date.now();
-    const stmt = this.db.prepare(`
-      INSERT INTO cue_messages (id, roomId, type, fromRole, severity, title, body, pinned, actions, countdownPayload, contextPayload, questionPayload, seenBy, ackedBy, resolvedAt, resolvedBy, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(
-      message.id,
-      message.roomId,
-      message.type,
-      message.fromRole,
-      message.severity || null,
-      message.title || null,
-      message.body || null,
-      message.pinned ? 1 : 0,
-      JSON.stringify(message.actions || []),
-      message.countdownPayload ? JSON.stringify(message.countdownPayload) : null,
-      message.contextPayload ? JSON.stringify(message.contextPayload) : null,
-      message.questionPayload ? JSON.stringify(message.questionPayload) : null,
-      JSON.stringify(message.seenBy || []),
-      JSON.stringify(message.ackedBy || []),
-      message.resolvedAt || null,
-      message.resolvedBy || null,
-      message.createdAt || now,
-      message.updatedAt || now
-    );
-
-    return this.getMessageById(message.id)!;
+    return CueMessageRepository.getInstance().create(message);
   }
 
   /**
    * Update a cue message
    */
   updateMessage(id: string, updates: DbCueMessageUpdate): void {
-    const existing = this.getMessageById(id);
-    if (!existing) {
-      throw new Error(`Message with id ${id} not found`);
-    }
-
-    const merged = {
-      type: updates.type !== undefined ? updates.type : existing.type,
-      fromRole: updates.fromRole !== undefined ? updates.fromRole : existing.fromRole,
-      severity: updates.severity !== undefined ? updates.severity : existing.severity,
-      title: updates.title !== undefined ? updates.title : existing.title,
-      body: updates.body !== undefined ? updates.body : existing.body,
-      pinned: updates.pinned !== undefined ? updates.pinned : existing.pinned,
-      actions: updates.actions !== undefined ? updates.actions : existing.actions,
-      countdownPayload: updates.countdownPayload !== undefined ? updates.countdownPayload : existing.countdownPayload,
-      contextPayload: updates.contextPayload !== undefined ? updates.contextPayload : existing.contextPayload,
-      questionPayload: updates.questionPayload !== undefined ? updates.questionPayload : existing.questionPayload,
-      seenBy: updates.seenBy !== undefined ? updates.seenBy : existing.seenBy,
-      ackedBy: updates.ackedBy !== undefined ? updates.ackedBy : existing.ackedBy,
-      resolvedAt: updates.resolvedAt !== undefined ? updates.resolvedAt : existing.resolvedAt,
-      resolvedBy: updates.resolvedBy !== undefined ? updates.resolvedBy : existing.resolvedBy,
-      updatedAt: updates.updatedAt || Date.now(),
-    };
-
-    const stmt = this.db.prepare(`
-      UPDATE cue_messages
-      SET type = ?, fromRole = ?, severity = ?, title = ?, body = ?, pinned = ?, actions = ?, countdownPayload = ?, contextPayload = ?, questionPayload = ?, seenBy = ?, ackedBy = ?, resolvedAt = ?, resolvedBy = ?, updatedAt = ?
-      WHERE id = ?
-    `);
-    stmt.run(
-      merged.type,
-      merged.fromRole,
-      merged.severity || null,
-      merged.title || null,
-      merged.body || null,
-      merged.pinned ? 1 : 0,
-      JSON.stringify(merged.actions || []),
-      merged.countdownPayload ? JSON.stringify(merged.countdownPayload) : null,
-      merged.contextPayload ? JSON.stringify(merged.contextPayload) : null,
-      merged.questionPayload ? JSON.stringify(merged.questionPayload) : null,
-      JSON.stringify(merged.seenBy || []),
-      JSON.stringify(merged.ackedBy || []),
-      merged.resolvedAt || null,
-      merged.resolvedBy || null,
-      merged.updatedAt,
-      id
-    );
+    CueMessageRepository.getInstance().update(id, updates);
   }
 
   /**
    * Delete a cue message
    */
   deleteMessage(id: string): void {
-    const stmt = this.db.prepare("DELETE FROM cue_messages WHERE id = ?");
-    stmt.run(id);
+    CueMessageRepository.getInstance().delete(id);
   }
 
   /**
    * Delete old messages from a room, keeping only the most recent N
    */
   deleteOldMessages(roomId: string, keepCount: number = 100): void {
-    // Get the cutoff timestamp
-    const stmt = this.db.prepare(`
-      SELECT createdAt FROM cue_messages
-      WHERE roomId = ? AND pinned = 0
-      ORDER BY createdAt DESC
-      LIMIT 1 OFFSET ?
-    `);
-    const row = stmt.get(roomId, keepCount - 1) as { createdAt: number } | undefined;
-
-    if (row) {
-      const deleteStmt = this.db.prepare(`
-        DELETE FROM cue_messages
-        WHERE roomId = ? AND pinned = 0 AND createdAt < ?
-      `);
-      deleteStmt.run(roomId, row.createdAt);
-    }
+    CueMessageRepository.getInstance().deleteOld(roomId, keepCount);
   }
 
   /**
    * Clear all messages from a room (including pinned)
    */
   clearRoomMessages(roomId: string): void {
-    const stmt = this.db.prepare(`
-      DELETE FROM cue_messages
-      WHERE roomId = ?
-    `);
-    stmt.run(roomId);
+    CueMessageRepository.getInstance().clearRoom(roomId);
   }
 
   // ==================== STREAMERBOT CHAT MESSAGES ====================

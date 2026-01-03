@@ -154,32 +154,53 @@ Fichiers refactorisés:
 
 ---
 
-## Phases suivantes (à faire)
+## Phase 3 - Restructuration services ✅
 
-### Phase 3 - Restructuration services
-- [ ] Découper DatabaseService en repositories (GuestRepository, PosterRepository, etc.)
-- [ ] Extraire RoomPresenceManager de RoomService
-- [ ] Créer QuizRepository pour séparer persistence/logique
+### Extraction des Repositories ✅
+
+**6 repositories créés dans `lib/repositories/`:**
+
+| Repository | Méthodes | Source |
+|------------|----------|--------|
+| `GuestRepository.ts` | getAll, getById, create, update, delete | DatabaseService guests |
+| `PosterRepository.ts` | getAll, getById, create, update, delete | DatabaseService posters |
+| `ProfileRepository.ts` | getAll, getById, getActive, create, update, setActive, delete | DatabaseService profiles |
+| `ThemeRepository.ts` | getAll, getById, create, update, delete | DatabaseService themes |
+| `RoomRepository.ts` | getAll, getById, create, update, delete | DatabaseService rooms |
+| `CueMessageRepository.ts` | getByRoom, getPinned, getById, create, update, delete, deleteOld, clearRoom | DatabaseService cue_messages |
+
+**Impact:**
+- DatabaseService délègue maintenant aux repositories (façade pattern)
+- Chaque repository est un singleton avec `getInstance()`
+- Meilleure séparation des responsabilités
+- Code plus testable (repositories mockables)
+
+**Note:** RoomService était déjà minimal (71 lignes), pas de RoomPresenceManager à extraire.
+
+---
+
+## Phases suivantes (à faire)
 
 ### Phase 4 - Tests
 - [ ] Ajouter tests unitaires pour utilities créées
-- [ ] Ajouter tests pour DatabaseService
+- [ ] Ajouter tests pour repositories
 - [ ] Augmenter couverture globale (actuellement 2/10)
 
 ---
 
 ## Statistiques
 
-| Métrique | Avant | Après Phase 2 | Après Phase 2.5 |
-|----------|-------|---------------|-----------------|
-| Lignes dupliquées proxy | ~800 | ~100 | ~100 |
-| Lignes dupliquées chat | ~44 | ~44 | 0 |
-| JSON.parse non protégés | ~40 | 0 | 0 |
-| Magic numbers hardcodés | ~20 | ~20 | ~5 (SQL migrations) |
-| String(error) exposés | ~60 | ~60 | 0 |
-| Fichiers utilities | 0 | 6 | 7 |
-| Routes API simplifiées | 0 | 23 | 23 |
-| Routes avec erreurs standardisées | 0 | 0 | 60+ |
+| Métrique | Avant | Après Phase 2 | Après Phase 2.5 | Après Phase 3 |
+|----------|-------|---------------|-----------------|---------------|
+| Lignes dupliquées proxy | ~800 | ~100 | ~100 | ~100 |
+| Lignes dupliquées chat | ~44 | ~44 | 0 | 0 |
+| JSON.parse non protégés | ~40 | 0 | 0 | 0 |
+| Magic numbers hardcodés | ~20 | ~20 | ~5 | ~5 |
+| String(error) exposés | ~60 | ~60 | 0 | 0 |
+| Fichiers utilities | 0 | 6 | 7 | 7 |
+| Fichiers repositories | 0 | 0 | 0 | 6 |
+| Routes API simplifiées | 0 | 23 | 23 | 23 |
+| Routes avec erreurs standardisées | 0 | 0 | 60+ | 60+ |
 
 ---
 
