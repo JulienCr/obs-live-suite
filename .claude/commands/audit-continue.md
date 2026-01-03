@@ -27,13 +27,6 @@ Si pas de rapport récent, utiliser le workflow classique ci-dessous.
 
 ## Instructions
 
-### Étape 0: Vérifier Batch de Corrections (Nouveau)
-
-1. Chercher le fichier le plus récent dans `docs/audit-reports/comparison-*.json`
-2. Si trouvé, extraire les corrections de `summary.improvements` et `summary.regressions`
-3. Proposer ces corrections comme tâches prioritaires
-4. Sinon, continuer avec l'Étape 1 classique
-
 ### Étape 1: Analyser l'État Actuel
 
 1. Lire `docs/AUDIT-PROGRESS.md` pour identifier:
