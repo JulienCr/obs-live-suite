@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Zap } from "lucide-react";
@@ -26,6 +27,8 @@ interface GuestsCardProps {
  * GuestsCard displays guests with quick lower third buttons
  */
 export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) {
+  const t = useTranslations("dashboard.guests");
+  const tCommon = useTranslations("common");
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalEnabledGuests, setTotalEnabledGuests] = useState(0);
@@ -199,21 +202,21 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Quick Guests
+            {t("title")}
           </div>
           {totalEnabledGuests > 10 && (
             <span className="text-xs text-muted-foreground font-normal">
-              Showing 10 of {totalEnabledGuests}
+              10 / {totalEnabledGuests}
             </span>
           )}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="text-sm text-muted-foreground">Loading...</div>
+          <div className="text-sm text-muted-foreground">{tCommon("loading")}</div>
         ) : guests.length === 0 ? (
           <div className="text-sm text-muted-foreground text-center py-4">
-            No guests yet. Add guests in Assets.
+            {t("noGuests")}
           </div>
         ) : (
           <div 
@@ -235,7 +238,7 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
                     : "border-transparent hover:bg-muted/50"
                 )}
                 onClick={() => handleQuickLowerThird(guest)}
-                title={`Show ${guest.displayName} lower third (Shortcut: ${index === 9 ? '0' : index + 1})`}
+                title={t("showLowerThirdTooltip", { name: guest.displayName, shortcut: index === 9 ? '0' : index + 1 })}
               >
                 {/* Guest number badge */}
                 <div className="w-5 h-5 rounded flex items-center justify-center bg-primary/10 text-primary text-xs font-bold flex-shrink-0">

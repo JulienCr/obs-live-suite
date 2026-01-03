@@ -1,20 +1,16 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
 
-/**
- * Middleware to ensure server is initialized
- */
-export function middleware(request: NextRequest) {
-  // Initialize server on first API request
-  if (request.nextUrl.pathname.startsWith("/api") && 
-      !request.nextUrl.pathname.includes("/api/init")) {
-    // Server init will happen in API routes via singleton pattern
-  }
-
-  return NextResponse.next();
-}
+export default createMiddleware(routing);
 
 export const config = {
-  matcher: "/api/:path*",
+  // Match all pathnames except:
+  // - API routes (/api/*)
+  // - Next.js internals (/_next/*)
+  // - Static files (files with extensions like .js, .css, .png, etc.)
+  // - Overlays (OBS browser sources, should not have locale prefix)
+  // - Cert (certificate installation page for mobile devices)
+  matcher: [
+    '/((?!api|_next|_vercel|overlays|cert|.*\\..*).*)'
+  ],
 };
-

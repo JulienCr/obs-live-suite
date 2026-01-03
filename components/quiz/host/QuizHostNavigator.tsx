@@ -4,6 +4,7 @@ import { Session, Round, Question } from "@/lib/models/Quiz";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface NavigatorProps {
   session: Session | null;
@@ -32,13 +33,6 @@ const getRoundStatus = (
   return "not_started";
 };
 
-const getQuestionBadge = (phase: string): string => {
-  if (phase === "reveal" || phase === "score_update") return "Revealed";
-  if (phase === "lock") return "Locked";
-  if (phase === "accept_answers") return "Accepting";
-  return "Ready";
-};
-
 export function QuizHostNavigator({
   session,
   currentRoundIndex,
@@ -48,9 +42,17 @@ export function QuizHostNavigator({
   onEndRound,
   onUnloadSession,
 }: NavigatorProps) {
+  const t = useTranslations("quiz.host.navigator");
   const [expandedRounds, setExpandedRounds] = useState<Set<number>>(
     new Set([currentRoundIndex])
   );
+
+  const getQuestionBadge = (phase: string): string => {
+    if (phase === "reveal" || phase === "score_update") return t("questionBadge.revealed");
+    if (phase === "lock") return t("questionBadge.locked");
+    if (phase === "accept_answers") return t("questionBadge.accepting");
+    return t("questionBadge.ready");
+  };
 
   const toggleRound = (idx: number) => {
     const next = new Set(expandedRounds);
@@ -62,7 +64,7 @@ export function QuizHostNavigator({
   if (!session) {
     return (
       <aside className="w-80 border-r bg-gray-50 p-4">
-        <p className="text-sm text-gray-500">No session loaded</p>
+        <p className="text-sm text-gray-500">{t("noSessionLoaded")}</p>
       </aside>
     );
   }
@@ -76,9 +78,9 @@ export function QuizHostNavigator({
             <button
               onClick={onUnloadSession}
               className="text-xs text-gray-500 hover:text-gray-700 underline"
-              title="Change session"
+              title={t("changeSession")}
             >
-              Change
+              {t("changeSession")}
             </button>
           )}
         </div>
@@ -117,9 +119,9 @@ export function QuizHostNavigator({
                       "bg-yellow-100 text-yellow-700"
                   )}
                 >
-                  {status === "live" && "Live"}
-                  {status === "done" && "Done"}
-                  {status === "not_started" && "Not started"}
+                  {status === "live" && t("roundStatus.live")}
+                  {status === "done" && t("roundStatus.done")}
+                  {status === "not_started" && t("roundStatus.notStarted")}
                 </span>
               </button>
 
@@ -163,13 +165,13 @@ export function QuizHostNavigator({
                         onClick={() => onStartRound(rIdx)}
                         className="flex-1 text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
                       >
-                        Start Round
+                        {t("startRound")}
                       </button>
                       <button
                         onClick={onEndRound}
                         className="flex-1 text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
                       >
-                        End Round
+                        {t("endRound")}
                       </button>
                     </div>
                   )}

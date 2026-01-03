@@ -1,13 +1,16 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
-import type { DbPanelColor } from "@/lib/models/Database";
-import type { PanelId, PanelColorUpdate } from "@/lib/models/PanelColor";
+import type { PanelId, ColorScheme } from "@/lib/models/PanelColor";
+
+interface PanelColorEntry {
+  scheme: ColorScheme;
+}
 
 interface PanelColorsContextValue {
-  colors: Record<string, DbPanelColor>;
-  updateColor: (panelId: PanelId, updates: PanelColorUpdate) => Promise<void>;
-  resetColor: (panelId: PanelId) => Promise<void>;
+  colors: Record<string, PanelColorEntry>;
+  setScheme: (panelId: PanelId, scheme: ColorScheme) => Promise<void>;
+  resetScheme: (panelId: PanelId) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -26,7 +29,7 @@ interface PanelColorsProviderProps {
 }
 
 export function PanelColorsProvider({ children }: PanelColorsProviderProps) {
-  const [colors, setColors] = useState<Record<string, DbPanelColor>>({});
+  const [colors, setColors] = useState<Record<string, PanelColorEntry>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch all panel colors on mount
@@ -36,9 +39,9 @@ export function PanelColorsProvider({ children }: PanelColorsProviderProps) {
         const response = await fetch("/api/panel-colors");
         if (response.ok) {
           const data = await response.json();
-          const colorMap: Record<string, DbPanelColor> = {};
+          const colorMap: Record<string, PanelColorEntry> = {};
           for (const color of data.colors) {
-            colorMap[color.panelId] = color;
+            colorMap[color.panelId] = { scheme: color.scheme };
           }
           setColors(colorMap);
         }
@@ -52,27 +55,27 @@ export function PanelColorsProvider({ children }: PanelColorsProviderProps) {
     fetchColors();
   }, []);
 
-  const updateColor = useCallback(async (panelId: PanelId, updates: PanelColorUpdate) => {
+  const setScheme = useCallback(async (panelId: PanelId, scheme: ColorScheme) => {
     try {
       const response = await fetch("/api/panel-colors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ panelId, ...updates }),
+        body: JSON.stringify({ panelId, scheme }),
       });
 
       if (response.ok) {
         const data = await response.json();
         setColors((prev) => ({
           ...prev,
-          [panelId]: data.panelColor,
+          [panelId]: { scheme: data.panelColor.scheme },
         }));
       }
     } catch (error) {
-      console.error("Failed to update panel color:", error);
+      console.error("Failed to update panel scheme:", error);
     }
   }, []);
 
-  const resetColor = useCallback(async (panelId: PanelId) => {
+  const resetScheme = useCallback(async (panelId: PanelId) => {
     try {
       const response = await fetch(`/api/panel-colors/${panelId}`, {
         method: "DELETE",
@@ -86,12 +89,12 @@ export function PanelColorsProvider({ children }: PanelColorsProviderProps) {
         });
       }
     } catch (error) {
-      console.error("Failed to reset panel color:", error);
+      console.error("Failed to reset panel scheme:", error);
     }
   }, []);
 
   return (
-    <PanelColorsContext.Provider value={{ colors, updateColor, resetColor, isLoading }}>
+    <PanelColorsContext.Provider value={{ colors, setScheme, resetScheme, isLoading }}>
       {children}
     </PanelColorsContext.Provider>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
@@ -8,6 +9,7 @@ import { Zap } from "lucide-react";
  * MacrosBar - Quick access bar for macros
  */
 export function MacrosBar() {
+  const t = useTranslations("dashboard.macros");
   // TODO: Load from API
   const macros = [
     { id: "1", name: "Show Open", hotkey: "F1" },
@@ -25,7 +27,7 @@ export function MacrosBar() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Zap className="w-5 h-5" />
-          Macros
+          {t("title")}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -48,7 +50,7 @@ export function MacrosBar() {
             ))
           ) : (
             <div className="text-sm text-muted-foreground">
-              No macros configured
+              {t("noMacros")}
             </div>
           )}
         </div>

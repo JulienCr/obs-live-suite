@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { MessageSquare } from "lucide-react";
 import { useStreamerbotClient } from "../../hooks/useStreamerbotClient";
 import { useStreamerbotMessages } from "../../hooks/useStreamerbotMessages";
@@ -24,6 +25,7 @@ export function StreamerbotChatPanel({
   roomId,
   allowSendMessage = false,
 }: StreamerbotChatPanelProps) {
+  const t = useTranslations("presenter");
   const { toast } = useToast();
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
@@ -107,8 +109,8 @@ export function StreamerbotChatPanel({
         if (action === "show") {
           setCurrentlyDisplayedId(message.id);
           toast({
-            title: "Showing in overlay",
-            description: `Message from ${message.displayName}`,
+            title: t("overlay.showingInOverlay"),
+            description: t("overlay.messageFrom", { author: message.displayName }),
           });
 
           // Auto-clear the displayed ID after duration
@@ -122,31 +124,31 @@ export function StreamerbotChatPanel({
         const errorText = await response.text();
         console.error("Failed to update overlay:", errorText);
         toast({
-          title: "Error",
-          description: "Failed to update overlay",
+          title: t("status.error"),
+          description: t("overlay.failedToUpdate"),
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Failed to update overlay:", error);
       toast({
-        title: "Error",
-        description: "Failed to update overlay",
+        title: t("status.error"),
+        description: t("overlay.failedToUpdate"),
         variant: "destructive",
       });
     } finally {
       setShowingInOverlayId(null);
     }
-  }, [showingInOverlayId, currentlyDisplayedId, toast]);
+  }, [showingInOverlayId, currentlyDisplayedId, toast, t]);
 
   // No settings configured - show placeholder
   if (!connectionSettings) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-muted/50 text-muted-foreground p-4">
         <MessageSquare className="h-8 w-8 mb-2" />
-        <p className="text-sm font-medium">Chat not configured</p>
+        <p className="text-sm font-medium">{t("streamerbot.notConfigured")}</p>
         <p className="text-xs mt-1 text-center">
-          Configure Streamer.bot connection in Room Settings
+          {t("streamerbot.configureConnection")}
         </p>
       </div>
     );
@@ -195,7 +197,7 @@ export function StreamerbotChatPanel({
         <ChatMessageInput
           onSend={sendMessage}
           disabled={status !== StreamerbotConnectionStatus.CONNECTED}
-          placeholder="Send a message to chat..."
+          placeholder={t("chat.sendPlaceholder")}
         />
       )}
     </div>

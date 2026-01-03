@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import {
   Type,
@@ -19,21 +20,21 @@ import { useDockview } from "./DockviewContext";
 
 interface PanelItem {
   id: string;
-  label: string;
+  labelKey: string;
   icon: React.ElementType;
   component: string;
 }
 
 const PANELS: PanelItem[] = [
-  { id: "lowerThird", label: "Lower Third", icon: Type, component: "lowerThird" },
-  { id: "countdown", label: "Countdown", icon: Timer, component: "countdown" },
-  { id: "guests", label: "Guests", icon: Users, component: "guests" },
-  { id: "poster", label: "Poster", icon: Image, component: "poster" },
-  { id: "macros", label: "Macros", icon: Command, component: "macros" },
-  { id: "eventLog", label: "Event Log", icon: FileText, component: "eventLog" },
-  { id: "regieInternalChat", label: "Send Message", icon: MessageSquare, component: "regieInternalChat" },
-  { id: "regieInternalChatView", label: "Chat View", icon: Inbox, component: "regieInternalChatView" },
-  { id: "regiePublicChat", label: "Public Chat", icon: MessagesSquare, component: "regiePublicChat" },
+  { id: "lowerThird", labelKey: "lowerThird", icon: Type, component: "lowerThird" },
+  { id: "countdown", labelKey: "countdown", icon: Timer, component: "countdown" },
+  { id: "guests", labelKey: "guests", icon: Users, component: "guests" },
+  { id: "poster", labelKey: "poster", icon: Image, component: "poster" },
+  { id: "macros", labelKey: "macros", icon: Command, component: "macros" },
+  { id: "eventLog", labelKey: "eventLog", icon: FileText, component: "eventLog" },
+  { id: "regieInternalChat", labelKey: "regieInternalChat", icon: MessageSquare, component: "regieInternalChat" },
+  { id: "regieInternalChatView", labelKey: "regieInternalChatView", icon: Inbox, component: "regieInternalChatView" },
+  { id: "regiePublicChat", labelKey: "regiePublicChat", icon: MessagesSquare, component: "regiePublicChat" },
 ];
 
 const RAIL_WIDTH_COLLAPSED = 48;
@@ -41,33 +42,50 @@ const RAIL_WIDTH_EXPANDED = 200;
 
 export function LiveModeRail() {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { api } = useDockview();
+  const { api, savePositionBeforeClose, getSavedPosition } = useDockview();
+  const t = useTranslations("dashboard.panels");
 
-  const handlePanelToggle = (panelId: string, component: string, label: string) => {
-    if (!api) {
-      console.log("API not available yet");
-      return;
-    }
+  const handlePanelToggle = (panelId: string, component: string, labelKey: string) => {
+    if (!api) return;
 
-    // Check if panel exists
     const panel = api.getPanel(panelId);
 
     if (panel) {
-      // Panel exists - focus it
-      console.log(`Focusing existing panel: ${panelId}`);
-      panel.api.setActive();
+      // Save position before closing
+      savePositionBeforeClose(panelId);
+      panel.api.close();
     } else {
-      // Panel doesn't exist - add it
-      console.log(`Adding new panel: ${panelId}`);
-      try {
-        api.addPanel({
-          id: panelId,
-          component,
-          title: label,
-        });
-      } catch (error) {
-        console.error(`Failed to add panel ${panelId}:`, error);
+      // Try to restore to saved position
+      const saved = getSavedPosition(panelId);
+      let position: Parameters<typeof api.addPanel>[0]["position"];
+
+      if (saved?.siblingPanelId) {
+        // Restore as tab next to sibling
+        const sibling = api.getPanel(saved.siblingPanelId);
+        if (sibling) {
+          position = {
+            referencePanel: saved.siblingPanelId,
+            direction: "within",
+            index: saved.tabIndex,
+          };
+        }
+      } else if (saved?.neighborPanelId) {
+        // Restore next to neighbor
+        const neighbor = api.getPanel(saved.neighborPanelId);
+        if (neighbor) {
+          position = {
+            referencePanel: saved.neighborPanelId,
+            direction: saved.direction || "right",
+          };
+        }
       }
+
+      api.addPanel({
+        id: panelId,
+        component,
+        title: t(labelKey),
+        position,
+      });
     }
   };
 
@@ -97,18 +115,19 @@ export function LiveModeRail() {
         {PANELS.map((panel) => {
           const Icon = panel.icon;
           const isVisible = isPanelVisible(panel.id);
+          const label = t(panel.labelKey);
 
           return (
             <button
               key={panel.id}
-              onClick={() => handlePanelToggle(panel.id, panel.component, panel.label)}
+              onClick={() => handlePanelToggle(panel.id, panel.component, panel.labelKey)}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-3 transition-colors relative",
                 isVisible
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
               )}
-              title={isExpanded ? undefined : panel.label}
+              title={isExpanded ? undefined : label}
             >
               {isVisible && (
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
@@ -116,7 +135,7 @@ export function LiveModeRail() {
               <Icon className="w-5 h-5 flex-shrink-0" />
               {isExpanded && (
                 <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">
-                  {panel.label}
+                  {label}
                 </span>
               )}
             </button>

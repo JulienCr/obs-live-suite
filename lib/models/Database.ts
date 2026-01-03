@@ -16,6 +16,7 @@ export interface DbGuest {
   subtitle: string | null;
   accentColor: string;
   avatarUrl: string | null;
+  chatMessage: string | null;
   isEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -32,6 +33,7 @@ export interface DbPoster {
   tags: string[];
   profileIds: string[];
   metadata?: Record<string, unknown>;
+  chatMessage: string | null;
   isEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -282,10 +284,7 @@ export type DbStreamerbotChatMessageInput = Omit<DbStreamerbotChatMessage, 'crea
 export interface DbPanelColor {
   id: string;
   panelId: string;
-  lightBackground: string | null;
-  lightHeader: string | null;
-  darkBackground: string | null;
-  darkHeader: string | null;
+  scheme: string;
   createdAt: Date;
   updatedAt: Date;
 }

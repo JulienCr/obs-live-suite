@@ -106,7 +106,7 @@ export function LowerThirdDisplay({
 
   // Determine images
   const finalLogoImage = logoImage || DEFAULT_LOGO_IMAGE;
-  const finalAvatarImage = avatarImage;
+  const finalAvatarImage = avatarImage || undefined; // Ensure empty string becomes undefined
 
   // Animation sequence
   useEffect(() => {
@@ -115,11 +115,8 @@ export function LowerThirdDisplay({
     timeoutsRef.current = [];
 
     if (!animating) {
-      // Reset to hidden state
-      setLogoVisible(false);
-      setFlipped(false);
-      setBarVisible(false);
-      setTextVisible(false);
+      // Ne rien faire - laisser le CSS gérer l'animation de sortie
+      // Les états seront reset quand une nouvelle animation d'entrée commence
       return;
     }
 
@@ -133,23 +130,31 @@ export function LowerThirdDisplay({
     const initTimeout = setTimeout(() => {
       // 1. Logo appears
       setLogoVisible(true);
-      
-      // 2. Flip starts
-      const flipTimeout = setTimeout(() => {
-        setFlipped(true);
-      }, config.timing.flipDelay);
-      
+
+      // Calculate timing based on whether we have an avatar to flip
+      const hasAvatar = !!finalAvatarImage;
+      const barDelay = hasAvatar ? config.timing.barAppearDelay : 300; // Quick delay if no flip
+      const textDelay = hasAvatar ? config.timing.textAppearDelay : 500;
+
+      // 2. Flip starts (only if avatar image is provided)
+      if (hasAvatar) {
+        const flipTimeout = setTimeout(() => {
+          setFlipped(true);
+        }, config.timing.flipDelay);
+        timeoutsRef.current.push(flipTimeout);
+      }
+
       // 3. Bar appears
       const barTimeout = setTimeout(() => {
         setBarVisible(true);
-      }, config.timing.barAppearDelay);
-      
+      }, barDelay);
+
       // 4. Text appears
       const textTimeout = setTimeout(() => {
         setTextVisible(true);
-      }, config.timing.textAppearDelay);
-      
-      timeoutsRef.current.push(flipTimeout, barTimeout, textTimeout);
+      }, textDelay);
+
+      timeoutsRef.current.push(barTimeout, textTimeout);
     }, 50);
 
     timeoutsRef.current.push(initTimeout);
@@ -158,34 +163,17 @@ export function LowerThirdDisplay({
       timeoutsRef.current.forEach(clearTimeout);
       timeoutsRef.current = [];
     };
-  }, [animating, config.timing.flipDelay, config.timing.barAppearDelay, config.timing.textAppearDelay]);
+  }, [animating, finalAvatarImage, config.timing.flipDelay, config.timing.barAppearDelay, config.timing.textAppearDelay]);
 
-  // Generate CSS variables
+  // Generate CSS variables - memoized to prevent re-render flicker
   const freeTextMaxWidth = config.styles.freeTextMaxWidth?.[side] ?? (side === 'center' ? 90 : 65);
-  
-  const cssVars = {
-    '--lt-timing-logo-fade': `${config.timing.logoFadeDuration}ms`,
-    '--lt-timing-logo-scale': `${config.timing.logoScaleDuration}ms`,
-    '--lt-timing-flip': `${config.timing.flipDuration}ms`,
-    '--lt-timing-bar-expand': `${config.timing.barExpandDuration}ms`,
-    '--lt-timing-text-fade': `${config.timing.textFadeDuration}ms`,
-    '--lt-color-title': titleColor,
-    '--lt-color-subtitle': subtitleColor,
-    '--lt-color-bar-bg': backgroundColor,
-    '--lt-color-border-avatar': config.styles.avatarBorderColor,
-    '--lt-bar-border-radius': `${config.styles.barBorderRadius}px`,
-    '--lt-bar-min-width': `${config.styles.barMinWidth}px`,
-    '--lt-free-text-max-width': `${freeTextMaxWidth}vw`,
-  } as React.CSSProperties;
-
   const centeredBottomOffset = 80;
 
-  const containerStyle: React.CSSProperties = {
-    ...cssVars,
+  // Wrapper style with scale - separate from animated content
+  const wrapperStyle = useMemo<React.CSSProperties>(() => ({
+    position: 'fixed' as const,
     ...(isPreview ? {
-      position: "relative" as const,
-      left: "auto",
-      bottom: "auto",
+      position: 'relative' as const,
     } : {
       ...(side === "center" ? {
         left: "50%",
@@ -199,7 +187,31 @@ export function LowerThirdDisplay({
         transformOrigin: "bottom left",
       }),
     }),
-  };
+  }), [isPreview, side, layout.scale, layout.x, layout.y, centeredBottomOffset]);
+
+  // Container style - no transform here, just CSS variables
+  const containerStyle = useMemo<React.CSSProperties>(() => ({
+    '--lt-timing-logo-fade': `${config.timing.logoFadeDuration}ms`,
+    '--lt-timing-logo-scale': `${config.timing.logoScaleDuration}ms`,
+    '--lt-timing-flip': `${config.timing.flipDuration}ms`,
+    '--lt-timing-bar-expand': `${config.timing.barExpandDuration}ms`,
+    '--lt-timing-text-fade': `${config.timing.textFadeDuration}ms`,
+    '--lt-color-title': titleColor,
+    '--lt-color-subtitle': subtitleColor,
+    '--lt-color-bar-bg': backgroundColor,
+    '--lt-color-border-avatar': config.styles.avatarBorderColor,
+    '--lt-bar-border-radius': `${config.styles.barBorderRadius}px`,
+    '--lt-bar-min-width': `${config.styles.barMinWidth}px`,
+    '--lt-free-text-max-width': `${freeTextMaxWidth}vw`,
+    '--lt-avatar-border-width': `${config.styles.avatarBorderWidth}px`,
+  }), [
+    config.timing.logoFadeDuration, config.timing.logoScaleDuration,
+    config.timing.flipDuration, config.timing.barExpandDuration,
+    config.timing.textFadeDuration, config.styles.avatarBorderColor,
+    config.styles.barBorderRadius, config.styles.barMinWidth,
+    titleColor, subtitleColor, backgroundColor, freeTextMaxWidth,
+    config.styles.avatarBorderWidth
+  ]);
 
   const titleStyle: React.CSSProperties = theme ? {
     fontFamily: theme.font.family,
@@ -345,10 +357,11 @@ export function LowerThirdDisplay({
   };
 
   return (
-    <div
-      className={`lowerthird lowerthird--${side} ${isTextMode ? "lowerthird--text" : "lowerthird--guest"} ${animating ? "" : "animate-out"}`}
-      style={containerStyle}
-    >
+    <div style={wrapperStyle}>
+      <div
+        className={`lowerthird lowerthird--${side} ${isTextMode ? "lowerthird--text" : "lowerthird--guest"} ${animating ? "" : "animate-out"}`}
+        style={containerStyle}
+      >
       {!isTextMode && (
         <div className={`avatar ${flipped ? "flip" : ""}`}>
           <div className="avatar-inner">
@@ -399,6 +412,7 @@ export function LowerThirdDisplay({
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 }

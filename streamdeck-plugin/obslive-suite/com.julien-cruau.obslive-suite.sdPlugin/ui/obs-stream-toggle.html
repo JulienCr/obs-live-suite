@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Toggle Streaming</title>
+	<link rel="stylesheet" href="shared-styles.css">
+</head>
+<body>
+	<div class="sdpi-wrapper">
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">OBS Password</div>
+			<input class="sdpi-item-value" type="password" id="obsPassword" placeholder="Leave empty if no password">
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label info-text">
+				Toggle OBS streaming on/off. The button will show "LIVE" when streaming is active.
+			</div>
+		</div>
+	</div>
+
+	<script>
+		let websocket = null;
+		let uuid = null;
+		let actionInfo = {};
+		let settings = {};
+
+		function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
+			uuid = inUUID;
+			actionInfo = JSON.parse(inActionInfo);
+			settings = actionInfo.payload.settings || {};
+
+			websocket = new WebSocket('ws://127.0.0.1:' + inPort);
+
+			websocket.onopen = function () {
+				websocket.send(JSON.stringify({
+					event: inRegisterEvent,
+					uuid: uuid
+				}));
+				loadSettings();
+			};
+		}
+
+		function loadSettings() {
+			document.getElementById('obsPassword').value = settings.obsPassword || '';
+		}
+
+		function saveSettings() {
+			if (websocket && websocket.readyState === 1) {
+				const payload = {
+					obsPassword: document.getElementById('obsPassword').value
+				};
+
+				websocket.send(JSON.stringify({
+					action: actionInfo.action,
+					event: 'setSettings',
+					context: uuid,
+					payload: payload
+				}));
+			}
+		}
+
+		document.addEventListener('DOMContentLoaded', function () {
+			document.getElementById('obsPassword').addEventListener('change', saveSettings);
+		});
+	</script>
+</body>
+</html>

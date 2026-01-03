@@ -1,16 +1,64 @@
 # OBS Live Suite
 
-A desktop-first web application for managing live show overlays, Stream Deck integration, and OBS plugin updates.
+A comprehensive desktop-first web application for managing live show production with real-time overlays, OBS integration, Stream Deck support, interactive quizzes, and presenter communication tools.
 
 ## Features
 
-- **Overlay Control Suite**: Lower thirds, countdown timers, theatre posters
-- **Theme Customization**: Live preview theme editor with colors, fonts, and styles
-- **Real-Time Dashboard**: One-page control surface with hot presets
-- **Stream Deck Integration**: HTTP API for button mapping
+### Core Overlays
+- **Lower Thirds**: Customizable guest/topic overlays with multiple templates (Classic, Bar, Card, Slide)
+- **Countdown Timers**: Multiple styles (Bold center, Corner, Banner top)
+- **Theatre Posters**: Draggable masonry grid with BigPicture variant
+- **Chat Highlight**: Display highlighted chat messages as overlay
+- **Composite Overlay**: Combined multi-element overlay
+- **Quiz Overlay**: Interactive quiz display with timer, vote bars, player avatars
+
+### Theme Customization
+- Live preview theme editor with interactive 16:9 canvas
+- Drag-and-drop positioning with pixel coordinates
+- Colors, fonts, templates, scale controls
+- 5 pre-built themes included
+- Undo/Redo with Ctrl+Z / Ctrl+Y
+
+### Real-Time Dashboard
+- Dockview-based panel layout with persistence
+- Widget system with customizable panels
+- Event log with acknowledgment tracking
+- Macro automation system
+
+### Quiz System
+- 5 question types: QCM, Image, Closest, Open, Image Zoom-Buzz
+- 4 on-set players + Twitch viewer participation
+- Streamer.bot integration for chat commands (!a, !b, !c, !d, !n, !rep)
+- Real-time scoring and leaderboards
+- Host control panel with round/question/timer management
+
+### Presenter Interface
+- Private presenter dashboard with Dockview panels
+- VDO.Ninja iframe integration for return video
+- Private cue system (info/warn/urgent/countdown/question/context)
+- Quick reply buttons and acknowledgment tracking
+- Multi-room support for presenter ↔ control room communication
+
+### Streamer.bot Chat Panel
+- Local chat display via @streamerbot/client WebSocket
+- Zero iframe dependency, works in OBS docks
+- Auto-reconnect, keyword highlighting, role badges
+- Virtualized list for high-volume chat
+
+### Stream Deck Integration
+- Native plugin with dynamic dropdowns and live countdown display
+- 9+ pre-configured actions (lower third, countdown, poster, quiz, panic)
+- HTTP API fallback for simple integration
+
+### Additional Features
+- **i18n**: French (default) and English support (~83% translated)
+- **Wikipedia Integration**: Auto-fetch guest information and summaries
+- **LLM/Ollama Integration**: AI-powered content summarization
+- **PWA Support**: Standalone mobile mode
 - **OBS Extensions Updater**: Plugin/script version management
-- **Profiles**: Save and load complete show setups with themes
-- **Macro System**: Automated action sequences
+- **Profiles**: Save and load complete show setups
+- **Backup System**: Automated database backups
+- **Panic Button**: Emergency hide all overlays
 
 ## Requirements
 
@@ -45,52 +93,113 @@ pnpm dev
 
 The server will automatically:
 - Initialize the database
-- Start the WebSocket hub
-- Connect to OBS (with automatic retries if OBS isn't running yet)
+- Start the WebSocket hub (port 3003)
+- Start the backend API (port 3002)
+- Connect to OBS (with automatic retries)
 
 6. Open browser at `http://localhost:3000`
 
-7. Add overlay Browser Sources in OBS:
-   - Lower Third: `http://localhost:3000/overlays/lower-third`
-   - Countdown: `http://localhost:3000/overlays/countdown`
-   - Poster: `http://localhost:3000/overlays/poster`
-   - Set size: 1920x1080, check "Shutdown source when not visible"
+## OBS Browser Sources
+
+Add these as Browser Sources in OBS (1920x1080, check "Shutdown source when not visible"):
+
+| Overlay | URL |
+|---------|-----|
+| Lower Third | `http://localhost:3000/overlays/lower-third` |
+| Countdown | `http://localhost:3000/overlays/countdown` |
+| Poster | `http://localhost:3000/overlays/poster` |
+| Poster BigPicture | `http://localhost:3000/overlays/poster-bigpicture` |
+| Quiz | `http://localhost:3000/overlays/quiz` |
+| Chat Highlight | `http://localhost:3000/overlays/chat-highlight` |
+| Composite | `http://localhost:3000/overlays/composite` |
+
+## Application Routes
+
+### Main Interface
+| Route | Description |
+|-------|-------------|
+| `/dashboard` | Main control dashboard |
+| `/presenter` | Presenter view (VDO.Ninja + cues) |
+| `/assets` | Guest/poster/theme management |
+| `/profiles` | Profile management |
+| `/settings` | Application settings |
+| `/quiz/host` | Quiz host control panel |
+| `/quiz/manage` | Quiz question editor |
+| `/updater` | OBS plugin updater |
+
+### Special Routes
+| Route | Description |
+|-------|-------------|
+| `/cert` | Mobile certificate installation |
+| `/shortcuts` | Keyboard shortcuts reference |
 
 ## Theming System
 
-Customize the appearance and positioning of your overlays with the built-in theme editor:
+Customize overlay appearance and positioning:
 
-1. Navigate to **Assets** page → **Themes** section
-2. Click **New Theme** or edit an existing one
-3. Customize in real-time with **interactive 16:9 canvas preview**:
-   - **Colors**: Primary, accent, surface, text, success, warn
-   - **Lower Third**: Choose from Classic, Bar, Card, or Slide templates
-   - **Countdown**: Choose from Bold (center), Corner, or Banner (top) styles
-   - **Fonts**: Family, size, and weight for both overlays
-   - **Position**: Drag overlays on canvas to position them precisely
-   - **Scale**: Use +/- buttons to resize overlays (50%-200%)
+1. Navigate to **Assets** → **Themes**
+2. Click **New Theme** or edit existing
+3. Use the **interactive 16:9 canvas preview**:
+   - Drag overlays to position
+   - +/- buttons to scale (50%-200%)
+   - Real-time preview updates
+   - Grid lines and center guides
 
-The **interactive canvas** shows a true 16:9 aspect ratio (1920x1080) with:
-- Drag & drop positioning with pixel coordinates
-- Real-time preview as you edit
-- Grid lines and center guides for alignment
-- Scale controls for each overlay
-- Exact pixel coordinate display
-- **Undo/Redo** with Ctrl+Z / Ctrl+Y keyboard shortcuts
-- History of up to 50 layout changes
-
-**5 Pre-built Themes Included:**
+**5 Pre-built Themes:**
 - Modern Blue (Classic + Bold)
 - Vibrant Purple (Bar + Corner)
 - Elegant Red (Card + Banner)
 - Clean Green (Slide + Bold)
 - Dark Mode (Classic + Corner)
 
-**Applying Themes:**
-- **Quick Apply**: Click "Apply to Active Profile" on any theme card
-- **Profile Assignment**: Select theme when creating/editing profiles
-- **Active Badge**: See which theme is currently in use
-- Overlays automatically update when you switch themes
+## Quiz System
+
+### Host Panel
+URL: `http://localhost:3000/quiz/host`
+
+Controls: Round (Start/End), Question (Show/Lock/Reveal/Next), Timer (+10s/Resume/Stop), Buzzer (Hit/Lock/Release), Zoom (Start/Stop/Step)
+
+### Question Types
+- **QCM**: Multiple choice with !a !b !c !d commands
+- **Image QCM**: Image-based multiple choice
+- **Closest**: Numeric guess with !n command
+- **Open**: Free text with !rep command
+- **Image Zoom-Buzz**: Progressive reveal with buzzer
+
+### Streamer.bot Setup
+Configure webhook to POST to `http://localhost:3002/api/quiz-bot/chat` with:
+```json
+{
+  "userId": "%userId%",
+  "displayName": "%user%",
+  "message": "%rawInput%"
+}
+```
+
+## Presenter Interface
+
+### Panels
+- **VDO.Ninja**: Return video iframe with mute/refresh controls
+- **Cue Feed**: Private messages from control room
+- **Quick Reply**: Configurable response buttons
+- **Streamerbot Chat**: Live chat display
+
+### Cue Types
+- `cue` (info/warn/urgent)
+- `countdown` (timing)
+- `question` (promoted from chat)
+- `context` (image + bullets + links)
+- `note` (freeform)
+
+## Stream Deck Integration
+
+### Native Plugin (Recommended)
+- Location: `streamdeck-plugin/` directory
+- Quick Start: `streamdeck-plugin/QUICKSTART.md`
+- Full Documentation: `streamdeck-plugin/README.md`
+
+### HTTP API (Alternative)
+Use Stream Deck's "Website" action with endpoints at `http://localhost:3002/api/`
 
 ## Production Deployment
 
@@ -101,8 +210,25 @@ pnpm build
 
 2. Start with PM2:
 ```bash
-pnpm start:prod
+pnpm pm2:start
 ```
+
+## Architecture
+
+- **Framework**: Next.js 15+ (App Router)
+- **UI**: Tailwind CSS + shadcn/ui + Dockview
+- **i18n**: next-intl (FR/EN)
+- **OBS Integration**: obs-websocket-js v5
+- **Real-time**: WebSocket (ws) on port 3003
+- **Backend**: Express on port 3002
+- **Database**: SQLite (better-sqlite3)
+- **Process Manager**: PM2
+
+### Dual-Process Design
+- **Frontend** (port 3000): Next.js UI, API routes
+- **Backend** (port 3002): Express API, WebSocket hub (3003)
+
+The backend runs independently to maintain WebSocket/OBS connections during hot-reload.
 
 ## Troubleshooting
 
@@ -118,39 +244,23 @@ pnpm start:prod
 ### Overlays Not Updating
 - Check browser console for WebSocket errors
 - Verify overlays are added as Browser Sources in OBS
-- Ensure URLs point to correct localhost address
+- Check WebSocket hub status at port 3003
 
-## Architecture
-
-- **Framework**: Next.js 14+ (App Router)
-- **UI**: Tailwind CSS + shadcn/ui (dark mode default)
-- **OBS Integration**: obs-websocket-js v5
-- **Real-time**: WebSocket (ws)
-- **Database**: better-sqlite3
-- **Process Manager**: PM2
-
-## Stream Deck Integration
-
-OBS Live Suite provides two methods for Stream Deck integration:
-
-### Native Stream Deck Plugin (Recommended)
-A complete native plugin with dynamic dropdowns, live countdown display, and 8 pre-configured actions.
-- **Location**: `streamdeck-plugin/` directory
-- **Quick Start**: See `streamdeck-plugin/QUICKSTART.md`
-- **Full Documentation**: See `streamdeck-plugin/README.md`
-
-### HTTP API (Alternative)
-Use Stream Deck's "Website" action with HTTP endpoints for simple integration.
-- **Documentation**: [Stream Deck Setup Guide](docs/STREAM-DECK-SETUP.md)
+### Mobile/HTTPS Issues
+- Visit `/cert` route to download and install certificate
+- Use `pnpm setup:https` to generate certificates
 
 ## Documentation
 
-- [API Documentation](./docs/API.md)
 - [Architecture](./docs/ARCHITECTURE.md)
 - [Stream Deck Setup](./docs/STREAM-DECK-SETUP.md)
-- [Plugin Registry](./docs/PLUGIN-REGISTRY.md)
+- [Stream Deck Plugin](./docs/STREAM-DECK-PLUGIN.md)
+- [Quiz System](./docs/QUIZ-SYSTEM.md)
+- [Presenter Interface PRD](./docs/prd-presenter-interface.md)
+- [Streamerbot Chat PRD](./docs/PRD-STREAMERBOT-CHAT.md)
+- [VDO.Ninja Setup](./docs/VDONINJA-SETUP.md)
+- [i18n Status](./docs/I18N-TRANSLATION-STATUS.md)
 
 ## License
 
 MIT
-

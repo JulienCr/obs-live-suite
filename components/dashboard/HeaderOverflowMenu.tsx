@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,6 +29,7 @@ import { useLayoutPresets } from "@/components/shell/LayoutPresetsContext";
 export function HeaderOverflowMenu() {
   const router = useRouter();
   const pathname = usePathname();
+  const t = useTranslations("dashboard.overflowMenu");
   const { mode, setMode, isOnAir } = useAppMode();
   const [showModeConfirmation, setShowModeConfirmation] = useState(false);
   const [pendingMode, setPendingMode] = useState<"LIVE" | "ADMIN" | null>(null);
@@ -55,18 +57,18 @@ export function HeaderOverflowMenu() {
   };
 
   const switchMode = (targetMode: "LIVE" | "ADMIN") => {
-    setMode(targetMode);
-
-    // Navigate to appropriate page based on mode
+    // Navigate first - AppShell will sync mode from URL
     if (targetMode === "LIVE") {
-      // Always navigate to dashboard in LIVE mode
       if (pathname !== "/dashboard" && pathname !== "/") {
         router.push("/dashboard");
+      } else {
+        setMode(targetMode);
       }
     } else {
-      // In ADMIN mode, if we're on dashboard, navigate to settings
       if (pathname === "/dashboard" || pathname === "/") {
         router.push("/settings/general");
+      } else {
+        setMode(targetMode);
       }
     }
   };
@@ -93,24 +95,24 @@ export function HeaderOverflowMenu() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>Menu</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("menu")}</DropdownMenuLabel>
           <DropdownMenuSeparator />
 
           {/* Layout Presets (only in LIVE mode on dashboard) */}
           {mode === "LIVE" && isOnDashboard && layoutPresets && (
             <>
-              <DropdownMenuLabel className="text-xs">Layout Presets</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs">{t("layoutPresets")}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => layoutPresets.applyPreset("live")}>
                 <Layout className="w-4 h-4 mr-2" />
-                Live (Default)
+                {t("liveDefault")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => layoutPresets.applyPreset("prep")}>
                 <Layout className="w-4 h-4 mr-2" />
-                Prep (Grid)
+                {t("prepGrid")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => layoutPresets.applyPreset("minimal")}>
                 <Layout className="w-4 h-4 mr-2" />
-                Minimal
+                {t("minimal")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
@@ -118,20 +120,20 @@ export function HeaderOverflowMenu() {
 
           <DropdownMenuItem onClick={handleModeToggle}>
             <ToggleLeft className="w-4 h-4 mr-2" />
-            Switch to {mode === "LIVE" ? "ADMIN" : "LIVE"} Mode
+            {mode === "LIVE" ? t("switchToAdmin") : t("switchToLive")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => router.push("/shortcuts")}>
             <Keyboard className="w-4 h-4 mr-2" />
-            Keyboard Shortcuts
+            {t("keyboardShortcuts")}
           </DropdownMenuItem>
           <DropdownMenuItem disabled>
             <HelpCircle className="w-4 h-4 mr-2" />
-            Help
+            {t("help")}
           </DropdownMenuItem>
           <DropdownMenuItem disabled>
             <Info className="w-4 h-4 mr-2" />
-            About
+            {t("about")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -139,18 +141,17 @@ export function HeaderOverflowMenu() {
       <AlertDialog open={showModeConfirmation} onOpenChange={setShowModeConfirmation}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>You are currently ON AIR</AlertDialogTitle>
+            <AlertDialogTitle>{t("onAirDialogTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Switching to ADMIN mode will navigate away from the live control surface.
-              Are you sure you want to continue?
+              {t("onAirDialogDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={cancelModeSwitch}>
-              Stay in LIVE Mode
+              {t("stayInLive")}
             </AlertDialogCancel>
             <AlertDialogAction onClick={confirmModeSwitch}>
-              Switch to ADMIN
+              {t("switchToAdminConfirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

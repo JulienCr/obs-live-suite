@@ -3,17 +3,18 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, Play, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield, Package, Sparkles, MessageSquare } from "lucide-react";
 
 interface NavSection {
   id: string;
-  label: string;
+  labelKey: string;
   items: NavItem[];
 }
 
 interface NavItem {
-  label: string;
+  labelKey: string;
   href: string;
   icon: React.ElementType;
 }
@@ -21,54 +22,54 @@ interface NavItem {
 const navigationSections: NavSection[] = [
   {
     id: "live",
-    label: "LIVE",
+    labelKey: "live",
     items: [
-      { label: "Show Control", href: "/dashboard", icon: Play },
-      { label: "Overlays", href: "/settings/overlays", icon: Layers },
+      { labelKey: "showControl", href: "/dashboard", icon: Play },
+      { labelKey: "overlays", href: "/settings/overlays", icon: Layers },
     ],
   },
   {
     id: "library",
-    label: "LIBRARY",
+    labelKey: "library",
     items: [
-      { label: "Posters", href: "/assets/posters", icon: Image },
-      { label: "Themes", href: "/assets/themes", icon: Palette },
+      { labelKey: "posters", href: "/assets/posters", icon: Image },
+      { labelKey: "themes", href: "/assets/themes", icon: Palette },
     ],
   },
   {
     id: "show-setup",
-    label: "SHOW SETUP",
+    labelKey: "showSetup",
     items: [
-      { label: "Profiles", href: "/profiles", icon: FolderOpen },
-      { label: "Guests", href: "/assets/guests", icon: Users },
+      { labelKey: "profiles", href: "/profiles", icon: FolderOpen },
+      { labelKey: "guests", href: "/assets/guests", icon: Users },
     ],
   },
   {
     id: "presenter",
-    label: "PRESENTER",
+    labelKey: "presenter",
     items: [
-      { label: "Rooms", href: "/settings/presenter/rooms", icon: MessageSquare },
+      { labelKey: "rooms", href: "/settings/presenter/rooms", icon: MessageSquare },
     ],
   },
   {
     id: "integrations",
-    label: "INTEGRATIONS",
+    labelKey: "integrations",
     items: [
-      { label: "OBS", href: "/settings/obs", icon: Plug },
-      { label: "Stream Deck", href: "/integrations/stream-deck", icon: Shield },
-      { label: "Plugins & Updates", href: "/updater", icon: Download },
+      { labelKey: "obs", href: "/settings/obs", icon: Plug },
+      { labelKey: "streamDeck", href: "/integrations/stream-deck", icon: Shield },
+      { labelKey: "pluginsUpdates", href: "/updater", icon: Download },
     ],
   },
   {
     id: "settings",
-    label: "SETTINGS",
+    labelKey: "settings",
     items: [
-      { label: "General", href: "/settings/general", icon: SettingsIcon },
-      { label: "Integrations", href: "/settings/integrations", icon: Sparkles },
-      { label: "Backend", href: "/settings/backend", icon: Database },
-      { label: "Paths", href: "/settings/paths", icon: FolderCog },
-      { label: "Backup", href: "/settings/backup", icon: FileStack },
-      { label: "Plugins", href: "/settings/plugins", icon: Package },
+      { labelKey: "general", href: "/settings/general", icon: SettingsIcon },
+      { labelKey: "integrationsSettings", href: "/settings/integrations", icon: Sparkles },
+      { labelKey: "backend", href: "/settings/backend", icon: Database },
+      { labelKey: "paths", href: "/settings/paths", icon: FolderCog },
+      { labelKey: "backup", href: "/settings/backup", icon: FileStack },
+      { labelKey: "plugins", href: "/settings/plugins", icon: Package },
     ],
   },
 ];
@@ -77,6 +78,8 @@ const COLLAPSED_SECTIONS_KEY = "obs-live-suite-collapsed-sections";
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const tSections = useTranslations("navigation.sections");
+  const tItems = useTranslations("navigation.items");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -124,7 +127,7 @@ export function AdminSidebar() {
                   onClick={() => toggleSection(section.id)}
                   className="flex items-center justify-between w-full text-xs font-semibold uppercase text-muted-foreground hover:text-foreground transition-colors mb-2"
                 >
-                  <span>{section.label}</span>
+                  <span>{tSections(section.labelKey)}</span>
                   {isCollapsed ? (
                     <ChevronRight className="w-3 h-3" />
                   ) : (
@@ -150,7 +153,7 @@ export function AdminSidebar() {
                           )}
                         >
                           <Icon className="w-4 h-4 flex-shrink-0" />
-                          <span>{item.label}</span>
+                          <span>{tItems(item.labelKey)}</span>
                         </Link>
                       );
                     })}
@@ -168,7 +171,7 @@ export function AdminSidebar() {
           className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground rounded-md transition-colors"
         >
           <HelpCircle className="w-4 h-4" />
-          <span>Help & Support</span>
+          <span>{tItems("helpSupport")}</span>
         </Link>
       </div>
     </aside>

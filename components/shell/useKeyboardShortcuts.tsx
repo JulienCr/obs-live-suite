@@ -142,12 +142,12 @@ export function useKeyboardShortcuts(
       // Cmd/Ctrl + Shift + A - Switch to ADMIN mode
       if (cmdOrCtrl && e.shiftKey && e.key === "A") {
         e.preventDefault();
-        if (mode !== "ADMIN") {
-          if (!isOnAir) {
+        if (mode !== "ADMIN" && !isOnAir) {
+          // Navigate first - AppShell will sync mode from URL
+          if (pathname === "/dashboard" || pathname === "/") {
+            router.push("/settings/general");
+          } else {
             setMode("ADMIN");
-            if (pathname === "/dashboard" || pathname === "/") {
-              router.push("/settings/general");
-            }
           }
         }
         return;
@@ -157,9 +157,11 @@ export function useKeyboardShortcuts(
       if (cmdOrCtrl && e.shiftKey && e.key === "L") {
         e.preventDefault();
         if (mode !== "LIVE") {
-          setMode("LIVE");
+          // Navigate first - AppShell will sync mode from URL
           if (pathname !== "/dashboard" && pathname !== "/") {
             router.push("/dashboard");
+          } else {
+            setMode("LIVE");
           }
         }
         return;

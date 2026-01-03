@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +56,7 @@ const emptyFormData: RoomFormData = {
  * Room settings component for managing presenter rooms
  */
 export function RoomSettings() {
+  const t = useTranslations("settings.rooms");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [formMode, setFormMode] = useState<FormMode>(null);
@@ -84,7 +86,7 @@ export function RoomSettings() {
       console.error("Failed to load rooms:", error);
       setActionResult({
         success: false,
-        message: "Failed to load rooms",
+        message: t("failedToLoad"),
       });
     } finally {
       setLoading(false);
@@ -133,7 +135,7 @@ export function RoomSettings() {
     if (!formData.name.trim()) {
       setActionResult({
         success: false,
-        message: "Room name is required",
+        message: t("roomNameRequired"),
       });
       return;
     }
@@ -141,7 +143,7 @@ export function RoomSettings() {
     if (formData.vdoNinjaUrl && !validateUrl(formData.vdoNinjaUrl)) {
       setActionResult({
         success: false,
-        message: "VDO.Ninja URL is invalid",
+        message: t("vdoNinjaUrlInvalid"),
       });
       return;
     }
@@ -173,14 +175,14 @@ export function RoomSettings() {
         if (data.room) {
           setActionResult({
             success: true,
-            message: "Room created successfully!",
+            message: t("roomCreated"),
           });
           await loadRooms();
           closeDialog();
         } else {
           setActionResult({
             success: false,
-            message: data.error || "Failed to create room",
+            message: data.error || t("failedToCreate"),
           });
         }
       } else if (formMode === "edit" && editingRoom) {
@@ -207,14 +209,14 @@ export function RoomSettings() {
         if (data.room) {
           setActionResult({
             success: true,
-            message: "Room updated successfully!",
+            message: t("roomUpdated"),
           });
           await loadRooms();
           closeDialog();
         } else {
           setActionResult({
             success: false,
-            message: data.error || "Failed to update room",
+            message: data.error || t("failedToUpdate"),
           });
         }
       }
@@ -233,7 +235,7 @@ export function RoomSettings() {
     if (room.id === DEFAULT_ROOM_ID) {
       setActionResult({
         success: false,
-        message: "Cannot delete the default room",
+        message: t("cannotDeleteDefault"),
       });
       return;
     }
@@ -251,20 +253,20 @@ export function RoomSettings() {
       if (data.success) {
         setActionResult({
           success: true,
-          message: "Room deleted successfully!",
+          message: t("roomDeleted"),
         });
         await loadRooms();
         setDeleteConfirmRoom(null);
       } else {
         setActionResult({
           success: false,
-          message: data.error || "Failed to delete room",
+          message: data.error || t("failedToDelete"),
         });
       }
     } catch (error) {
       setActionResult({
         success: false,
-        message: error instanceof Error ? error.message : "Failed to delete room",
+        message: error instanceof Error ? error.message : t("failedToDelete"),
       });
     } finally {
       setSaving(false);
@@ -292,7 +294,7 @@ export function RoomSettings() {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="w-6 h-6 animate-spin mr-2" />
-        Loading rooms...
+        {t("loading")}
       </div>
     );
   }
@@ -302,14 +304,14 @@ export function RoomSettings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold mb-2">Presenter Rooms</h2>
+          <h2 className="text-2xl font-semibold mb-2">{t("title")}</h2>
           <p className="text-sm text-muted-foreground">
-            Configure presenter rooms with VDO.Ninja return video and Twitch chat integration
+            {t("description")}
           </p>
         </div>
         <Button onClick={openCreateDialog}>
           <Plus className="w-4 h-4 mr-2" />
-          Create Room
+          {t("createRoom")}
         </Button>
       </div>
 
@@ -332,7 +334,7 @@ export function RoomSettings() {
         <Alert>
           <MessageSquare className="w-4 h-4" />
           <AlertDescription>
-            No rooms configured yet. Create your first room to get started.
+            {t("noRooms")}
           </AlertDescription>
         </Alert>
       ) : (
@@ -349,40 +351,40 @@ export function RoomSettings() {
                     <h3 className="font-semibold text-lg">{room.name}</h3>
                     {room.id === DEFAULT_ROOM_ID && (
                       <span className="px-2 py-0.5 text-xs font-medium bg-primary/20 text-primary rounded">
-                        Default
+                        {t("default")}
                       </span>
                     )}
                   </div>
 
                   <div className="space-y-1 text-sm">
                     <div>
-                      <span className="text-muted-foreground">VDO.Ninja URL:</span>{" "}
+                      <span className="text-muted-foreground">{t("vdoNinjaUrl")}:</span>{" "}
                       <span className="text-xs">
                         {room.vdoNinjaUrl ? (
-                          <span className="text-green-600 dark:text-green-500">✓ Set</span>
+                          <span className="text-green-600 dark:text-green-500">✓ {t("set")}</span>
                         ) : (
-                          <span className="italic text-muted-foreground">Not configured</span>
+                          <span className="italic text-muted-foreground">{t("notConfigured")}</span>
                         )}
                       </span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Streamer.bot:</span>{" "}
+                      <span className="text-muted-foreground">{t("streamerbotLabel")}</span>{" "}
                       <span className="text-xs">
                         {room.streamerbotConnection ? (
                           <span className="text-green-600 dark:text-green-500">
                             ✓ {room.streamerbotConnection.host}:{room.streamerbotConnection.port}
                           </span>
                         ) : (
-                          <span className="italic text-muted-foreground">Not configured</span>
+                          <span className="italic text-muted-foreground">{t("notConfigured")}</span>
                         )}
                       </span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Quick Replies:</span>{" "}
+                      <span className="text-muted-foreground">{t("quickReplies")}:</span>{" "}
                       <span className="text-xs">
                         {room.quickReplies.length > 0
                           ? room.quickReplies.join(", ")
-                          : "None"}
+                          : t("quickRepliesNone")}
                       </span>
                     </div>
                   </div>
@@ -391,7 +393,7 @@ export function RoomSettings() {
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => openEditDialog(room)}>
                     <Edit className="w-4 h-4 mr-1" />
-                    Edit
+                    {t("edit")}
                   </Button>
                   {room.id !== DEFAULT_ROOM_ID && (
                     <Button
@@ -400,7 +402,7 @@ export function RoomSettings() {
                       onClick={() => setDeleteConfirmRoom(room)}
                     >
                       <Trash2 className="w-4 h-4 mr-1" />
-                      Delete
+                      {t("delete")}
                     </Button>
                   )}
                 </div>
@@ -415,10 +417,10 @@ export function RoomSettings() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {formMode === "create" ? "Create New Room" : "Edit Room"}
+              {formMode === "create" ? t("createNewRoom") : t("editRoom")}
             </DialogTitle>
             <DialogDescription>
-              Configure the presenter room settings including video return and chat URLs
+              {t("dialogDescription")}
             </DialogDescription>
           </DialogHeader>
 
@@ -426,35 +428,35 @@ export function RoomSettings() {
             {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="name">
-                Room Name <span className="text-destructive">*</span>
+                {t("roomName")} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Main Show Room"
+                placeholder={t("roomNamePlaceholder")}
                 required
               />
             </div>
 
             {/* VDO.Ninja URL */}
             <div className="space-y-2">
-              <Label htmlFor="vdoNinjaUrl">VDO.Ninja Return Video URL</Label>
+              <Label htmlFor="vdoNinjaUrl">{t("vdoNinjaUrl")}</Label>
               <Input
                 id="vdoNinjaUrl"
                 type="url"
                 value={formData.vdoNinjaUrl}
                 onChange={(e) => setFormData({ ...formData, vdoNinjaUrl: e.target.value })}
-                placeholder="https://vdo.ninja/?view=..."
+                placeholder={t("vdoNinjaUrlPlaceholder")}
               />
               <p className="text-xs text-muted-foreground">
-                Optional. Embedded iframe URL for return video feed.
+                {t("vdoNinjaUrlHelp")}
               </p>
             </div>
 
             {/* Streamer.bot Connection */}
             <div className="space-y-2">
-              <Label>Chat Connection (Streamer.bot)</Label>
+              <Label>{t("chatConnection")}</Label>
               <StreamerbotConnectionForm
                 value={formData.streamerbotConnection}
                 onChange={(value) => setFormData({ ...formData, streamerbotConnection: value })}
@@ -464,13 +466,13 @@ export function RoomSettings() {
 
             {/* Quick Replies */}
             <div className="space-y-2">
-              <Label>Quick Replies</Label>
+              <Label>{t("quickReplies")}</Label>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
                     value={newQuickReply}
                     onChange={(e) => setNewQuickReply(e.target.value)}
-                    placeholder="Add quick reply button"
+                    placeholder={t("quickRepliesPlaceholder")}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -504,7 +506,7 @@ export function RoomSettings() {
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  Quick reply buttons shown to the presenter for fast responses.
+                  {t("quickRepliesHelp")}
                 </p>
               </div>
             </div>
@@ -512,7 +514,7 @@ export function RoomSettings() {
             {/* Custom Messages Toggle */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="canSendCustomMessages">Allow Custom Messages</Label>
+                <Label htmlFor="canSendCustomMessages">{t("allowCustomMessages")}</Label>
                 <Switch
                   id="canSendCustomMessages"
                   checked={formData.canSendCustomMessages}
@@ -522,14 +524,14 @@ export function RoomSettings() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                When enabled, presenters can type and send custom reply messages.
+                {t("allowCustomMessagesHelp")}
               </p>
             </div>
 
             {/* Allow Presenter to Send Chat Messages Toggle */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="allowPresenterToSendMessage">Allow Presenter to Send Chat Messages</Label>
+                <Label htmlFor="allowPresenterToSendMessage">{t("allowPresenterChat")}</Label>
                 <Switch
                   id="allowPresenterToSendMessage"
                   checked={formData.allowPresenterToSendMessage}
@@ -539,25 +541,25 @@ export function RoomSettings() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                When enabled, presenters can send messages to Twitch/YouTube chat via Streamer.bot (requires authentication).
+                {t("allowPresenterChatHelp")}
               </p>
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog} disabled={saving}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
+                  {t("saving")}
                 </>
               ) : formMode === "create" ? (
-                "Create Room"
+                t("createRoom")
               ) : (
-                "Save Changes"
+                t("saveChanges")
               )}
             </Button>
           </DialogFooter>
@@ -571,10 +573,9 @@ export function RoomSettings() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Room?</DialogTitle>
+            <DialogTitle>{t("deleteConfirmTitle")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{deleteConfirmRoom?.name}"? This action cannot be
-              undone.
+              {t("deleteConfirmMessage", { name: deleteConfirmRoom?.name || "" })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -583,7 +584,7 @@ export function RoomSettings() {
               onClick={() => setDeleteConfirmRoom(null)}
               disabled={saving}
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -593,12 +594,12 @@ export function RoomSettings() {
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Deleting...
+                  {t("deleting")}
                 </>
               ) : (
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Room
+                  {t("deleteRoom")}
                 </>
               )}
             </Button>

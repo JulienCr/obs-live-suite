@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 interface PlayerScore {
   id: string;
   name: string;
@@ -19,15 +21,16 @@ interface LiveScoreboardProps {
 }
 
 export function LiveScoreboard({ players, viewers }: LiveScoreboardProps) {
+  const t = useTranslations("quiz.host.liveScoreboard");
   const topViewers = viewers.sort((a, b) => b.score - a.score).slice(0, 5);
 
   return (
     <div className="space-y-4">
       {/* Studio Players */}
       <div className="border rounded-lg p-4 bg-white">
-        <h3 className="font-semibold mb-3">Studio Players</h3>
+        <h3 className="font-semibold mb-3">{t("studioPlayers")}</h3>
         {players.length === 0 && (
-          <div className="text-sm text-gray-400">No players yet</div>
+          <div className="text-sm text-gray-400">{t("noPlayersYet")}</div>
         )}
         <div className="space-y-2">
           {players.map((player, idx) => (
@@ -47,9 +50,9 @@ export function LiveScoreboard({ players, viewers }: LiveScoreboardProps) {
 
       {/* Top Viewers */}
       <div className="border rounded-lg p-4 bg-white">
-        <h3 className="font-semibold mb-3">Top Viewers</h3>
+        <h3 className="font-semibold mb-3">{t("topViewers")}</h3>
         {topViewers.length === 0 && (
-          <div className="text-sm text-gray-400">No viewer scores yet</div>
+          <div className="text-sm text-gray-400">{t("noViewerScoresYet")}</div>
         )}
         <div className="space-y-1">
           {topViewers.map((viewer, idx) => (

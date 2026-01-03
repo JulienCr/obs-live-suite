@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Wifi, WifiOff, Search, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,19 +31,20 @@ function getStatusColor(status: StreamerbotConnectionStatus): string {
  */
 function getStatusText(
   status: StreamerbotConnectionStatus,
+  t: (key: string) => string,
   errorMessage?: string
 ): string {
   switch (status) {
     case StreamerbotConnectionStatus.CONNECTED:
-      return "Connected";
+      return t("status.connected");
     case StreamerbotConnectionStatus.CONNECTING:
-      return "Connecting...";
+      return t("status.connecting");
     case StreamerbotConnectionStatus.AUTHENTICATING:
-      return "Authenticating...";
+      return t("status.authenticating");
     case StreamerbotConnectionStatus.ERROR:
-      return errorMessage || "Error";
+      return errorMessage || t("status.error");
     default:
-      return "Disconnected";
+      return t("status.disconnected");
   }
 }
 
@@ -59,8 +61,9 @@ export function StreamerbotChatHeader({
   onConnect,
   onDisconnect,
 }: StreamerbotChatHeaderProps) {
+  const t = useTranslations("presenter");
   const statusColor = getStatusColor(status);
-  const statusText = getStatusText(status, error?.message);
+  const statusText = getStatusText(status, t, error?.message);
 
   return (
     <div className="flex-shrink-0 h-10 px-3 flex items-center justify-between border-b bg-card">
@@ -111,7 +114,7 @@ export function StreamerbotChatHeader({
             className="h-7 text-xs"
             onClick={onDisconnect}
           >
-            Disconnect
+            {t("actions.disconnect")}
           </Button>
         ) : (
           <Button
@@ -121,7 +124,7 @@ export function StreamerbotChatHeader({
             onClick={onConnect}
             disabled={status === StreamerbotConnectionStatus.CONNECTING}
           >
-            Connect
+            {t("actions.connect")}
           </Button>
         )}
       </div>

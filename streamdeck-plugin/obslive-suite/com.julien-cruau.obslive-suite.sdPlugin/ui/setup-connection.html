@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Setup Connection</title>
+	<link rel="stylesheet" href="shared-styles.css">
+	<style>
+		.checkbox-item {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			gap: 8px;
+		}
+		.checkbox-item input[type="checkbox"] {
+			width: auto;
+			margin: 0;
+		}
+		.checkbox-item label {
+			margin: 0;
+			font-size: 13px;
+			cursor: pointer;
+		}
+		.status-indicator {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding: 8px 10px;
+			background-color: #3a3a3a;
+			border-radius: 3px;
+			font-size: 12px;
+		}
+		.status-dot {
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			background-color: #666;
+		}
+		.status-dot.success {
+			background-color: #22c55e;
+		}
+		.status-dot.error {
+			background-color: #ef4444;
+		}
+		.status-dot.testing {
+			background-color: #f59e0b;
+			animation: pulse 1s infinite;
+		}
+		@keyframes pulse {
+			0%, 100% { opacity: 1; }
+			50% { opacity: 0.5; }
+		}
+		.urls-preview {
+			font-size: 11px;
+			color: #888;
+			padding: 8px 10px;
+			background-color: #333;
+			border-radius: 3px;
+			font-family: monospace;
+			line-height: 1.6;
+		}
+		.section-title {
+			font-size: 11px;
+			color: #0e99e5;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+			margin-top: 16px;
+			margin-bottom: 8px;
+			border-bottom: 1px solid #444;
+			padding-bottom: 4px;
+		}
+		.button-row {
+			display: flex;
+			gap: 8px;
+		}
+		.button-row button {
+			flex: 1;
+		}
+		button.primary {
+			background-color: #0e99e5;
+			border-color: #0e99e5;
+		}
+		button.primary:hover {
+			background-color: #0c7bb8;
+			border-color: #0c7bb8;
+		}
+	</style>
+</head>
+<body>
+	<div class="sdpi-wrapper">
+		<div class="section-title">Server Configuration</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Host</div>
+			<input class="sdpi-item-value" type="text" id="host" placeholder="localhost">
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Base Port</div>
+			<input class="sdpi-item-value" type="number" id="port" min="1" max="65535" placeholder="3000">
+		</div>
+
+		<div class="sdpi-item checkbox-item">
+			<input type="checkbox" id="useHttps" checked>
+			<label for="useHttps">Use HTTPS / WSS</label>
+		</div>
+
+		<div class="sdpi-item checkbox-item">
+			<input type="checkbox" id="trustSelfSigned" checked>
+			<label for="trustSelfSigned">Trust self-signed certificates</label>
+		</div>
+
+		<div class="section-title">Connection URLs</div>
+
+		<div class="sdpi-item">
+			<div class="urls-preview" id="urlsPreview">
+				App: https://localhost:3000<br>
+				Backend: https://localhost:3002<br>
+				WebSocket: wss://localhost:3003
+			</div>
+		</div>
+
+		<div class="section-title">Test & Save</div>
+
+		<div class="sdpi-item">
+			<div class="status-indicator" id="statusIndicator">
+				<div class="status-dot" id="statusDot"></div>
+				<span id="statusText">Not tested</span>
+			</div>
+		</div>
+
+		<div class="sdpi-item button-row">
+			<button class="sdpi-item-value" id="testBtn">Test Connection</button>
+			<button class="sdpi-item-value primary" id="saveBtn">Save</button>
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label info-text">
+				Configure the connection to your OBS Live Suite server. The backend port is base+2 and WebSocket port is base+3.
+			</div>
+		</div>
+	</div>
+
+	<script src="setup-connection.js"></script>
+</body>
+</html>

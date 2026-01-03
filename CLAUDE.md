@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-OBS Live Suite is a Next.js application for managing live show overlays with real-time control, OBS integration, and Stream Deck support. It features a dual-process architecture:
+OBS Live Suite is a Next.js application for managing live show overlays with real-time control, OBS integration, Stream Deck support, interactive quizzes, and presenter communication tools. It features a dual-process architecture:
 - **Frontend**: Next.js 15+ (App Router) on port 3000
 - **Backend**: Express server on port 3002 with WebSocket hub on port 3003
 
@@ -52,7 +52,9 @@ pnpm pm2:status    # Check status
 
 ### Utilities
 ```bash
-pnpm streamdeck:ids    # List Stream Deck action IDs
+pnpm streamdeck:ids       # List Stream Deck action IDs
+pnpm backup:appdata       # Backup application data
+pnpm setup:https          # Generate HTTPS certificates
 ```
 
 ## Architecture
@@ -71,6 +73,8 @@ The backend runs independently to ensure WebSocket and OBS connections persist e
 - `WebSocketHub` - WebSocket server
 - `ChannelManager` - Pub/sub for overlays
 - `OBSConnectionManager` - OBS WebSocket connection
+- `QuizManager` - Quiz state machine
+- `RoomService` - Multi-room management
 - `AppConfig`, `PathManager` - Configuration
 
 **Event-Driven**: Overlays use pub/sub via ChannelManager:
@@ -78,13 +82,93 @@ The backend runs independently to ensure WebSocket and OBS connections persist e
 Dashboard → API Route → ChannelManager.publish() → WebSocket → Overlay
 ```
 
-**Service Layers**:
-- `lib/adapters/` - External integrations (OBS WebSocket)
-- `lib/services/` - Business logic (DatabaseService, MacroEngine, QuizManager)
-- `lib/models/` - Zod schemas and types
-- `lib/utils/` - Pure utilities
-- `server/api/` - Backend Express routes
-- `app/api/` - Next.js API routes
+### Service Layers
+
+**lib/services/** - Core business logic:
+- `DatabaseService` - SQLite via better-sqlite3
+- `ChannelManager` - Pub/sub for real-time events
+- `WebSocketHub` - WebSocket server management
+- `ThemeService` - Theme CRUD and application
+- `MacroEngine` - Automation sequences
+- `BackupService` - Database backup/restore
+- `StorageService` - File upload handling
+- `SettingsService` - Application settings
+- `RoomService` - Presenter room management
+- `RateLimiterService` - API rate limiting
+
+**Quiz Services** (lib/services/Quiz*):
+- `QuizManager` - State machine orchestration
+- `QuizStore` - In-memory + JSON persistence
+- `QuizScoringService` - Scoring algorithms
+- `QuizBuzzerService` - First-hit/steal mechanics
+- `QuizViewerInputService` - Chat command parsing, flood control
+- `QuizTimer` - Tick broadcasts
+- `QuizZoomController` - Auto-zoom for image reveals
+- `QuizMysteryImageController` - Mystery image progression
+- `QuizExamples` - Sample question data
+
+**AI/Integration Services**:
+- `OllamaSummarizerService` - LLM summarization via Ollama
+- `WikipediaCacheService` - Wikipedia result caching
+- `WikipediaResolverService` - Wikipedia search and resolution
+
+**lib/adapters/** - External integrations:
+- `obs/OBSConnectionManager` - OBS WebSocket connection with auto-reconnect
+- `obs/OBSStateManager` - OBS state tracking
+- `obs/OBSSceneController` - Scene switching
+- `obs/OBSSourceController` - Source manipulation
+- `obs/OBSEventHandler` - OBS event processing
+- `obs/OBSConnectionEnsurer` - Connection reliability
+- `streamerbot/StreamerbotGateway` - Streamer.bot WebSocket client
+
+**lib/models/** - Zod schemas and types:
+- `Database.ts` - Core database schemas (guests, posters, profiles, themes)
+- `Theme.ts` - Theme configuration schemas
+- `Macro.ts` - Macro action schemas
+- `Quiz.ts` - Question, round, session schemas
+- `QuizEvents.ts` - Quiz WebSocket event types
+- `OverlayEvents.ts` - Overlay event types
+- `Room.ts` - Presenter room schemas
+- `StreamerbotChat.ts` - Chat message schemas
+
+**lib/utils/** - Pure utilities:
+- `Logger` - Structured logging
+- `BackendClient` - HTTP client for backend API
+- `themeEnrichment` - Theme processing utilities
+
+**lib/config/**:
+- `AppConfig` - Application configuration
+- `PathManager` - File path management
+- `urls.ts` - API URL constants
+
+**lib/init/**:
+- `ServerInit.ts` - Database and service initialization
+
+### Server Routes
+
+**server/api/** - Backend Express routes:
+- `overlays.ts` - Overlay event publishing
+- `obs.ts` - OBS control commands
+- `obs-helpers.ts` - OBS utility functions
+- `quiz.ts` - Quiz control API
+- `quiz-bot.ts` - Streamer.bot webhook bridge
+- `rooms.ts` - Room CRUD and messaging
+- `cue.ts` - Presenter cue system
+- `streamerbot-chat.ts` - Chat message forwarding
+
+**app/api/** - Next.js API routes:
+- `/api/overlays/*` - Overlay control (lower, countdown, poster, quiz, chat-highlight)
+- `/api/obs/*` - OBS status, reconnect, record, stream
+- `/api/actions/*` - Stream Deck actions (lower, countdown, poster, macro, panic)
+- `/api/assets/*` - Guest, poster, theme, tag management
+- `/api/profiles/*` - Profile CRUD and activation
+- `/api/themes/*` - Theme CRUD
+- `/api/settings/*` - Settings management (general, obs, paths, integrations)
+- `/api/presenter/*` - Room and cue management
+- `/api/quiz/*` - Quiz questions and state
+- `/api/wikipedia/*` - Wikipedia search/resolve/summarize
+- `/api/llm/*` - LLM model listing and summarization
+- `/api/updater/*` - Plugin scanning and updates
 
 ### Data Storage
 - **Database**: SQLite via better-sqlite3 in `~/.obs-live-suite/data.db`
@@ -111,6 +195,18 @@ Paths managed by `PathManager.getInstance()`.
 1. POST to `/api/actions/{action}` (simple) OR
 2. Native plugin via HTTP API (recommended)
 
+**Control Room → Presenter**:
+1. POST to `/api/presenter/cue/send`
+2. RoomService stores message in DB
+3. ChannelManager publishes to room channel
+4. Presenter UI receives via WebSocket
+
+**Quiz Chat → Backend**:
+1. Streamer.bot POSTs to `/api/quiz-bot/chat`
+2. QuizViewerInputService validates and dedupes
+3. QuizManager processes answer
+4. Score updates broadcast via WebSocket
+
 ## TypeScript Paths
 ```json
 {
@@ -132,6 +228,16 @@ Paths managed by `PathManager.getInstance()`.
 
 Test environment defaults to Node. For React components, use `@testing-library/react` with jsdom.
 
+## Internationalization (i18n)
+
+- **Library**: next-intl
+- **Languages**: French (default), English
+- **Files**: `messages/fr.json`, `messages/en.json`
+- **Config**: `i18n/routing.ts`, `i18n/request.ts`, `middleware.ts`
+- **Status**: ~83% translated (see `docs/I18N-TRANSLATION-STATUS.md`)
+
+Routes use `[locale]` prefix except `/overlays/*` and `/api/*`.
+
 ## OBS Integration
 - Requires OBS Studio with obs-websocket v5 enabled
 - Credentials in `.env`: `OBS_WS_URL`, `OBS_WS_PASSWORD`
@@ -144,8 +250,27 @@ Browser source URLs for OBS (size: 1920x1080):
 - Lower Third: `http://localhost:3000/overlays/lower-third`
 - Countdown: `http://localhost:3000/overlays/countdown`
 - Poster: `http://localhost:3000/overlays/poster`
+- Poster BigPicture: `http://localhost:3000/overlays/poster-bigpicture`
+- Quiz: `http://localhost:3000/overlays/quiz`
+- Chat Highlight: `http://localhost:3000/overlays/chat-highlight`
+- Composite: `http://localhost:3000/overlays/composite`
 
 Each overlay connects to WebSocket hub and subscribes to its channel.
+
+## Quiz System
+- Host panel: `/quiz/host`
+- Question editor: `/quiz/manage`
+- 5 question types: qcm, image, closest, open, image_zoombuzz
+- Chat commands: !a, !b, !c, !d, !n [number], !rep [text]
+- Streamer.bot webhook: `POST /api/quiz-bot/chat`
+
+## Presenter System
+- Presenter view: `/presenter`
+- Room management: `/settings/presenter/rooms`
+- Cue types: cue, countdown, question, context, note
+- VDO.Ninja iframe integration
+- Quick reply buttons
+- Acknowledgment tracking
 
 ## Theming System
 - Managed by `ThemeService`
@@ -153,6 +278,12 @@ Each overlay connects to WebSocket hub and subscribes to its channel.
 - Theme models: colors, fonts, templates, scale, position
 - Pre-built themes in seed data
 - Applied to active profile via `/api/themes/{id}` endpoints
+
+## Stream Deck Plugin
+- Location: `streamdeck-plugin/obslive-suite/`
+- Source: `streamdeck-plugin/obslive-suite/src/`
+- Build output: `streamdeck-plugin/obslive-suite/com.julien-cruau.obslive-suite.sdPlugin/`
+- Actions: lower-third-guest, countdown-start, poster-show, quiz controls, panic
 
 ## PM2 Deployment
 `ecosystem.config.cjs` defines two apps:
@@ -168,3 +299,56 @@ Both use fork mode with autorestart and memory limits.
 - Database auto-initializes on first run via `ServerInit.ts`
 - Logger configured via `Logger.setLogFilePath()` before use
 - Follow `.cursor/rules/documentation.mdc` guidelines (prefer executable clarity over prose)
+
+## Component Organization
+
+**components/ui/** - shadcn/ui base components
+
+**components/shell/** - Application shell:
+- `AppShell.tsx` - Root layout wrapper
+- `DashboardShell.tsx` - Dockview-based dashboard
+- `CommandPalette.tsx` - Keyboard shortcut command palette
+- `panels/` - Dockview panel components
+
+**components/dashboard/** - Dashboard-specific:
+- `DashboardHeader.tsx` - Top navigation
+- `AdminSidebar.tsx` - Settings sidebar
+- `EventLog.tsx` - Real-time event display
+- `MacrosBar.tsx` - Macro buttons
+- `cards/` - Dashboard card widgets
+- `widgets/` - Widget system components
+
+**components/presenter/** - Presenter interface:
+- `PresenterShell.tsx` - Dockview presenter layout
+- `CueCard.tsx` - Individual cue display
+- `panels/` - Presenter panels (cue feed, VDO.Ninja, chat)
+
+**components/overlays/** - Overlay renderers:
+- `LowerThirdRenderer.tsx` - Lower third display
+- `CountdownDisplay.tsx` - Countdown timer
+- `PosterDisplay.tsx` - Theatre poster
+- `ChatHighlightRenderer.tsx` - Chat highlight
+- `QuizRenderer.tsx` - Quiz display
+
+**components/quiz/** - Quiz system:
+- `host/` - Host control panel components
+- `manage/` - Question editor components
+- `Quiz*.tsx` - Quiz display components
+
+**components/assets/** - Asset management:
+- `GuestManager.tsx`, `GuestCard.tsx`
+- `PosterManager.tsx`, `PosterCard.tsx`
+- `ThemeManager.tsx`
+- Image uploaders and croppers
+
+**components/settings/** - Settings forms:
+- `GeneralSettings.tsx`, `OBSSettings.tsx`
+- `PathSettings.tsx`, `PluginSettings.tsx`
+- `RoomSettings.tsx`, `IntegrationSettings.tsx`
+
+**components/theme-editor/** - Theme editing:
+- `ThemeEditor.tsx` - Main editor with canvas
+- `ThemeList.tsx`, `ThemeCard.tsx`
+
+**components/profiles/** - Profile management:
+- `ProfileManager.tsx`

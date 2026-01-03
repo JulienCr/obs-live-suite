@@ -1,0 +1,8 @@
+<svg width="144" height="144" viewBox="0 0 144 144" xmlns="http://www.w3.org/2000/svg">
+  <rect width="144" height="144" fill="#1a1a1a"/>
+  <!-- Octagon stop sign shape -->
+  <polygon points="72,18 109,35 126,72 109,109 72,126 35,109 18,72 35,35" fill="#dc2626" stroke="#b91c1c" stroke-width="3"/>
+  <!-- X symbol -->
+  <line x1="50" y1="50" x2="94" y2="94" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+  <line x1="94" y1="50" x2="50" y2="94" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+</svg>

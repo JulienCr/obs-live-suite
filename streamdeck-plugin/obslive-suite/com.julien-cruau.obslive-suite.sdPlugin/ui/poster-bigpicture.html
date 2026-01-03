@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Poster Bigpicture</title>
+	<link rel="stylesheet" href="shared-styles.css">
+</head>
+<body>
+	<div class="sdpi-wrapper">
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Poster</div>
+			<select class="sdpi-item-value" id="posterId">
+				<option value="">Loading posters...</option>
+			</select>
+		</div>
+
+		<div class="sdpi-item">
+			<button class="sdpi-item-value" id="refreshBtn">Refresh Poster List</button>
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label info-text">
+				Display a poster in fullscreen mode. Press again to hide.
+			</div>
+		</div>
+	</div>
+
+	<script>
+		let websocket = null;
+		let uuid = null;
+		let actionInfo = {};
+		let settings = {};
+
+		function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
+			uuid = inUUID;
+			actionInfo = JSON.parse(inActionInfo);
+			settings = actionInfo.payload.settings || {};
+
+			websocket = new WebSocket('ws://127.0.0.1:' + inPort);
+
+			websocket.onopen = function () {
+				websocket.send(JSON.stringify({
+					event: inRegisterEvent,
+					uuid: uuid
+				}));
+				loadSettings();
+				requestPosterList();
+			};
+
+			websocket.onmessage = function (evt) {
+				const jsonObj = JSON.parse(evt.data);
+				if (jsonObj.event === 'sendToPropertyInspector') {
+					handlePluginMessage(jsonObj.payload);
+				}
+			};
+		}
+
+		function loadSettings() {
+			document.getElementById('posterId').value = settings.posterId || '';
+		}
+
+		function handlePluginMessage(payload) {
+			if (payload.event === 'postersList') {
+				populatePosters(payload.posters || []);
+			} else if (payload.event === 'apiError') {
+				showError(payload.message);
+			}
+		}
+
+		function showError(message) {
+			const select = document.getElementById('posterId');
+			select.innerHTML = `<option value="">Error: ${message}</option>`;
+		}
+
+		function populatePosters(posters) {
+			const select = document.getElementById('posterId');
+			const savedValue = settings.posterId || '';
+
+			select.innerHTML = '<option value="">Select a poster...</option>';
+
+			posters.forEach(poster => {
+				const option = document.createElement('option');
+				option.value = poster.id;
+				option.textContent = poster.title + ` (${poster.type})`;
+				select.appendChild(option);
+			});
+
+			select.value = savedValue;
+		}
+
+		function requestPosterList() {
+			sendToPlugin({ event: 'refreshPosters' });
+		}
+
+		function sendToPlugin(payload) {
+			if (websocket && websocket.readyState === 1) {
+				websocket.send(JSON.stringify({
+					action: actionInfo.action,
+					event: 'sendToPlugin',
+					context: uuid,
+					payload: payload
+				}));
+			}
+		}
+
+		function saveSettings() {
+			if (websocket && websocket.readyState === 1) {
+				const payload = {
+					posterId: document.getElementById('posterId').value
+				};
+
+				websocket.send(JSON.stringify({
+					action: actionInfo.action,
+					event: 'setSettings',
+					context: uuid,
+					payload: payload
+				}));
+			}
+		}
+
+		document.addEventListener('DOMContentLoaded', function () {
+			document.getElementById('posterId').addEventListener('change', saveSettings);
+			document.getElementById('refreshBtn').addEventListener('click', requestPosterList);
+		});
+	</script>
+</body>
+</html>

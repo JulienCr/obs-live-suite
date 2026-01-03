@@ -1,68 +1,40 @@
 "use client";
 
-import { useMemo } from "react";
-import { useTheme } from "next-themes";
+import { useEffect } from "react";
 import { usePanelColors } from "./PanelColorsContext";
-import type { DbPanelColor } from "@/lib/models/Database";
+import { COLOR_SCHEMES } from "@/lib/models/PanelColor";
 
 /**
- * Generate CSS rules for a single panel's colors
- */
-function generatePanelCSS(panelId: string, colors: DbPanelColor, isDark: boolean): string {
-  const bg = isDark ? colors.darkBackground : colors.lightBackground;
-  const header = isDark ? colors.darkHeader : colors.lightHeader;
-
-  let css = "";
-
-  // Panel content background
-  if (bg) {
-    css += `[data-panel-id="${panelId}"] { background-color: ${bg} !important; }\n`;
-  }
-
-  // Panel tab/header background
-  // Dockview uses data-dv-panel-id attribute on tabs
-  if (header) {
-    css += `.dv-tab[data-panel-id="${panelId}"] { background-color: ${header} !important; }\n`;
-    css += `.dv-tab[data-panel-id="${panelId}"].dv-tab-active { background-color: ${header} !important; }\n`;
-  }
-
-  return css;
-}
-
-/**
- * Component that injects dynamic CSS for panel colors
- * Renders a <style> element with rules targeting panel IDs
+ * Component that applies color scheme classes to panel DOM elements.
+ * Uses useEffect to add/remove `panel-scheme-{scheme}` classes on elements
+ * matching `[data-panel-id]`, enabling CSS variable overrides for theming.
  */
 export function PanelColorStyles() {
   const { colors } = usePanelColors();
-  const { theme, systemTheme } = useTheme();
 
-  // Determine if we're in dark mode
-  const isDark = theme === "dark" || (theme === "system" && systemTheme === "dark");
+  // Apply color schemes to all panel elements when colors change
+  useEffect(() => {
+    const allPanelElements = document.querySelectorAll("[data-panel-id]");
 
-  // Generate all CSS rules
-  const cssContent = useMemo(() => {
-    const rules: string[] = [];
+    allPanelElements.forEach((element) => {
+      const panelId = element.getAttribute("data-panel-id");
+      if (!panelId) return;
 
-    for (const [panelId, panelColors] of Object.entries(colors)) {
-      const panelCSS = generatePanelCSS(panelId, panelColors, isDark);
-      if (panelCSS) {
-        rules.push(panelCSS);
+      const panelColor = colors[panelId];
+      const scheme = panelColor?.scheme ?? "neutral";
+
+      // Remove all scheme classes first
+      COLOR_SCHEMES.forEach((s) => {
+        element.classList.remove(`panel-scheme-${s}`);
+      });
+
+      // Add the correct scheme class
+      if (scheme !== "neutral") {
+        element.classList.add(`panel-scheme-${scheme}`);
       }
-    }
+    });
+  }, [colors]);
 
-    return rules.join("\n");
-  }, [colors, isDark]);
-
-  // Only render if there are custom colors
-  if (!cssContent) {
-    return null;
-  }
-
-  return (
-    <style
-      id="panel-color-styles"
-      dangerouslySetInnerHTML={{ __html: cssContent }}
-    />
-  );
+  // This component doesn't render anything - it just manages classes
+  return null;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Eye, Lock, CheckCircle, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,8 @@ export function QuizHostTopBar({
   canGoNext,
   scorePanelVisible = true,
 }: TopBarProps) {
+  const t = useTranslations("quiz.host");
+
   return (
     <div className="border-b bg-white px-4 py-3 flex items-center gap-3">
       <Button
@@ -38,7 +41,7 @@ export function QuizHostTopBar({
         disabled={!canGoPrev}
       >
         <ChevronLeft className="w-4 h-4 mr-1" />
-        Prev Question
+        {t("prevQuestion")}
       </Button>
 
       <div className="h-6 w-px bg-gray-300" />
@@ -51,7 +54,7 @@ export function QuizHostTopBar({
         className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
       >
         <Eye className="w-4 h-4 mr-1" />
-        Show Question
+        {t("showQuestion")}
       </Button>
 
       <Button
@@ -62,7 +65,7 @@ export function QuizHostTopBar({
         className="bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50"
       >
         <Lock className="w-4 h-4 mr-1" />
-        Lock Answers
+        {t("lockAnswers")}
       </Button>
 
       <Button
@@ -74,7 +77,7 @@ export function QuizHostTopBar({
         title={phase === "accept_answers" ? "Lock first or force reveal" : ""}
       >
         <CheckCircle className="w-4 h-4 mr-1" />
-        Reveal Answer
+        {t("revealAnswer")}
       </Button>
 
       <div className="h-6 w-px bg-gray-300" />
@@ -85,7 +88,7 @@ export function QuizHostTopBar({
         onClick={onNextQuestion}
         disabled={!canGoNext}
       >
-        Next Question
+        {t("nextQuestion")}
         <ChevronRight className="w-4 h-4 ml-1" />
       </Button>
 
@@ -95,14 +98,14 @@ export function QuizHostTopBar({
         size="sm"
         variant={scorePanelVisible ? "default" : "outline"}
         onClick={onToggleScorePanel}
-        title={scorePanelVisible ? "Hide score panel" : "Show score panel"}
+        title={scorePanelVisible ? t("hideScores") : t("showScores")}
       >
         <BarChart3 className="w-4 h-4 mr-1" />
-        {scorePanelVisible ? "Hide Scores" : "Show Scores"}
+        {scorePanelVisible ? t("hideScores") : t("showScores")}
       </Button>
 
       <div className="ml-auto flex items-center gap-2">
-        <span className="text-sm text-gray-600">Phase:</span>
+        <span className="text-sm text-gray-600">{t("phase")}:</span>
         <span
           className={cn(
             "px-2 py-1 text-xs font-semibold rounded",
@@ -113,13 +116,13 @@ export function QuizHostTopBar({
             phase === "score_update" && "bg-purple-100 text-purple-700"
           )}
         >
-          {phase === "idle" && "Idle"}
-          {phase === "show_question" && "Showing"}
-          {phase === "accept_answers" && "Accepting"}
-          {phase === "lock" && "Locked"}
-          {phase === "reveal" && "Revealed"}
-          {phase === "score_update" && "Scoring"}
-          {phase === "interstitial" && "Interstitial"}
+          {phase === "idle" && t("phases.idle")}
+          {phase === "show_question" && t("phases.showing")}
+          {phase === "accept_answers" && t("phases.accepting")}
+          {phase === "lock" && t("phases.locked")}
+          {phase === "reveal" && t("phases.revealed")}
+          {phase === "score_update" && t("phases.scoring")}
+          {phase === "interstitial" && t("phases.interstitial")}
         </span>
       </div>
     </div>

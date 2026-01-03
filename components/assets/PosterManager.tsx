@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +23,7 @@ interface Poster {
   fileUrl: string;
   type: "image" | "video" | "youtube";
   tags: string[];
+  chatMessage?: string;
   isEnabled?: boolean;
   createdAt?: string;
 }
@@ -30,6 +32,8 @@ interface Poster {
  * Poster management component with virtualized grids and advanced filters
  */
 export function PosterManager() {
+  const t = useTranslations("assets.posters");
+  const tCommon = useTranslations("common");
   const [posters, setPosters] = useState<Poster[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUploader, setShowUploader] = useState(false);
@@ -53,6 +57,7 @@ export function PosterManager() {
     fileUrl: "",
     type: "image" as "image" | "video" | "youtube",
     tags: [] as string[],
+    chatMessage: "",
   });
   // Track selected poster IDs for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -187,6 +192,7 @@ export function PosterManager() {
       fileUrl: poster.fileUrl,
       type: poster.type,
       tags: poster.tags,
+      chatMessage: poster.chatMessage || "",
     });
     setShowForm(true);
     setShowUploader(false);
@@ -233,7 +239,7 @@ export function PosterManager() {
     setShowUploader(false);
     setShowImageReplacer(false);
     setShowImageReplacer(false);
-    setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [] });
+    setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [], chatMessage: "" });
   };
 
   const handleToggleEnabled = async (poster: Poster) => {
@@ -326,7 +332,7 @@ export function PosterManager() {
   };
 
   if (loading) {
-    return <div>Loading posters...</div>;
+    return <div>{tCommon("loading")}</div>;
   }
 
   return (
@@ -336,7 +342,7 @@ export function PosterManager() {
         <div>
           <h2 className="text-2xl font-semibold flex items-center gap-2">
             <Upload className="w-6 h-6" />
-            Posters
+            {t("title")}
           </h2>
           <div className="flex items-center gap-3 mt-1">
             <p className="text-sm text-muted-foreground">
@@ -344,10 +350,10 @@ export function PosterManager() {
             </p>
             <div className="flex gap-2">
               <Badge variant="outline" className="text-xs">
-                {getTypeIcon("image")} {stats.byType.image} images
+                {getTypeIcon("image")} {stats.byType.image} {t("images").toLowerCase()}
               </Badge>
               <Badge variant="outline" className="text-xs">
-                {getTypeIcon("video")} {stats.byType.video} videos
+                {getTypeIcon("video")} {stats.byType.video} {t("videos").toLowerCase()}
               </Badge>
               <Badge variant="outline" className="text-xs">
                 {getTypeIcon("youtube")} {stats.byType.youtube} youtube
@@ -360,18 +366,18 @@ export function PosterManager() {
             setEditingId(null);
             setShowForm(false);
             setShowImageReplacer(false);
-            setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [] });
+            setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [], chatMessage: "" });
             setShowUploader(true);
           }}
         >
           <Plus className="w-4 h-4 mr-2" />
-          Add Poster
+          {t("addPoster")}
         </Button>
       </div>
 
       {/* Search Combobox - Enable Disabled Posters */}
       <div className="space-y-2">
-        <Label htmlFor="poster-search">Enable a Poster</Label>
+        <Label htmlFor="poster-search">{t("enablePoster")}</Label>
         <Popover open={searchOpen} onOpenChange={setSearchOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -381,7 +387,7 @@ export function PosterManager() {
               className="w-full justify-between"
             >
               <span className="text-muted-foreground">
-                Search to enable a disabled poster...
+                {t("searchToEnable")}
               </span>
               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
@@ -389,13 +395,13 @@ export function PosterManager() {
           <PopoverContent className="w-full p-0" align="start">
             <Command shouldFilter={false}>
               <CommandInput
-                placeholder="Search by title or tags..."
+                placeholder={t("searchByTitleTags")}
                 value={searchValue}
                 onValueChange={setSearchValue}
               />
               <CommandList>
-                <CommandEmpty>No posters found.</CommandEmpty>
-                <CommandGroup heading="Posters">
+                <CommandEmpty>{t("noPostersFound")}</CommandEmpty>
+                <CommandGroup heading={t("title")}>
                   {filteredPostersForSearch.map((poster) => (
                     <CommandItem
                       key={poster.id}
@@ -440,7 +446,7 @@ export function PosterManager() {
                         </div>
                       </div>
                       <Badge variant={poster.isEnabled !== false ? "default" : "secondary"} className="text-xs">
-                        {poster.isEnabled !== false ? "Active" : "Disabled"}
+                        {poster.isEnabled !== false ? t("active") : t("disabled")}
                       </Badge>
                     </CommandItem>
                   ))}
@@ -455,7 +461,7 @@ export function PosterManager() {
       <div className="flex gap-3 flex-wrap">
         <div className="flex-1 min-w-[200px]">
           <Input
-            placeholder="Search by title..."
+            placeholder={t("searchByTitle")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -465,7 +471,7 @@ export function PosterManager() {
             value={selectedTags}
             onChange={setSelectedTags}
             suggestions={tagSuggestions}
-            placeholder="Filter by tags..."
+            placeholder={t("filterByTags")}
           />
         </div>
         <div className="w-36">
@@ -474,10 +480,10 @@ export function PosterManager() {
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="image">Images</SelectItem>
-              <SelectItem value="video">Videos</SelectItem>
-              <SelectItem value="youtube">YouTube</SelectItem>
+              <SelectItem value="all">{t("allTypes")}</SelectItem>
+              <SelectItem value="image">{t("images")}</SelectItem>
+              <SelectItem value="video">{t("videos")}</SelectItem>
+              <SelectItem value="youtube">{t("youtube")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -490,7 +496,7 @@ export function PosterManager() {
               setTypeFilter("all");
             }}
           >
-            Clear Filters
+            {t("clearFilters")}
           </Button>
         )}
       </div>
@@ -498,7 +504,7 @@ export function PosterManager() {
       {/* Results Count */}
       {filteredEnabledPosters.length !== enabledPosters.length && (
         <div className="text-sm text-muted-foreground">
-          Showing {filteredEnabledPosters.length} of {enabledPosters.length} active posters
+          {t("showingOf", { count: filteredEnabledPosters.length, total: enabledPosters.length })}
         </div>
       )}
 
@@ -514,13 +520,13 @@ export function PosterManager() {
       {showForm && formData.fileUrl && (
         <div className="border rounded-lg p-4 space-y-4">
           <h3 className="font-medium text-lg">
-            {editingId ? "Edit Poster" : "Upload Poster"}
+            {editingId ? t("editPoster") : t("uploadPoster")}
           </h3>
 
           {/* Current Image Preview (Edit Mode Only) */}
           {editingId && !showImageReplacer && (
             <div className="space-y-2">
-              <Label>Current Media</Label>
+              <Label>{t("currentMedia")}</Label>
               <div className="border rounded-lg overflow-hidden bg-muted">
                 <div className="aspect-video relative">
                   {formData.type === "image" ? (
@@ -552,7 +558,7 @@ export function PosterManager() {
                 onClick={() => setShowImageReplacer(true)}
               >
                 <Upload className="w-3 h-3 mr-2" />
-                Change Media
+                {t("changeMedia")}
               </Button>
             </div>
           )}
@@ -560,7 +566,7 @@ export function PosterManager() {
           {/* Image Replacer (Edit Mode Only) */}
           {editingId && showImageReplacer && (
             <div className="space-y-2">
-              <Label>Upload New Media</Label>
+              <Label>{t("uploadNewMedia")}</Label>
               <PosterUploader
                 onUpload={handleUploadComplete}
                 onCancel={() => setShowImageReplacer(false)}
@@ -579,53 +585,67 @@ export function PosterManager() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="title">Poster Title</Label>
+            <Label htmlFor="title">{t("posterTitle")}</Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Enter a title for this poster"
+              placeholder={t("titlePlaceholder")}
               autoFocus
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="source">Source (Optional)</Label>
+              <Label htmlFor="source">{t("source")}</Label>
               <Input
                 id="source"
                 value={formData.source}
                 onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                placeholder="Owner | Title"
+                placeholder={t("sourcePlaceholder")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
+              <Label htmlFor="description">{t("description")}</Label>
               <Input
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Free text description"
+                placeholder={t("descriptionPlaceholder")}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tags">Tags</Label>
+            <Label htmlFor="tags">{t("tags")}</Label>
             <TagInput
               value={formData.tags}
               onChange={(tags) => setFormData({ ...formData, tags })}
               suggestions={tagSuggestions}
-              placeholder="Add tags..."
+              placeholder={t("tagsPlaceholder")}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="chatMessage">{t("chatMessage")}</Label>
+            <Input
+              id="chatMessage"
+              value={formData.chatMessage}
+              onChange={(e) => setFormData({ ...formData, chatMessage: e.target.value })}
+              placeholder={t("chatMessagePlaceholder")}
+              maxLength={500}
+            />
+            <p className="text-xs text-muted-foreground">
+              {formData.chatMessage.length}/500
+            </p>
           </div>
 
           <div className="flex gap-2">
             <Button onClick={handleSubmit} disabled={!formData.title}>
-              {editingId ? "Update Poster" : "Save Poster"}
+              {editingId ? t("updatePoster") : t("savePoster")}
             </Button>
             <Button variant="outline" onClick={resetForm}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
           </div>
         </div>
@@ -634,7 +654,7 @@ export function PosterManager() {
       {/* Active Posters Grid */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Active Posters</h3>
+          <h3 className="text-lg font-medium">{t("activePosters")}</h3>
           <Badge variant="default">{filteredEnabledPosters.length}</Badge>
         </div>
 
@@ -643,13 +663,13 @@ export function PosterManager() {
             <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">
               {enabledPosters.length === 0
-                ? "No active posters"
-                : "No posters match your filters"}
+                ? t("noActivePosters")
+                : t("noMatchFilters")}
             </p>
             <p className="text-sm text-muted-foreground">
               {enabledPosters.length === 0
-                ? "Add a poster or enable one using the search above"
-                : "Try adjusting your search or filters"}
+                ? t("addOrEnable")
+                : t("adjustFilters")}
             </p>
           </div>
         ) : (
@@ -675,7 +695,7 @@ export function PosterManager() {
             className="w-full justify-between"
           >
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-medium">Disabled Posters</h3>
+              <h3 className="text-lg font-medium">{t("disabledPosters")}</h3>
               <Badge variant="secondary">{disabledPosters.length}</Badge>
             </div>
             {showDisabled ? (
@@ -707,7 +727,7 @@ export function PosterManager() {
                         flex items-center gap-4 min-w-[400px]">
           <div className="flex-1">
             <p className="font-medium">
-              {selectedIds.size} poster{selectedIds.size !== 1 ? 's' : ''} selected
+              {t("postersSelected", { count: selectedIds.size })}
             </p>
           </div>
           <Button
@@ -715,7 +735,7 @@ export function PosterManager() {
             onClick={handleClearSelection}
             disabled={isBulkDeleting}
           >
-            Clear
+            {t("clear")}
           </Button>
           <Button
             variant="destructive"
@@ -725,12 +745,12 @@ export function PosterManager() {
             {isBulkDeleting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Deleting...
+                {t("deleting")}
               </>
             ) : (
               <>
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete
+                {tCommon("delete")}
               </>
             )}
           </Button>

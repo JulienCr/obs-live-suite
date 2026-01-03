@@ -128,7 +128,7 @@ export function ThemeManager() {
     });
   };
 
-  const handleSave = async () => {
+  const handleSave = async (data: Partial<CreateThemeInput>) => {
     try {
       setError(null);
 
@@ -136,23 +136,23 @@ export function ThemeManager() {
         const response = await fetch("/api/themes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(data),
         });
 
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to create theme");
+          const responseData = await response.json();
+          throw new Error(responseData.error || "Failed to create theme");
         }
       } else if (editingTheme) {
         const response = await fetch(`/api/themes/${editingTheme.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(data),
         });
 
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to update theme");
+          const responseData = await response.json();
+          throw new Error(responseData.error || "Failed to update theme");
         }
       }
 

@@ -1,5 +1,6 @@
 import { type IDockviewPanelProps } from "dockview-react";
 import { useEffect, useState, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Zap } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
@@ -18,6 +19,8 @@ interface Guest {
  * Guests panel for Dockview - displays guests without Card wrapper
  */
 export function GuestsPanel(props: IDockviewPanelProps) {
+  const t = useTranslations("dashboard.guests");
+  const tCommon = useTranslations("common");
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeGuestId, setActiveGuestId] = useState<string | null>(null);
@@ -152,10 +155,10 @@ export function GuestsPanel(props: IDockviewPanelProps) {
     <PanelColorMenu panelId="guests">
       <div data-panel-id="guests" style={{ padding: "1rem", height: "100%", overflow: "auto" }}>
         {loading ? (
-        <div className="text-sm text-muted-foreground">Loading...</div>
+        <div className="text-sm text-muted-foreground">{tCommon("loading")}</div>
       ) : guests.length === 0 ? (
         <div className="text-sm text-muted-foreground text-center py-4">
-          No guests yet. Add guests in Assets.
+          {t("noGuests")}
         </div>
       ) : (
         <div 
@@ -177,7 +180,7 @@ export function GuestsPanel(props: IDockviewPanelProps) {
                     : "border-transparent hover:bg-muted/50"
                 )}
                 onClick={() => handleQuickLowerThird(guest)}
-                title={`Show ${guest.displayName} lower third (Shortcut: ${index === 9 ? '0' : index + 1})`}
+                title={t("showLowerThirdTooltip", { name: guest.displayName, shortcut: index === 9 ? '0' : index + 1 })}
               >
                 <div className="w-5 h-5 rounded flex items-center justify-center bg-primary/10 text-primary text-xs font-bold flex-shrink-0">
                   {index === 9 ? '0' : index + 1}

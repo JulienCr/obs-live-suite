@@ -20,9 +20,36 @@ export const PANEL_IDS = [
 export type PanelId = (typeof PANEL_IDS)[number];
 
 /**
- * Hex color validation regex
+ * Color schemes available for panel customization
  */
-const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
+export const COLOR_SCHEMES = [
+  "neutral",
+  "red",
+  "blue",
+  "green",
+  "yellow",
+  "purple",
+  "orange",
+  "pink",
+  "cyan",
+] as const;
+
+export type ColorScheme = (typeof COLOR_SCHEMES)[number];
+
+/**
+ * Display names for color schemes in UI
+ */
+export const COLOR_SCHEME_DISPLAY_NAMES: Record<ColorScheme, string> = {
+  neutral: "Neutral",
+  red: "Red",
+  blue: "Blue",
+  green: "Green",
+  yellow: "Yellow",
+  purple: "Purple",
+  orange: "Orange",
+  pink: "Pink",
+  cyan: "Cyan",
+};
 
 /**
  * Zod schema for panel color configuration
@@ -30,10 +57,7 @@ const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
 export const panelColorSchema = z.object({
   id: z.string().uuid(),
   panelId: z.enum(PANEL_IDS),
-  lightBackground: z.string().regex(hexColorRegex).nullable(),
-  lightHeader: z.string().regex(hexColorRegex).nullable(),
-  darkBackground: z.string().regex(hexColorRegex).nullable(),
-  darkHeader: z.string().regex(hexColorRegex).nullable(),
+  scheme: z.enum(COLOR_SCHEMES).default("neutral"),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -44,10 +68,7 @@ export type PanelColor = z.infer<typeof panelColorSchema>;
  * Schema for creating/updating panel colors (partial, for API requests)
  */
 export const panelColorUpdateSchema = z.object({
-  lightBackground: z.string().regex(hexColorRegex).nullable().optional(),
-  lightHeader: z.string().regex(hexColorRegex).nullable().optional(),
-  darkBackground: z.string().regex(hexColorRegex).nullable().optional(),
-  darkHeader: z.string().regex(hexColorRegex).nullable().optional(),
+  scheme: z.enum(COLOR_SCHEMES).optional(),
 });
 
 export type PanelColorUpdate = z.infer<typeof panelColorUpdateSchema>;

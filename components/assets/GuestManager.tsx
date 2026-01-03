@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ interface Guest {
   subtitle?: string;
   accentColor: string;
   avatarUrl?: string;
+  chatMessage?: string;
   isEnabled: boolean;
   createdAt?: string;
 }
@@ -26,6 +28,8 @@ interface Guest {
  * Guest management component with virtualized grids and search
  */
 export function GuestManager() {
+  const t = useTranslations("assets.guests");
+  const tCommon = useTranslations("common");
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -38,6 +42,7 @@ export function GuestManager() {
     subtitle: "",
     accentColor: "#3b82f6",
     avatarUrl: "",
+    chatMessage: "",
   });
 
   useEffect(() => {
@@ -105,6 +110,7 @@ export function GuestManager() {
       subtitle: guest.subtitle || "",
       accentColor: guest.accentColor,
       avatarUrl: guest.avatarUrl || "",
+      chatMessage: guest.chatMessage || "",
     });
     setShowForm(true);
   };
@@ -121,6 +127,7 @@ export function GuestManager() {
       subtitle: "",
       accentColor: "#3b82f6",
       avatarUrl: "",
+      chatMessage: "",
     });
   };
 
@@ -196,7 +203,7 @@ export function GuestManager() {
   });
 
   if (loading) {
-    return <div>Loading guests...</div>;
+    return <div>{tCommon("loading")}</div>;
   }
 
   return (
@@ -206,11 +213,11 @@ export function GuestManager() {
         <div>
           <h2 className="text-2xl font-semibold flex items-center gap-2">
             <Users className="w-6 h-6" />
-            Guests
+            {t("title")}
           </h2>
           <div className="flex items-center gap-3 mt-1">
             <p className="text-sm text-muted-foreground">
-              {enabledGuests.length} active · {guests.length} total
+              {t("activeCount", { count: enabledGuests.length, total: guests.length })}
             </p>
           </div>
         </div>
@@ -220,13 +227,13 @@ export function GuestManager() {
           setShowForm(!showForm);
         }}>
           <Plus className="w-4 h-4 mr-2" />
-          Add Guest
+          {t("addGuest")}
         </Button>
       </div>
 
       {/* Search Bar - Enable Disabled Guests */}
       <div className="space-y-2">
-        <Label htmlFor="guest-search">Enable a Guest</Label>
+        <Label htmlFor="guest-search">{t("enableGuest")}</Label>
         <Popover open={searchOpen} onOpenChange={setSearchOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -236,7 +243,7 @@ export function GuestManager() {
               className="w-full justify-between"
             >
               <span className="text-muted-foreground">
-                Search to enable a disabled guest...
+                {t("searchToEnable")}
               </span>
               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
@@ -244,13 +251,13 @@ export function GuestManager() {
           <PopoverContent className="w-full p-0" align="start">
             <Command shouldFilter={false}>
               <CommandInput
-                placeholder="Search by name or subtitle..."
+                placeholder={t("searchByNameSubtitle")}
                 value={searchValue}
                 onValueChange={setSearchValue}
               />
               <CommandList>
-                <CommandEmpty>No guests found.</CommandEmpty>
-                <CommandGroup heading="Guests">
+                <CommandEmpty>{t("noGuestsFound")}</CommandEmpty>
+                <CommandGroup heading={t("title")}>
                   {filteredGuestsForSearch.map((guest) => (
                     <CommandItem
                       key={guest.id}
@@ -287,7 +294,7 @@ export function GuestManager() {
                         )}
                       </div>
                       <Badge variant={guest.isEnabled ? "default" : "secondary"} className="text-xs">
-                        {guest.isEnabled ? "Active" : "Disabled"}
+                        {guest.isEnabled ? t("active") : t("disabled")}
                       </Badge>
                     </CommandItem>
                   ))}
@@ -303,34 +310,34 @@ export function GuestManager() {
         <Alert>
           <AlertDescription>
             <div className="space-y-4 mt-2">
-              <h3 className="font-medium">{editingId ? "Edit Guest" : "Create Guest"}</h3>
-              
+              <h3 className="font-medium">{editingId ? t("editGuest") : t("createGuest")}</h3>
+
               <div className="space-y-2">
-                <Label htmlFor="displayName">Display Name</Label>
+                <Label htmlFor="displayName">{t("displayName")}</Label>
                 <Input
                   id="displayName"
                   value={formData.displayName}
                   onChange={(e) =>
                     setFormData({ ...formData, displayName: e.target.value })
                   }
-                  placeholder="John Doe"
+                  placeholder={t("displayNamePlaceholder")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="subtitle">Subtitle</Label>
+                <Label htmlFor="subtitle">{t("subtitle")}</Label>
                 <Input
                   id="subtitle"
                   value={formData.subtitle}
                   onChange={(e) =>
                     setFormData({ ...formData, subtitle: e.target.value })
                   }
-                  placeholder="CEO, Company Name"
+                  placeholder={t("subtitlePlaceholder")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="accentColor">Accent Color</Label>
+                <Label htmlFor="accentColor">{t("accentColor")}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="accentColor"
@@ -352,7 +359,7 @@ export function GuestManager() {
               </div>
 
               <div className="space-y-2">
-                <Label>Avatar (Optional)</Label>
+                <Label>{t("avatarOptional")}</Label>
                 <AvatarUploader
                   currentAvatar={formData.avatarUrl}
                   onUpload={(url) => setFormData({ ...formData, avatarUrl: url })}
@@ -360,15 +367,29 @@ export function GuestManager() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="chatMessage">{t("chatMessage")}</Label>
+                <Input
+                  id="chatMessage"
+                  value={formData.chatMessage}
+                  onChange={(e) => setFormData({ ...formData, chatMessage: e.target.value })}
+                  placeholder={t("chatMessagePlaceholder")}
+                  maxLength={500}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {formData.chatMessage.length}/500
+                </p>
+              </div>
+
               <div className="flex gap-2">
                 <Button
                   onClick={handleSubmit}
                   disabled={!formData.displayName}
                 >
-                  {editingId ? "Update Guest" : "Create Guest"}
+                  {editingId ? t("updateGuest") : t("createGuest")}
                 </Button>
                 <Button variant="outline" onClick={handleCancelEdit}>
-                  Cancel
+                  {tCommon("cancel")}
                 </Button>
               </div>
             </div>
@@ -379,16 +400,16 @@ export function GuestManager() {
       {/* Active Guests Grid */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Active Guests</h3>
+          <h3 className="text-lg font-medium">{t("activeGuests")}</h3>
           <Badge variant="default">{enabledGuests.length}</Badge>
         </div>
-        
+
         {enabledGuests.length === 0 ? (
           <div className="text-center py-12 border-2 border-dashed rounded-lg">
             <User className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No active guests</p>
+            <p className="text-muted-foreground">{t("noActiveGuests")}</p>
             <p className="text-sm text-muted-foreground">
-              Add a guest or enable one using the search above
+              {t("addOrEnable")}
             </p>
           </div>
         ) : (
@@ -412,7 +433,7 @@ export function GuestManager() {
             className="w-full justify-between"
           >
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-medium">Disabled Guests</h3>
+              <h3 className="text-lg font-medium">{t("disabledGuests")}</h3>
               <Badge variant="secondary">{disabledGuests.length}</Badge>
             </div>
             {showDisabled ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { UserPlus, Crown, Gift, Users, Coins, DollarSign, Sticker } from "lucide-react";
 import type { ChatMessage, ChatEventType } from "@/lib/models/StreamerbotChat";
@@ -11,9 +12,11 @@ interface ChatEventMessageProps {
 }
 
 export function ChatEventMessage({ message, compact }: ChatEventMessageProps) {
+  const t = useTranslations("presenter.events");
+  const tTiers = useTranslations("presenter.tiers");
   const { eventType, displayName, metadata, platform } = message;
 
-  const eventConfig = getEventConfig(eventType, message);
+  const eventConfig = getEventConfig(eventType, message, t, tTiers);
 
   return (
     <div
@@ -32,64 +35,80 @@ export function ChatEventMessage({ message, compact }: ChatEventMessageProps) {
   );
 }
 
-function getEventConfig(eventType: ChatEventType, message: ChatMessage) {
+function getEventConfig(
+  eventType: ChatEventType,
+  message: ChatMessage,
+  t: (key: string, params?: Record<string, string | number>) => string,
+  tTiers: (key: string) => string
+) {
   const { metadata } = message;
+
+  const getTierText = (tier?: string): string | null => {
+    switch (tier) {
+      case "2000":
+        return tTiers("tier2");
+      case "3000":
+        return tTiers("tier3");
+      default:
+        return null;
+    }
+  };
 
   switch (eventType) {
     case "follow":
       return {
         Icon: UserPlus,
         bgClass: "bg-green-500/20 text-green-400",
-        text: "just followed!",
+        text: t("justFollowed"),
         detail: null,
       };
     case "sub":
       return {
         Icon: Crown,
         bgClass: "bg-purple-500/20 text-purple-400",
-        text: message.platform === "youtube" ? "became a member!" : "subscribed!",
+        text: message.platform === "youtube" ? t("becameMember") : t("subscribed"),
         detail: getTierText(metadata?.subscriptionTier),
       };
     case "resub":
       return {
         Icon: Crown,
         bgClass: "bg-purple-500/20 text-purple-400",
-        text: `resubscribed for ${metadata?.monthsSubscribed || "?"} months!`,
+        text: t("resubscribed", { months: metadata?.monthsSubscribed || "?" }),
         detail: getTierText(metadata?.subscriptionTier),
       };
     case "giftsub":
       return {
         Icon: Gift,
         bgClass: "bg-pink-500/20 text-pink-400",
-        text: "gifted a sub!",
+        text: t("giftedSub"),
         detail: null,
       };
     case "raid":
       return {
         Icon: Users,
         bgClass: "bg-orange-500/20 text-orange-400",
-        text: "is raiding with",
-        detail: `${metadata?.eventData?.viewers || "?"} viewers!`,
+        text: t("raiding"),
+        detail: t("viewers", { count: String(metadata?.eventData?.viewers || "?") }),
       };
     case "cheer":
       return {
         Icon: Coins,
         bgClass: "bg-yellow-500/20 text-yellow-400",
-        text: "cheered",
-        detail: `${metadata?.eventData?.bits || "?"} bits!`,
+        text: t("cheered"),
+        detail: t("bits", { count: String(metadata?.eventData?.bits || "?") }),
       };
     case "superchat":
       return {
         Icon: DollarSign,
         bgClass: "bg-blue-500/20 text-blue-400",
-        text: "sent",
+        text: t("sent"),
         detail: `${metadata?.eventData?.currency || "$"}${metadata?.eventData?.amount || "?"}!`,
       };
     case "supersticker":
       return {
         Icon: Sticker,
         bgClass: "bg-blue-500/20 text-blue-400",
-        text: "sent a Super Sticker for",
+        text: t("sentSuperSticker"),
         detail: `${metadata?.eventData?.currency || "$"}${metadata?.eventData?.amount || "?"}!`,
       };
     default:
@@ -99,16 +118,5 @@ function getEventConfig(eventType: ChatEventType, message: ChatMessage) {
         text: "",
         detail: null,
       };
-  }
-}
-
-function getTierText(tier?: string): string | null {
-  switch (tier) {
-    case "2000":
-      return "(Tier 2)";
-    case "3000":
-      return "(Tier 3)";
-    default:
-      return null;
   }
 }

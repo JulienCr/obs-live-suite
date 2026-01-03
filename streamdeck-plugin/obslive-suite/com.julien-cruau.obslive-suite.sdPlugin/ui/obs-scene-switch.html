@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Scene Switch</title>
+	<link rel="stylesheet" href="shared-styles.css">
+</head>
+<body>
+	<div class="sdpi-wrapper">
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Scene</div>
+			<select class="sdpi-item-value" id="sceneName">
+				<option value="">Loading scenes...</option>
+			</select>
+		</div>
+
+		<div class="sdpi-item">
+			<button class="sdpi-item-value" id="refreshBtn">Refresh Scene List</button>
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">OBS Password</div>
+			<input class="sdpi-item-value" type="password" id="obsPassword" placeholder="Leave empty if no password">
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label info-text">
+				Switch to the selected OBS scene. The button will highlight when this scene is active.
+			</div>
+		</div>
+	</div>
+
+	<script>
+		let websocket = null;
+		let uuid = null;
+		let actionInfo = {};
+		let settings = {};
+
+		function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
+			uuid = inUUID;
+			actionInfo = JSON.parse(inActionInfo);
+			settings = actionInfo.payload.settings || {};
+
+			websocket = new WebSocket('ws://127.0.0.1:' + inPort);
+
+			websocket.onopen = function () {
+				websocket.send(JSON.stringify({
+					event: inRegisterEvent,
+					uuid: uuid
+				}));
+				loadSettings();
+				requestScenesList();
+			};
+
+			websocket.onmessage = function (evt) {
+				const jsonObj = JSON.parse(evt.data);
+				if (jsonObj.event === 'sendToPropertyInspector') {
+					handlePluginMessage(jsonObj.payload);
+				}
+			};
+		}
+
+		function loadSettings() {
+			document.getElementById('sceneName').value = settings.sceneName || '';
+			document.getElementById('obsPassword').value = settings.obsPassword || '';
+		}
+
+		function handlePluginMessage(payload) {
+			if (payload.event === 'scenesList') {
+				populateScenes(payload.scenes || []);
+			} else if (payload.event === 'apiError') {
+				showError(payload.message);
+			}
+		}
+
+		function showError(message) {
+			const select = document.getElementById('sceneName');
+			select.innerHTML = `<option value="">Error: ${message}</option>`;
+		}
+
+		function populateScenes(scenes) {
+			const select = document.getElementById('sceneName');
+			const savedValue = settings.sceneName || '';
+
+			select.innerHTML = '<option value="">Select a scene...</option>';
+
+			scenes.forEach(sceneName => {
+				const option = document.createElement('option');
+				option.value = sceneName;
+				option.textContent = sceneName;
+				select.appendChild(option);
+			});
+
+			select.value = savedValue;
+		}
+
+		function requestScenesList() {
+			sendToPlugin({ event: 'refreshScenes' });
+		}
+
+		function sendToPlugin(payload) {
+			if (websocket && websocket.readyState === 1) {
+				websocket.send(JSON.stringify({
+					action: actionInfo.action,
+					event: 'sendToPlugin',
+					context: uuid,
+					payload: payload
+				}));
+			}
+		}
+
+		function saveSettings() {
+			if (websocket && websocket.readyState === 1) {
+				const payload = {
+					sceneName: document.getElementById('sceneName').value,
+					obsPassword: document.getElementById('obsPassword').value
+				};
+
+				websocket.send(JSON.stringify({
+					action: actionInfo.action,
+					event: 'setSettings',
+					context: uuid,
+					payload: payload
+				}));
+			}
+		}
+
+		document.addEventListener('DOMContentLoaded', function () {
+			document.getElementById('sceneName').addEventListener('change', saveSettings);
+			document.getElementById('obsPassword').addEventListener('change', saveSettings);
+			document.getElementById('refreshBtn').addEventListener('click', requestScenesList);
+		});
+	</script>
+</body>
+</html>

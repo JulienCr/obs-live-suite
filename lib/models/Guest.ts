@@ -9,6 +9,7 @@ export const guestSchema = z.object({
   subtitle: z.string().max(200).nullable().default(null),
   accentColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color").default("#3b82f6"),
   avatarUrl: z.string().nullable().default(null),
+  chatMessage: z.string().max(500).nullable().default(null),
   isEnabled: z.boolean().default(true),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),

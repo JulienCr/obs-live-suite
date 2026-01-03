@@ -23,6 +23,7 @@ export const posterSchema = z.object({
   tags: z.array(z.string()).default([]),
   profileIds: z.array(z.string().uuid()).default([]),
   metadata: z.record(z.unknown()).optional(),
+  chatMessage: z.string().max(500).nullable().default(null),
   isEnabled: z.boolean().default(true),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),

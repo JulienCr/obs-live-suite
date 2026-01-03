@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, DragEvent } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ImageCropper } from "./ImageCropper";
 import { Upload, Loader2, X } from "lucide-react";
@@ -15,6 +16,7 @@ interface AvatarUploaderProps {
  * Avatar uploader with cropping and preview for guest avatars
  */
 export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6" }: AvatarUploaderProps) {
+  const t = useTranslations("assets.avatar");
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(currentAvatar);
@@ -50,7 +52,7 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
   const uploadFile = async (file: File) => {
     // Validate it's an image
     if (!file.type.startsWith("image/")) {
-      alert("Please upload an image file");
+      alert(t("pleaseUploadImage"));
       return;
     }
 
@@ -78,7 +80,7 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
 
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Upload failed");
+        throw new Error(error.error || t("uploadFailed"));
       }
 
       const data = await res.json();
@@ -87,7 +89,7 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
       onUpload(data.url);
     } catch (error) {
       console.error("[AvatarUploader] Upload failed:", error);
-      alert(error instanceof Error ? error.message : "Upload failed");
+      alert(error instanceof Error ? error.message : t("uploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -118,7 +120,7 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
           {previewUrl ? (
             <img
               src={previewUrl}
-              alt="Avatar preview"
+              alt={t("avatarPreview")}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -144,15 +146,15 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
             {uploading ? (
               <div className="flex items-center justify-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Uploading...</p>
+                <p className="text-sm text-muted-foreground">{t("uploading")}</p>
               </div>
             ) : (
               <div>
                 <p className="text-sm font-medium mb-1">
-                  {previewUrl ? "Change Avatar" : "Upload Avatar"}
+                  {previewUrl ? t("changeAvatar") : t("uploadAvatar")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Drop image here or click to browse
+                  {t("dropOrBrowse")}
                 </p>
               </div>
             )}
@@ -174,7 +176,7 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
             size="icon"
             onClick={handleRemove}
             className="flex-shrink-0"
-            title="Remove avatar"
+            title={t("removeAvatar")}
           >
             <X className="w-4 h-4" />
           </Button>
