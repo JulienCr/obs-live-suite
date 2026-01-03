@@ -14,6 +14,7 @@ import {
   getMediaTypeFromUrl,
   getFilenameFromUrl,
 } from "@/lib/utils/urlDetection";
+import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 type MediaType = "image" | "video" | "youtube";
 type DisplayMode = "left" | "right" | "bigpicture";
@@ -155,13 +156,10 @@ export function PosterQuickAdd({
       let source = undefined;
 
       try {
-        const metadataRes = await fetch(`/api/utils/metadata?url=${encodeURIComponent(embedUrl)}`);
-        if (metadataRes.ok) {
-          const metadata = await metadataRes.json();
-          if (metadata.title) title = metadata.title;
-          if (metadata.author_name && metadata.title) {
-            source = `${metadata.author_name} | ${metadata.title}`;
-          }
+        const metadata = await apiGet<{ title?: string; author_name?: string }>(`/api/utils/metadata?url=${encodeURIComponent(embedUrl)}`);
+        if (metadata.title) title = metadata.title;
+        if (metadata.author_name && metadata.title) {
+          source = `${metadata.author_name} | ${metadata.title}`;
         }
       } catch (metadataError) {
         console.warn("Failed to fetch YouTube metadata:", metadataError);
@@ -198,18 +196,7 @@ export function PosterQuickAdd({
     setError(null);
 
     try {
-      const res = await fetch("/api/assets/download-upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to download media");
-      }
-
-      const data = await res.json();
+      const data = await apiPost<{ url: string; type: MediaType }>("/api/assets/download-upload", { url });
 
       // Auto-generate title from URL filename
       const title = getFilenameFromUrl(url);
@@ -223,7 +210,8 @@ export function PosterQuickAdd({
 
       setUrlInput(""); // Clear input
     } catch (err) {
-      showError(err instanceof Error ? err.message : "Failed to download and upload media");
+      const errorMessage = isClientFetchError(err) ? err.errorMessage : (err instanceof Error ? err.message : "Failed to download and upload media");
+      showError(errorMessage);
     } finally {
       setProcessing(false);
     }
@@ -321,29 +309,20 @@ export function PosterQuickAdd({
     if (isPickerMode) return null;
 
     try {
-      const res = await fetch("/api/assets/posters", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: preview.title,
-          description: "",
-          source: preview.source || "",
-          fileUrl: preview.fileUrl,
-          type: preview.type,
-          tags: [],
-          isEnabled: true,
-        }),
+      const data = await apiPost<{ poster: Poster }>("/api/assets/posters", {
+        title: preview.title,
+        description: "",
+        source: preview.source || "",
+        fileUrl: preview.fileUrl,
+        type: preview.type,
+        tags: [],
+        isEnabled: true,
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to create poster");
-      }
-
-      const data = await res.json();
       return data.poster;
     } catch (err) {
-      showError(err instanceof Error ? err.message : "Failed to create poster");
+      const errorMessage = isClientFetchError(err) ? err.errorMessage : (err instanceof Error ? err.message : "Failed to create poster");
+      showError(errorMessage);
       return null;
     }
   };

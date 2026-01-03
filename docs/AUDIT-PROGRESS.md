@@ -420,6 +420,22 @@
 
 ---
 
+## Batch 14: Final ClientFetch Cleanup ✅
+
+**Completed:** January 3, 2026
+
+| Task | Status | Files |
+|------|--------|-------|
+| Refactor remaining JSON fetch components | ✅ | 5 components |
+
+### Details
+
+- `PresenterShell.tsx`, `StreamerbotChatPanel.tsx`, `PanelColorsContext.tsx`
+- `PlayerSelector.tsx`, `PosterQuickAdd.tsx`
+- Remaining 20 fetch() calls are FormData uploads (intentionally unchanged)
+
+---
+
 ## Remaining Work
 
 ### Phase 1: Critical Fixes ✅
@@ -433,9 +449,9 @@
 - [x] Create payload type definitions with discriminated unions ✅
 - [x] Use exponential backoff for WebSocket reconnection (done in hook)
 
-### Phase 3: DRY Improvements (Nearly Complete)
+### Phase 3: DRY Improvements ✅
 - [x] Refactor components to use useWebSocketChannel hook (6/7 done)
-- [x] Refactor components to use ClientFetch utility (33 components done)
+- [x] Refactor components to use ClientFetch utility (38 components done)
 - [x] Refactor API routes to use ApiResponses helper (49 routes done)
 - [ ] Standardize proxy request patterns
 - [x] Create CardShell wrapper component ✅
@@ -454,10 +470,10 @@
 | Metric | Value |
 |--------|-------|
 | Files Created | 4 |
-| Files Modified | 96 |
+| Files Modified | 101 |
 | Critical Issues Fixed | 2/2 |
 | High Issues Fixed | 6/14 |
 | Quick Wins Completed | 6/6 |
 | API Routes Standardized | 49 |
-| Components using ClientFetch | 33 |
-| Lines Removed (boilerplate) | ~650 |
+| Components using ClientFetch | 38 |
+| Lines Removed (boilerplate) | ~700 |
