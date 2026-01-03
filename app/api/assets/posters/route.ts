@@ -1,54 +1,53 @@
-import { NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { posterSchema } from "@/lib/models/Poster";
 import { randomUUID } from "crypto";
+import {
+  ApiResponses,
+  withSimpleErrorHandler,
+} from "@/lib/utils/ApiResponses";
+
+const LOG_CONTEXT = "[PostersAPI]";
 
 /**
  * GET /api/assets/posters
  * List all posters
  */
-export async function GET() {
-  try {
-    const db = DatabaseService.getInstance();
-    const posters = db.getAllPosters();
+export const GET = withSimpleErrorHandler(async () => {
+  const db = DatabaseService.getInstance();
+  const posters = db.getAllPosters();
 
-    return NextResponse.json({ posters });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch posters" },
-      { status: 500 }
-    );
-  }
-}
+  return ApiResponses.ok({ posters });
+}, LOG_CONTEXT);
 
 /**
  * POST /api/assets/posters
  * Create a new poster
  */
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
+export const POST = withSimpleErrorHandler(async (request: Request) => {
+  const body = await request.json();
 
-    const poster = posterSchema.parse({
-      id: randomUUID(),
-      ...body,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+  const parseResult = posterSchema.safeParse({
+    id: randomUUID(),
+    ...body,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
 
-    const db = DatabaseService.getInstance();
-    db.createPoster({
-      ...poster,
-      description: poster.description || null,
-      source: poster.source || null,
-    });
-
-    return NextResponse.json({ poster }, { status: 201 });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to create poster" },
-      { status: 400 }
+  if (!parseResult.success) {
+    return ApiResponses.badRequest(
+      "Invalid poster data",
+      parseResult.error.flatten()
     );
   }
-}
+
+  const poster = parseResult.data;
+  const db = DatabaseService.getInstance();
+  db.createPoster({
+    ...poster,
+    description: poster.description || null,
+    source: poster.source || null,
+  });
+
+  return ApiResponses.created({ poster });
+}, LOG_CONTEXT);
 

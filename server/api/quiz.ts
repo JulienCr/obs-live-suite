@@ -2,6 +2,7 @@ import { Router } from "express";
 import { QuizManager } from "../../lib/services/QuizManager";
 import { QuizStore } from "../../lib/services/QuizStore";
 import { expressError } from "../../lib/utils/apiError";
+import { quizConfigSchema } from "../../lib/models/Quiz";
 
 const router = Router();
 const manager = QuizManager.getInstance();
@@ -192,8 +193,33 @@ router.post("/buzzer/release", async (_req, res) => {
 
 router.post("/config", async (req, res) => {
   try {
+    // Validate partial config update using quizConfigSchema.partial()
+    const partialConfigSchema = quizConfigSchema.partial();
+    const parseResult = partialConfigSchema.safeParse(req.body || {});
+
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: "Invalid config data",
+        details: parseResult.error.flatten().fieldErrors,
+      });
+    }
+
     const sess = store.getSession() || store.createDefaultSession();
-    sess.config = { ...sess.config, ...(req.body || {}) } as any;
+    // Deep merge for nested objects like time_defaults and viewers
+    const validatedData = parseResult.data;
+    sess.config = {
+      ...sess.config,
+      ...validatedData,
+      // Merge nested objects properly
+      time_defaults: {
+        ...sess.config.time_defaults,
+        ...(validatedData.time_defaults || {}),
+      },
+      viewers: {
+        ...sess.config.viewers,
+        ...(validatedData.viewers || {}),
+      },
+    };
     store.setSession(sess);
     res.json({ success: true, config: sess.config });
   } catch (error) {

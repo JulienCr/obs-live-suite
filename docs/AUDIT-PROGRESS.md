@@ -110,15 +110,53 @@
 
 ---
 
+## Batch 4: High Priority Fixes + More API Refactoring ✅
+
+**Completed:** January 3, 2026
+
+| Task | Status | File |
+|------|--------|------|
+| Replace console.error with Logger in QuizManager | ✅ | `lib/services/QuizManager.ts` |
+| Add quiz config schema validation | ✅ | `server/api/quiz.ts` |
+| Refactor poster API routes to use ApiResponses | ✅ | `app/api/assets/posters/route.ts`, `app/api/assets/posters/[id]/route.ts` |
+| Refactor profile API routes to use ApiResponses | ✅ | `app/api/profiles/route.ts`, `app/api/profiles/[id]/route.ts` |
+
+### Details
+
+**QuizManager Logger fix:**
+- Replaced 5 console.error calls with this.logger.error
+- Added method context to each error message (showCurrentQuestion, nextQuestion, prevQuestion, selectQuestion, resetQuestion)
+- Logger was already instantiated in constructor
+
+**Quiz config schema validation:**
+- Added Zod validation using `quizConfigSchema.partial()` for config updates
+- Returns HTTP 400 with detailed field errors if validation fails
+- Properly deep-merges nested objects (time_defaults, viewers)
+- Removed unsafe `as any` cast
+
+**Poster API routes refactoring:**
+- Replaced all NextResponse.json with ApiResponses helpers
+- Added withSimpleErrorHandler/withErrorHandler wrappers
+- Changed parse() to safeParse() for better validation errors
+- Added `[PostersAPI]` logging context
+
+**Profile API routes refactoring:**
+- Replaced all NextResponse.json with ApiResponses helpers
+- Added withErrorHandler wrappers with typed RouteContext
+- Proper ZodError handling with detailed error info
+- Added `[ProfilesAPI]` logging context
+
+---
+
 ## Remaining Work
 
-### Phase 1: Critical Fixes (Partially Done)
+### Phase 1: Critical Fixes ✅
 - [x] Add comprehensive types for WikipediaResolverService (Critical Issue 2) ✅
-- [ ] Validate quiz config against schema before applying
+- [x] Validate quiz config against schema before applying ✅
 
-### Phase 2: High Priority (Pending)
+### Phase 2: High Priority (Partially Done)
 - [ ] Implement scene item ID lookup in OBS API route
-- [ ] Replace console.error with Logger throughout
+- [x] Replace console.error with Logger in QuizManager ✅
 - [ ] Add error boundaries for async operations in quiz system
 - [ ] Create payload type definitions with discriminated unions
 - [x] Use exponential backoff for WebSocket reconnection (done in hook)
@@ -126,7 +164,7 @@
 ### Phase 3: DRY Improvements (Partially Done)
 - [x] Refactor components to use useWebSocketChannel hook (5/7 done)
 - [ ] Refactor components to use ClientFetch utility
-- [x] Refactor API routes to use ApiResponses helper (4 routes done)
+- [x] Refactor API routes to use ApiResponses helper (8 routes done)
 - [ ] Standardize proxy request patterns
 - [ ] Create CardShell wrapper component
 - [ ] Build presenter notification factory
@@ -144,8 +182,8 @@
 | Metric | Value |
 |--------|-------|
 | Files Created | 3 |
-| Files Modified | 12 |
+| Files Modified | 18 |
 | Critical Issues Fixed | 2/2 |
-| High Issues Fixed | 1/14 |
-| Quick Wins Completed | 4/6 |
+| High Issues Fixed | 3/14 |
+| Quick Wins Completed | 6/6 |
 | Lines Removed (boilerplate) | ~260 |
