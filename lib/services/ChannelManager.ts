@@ -2,6 +2,7 @@ import { WebSocketHub } from "./WebSocketHub";
 import { Logger } from "../utils/Logger";
 import { OverlayEvent, OverlayChannel, AckEvent, RoomEvent, RoomEventType } from "../models/OverlayEvents";
 import { randomUUID } from "crypto";
+import { WEBSOCKET } from "../config/Constants";
 
 /**
  * Room channel prefix for dynamic room channels
@@ -105,7 +106,7 @@ export class ChannelManager {
     const timeout = setTimeout(() => {
       this.pendingAcks.delete(eventId);
       this.logger.warn(`No ack received for event ${eventId} on channel ${channel}`);
-    }, 5000); // 5 second timeout
+    }, WEBSOCKET.ACK_TIMEOUT_MS);
 
     this.pendingAcks.set(eventId, timeout);
   }

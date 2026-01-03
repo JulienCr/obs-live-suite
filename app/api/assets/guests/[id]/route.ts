@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { updateGuestSchema } from "@/lib/models/Guest";
+import { ApiResponses } from "@/lib/utils/ApiResponses";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -39,13 +39,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     const guest = db.getGuestById(id);
     console.log("[PATCH Guest] Updated guest:", guest);
-    return NextResponse.json({ guest });
+    return ApiResponses.ok({ guest });
   } catch (error) {
     console.error("Guest update error:", error);
-    return NextResponse.json(
-      { error: "Failed to update guest" },
-      { status: 400 }
-    );
+    return ApiResponses.badRequest("Failed to update guest");
   }
 }
 
@@ -59,12 +56,9 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const db = DatabaseService.getInstance();
     db.deleteGuest(id);
 
-    return NextResponse.json({ success: true });
+    return ApiResponses.ok({ success: true });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to delete guest" },
-      { status: 500 }
-    );
+    return ApiResponses.serverError("Failed to delete guest");
   }
 }
 

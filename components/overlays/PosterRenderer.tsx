@@ -3,8 +3,14 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { PosterShowPayload } from "@/lib/models/OverlayEvents";
 import { PosterDisplay } from "./PosterDisplay";
-import { getWebSocketUrl } from "@/lib/utils/websocket";
+import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import "./poster.css";
+
+interface PosterEvent {
+  type: string;
+  payload?: PosterShowPayload & { time?: number };
+  id: string;
+}
 
 interface PosterData {
   fileUrl: string;
@@ -51,7 +57,6 @@ export function PosterRenderer() {
     isMuted: true,
   });
 
-  const ws = useRef<WebSocket | null>(null);
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const fadeOutTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const crossFadeTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -84,7 +89,10 @@ export function PosterRenderer() {
     });
   }, []);
 
-  const handleEvent = useCallback((data: { type: string; payload?: PosterShowPayload; id: string }) => {
+  // Store sendAck in a ref to avoid circular dependency with handleEvent
+  const sendAckRef = useRef<(eventId: string, success?: boolean) => void>(() => {});
+
+  const handleEvent = useCallback((data: PosterEvent) => {
     if (hideTimeout.current) {
       clearTimeout(hideTimeout.current);
     }
@@ -124,7 +132,7 @@ export function PosterRenderer() {
                 crossFadeTimeout.current = setTimeout(() => {
                   setState((s) => ({ ...s, previous: null }));
                 }, 500); // Match fade duration
-                
+
                 return {
                   visible: true,
                   hiding: false,
@@ -134,7 +142,7 @@ export function PosterRenderer() {
                   side: newPoster.side,
                 };
               }
-              
+
               // No current poster, just show the new one
               return {
                 visible: true,
@@ -171,7 +179,7 @@ export function PosterRenderer() {
             '*'
           );
         }
-        
+
         // Reset YouTube state
         youtubeStateRef.current = {
           currentTime: 0,
@@ -179,13 +187,13 @@ export function PosterRenderer() {
           isPlaying: false,
           isMuted: true,
         };
-        
+
         // Start fade out animation
         setState((prev) => ({ ...prev, hiding: true }));
         // After fade completes, fully hide and clean up
         fadeOutTimeout.current = setTimeout(() => {
           setState((prev) => ({ ...prev, visible: false, hiding: false, current: null, previous: null }));
-          
+
           // Clean up refs
           if (videoRef.current) {
             videoRef.current.src = '';
@@ -220,7 +228,7 @@ export function PosterRenderer() {
         setPlaybackState(prev => ({ ...prev, isPlaying: false }));
         break;
       case "seek":
-        const seekTime = (data.payload as any)?.time || 0;
+        const seekTime = data.payload?.time || 0;
         if (videoRef.current) {
           videoRef.current.currentTime = seekTime;
         }
@@ -261,92 +269,25 @@ export function PosterRenderer() {
         break;
     }
 
-    // Send acknowledgment
-    if (ws.current) {
-      ws.current.send(
-        JSON.stringify({
-          type: "ack",
-          eventId: data.id,
-          channel: "poster",
-          success: true,
-        })
-      );
-    }
-  }, []);
+    // Send acknowledgment via ref
+    sendAckRef.current(data.id);
+  }, [detectAspectRatio]);
 
+  // Use WebSocket channel hook
+  const { send, sendAck } = useWebSocketChannel<PosterEvent>(
+    "poster",
+    handleEvent,
+    { logPrefix: "Poster" }
+  );
+
+  // Keep sendAck ref updated
   useEffect(() => {
-    let reconnectTimeout: NodeJS.Timeout;
-    let isMounted = true;
+    sendAckRef.current = sendAck;
+  }, [sendAck]);
 
-    const connect = () => {
-      // Don't create new connection if component is unmounting
-      if (!isMounted) return;
-
-      // Close existing connection before creating new one
-      if (ws.current && (ws.current.readyState === WebSocket.OPEN || ws.current.readyState === WebSocket.CONNECTING)) {
-        try {
-          ws.current.close();
-        } catch {
-          // Ignore close errors
-        }
-      }
-
-      ws.current = new WebSocket(getWebSocketUrl());
-
-      ws.current.onopen = () => {
-        if (!isMounted) {
-          ws.current?.close();
-          return;
-        }
-        ws.current?.send(
-          JSON.stringify({
-            type: "subscribe",
-            channel: "poster",
-          })
-        );
-      };
-
-      const handleMessage = (event: MessageEvent) => {
-        if (!isMounted) return;
-        try {
-          const message = JSON.parse(event.data);
-          if (message.channel === "poster") {
-            handleEvent(message.data);
-          }
-        } catch (error) {
-          console.error("[Poster] Failed to parse message:", error);
-        }
-      };
-
-      ws.current.onmessage = handleMessage;
-
-      ws.current.onerror = (error) => {
-        console.error("[Poster] WebSocket error:", error);
-      };
-
-      ws.current.onclose = (event) => {
-        // Only auto-reconnect on unexpected disconnections
-        // Code 1000 = normal closure, 1001 = going away (page navigation)
-        if (isMounted && event.code !== 1000 && event.code !== 1001) {
-          reconnectTimeout = setTimeout(() => {
-            connect();
-          }, 3000);
-        }
-      };
-    };
-
-    connect();
-
+  // Cleanup timeouts on unmount
+  useEffect(() => {
     return () => {
-      isMounted = false;
-      clearTimeout(reconnectTimeout);
-      if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
-        try {
-          ws.current.close(1000, "Component unmounting");
-        } catch {
-          // Ignore close errors during cleanup
-        }
-      }
       if (hideTimeout.current) {
         clearTimeout(hideTimeout.current);
       }
@@ -357,7 +298,7 @@ export function PosterRenderer() {
         clearTimeout(crossFadeTimeout.current);
       }
     };
-  }, [handleEvent]);
+  }, []);
 
   // Send playback state updates for video/youtube
   useEffect(() => {
@@ -376,19 +317,17 @@ export function PosterRenderer() {
         // Update state and send to backend
         setPlaybackState({ currentTime, duration, isPlaying, isMuted });
 
-        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-          ws.current.send(JSON.stringify({
-            type: "state",
-            channel: "poster",
-            data: { currentTime, duration, isPlaying, isMuted }
-          }));
-        }
+        send({
+          type: "state",
+          channel: "poster",
+          data: { currentTime, duration, isPlaying, isMuted }
+        });
       }
       // For YouTube, state will be updated by message listener
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [state.current]);
+  }, [state.current, send]);
 
   // Listen to YouTube player messages and send state updates
   useEffect(() => {
@@ -401,24 +340,22 @@ export function PosterRenderer() {
 
     // Send initial state immediately
     setPlaybackState(currentYouTubeState);
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({
-        type: "state",
-        channel: "poster",
-        data: currentYouTubeState
-      }));
-    }
+    send({
+      type: "state",
+      channel: "poster",
+      data: currentYouTubeState
+    });
 
     const handleYouTubeMessage = (event: MessageEvent) => {
       // Only process messages from YouTube
       if (typeof event.data !== 'string') return;
-      
+
       try {
         const data = JSON.parse(event.data);
-        
+
         if (data.event === "onReady") {
           setYoutubePlayerReady(true);
-          
+
           // Subscribe to state changes
           if (youtubeRef.current) {
             youtubeRef.current.contentWindow?.postMessage(
@@ -428,7 +365,7 @@ export function PosterRenderer() {
           }
         } else if (data.event === "infoDelivery" && data.info) {
           const info = data.info;
-          
+
           // Update ref with real YouTube data
           if (info.currentTime !== undefined) youtubeStateRef.current.currentTime = info.currentTime;
           if (info.duration !== undefined) youtubeStateRef.current.duration = info.duration;
@@ -446,25 +383,23 @@ export function PosterRenderer() {
       if (youtubeStateRef.current.isPlaying) {
         youtubeStateRef.current.currentTime += 1;
       }
-      
+
       setPlaybackState({...youtubeStateRef.current});
 
-      if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-        ws.current.send(JSON.stringify({
-          type: "state",
-          channel: "poster",
-          data: youtubeStateRef.current
-        }));
-      }
+      send({
+        type: "state",
+        channel: "poster",
+        data: youtubeStateRef.current
+      });
     }, 1000);
 
     window.addEventListener("message", handleYouTubeMessage);
-    
+
     return () => {
       window.removeEventListener("message", handleYouTubeMessage);
       clearInterval(stateInterval);
     };
-  }, [state.current]);
+  }, [state.current, send]);
 
   if (!state.visible && !state.hiding) {
     return null;

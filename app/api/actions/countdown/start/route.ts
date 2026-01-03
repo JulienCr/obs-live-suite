@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BACKEND_URL } from "@/lib/config/urls";
+import { proxyToBackend } from "@/lib/utils/ProxyHelper";
 
 /**
  * POST /api/actions/countdown/start
@@ -28,17 +28,15 @@ export async function POST(request: NextRequest) {
     };
 
     // Set the countdown time with customization
-    await fetch(`${BACKEND_URL}/api/overlays/countdown`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'set', payload }),
+    await proxyToBackend("/api/overlays/countdown", {
+      method: "POST",
+      body: { action: "set", payload },
     });
-    
+
     // Start it
-    await fetch(`${BACKEND_URL}/api/overlays/countdown`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'start' }),
+    await proxyToBackend("/api/overlays/countdown", {
+      method: "POST",
+      body: { action: "start" },
     });
 
     return NextResponse.json({ success: true });

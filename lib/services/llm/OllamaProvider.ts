@@ -1,5 +1,10 @@
 import { LLMProvider } from "./LLMProvider";
 import { Logger } from "../../utils/Logger";
+import { buildSummarizationPrompt } from "./PromptTemplates";
+import {
+  fetchWithTimeout,
+  TimeoutError,
+} from "../../utils/fetchWithTimeout";
 
 /**
  * Ollama LLM Provider
@@ -45,11 +50,7 @@ export class OllamaProvider implements LLMProvider {
   async testConnection(): Promise<{ success: boolean; error?: string }> {
     try {
       const url = `${this.url}/api/tags`;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
+      const response = await fetchWithTimeout(url, { timeout: 5000 });
 
       if (!response.ok) {
         return {
@@ -80,28 +81,14 @@ export class OllamaProvider implements LLMProvider {
   }
 
   private buildPrompt(content: string): string {
-    return `Résume le texte ci-dessous pour un overlay à l'écran.
-
-Contraintes :
-- Sortie EXACTEMENT 3 à 5 lignes.
-- Le markdown est autorisé (mais reste minimal).
-- Chaque ligne DOIT faire au maximum 100 caractères.
-- Pas de numérotation et pas de puces.
-- Pas d'introduction, pas d'avertissement.
-
-Texte : ${content}
-
-Résumé (3-5 lignes) :`;
+    return buildSummarizationPrompt(content);
   }
 
   private async callOllama(prompt: string): Promise<string> {
     const url = `${this.url}/api/generate`;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeout);
-
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -115,10 +102,8 @@ Résumé (3-5 lignes) :`;
             temperature: this.temperature,
           },
         }),
-        signal: controller.signal,
+        timeout: this.timeout,
       });
-
-      clearTimeout(timeout);
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => "Unknown error");
@@ -128,12 +113,9 @@ Résumé (3-5 lignes) :`;
       const data = await response.json();
       return data.response || "";
     } catch (error) {
-      clearTimeout(timeout);
-
-      if (error instanceof Error && error.name === "AbortError") {
+      if (error instanceof TimeoutError) {
         throw new Error(`Ollama request timed out after ${this.timeout}ms`);
       }
-
       throw error;
     }
   }

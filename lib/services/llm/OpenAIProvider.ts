@@ -1,6 +1,10 @@
 import OpenAI from "openai";
 import { Logger } from "../../utils/Logger";
 import type { LLMProvider } from "./LLMProvider";
+import {
+  buildSummarizationPrompt,
+  SUMMARIZATION_SYSTEM_MESSAGE,
+} from "./PromptTemplates";
 
 // Force temperature to 1 for this models 
 
@@ -68,18 +72,7 @@ export class OpenAIProvider implements LLMProvider {
   }
 
   private buildPrompt(content: string): string {
-    return `Résume le texte ci-dessous pour un overlay à l'écran.
-
-Contraintes :
-- Sortie EXACTEMENT 3 à 5 lignes.
-- Le markdown est autorisé (mais reste minimal).
-- Chaque ligne DOIT faire au maximum 100 caractères.
-- Pas de numérotation et pas de puces.
-- Pas d'introduction, pas d'avertissement.
-
-Texte : ${content}
-
-Résumé (3-5 lignes) :`;
+    return buildSummarizationPrompt(content);
   }
 
   private async callOpenAI(prompt: string): Promise<string> {
@@ -89,7 +82,7 @@ Résumé (3-5 lignes) :`;
         messages: [
           {
             role: "system",
-            content: "Tu es un assistant qui résume des textes de manière concise pour des overlays TV.",
+            content: SUMMARIZATION_SYSTEM_MESSAGE,
           },
           {
             role: "user",

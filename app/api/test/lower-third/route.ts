@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { BACKEND_URL } from "@/lib/config/urls";
+import { apiError } from "@/lib/utils/apiError";
 
 /**
  * Test endpoint to trigger lower third (proxies to backend)
@@ -38,10 +39,7 @@ export async function GET() {
       wsHubRunning: stats.isRunning,
     });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: String(error) },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to trigger lower third", { context: "[TestAPI]" });
   }
 }
 

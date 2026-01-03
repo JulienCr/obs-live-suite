@@ -52,6 +52,13 @@ const classifyAspectRatio = (width: number, height: number): AspectRatioClass =>
   return '1:1.414';
 };
 
+// Column span based on aspect ratio: landscape = 2 cols, portrait/square = 1 col
+// When in single column mode, everything spans 1
+const getColumnSpan = (ratioClass: AspectRatioClass, columnCount: number): number => {
+  if (columnCount === 1) return 1;
+  return ratioClass === '16:9' ? 2 : 1;
+};
+
 interface PosterContentProps {
   className?: string;
 }
@@ -84,22 +91,25 @@ export function PosterContent({ className }: PosterContentProps) {
   // Column width constraints
   const MIN_COLUMN_WIDTH = 170;
   const MAX_COLUMN_WIDTH = 240;
+  const NARROW_THRESHOLD = 300; // Below this width, use single column
 
   const calculateColumnCount = useCallback((width: number) => {
-    if (width <= 0) return 1;
+    // If container is too narrow, use single column
+    if (width < NARROW_THRESHOLD) return 1;
+    if (width <= 0) return 2;
     // Calculate optimal column count to keep columns between min and max width
     const minCols = Math.ceil(width / MAX_COLUMN_WIDTH);
     const maxCols = Math.floor(width / MIN_COLUMN_WIDTH);
-    // Use the larger of minCols (to not exceed max width) clamped by maxCols (to not go below min width)
-    return Math.max(1, Math.min(minCols, maxCols) || minCols);
+    // Ensure at least 2 columns for the layout to work (16/9 spans 2)
+    return Math.max(2, Math.min(minCols, maxCols) || minCols);
   }, []);
 
-  // Calculate row span for an item based on its aspect ratio
-  // Formula: actualHeight = N * GRID_ROW_UNIT + (N-1) * GRID_GAP = N * (ROW + GAP) - GAP
-  // So: N = (targetHeight + GAP) / (ROW + GAP)
+  // Calculate row span for an item based on its aspect ratio and column span
   const calculateRowSpan = useCallback((ratioClass: AspectRatioClass) => {
-    const columnWidth = (containerWidth - (columnCount - 1) * GRID_GAP) / columnCount;
-    const itemHeight = columnWidth * ASPECT_RATIOS[ratioClass].heightRatio;
+    const colSpan = getColumnSpan(ratioClass, columnCount);
+    const singleColumnWidth = (containerWidth - (columnCount - 1) * GRID_GAP) / columnCount;
+    const itemWidth = singleColumnWidth * colSpan + (colSpan - 1) * GRID_GAP;
+    const itemHeight = itemWidth * ASPECT_RATIOS[ratioClass].heightRatio;
     return Math.ceil((itemHeight + GRID_GAP) / (GRID_ROW_UNIT + GRID_GAP));
   }, [containerWidth, columnCount]);
 
@@ -450,8 +460,8 @@ export function PosterContent({ className }: PosterContentProps) {
               >
                 {posters.map((poster) => {
                   const ratioClass = aspectRatios[poster.id] || '16:9';
-                  const { paddingBottom } = ASPECT_RATIOS[ratioClass];
                   const rowSpan = calculateRowSpan(ratioClass);
+                  const colSpan = getColumnSpan(ratioClass, columnCount);
 
                   return (
                     <div
@@ -462,7 +472,10 @@ export function PosterContent({ className }: PosterContentProps) {
                           ? "border-green-500 ring-2 ring-green-500 ring-offset-2"
                           : "border-border hover:border-primary"
                       )}
-                      style={{ gridRowEnd: `span ${rowSpan}` }}
+                      style={{
+                        gridRowEnd: `span ${rowSpan}`,
+                        gridColumn: `span ${colSpan}`,
+                      }}
                       title={poster.title}
                       onClick={() => handleCardClick(poster)}
                     >

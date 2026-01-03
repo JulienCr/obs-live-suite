@@ -2,14 +2,16 @@ import { Router } from "express";
 import { QuizViewerInputService, ViewerLimitsConfig } from "../../lib/services/QuizViewerInputService";
 import { ChannelManager } from "../../lib/services/ChannelManager";
 import { OverlayChannel } from "../../lib/models/OverlayEvents";
+import { expressError } from "../../lib/utils/apiError";
+import { VIEWER_LIMITS, QUIZ } from "../../lib/config/Constants";
 
 const router = Router();
 const channel = ChannelManager.getInstance();
 
 const limits: ViewerLimitsConfig = {
-  perUserCooldownMs: 1500,
-  perUserMaxAttempts: 5,
-  globalRps: 50,
+  perUserCooldownMs: VIEWER_LIMITS.PER_USER_COOLDOWN_MS,
+  perUserMaxAttempts: VIEWER_LIMITS.PER_USER_MAX_ATTEMPTS,
+  globalRps: VIEWER_LIMITS.GLOBAL_RPS,
   firstOrLastWins: "last",
 };
 
@@ -62,7 +64,7 @@ router.post("/chat", async (req, res) => {
     // Open: !rep text
     const repMatch = msg.match(/^!rep\s+(.+)$/i);
     if (repMatch) {
-      const text = repMatch[1].slice(0, 200);
+      const text = repMatch[1].slice(0, QUIZ.OPEN_ANSWER_MAX_LENGTH);
       const ok = viewer.tryRecord(userId, text);
       if (ok) await channel.publish(OverlayChannel.QUIZ, "answer.submit", { player_id: userId, text });
       return res.json({ ok });
@@ -71,7 +73,7 @@ router.post("/chat", async (req, res) => {
     // Meta commands can be implemented later (!score, !rank)
     return res.json({ ignored: true });
   } catch (error) {
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Chat command processing failed", { context: "[QuizBotAPI]" });
   }
 });
 

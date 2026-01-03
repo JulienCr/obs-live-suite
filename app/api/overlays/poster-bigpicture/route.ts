@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { SettingsService } from "@/lib/services/SettingsService";
 import { sendPresenterNotification } from "@/lib/utils/presenterNotifications";
+import { sendChatMessageIfEnabled } from "@/lib/utils/chatMessaging";
 import { BACKEND_URL } from "@/lib/config/urls";
 
 /**
@@ -114,19 +115,7 @@ export async function POST(request: NextRequest) {
           if (poster?.chatMessage) {
             const settingsService = SettingsService.getInstance();
             const chatSettings = settingsService.getChatMessageSettings();
-
-            if (chatSettings.posterChatMessageEnabled) {
-              fetch(`${BACKEND_URL}/api/streamerbot-chat/send`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  platform: 'twitch',
-                  message: poster.chatMessage,
-                }),
-              }).catch((error) => {
-                console.error("[BigPicturePosterAction] Failed to send chat message:", error);
-              });
-            }
+            sendChatMessageIfEnabled({ enabled: chatSettings.posterChatMessageEnabled }, poster.chatMessage);
           }
         }
       } catch (error) {

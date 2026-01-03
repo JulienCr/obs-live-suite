@@ -19,6 +19,7 @@ import { lowerThirdShowPayloadSchema, chatHighlightShowPayloadSchema } from "../
 import { enrichLowerThirdPayload, enrichCountdownPayload, enrichPosterPayload, enrichChatHighlightPayload } from "../../lib/utils/themeEnrichment";
 import { updatePosterSourceInOBS } from "./obs-helpers";
 import { Logger } from "../../lib/utils/Logger";
+import { expressError } from "../../lib/utils/apiError";
 
 const router = Router();
 const channelManager = ChannelManager.getInstance();
@@ -59,8 +60,7 @@ router.post("/lower", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Overlays] Lower third error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Lower third operation failed", { context: "[OverlaysAPI]" });
   }
 });
 
@@ -120,8 +120,7 @@ router.post("/countdown", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Overlays] Countdown error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Countdown operation failed", { context: "[OverlaysAPI]" });
   }
 });
 
@@ -180,8 +179,7 @@ router.post("/poster", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Overlays] Poster error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Poster operation failed", { context: "[OverlaysAPI]" });
   }
 });
 
@@ -241,8 +239,7 @@ router.post("/poster-bigpicture", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Overlays] BigPicture Poster error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "BigPicture poster operation failed", { context: "[OverlaysAPI]" });
   }
 });
 
@@ -292,8 +289,7 @@ router.post("/chat-highlight", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Overlays] Chat highlight error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Chat highlight operation failed", { context: "[OverlaysAPI]" });
   }
 });
 
@@ -313,8 +309,7 @@ router.post("/clear-all", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Overlays] Clear-all error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Clear-all operation failed", { context: "[OverlaysAPI]" });
   }
 });
 

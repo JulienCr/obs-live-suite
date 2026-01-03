@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { v4 as uuidv4 } from "uuid";
 import { createThemeSchema, ThemeModel } from "@/lib/models/Theme";
+import { ApiResponses } from "@/lib/utils/ApiResponses";
 
 /**
  * GET all themes
@@ -10,13 +11,10 @@ export async function GET() {
   try {
     const db = DatabaseService.getInstance();
     const themes = db.getAllThemes();
-    return NextResponse.json({ themes }, { status: 200 });
+    return ApiResponses.ok({ themes });
   } catch (error) {
     console.error("[API] Failed to get themes:", error);
-    return NextResponse.json(
-      { error: "Failed to get themes" },
-      { status: 500 }
-    );
+    return ApiResponses.serverError("Failed to get themes");
   }
 }
 
@@ -38,12 +36,11 @@ export async function POST(request: NextRequest) {
     const db = DatabaseService.getInstance();
     db.createTheme(theme.toJSON());
 
-    return NextResponse.json({ theme: theme.toJSON() }, { status: 201 });
+    return ApiResponses.created({ theme: theme.toJSON() });
   } catch (error) {
     console.error("[API] Failed to create theme:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create theme" },
-      { status: 400 }
+    return ApiResponses.badRequest(
+      error instanceof Error ? error.message : "Failed to create theme"
     );
   }
 }

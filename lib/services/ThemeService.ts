@@ -7,6 +7,7 @@ import {
   LowerThirdTemplate,
   CountdownStyle,
 } from "../models/Theme";
+import { LAYOUT_DEFAULTS, LOWER_THIRD_ANIMATION } from "../config/Constants";
 
 /**
  * ThemeService handles theme management and default themes
@@ -105,24 +106,24 @@ export class ThemeService {
   private getDefaultThemeDefinitions() {
     const defaultAnimation = {
       timing: {
-        logoFadeDuration: 200,
-        logoScaleDuration: 200,
-        flipDuration: 600,
-        flipDelay: 500,
-        barAppearDelay: 800,
-        barExpandDuration: 450,
-        textAppearDelay: 1000,
-        textFadeDuration: 250,
+        logoFadeDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_FADE_DURATION,
+        logoScaleDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_SCALE_DURATION,
+        flipDuration: LOWER_THIRD_ANIMATION.TIMING.FLIP_DURATION,
+        flipDelay: LOWER_THIRD_ANIMATION.TIMING.FLIP_DELAY,
+        barAppearDelay: LOWER_THIRD_ANIMATION.TIMING.BAR_APPEAR_DELAY,
+        barExpandDuration: LOWER_THIRD_ANIMATION.TIMING.BAR_EXPAND_DURATION,
+        textAppearDelay: LOWER_THIRD_ANIMATION.TIMING.TEXT_APPEAR_DELAY,
+        textFadeDuration: LOWER_THIRD_ANIMATION.TIMING.TEXT_FADE_DURATION,
       },
       styles: {
-        barBorderRadius: 16,
-        barMinWidth: 200,
-        avatarBorderWidth: 4,
-        avatarBorderColor: '#272727',
+        barBorderRadius: LOWER_THIRD_ANIMATION.STYLES.BAR_BORDER_RADIUS,
+        barMinWidth: LOWER_THIRD_ANIMATION.STYLES.BAR_MIN_WIDTH,
+        avatarBorderWidth: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_WIDTH,
+        avatarBorderColor: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_COLOR,
         freeTextMaxWidth: {
-          left: 65,
-          right: 65,
-          center: 90,
+          left: LOWER_THIRD_ANIMATION.STYLES.FREE_TEXT_MAX_WIDTH.left,
+          right: LOWER_THIRD_ANIMATION.STYLES.FREE_TEXT_MAX_WIDTH.right,
+          center: LOWER_THIRD_ANIMATION.STYLES.FREE_TEXT_MAX_WIDTH.center,
         },
       },
     };
@@ -144,7 +145,7 @@ export class ThemeService {
           size: 28,
           weight: 700,
         },
-        lowerThirdLayout: { x: 60, y: 920, scale: 1 },
+        lowerThirdLayout: LAYOUT_DEFAULTS.LOWER_THIRD,
         lowerThirdAnimation: defaultAnimation,
         countdownStyle: CountdownStyle.BOLD,
         countdownFont: {
@@ -152,8 +153,8 @@ export class ThemeService {
           size: 80,
           weight: 900,
         },
-        countdownLayout: { x: 960, y: 540, scale: 1 },
-        posterLayout: { x: 960, y: 540, scale: 1 },
+        countdownLayout: LAYOUT_DEFAULTS.COUNTDOWN,
+        posterLayout: LAYOUT_DEFAULTS.POSTER,
         isGlobal: true,
       },
       {
@@ -172,7 +173,7 @@ export class ThemeService {
           size: 26,
           weight: 600,
         },
-        lowerThirdLayout: { x: 60, y: 920, scale: 1 },
+        lowerThirdLayout: LAYOUT_DEFAULTS.LOWER_THIRD,
         lowerThirdAnimation: defaultAnimation,
         countdownStyle: CountdownStyle.CORNER,
         countdownFont: {
@@ -180,8 +181,8 @@ export class ThemeService {
           size: 48,
           weight: 900,
         },
-        countdownLayout: { x: 1780, y: 40, scale: 1 },
-        posterLayout: { x: 960, y: 540, scale: 1 },
+        countdownLayout: { x: 1780, y: 40, scale: 1 }, // Corner position override
+        posterLayout: LAYOUT_DEFAULTS.POSTER,
         isGlobal: true,
       },
       {
@@ -200,7 +201,7 @@ export class ThemeService {
           size: 30,
           weight: 700,
         },
-        lowerThirdLayout: { x: 60, y: 920, scale: 1 },
+        lowerThirdLayout: LAYOUT_DEFAULTS.LOWER_THIRD,
         lowerThirdAnimation: defaultAnimation,
         countdownStyle: CountdownStyle.BANNER,
         countdownFont: {
@@ -208,8 +209,8 @@ export class ThemeService {
           size: 64,
           weight: 900,
         },
-        countdownLayout: { x: 960, y: 40, scale: 1 },
-        posterLayout: { x: 960, y: 540, scale: 1 },
+        countdownLayout: { x: 960, y: 40, scale: 1 }, // Banner position override
+        posterLayout: LAYOUT_DEFAULTS.POSTER,
         isGlobal: true,
       },
       {
@@ -228,7 +229,7 @@ export class ThemeService {
           size: 28,
           weight: 700,
         },
-        lowerThirdLayout: { x: 1860, y: 920, scale: 1 },
+        lowerThirdLayout: { x: 1860, y: 920, scale: 1 }, // Slide position override
         lowerThirdAnimation: defaultAnimation,
         countdownStyle: CountdownStyle.BOLD,
         countdownFont: {
@@ -236,8 +237,8 @@ export class ThemeService {
           size: 80,
           weight: 900,
         },
-        countdownLayout: { x: 960, y: 540, scale: 1 },
-        posterLayout: { x: 960, y: 540, scale: 1 },
+        countdownLayout: LAYOUT_DEFAULTS.COUNTDOWN,
+        posterLayout: LAYOUT_DEFAULTS.POSTER,
         isGlobal: true,
       },
       {
@@ -256,7 +257,7 @@ export class ThemeService {
           size: 28,
           weight: 700,
         },
-        lowerThirdLayout: { x: 60, y: 920, scale: 1 },
+        lowerThirdLayout: LAYOUT_DEFAULTS.LOWER_THIRD,
         lowerThirdAnimation: defaultAnimation,
         countdownStyle: CountdownStyle.CORNER,
         countdownFont: {
@@ -264,8 +265,8 @@ export class ThemeService {
           size: 48,
           weight: 900,
         },
-        countdownLayout: { x: 1780, y: 40, scale: 1 },
-        posterLayout: { x: 960, y: 540, scale: 1 },
+        countdownLayout: { x: 1780, y: 40, scale: 1 }, // Corner position override
+        posterLayout: LAYOUT_DEFAULTS.POSTER,
         isGlobal: true,
       },
     ];

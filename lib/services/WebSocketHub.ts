@@ -6,6 +6,7 @@ import { Logger } from "../utils/Logger";
 import { randomUUID } from "crypto";
 import { RoomPresence, RoomRole } from "../models/Room";
 import { createHttpServerWithFallback } from "../utils/CertificateManager";
+import { WEBSOCKET } from "../config/Constants";
 
 /**
  * WebSocket client with metadata
@@ -304,7 +305,7 @@ export class WebSocketHub {
         client.isAlive = false;
         client.ws.ping();
       });
-    }, 30000); // Check every 30 seconds
+    }, WEBSOCKET.HEARTBEAT_INTERVAL_MS);
   }
 
   /**

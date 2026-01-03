@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { updateThemeSchema, ThemeModel } from "@/lib/models/Theme";
+import { ApiResponses } from "@/lib/utils/ApiResponses";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -14,16 +15,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const theme = db.getThemeById(id);
 
     if (!theme) {
-      return NextResponse.json({ error: "Theme not found" }, { status: 404 });
+      return ApiResponses.notFound("Theme");
     }
 
-    return NextResponse.json({ theme }, { status: 200 });
+    return ApiResponses.ok({ theme });
   } catch (error) {
     console.error("[API] Failed to get theme:", error);
-    return NextResponse.json(
-      { error: "Failed to get theme" },
-      { status: 500 }
-    );
+    return ApiResponses.serverError("Failed to get theme");
   }
 }
 
@@ -40,7 +38,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const existing = db.getThemeById(id);
 
     if (!existing) {
-      return NextResponse.json({ error: "Theme not found" }, { status: 404 });
+      return ApiResponses.notFound("Theme");
     }
 
     const theme = ThemeModel.fromJSON(existing);
@@ -51,12 +49,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     db.updateTheme(id, theme.toJSON());
 
-    return NextResponse.json({ theme: theme.toJSON() }, { status: 200 });
+    return ApiResponses.ok({ theme: theme.toJSON() });
   } catch (error) {
     console.error("[API] Failed to update theme:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update theme" },
-      { status: 400 }
+    return ApiResponses.badRequest(
+      error instanceof Error ? error.message : "Failed to update theme"
     );
   }
 }
@@ -71,7 +68,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const theme = db.getThemeById(id);
 
     if (!theme) {
-      return NextResponse.json({ error: "Theme not found" }, { status: 404 });
+      return ApiResponses.notFound("Theme");
     }
 
     // Check if theme is in use by any profile
@@ -79,21 +76,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const inUse = profiles.some((p) => p.themeId === id);
 
     if (inUse) {
-      return NextResponse.json(
-        { error: "Theme is in use by one or more profiles" },
-        { status: 400 }
-      );
+      return ApiResponses.conflict("Theme is in use by one or more profiles");
     }
 
     db.deleteTheme(id);
 
-    return NextResponse.json({ success: true }, { status: 200 });
+    return ApiResponses.ok({ success: true });
   } catch (error) {
     console.error("[API] Failed to delete theme:", error);
-    return NextResponse.json(
-      { error: "Failed to delete theme" },
-      { status: 500 }
-    );
+    return ApiResponses.serverError("Failed to delete theme");
   }
 }
 

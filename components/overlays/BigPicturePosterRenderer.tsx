@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { PosterShowPayload } from "@/lib/models/OverlayEvents";
 import { PosterDisplay } from "./PosterDisplay";
-import { getWebSocketUrl } from "@/lib/utils/websocket";
+import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import "./bigpicture-poster.css";
 
 interface PosterData {
@@ -18,6 +18,12 @@ interface BigPicturePosterState {
   current: PosterData | null;
   previous: PosterData | null;
   transition: "fade" | "slide" | "cut" | "blur";
+}
+
+interface BigPicturePosterEvent {
+  type: string;
+  payload?: PosterShowPayload & { time?: number };
+  id: string;
 }
 
 /**
@@ -39,7 +45,6 @@ export function BigPicturePosterRenderer() {
     duration: 0,
   });
 
-  const [youtubePlayerReady, setYoutubePlayerReady] = useState(false);
   const youtubeStateRef = useRef({
     currentTime: 0,
     duration: 900,
@@ -47,14 +52,15 @@ export function BigPicturePosterRenderer() {
     isMuted: true,
   });
 
-  const ws = useRef<WebSocket | null>(null);
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const fadeOutTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const crossFadeTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const youtubeRef = useRef<HTMLIFrameElement | null>(null);
 
-
+  // Store sendAck in a ref to avoid stale closure in handleEvent
+  const sendAckRef = useRef<(eventId: string, success?: boolean) => void>(() => {});
+  const sendRef = useRef<(data: unknown) => void>(() => {});
 
   const handleEvent = useCallback(
     (data: {
@@ -244,97 +250,27 @@ export function BigPicturePosterRenderer() {
       }
 
       // Send acknowledgment
-      if (ws.current) {
-        ws.current.send(
-          JSON.stringify({
-            type: "ack",
-            eventId: data.id,
-            channel: "poster-bigpicture",
-            success: true,
-          })
-        );
-      }
+      sendAckRef.current(data.id, true);
     },
     []
   );
 
+  // Use the WebSocket channel hook
+  const { send, sendAck } = useWebSocketChannel<BigPicturePosterEvent>(
+    "poster-bigpicture",
+    handleEvent,
+    { logPrefix: "BigPicturePoster" }
+  );
+
+  // Keep refs updated for use in callbacks
   useEffect(() => {
-    let reconnectTimeout: NodeJS.Timeout;
-    let isMounted = true;
+    sendAckRef.current = sendAck;
+    sendRef.current = send;
+  }, [send, sendAck]);
 
-    const connect = () => {
-      // Don't create new connection if component is unmounting
-      if (!isMounted) return;
-
-      // Close existing connection before creating new one
-      if (
-        ws.current &&
-        (ws.current.readyState === WebSocket.OPEN ||
-          ws.current.readyState === WebSocket.CONNECTING)
-      ) {
-        try {
-          ws.current.close();
-        } catch {
-          // Ignore close errors
-        }
-      }
-
-      ws.current = new WebSocket(getWebSocketUrl());
-
-      ws.current.onopen = () => {
-        if (!isMounted) {
-          ws.current?.close();
-          return;
-        }
-        ws.current?.send(
-          JSON.stringify({
-            type: "subscribe",
-            channel: "poster-bigpicture",
-          })
-        );
-      };
-
-      const handleMessage = (event: MessageEvent) => {
-        if (!isMounted) return;
-        try {
-          const message = JSON.parse(event.data);
-          if (message.channel === "poster-bigpicture") {
-            handleEvent(message.data);
-          }
-        } catch (error) {
-          console.error("[BigPicturePoster] Failed to parse message:", error);
-        }
-      };
-
-      ws.current.onmessage = handleMessage;
-
-      ws.current.onerror = (error) => {
-        console.error("[BigPicturePoster] WebSocket error:", error);
-      };
-
-      ws.current.onclose = (event) => {
-        // Only auto-reconnect on unexpected disconnections
-        // Code 1000 = normal closure, 1001 = going away (page navigation)
-        if (isMounted && event.code !== 1000 && event.code !== 1001) {
-          reconnectTimeout = setTimeout(() => {
-            connect();
-          }, 3000);
-        }
-      };
-    };
-
-    connect();
-
+  // Clean up timeouts on unmount
+  useEffect(() => {
     return () => {
-      isMounted = false;
-      clearTimeout(reconnectTimeout);
-      if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
-        try {
-          ws.current.close(1000, "Component unmounting");
-        } catch {
-          // Ignore close errors during cleanup
-        }
-      }
       if (hideTimeout.current) {
         clearTimeout(hideTimeout.current);
       }
@@ -345,7 +281,7 @@ export function BigPicturePosterRenderer() {
         clearTimeout(crossFadeTimeout.current);
       }
     };
-  }, [handleEvent]);
+  }, []);
 
   // Send playback state updates for video/youtube
   useEffect(() => {
@@ -367,15 +303,11 @@ export function BigPicturePosterRenderer() {
         // Update state and send to backend
         setPlaybackState({ currentTime, duration, isPlaying, isMuted });
 
-        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-          ws.current.send(
-            JSON.stringify({
-              type: "state",
-              channel: "poster-bigpicture",
-              data: { currentTime, duration, isPlaying, isMuted },
-            })
-          );
-        }
+        sendRef.current({
+          type: "state",
+          channel: "poster-bigpicture",
+          data: { currentTime, duration, isPlaying, isMuted },
+        });
       }
       // For YouTube, state will be updated by message listener
     }, 1000);
@@ -394,15 +326,11 @@ export function BigPicturePosterRenderer() {
 
     // Send initial state immediately
     setPlaybackState(currentYouTubeState);
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(
-        JSON.stringify({
-          type: "state",
-          channel: "poster-bigpicture",
-          data: currentYouTubeState,
-        })
-      );
-    }
+    sendRef.current({
+      type: "state",
+      channel: "poster-bigpicture",
+      data: currentYouTubeState,
+    });
 
     const handleYouTubeMessage = (event: MessageEvent) => {
       // Only process messages from YouTube
@@ -412,8 +340,6 @@ export function BigPicturePosterRenderer() {
         const data = JSON.parse(event.data);
 
         if (data.event === "onReady") {
-          setYoutubePlayerReady(true);
-
           // Subscribe to state changes
           if (youtubeRef.current) {
             youtubeRef.current.contentWindow?.postMessage(
@@ -448,15 +374,11 @@ export function BigPicturePosterRenderer() {
 
       setPlaybackState({ ...youtubeStateRef.current });
 
-      if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-        ws.current.send(
-          JSON.stringify({
-            type: "state",
-            channel: "poster-bigpicture",
-            data: youtubeStateRef.current,
-          })
-        );
-      }
+      sendRef.current({
+        type: "state",
+        channel: "poster-bigpicture",
+        data: youtubeStateRef.current,
+      });
     }, 1000);
 
     window.addEventListener("message", handleYouTubeMessage);

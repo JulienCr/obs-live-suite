@@ -8,6 +8,7 @@ import { QuizZoomController } from "./QuizZoomController";
 import { QuizMysteryImageController } from "./QuizMysteryImageController";
 import { QuizBuzzerService } from "./QuizBuzzerService";
 import { QuizTimer } from "./QuizTimer";
+import { QUIZ, BUZZER } from "../config/Constants";
 
 export type QuizPhase =
   | "idle"
@@ -39,16 +40,19 @@ export class QuizManager {
     
     // ===== ZOOM CONFIGURATION =====
     // Easy to adjust: just set duration and max zoom level
-    // Steps and interval are auto-calculated for smooth 30fps animation
-    this.zoom = new QuizZoomController({ 
-      durationSeconds: 45,  // Total animation duration (e.g., 6 seconds)
-      maxZoom: 35,         // Max zoom level (26x zoom at start, 1x at end)
-      fps: 30,             // Frames per second (optional, defaults to 30)
+    // Steps and interval are auto-calculated for smooth animation
+    this.zoom = new QuizZoomController({
+      durationSeconds: QUIZ.ZOOM_DURATION_SECONDS,
+      maxZoom: QUIZ.ZOOM_MAX_LEVEL,
+      fps: QUIZ.ZOOM_FPS,
     });
-    // Calculated: 6 seconds * 30 fps = 180 steps, ~33ms interval
-    
-    this.mystery = new QuizMysteryImageController({ intervalMs: 60 });
-    this.buzzer = new QuizBuzzerService({ lockMs: 300, steal: false, stealWindowMs: 4000 });
+
+    this.mystery = new QuizMysteryImageController({ intervalMs: QUIZ.MYSTERY_IMAGE_INTERVAL_MS });
+    this.buzzer = new QuizBuzzerService({
+      lockMs: BUZZER.LOCK_DELAY_MS,
+      steal: false,
+      stealWindowMs: BUZZER.STEAL_WINDOW_MS
+    });
   }
 
   static getInstance(): QuizManager {
@@ -108,7 +112,7 @@ export class QuizManager {
     
     this.phase = "accept_answers";
     await this.emitPhaseUpdate();
-    await this.timer.start(q.time_s || 20, this.phase);
+    await this.timer.start(q.time_s || QUIZ.DEFAULT_TIMER_SECONDS, this.phase);
   }
 
   async lockAnswers(): Promise<void> {

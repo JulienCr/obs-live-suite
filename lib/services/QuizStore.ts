@@ -23,7 +23,10 @@ export class QuizStore {
     this.session = null;
     this.questionBank = new Map();
     this.roundBank = new Map();
-    this.loadQuestionBank().catch(() => {});
+    // Note: Retry logic could be beneficial here if file system is temporarily unavailable
+    this.loadQuestionBank().catch((error) => {
+      this.logger.error('Failed to load question bank on initialization', error);
+    });
   }
 
   static getInstance(): QuizStore {
@@ -208,7 +211,10 @@ export class QuizStore {
   createQuestion(q: Omit<Question, "id">): Question {
     const question = questionSchema.parse({ ...q, id: randomUUID() });
     this.questionBank.set(question.id, question);
-    this.saveQuestionBank().catch(() => {});
+    // Note: Retry logic could be beneficial here to ensure data persistence
+    this.saveQuestionBank().catch((error) => {
+      this.logger.error('Failed to save question bank after creating question', error);
+    });
     return question;
   }
 
@@ -225,13 +231,19 @@ export class QuizStore {
     if (!existing) throw new Error("Question not found");
     const updated = questionSchema.parse({ ...existing, ...updates, id });
     this.questionBank.set(id, updated);
-    this.saveQuestionBank().catch(() => {});
+    // Note: Retry logic could be beneficial here to ensure data persistence
+    this.saveQuestionBank().catch((error) => {
+      this.logger.error('Failed to save question bank after updating question', error);
+    });
     return updated;
   }
 
   deleteQuestion(id: string): void {
     this.questionBank.delete(id);
-    this.saveQuestionBank().catch(() => {});
+    // Note: Retry logic could be beneficial here to ensure data persistence
+    this.saveQuestionBank().catch((error) => {
+      this.logger.error('Failed to save question bank after deleting question', error);
+    });
   }
 
   // Round Bank CRUD
