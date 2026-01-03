@@ -75,10 +75,45 @@
 
 ---
 
+## Batch 3: WebSocket Hook Expansion + Critical Types ✅
+
+**Completed:** January 3, 2026
+
+| Task | Status | File |
+|------|--------|------|
+| Add comprehensive types for WikipediaResolverService | ✅ | `lib/services/WikipediaResolverService.ts`, `lib/models/Wikipedia.ts` |
+| Refactor ChatHighlightRenderer to use useWebSocketChannel | ✅ | `components/overlays/ChatHighlightRenderer.tsx` |
+| Refactor PosterRenderer to use useWebSocketChannel | ✅ | `components/overlays/PosterRenderer.tsx` |
+| Refactor BigPicturePosterRenderer to use useWebSocketChannel | ✅ | `components/overlays/BigPicturePosterRenderer.tsx` |
+
+### Details
+
+**WikipediaResolverService types:**
+- Added 6 new interfaces: `WikipediaSearchResult`, `MediaWikiSearchResponse`, `MediaWikiPageResponse`, `WikipediaRestSummaryResponse`, `WikibaseSDK`, `SparqlResultItem`
+- Replaced all `any` types with proper TypeScript interfaces
+- Used existing `WikidataPattern` interface for pattern detection
+
+**ChatHighlightRenderer refactoring:**
+- Removed ~60 lines of WebSocket boilerplate
+- Added `ChatHighlightEvent` interface for type safety
+- Now uses exponential backoff reconnection
+
+**PosterRenderer refactoring:**
+- Removed ~60 lines of WebSocket boilerplate
+- Added `PosterEvent` interface for type-safe events
+- Preserves video/YouTube playback state sync via hook's `send` function
+
+**BigPicturePosterRenderer refactoring:**
+- Removed ~60 lines of WebSocket boilerplate
+- Added `BigPicturePosterEvent` interface
+- Same improvements as PosterRenderer
+
+---
+
 ## Remaining Work
 
-### Phase 1: Critical Fixes (Pending)
-- [ ] Add comprehensive types for WikipediaResolverService (Critical Issue 2)
+### Phase 1: Critical Fixes (Partially Done)
+- [x] Add comprehensive types for WikipediaResolverService (Critical Issue 2) ✅
 - [ ] Validate quiz config against schema before applying
 
 ### Phase 2: High Priority (Pending)
@@ -89,7 +124,7 @@
 - [x] Use exponential backoff for WebSocket reconnection (done in hook)
 
 ### Phase 3: DRY Improvements (Partially Done)
-- [x] Refactor components to use useWebSocketChannel hook (2/4+ done)
+- [x] Refactor components to use useWebSocketChannel hook (5/7 done)
 - [ ] Refactor components to use ClientFetch utility
 - [x] Refactor API routes to use ApiResponses helper (4 routes done)
 - [ ] Standardize proxy request patterns
@@ -109,8 +144,8 @@
 | Metric | Value |
 |--------|-------|
 | Files Created | 3 |
-| Files Modified | 7 |
-| Critical Issues Fixed | 1/2 |
+| Files Modified | 12 |
+| Critical Issues Fixed | 2/2 |
 | High Issues Fixed | 1/14 |
 | Quick Wins Completed | 4/6 |
-| Lines Removed (boilerplate) | ~140 |
+| Lines Removed (boilerplate) | ~260 |

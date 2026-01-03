@@ -5,13 +5,21 @@ import {
   WikipediaNotFoundError,
   WikipediaTimeoutError,
   WikipediaSource,
+  WikipediaSearchResult,
+  MediaWikiSearchResponse,
+  MediaWikiPageResponse,
+  WikipediaRestSummaryResponse,
+  WikibaseSDK,
+  WikidataPattern,
+  SparqlResultItem,
+  wikidataPatterns as wikidataPatternsData,
 } from "../models/Wikipedia";
 import { Logger } from "../utils/Logger";
 import { cleanWikipediaContent } from "../utils/textProcessing";
 
 // Conditional imports for Wikidata support
-let wdk: any = null;
-let wikidataPatterns: any = null;
+let wdk: WikibaseSDK | null = null;
+let wikidataPatterns: Record<string, string> | null = null;
 
 // Configuration constants
 const MAX_SECTIONS = 3; // Intro + 2 first sections
@@ -20,10 +28,8 @@ const DISABLE_WIKIDATA_FALLBACK = true;
 // Only import Wikidata dependencies if not disabled
 if (!DISABLE_WIKIDATA_FALLBACK) {
   const wdkModule = await import("wikibase-sdk/wikidata.org");
-  wdk = wdkModule.default;
-
-  const wikipediaModels = await import("../models/Wikipedia");
-  wikidataPatterns = wikipediaModels.wikidataPatterns;
+  wdk = wdkModule.default as WikibaseSDK;
+  wikidataPatterns = wikidataPatternsData;
 }
 
 // Handle ESM/CJS interop - wikipedia package exports default differently
@@ -137,13 +143,13 @@ export class WikipediaResolverService {
         throw new Error(`MediaWiki API returned ${response.status}`);
       }
 
-      const data: any = await response.json();
+      const data = await response.json() as MediaWikiSearchResponse;
 
       if (!data.query || !data.query.search || data.query.search.length === 0) {
         return [];
       }
 
-      return data.query.search.map((result: any) => ({
+      return data.query.search.map((result) => ({
         title: result.title,
         snippet: result.snippet?.replace(/<[^>]*>/g, '') || "", // Strip HTML tags
         pageid: result.pageid,
@@ -244,7 +250,7 @@ export class WikipediaResolverService {
         throw new WikipediaNotFoundError(title);
       }
 
-      const summaryData: any = await summaryResponse.json();
+      const summaryData = await summaryResponse.json() as WikipediaRestSummaryResponse;
 
       // Fetch wikitext from Action API
       let cleanText = summaryData.extract || "";
@@ -260,7 +266,7 @@ export class WikipediaResolverService {
         });
 
         if (wikitextResponse.ok) {
-          const wikitextData: any = await wikitextResponse.json();
+          const wikitextData = await wikitextResponse.json() as MediaWikiPageResponse;
           const pages = wikitextData.query?.pages;
 
           if (pages) {
@@ -421,9 +427,9 @@ export class WikipediaResolverService {
         headers: {
           'User-Agent': 'OBSLiveSuite/1.0 (https://github.com/obs-live-suite)',
         },
-      }).then(r => r.json());
+      }).then(r => r.json() as Promise<MediaWikiSearchResponse>);
 
-      const searchData: any = await Promise.race([searchPromise, timeoutPromise]);
+      const searchData = await Promise.race([searchPromise, timeoutPromise]);
 
       if (!searchData.query || !searchData.query.search || searchData.query.search.length === 0) {
         throw new WikipediaNotFoundError(query);
@@ -471,6 +477,11 @@ export class WikipediaResolverService {
     try {
       // Build SPARQL query
       const sparql = this.buildSparqlQuery(pattern);
+
+      if (!wdk) {
+        throw new Error("Wikibase SDK not initialized");
+      }
+
       const url = wdk.sparqlQuery(sparql);
 
       // Fetch Wikidata results with timeout
@@ -484,7 +495,7 @@ export class WikipediaResolverService {
       const fetchPromise = fetch(url).then((r) => r.json());
       const data = await Promise.race([fetchPromise, timeoutPromise]);
 
-      const results = wdk.simplify.sparqlResults(data);
+      const results = wdk.simplify.sparqlResults<SparqlResultItem>(data);
 
       if (results.length === 0) {
         throw new WikipediaNotFoundError(
@@ -494,6 +505,13 @@ export class WikipediaResolverService {
 
       // Get the label from Wikidata
       const resultLabel = results[0].itemLabel || results[0].item;
+
+      if (!resultLabel) {
+        throw new WikipediaNotFoundError(
+          `No label found in Wikidata result for ${pattern.type} of ${pattern.entity}`
+        );
+      }
+
       this.logger.info(`Wikidata resolved to: ${resultLabel}`);
 
       // Recursively fetch Wikipedia content for the resolved entity
@@ -521,7 +539,7 @@ export class WikipediaResolverService {
    * Returns pattern info or null if no pattern detected
    * Only available if DISABLE_WIKIDATA_FALLBACK = false
    */
-  private detectPattern(query: string): any {
+  private detectPattern(query: string): WikidataPattern | null {
     if (DISABLE_WIKIDATA_FALLBACK || !wikidataPatterns) {
       return null;
     }
@@ -549,7 +567,7 @@ export class WikipediaResolverService {
    * Build SPARQL query for Wikidata property lookup
    * Only available if DISABLE_WIKIDATA_FALLBACK = false
    */
-  private buildSparqlQuery(pattern: any): string {
+  private buildSparqlQuery(pattern: WikidataPattern): string {
     if (DISABLE_WIKIDATA_FALLBACK) {
       throw new Error("Wikidata fallback is disabled");
     }

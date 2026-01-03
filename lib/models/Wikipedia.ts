@@ -145,6 +145,74 @@ export const wikidataPatterns: Record<string, string> = {
 };
 
 /**
+ * Wikipedia search result (for multiple results)
+ */
+export interface WikipediaSearchResult {
+  title: string;
+  snippet: string;
+  pageid: number;
+  wordcount?: number;
+}
+
+/**
+ * MediaWiki API search response
+ */
+export interface MediaWikiSearchResponse {
+  query?: {
+    search: Array<{
+      title: string;
+      snippet: string;
+      pageid: number;
+      wordcount?: number;
+    }>;
+  };
+}
+
+/**
+ * MediaWiki API page/revision response
+ */
+export interface MediaWikiPageResponse {
+  query?: {
+    pages: Record<string, {
+      pageid: number;
+      title: string;
+      revisions?: Array<{
+        '*': string;
+      }>;
+    }>;
+  };
+}
+
+/**
+ * Wikipedia REST API summary response
+ */
+export interface WikipediaRestSummaryResponse {
+  title: string;
+  extract?: string;
+  thumbnail?: { source: string };
+  originalimage?: { source: string };
+}
+
+/**
+ * Wikibase SDK instance type (wikibase-sdk)
+ */
+export interface WikibaseSDK {
+  sparqlQuery: (sparql: string) => string;
+  simplify: {
+    sparqlResults: <T>(data: unknown) => T[];
+  };
+}
+
+/**
+ * SPARQL query result item
+ */
+export interface SparqlResultItem {
+  item?: string;
+  itemLabel?: string;
+  value?: string | number;
+}
+
+/**
  * Custom error types
  */
 export class WikipediaNotFoundError extends Error {

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { ChatHighlightShowPayload } from "@/lib/models/OverlayEvents";
 import { ChatHighlightDisplay } from "./ChatHighlightDisplay";
-import { getWebSocketUrl } from "@/lib/utils/websocket";
+import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 
 interface ChatHighlightTheme {
   colors: {
@@ -33,6 +33,12 @@ interface ChatHighlightState {
   theme?: ChatHighlightTheme;
 }
 
+interface ChatHighlightEvent {
+  type: string;
+  payload?: ChatHighlightShowPayload;
+  id: string;
+}
+
 /**
  * ChatHighlightRenderer manages WebSocket connection and state for chat highlight overlay
  */
@@ -44,10 +50,10 @@ export function ChatHighlightRenderer() {
     side: "center",
   });
 
-  const ws = useRef<WebSocket | null>(null);
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const sendAckRef = useRef<(eventId: string, success?: boolean) => void>(() => {});
 
-  const handleEvent = useCallback((data: { type: string; payload?: ChatHighlightShowPayload; id: string }) => {
+  const handleEvent = useCallback((data: ChatHighlightEvent) => {
     if (hideTimeout.current) {
       clearTimeout(hideTimeout.current);
     }
@@ -96,95 +102,28 @@ export function ChatHighlightRenderer() {
     }
 
     // Send acknowledgment
-    if (ws.current) {
-      ws.current.send(
-        JSON.stringify({
-          type: "ack",
-          eventId: data.id,
-          channel: "chat-highlight",
-          success: true,
-        })
-      );
-    }
+    sendAckRef.current(data.id);
   }, []);
 
+  const { sendAck } = useWebSocketChannel<ChatHighlightEvent>(
+    "chat-highlight",
+    handleEvent,
+    { logPrefix: "ChatHighlight" }
+  );
+
+  // Keep sendAck ref updated to avoid stale closure in handleEvent
   useEffect(() => {
-    let reconnectTimeout: NodeJS.Timeout;
-    let isMounted = true;
+    sendAckRef.current = sendAck;
+  }, [sendAck]);
 
-    const connect = () => {
-      if (!isMounted) return;
-
-      // Close existing connection before creating new one
-      if (ws.current && (ws.current.readyState === WebSocket.OPEN || ws.current.readyState === WebSocket.CONNECTING)) {
-        try {
-          ws.current.close();
-        } catch {
-          // Ignore close errors
-        }
-      }
-
-      ws.current = new WebSocket(getWebSocketUrl());
-
-      ws.current.onopen = () => {
-        if (!isMounted) {
-          ws.current?.close();
-          return;
-        }
-        console.log("[ChatHighlight] Connected to WebSocket");
-        ws.current?.send(
-          JSON.stringify({
-            type: "subscribe",
-            channel: "chat-highlight",
-          })
-        );
-      };
-
-      ws.current.onmessage = (event: MessageEvent) => {
-        if (!isMounted) return;
-        try {
-          const message = JSON.parse(event.data);
-          if (message.channel === "chat-highlight") {
-            handleEvent(message.data);
-          }
-        } catch (error) {
-          console.error("[ChatHighlight] Failed to parse message:", error);
-        }
-      };
-
-      ws.current.onerror = (error) => {
-        console.error("[ChatHighlight] WebSocket error:", error);
-      };
-
-      ws.current.onclose = (event) => {
-        if (isMounted && event.code !== 1000 && event.code !== 1001) {
-          console.log("[ChatHighlight] WebSocket closed unexpectedly, reconnecting in 3s...");
-          reconnectTimeout = setTimeout(() => {
-            connect();
-          }, 3000);
-        } else {
-          console.log("[ChatHighlight] WebSocket closed normally");
-        }
-      };
-    };
-
-    connect();
-
+  // Cleanup hide timeout on unmount
+  useEffect(() => {
     return () => {
-      isMounted = false;
-      clearTimeout(reconnectTimeout);
       if (hideTimeout.current) {
         clearTimeout(hideTimeout.current);
       }
-      if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
-        try {
-          ws.current.close(1000, "Component unmounting");
-        } catch {
-          // Ignore close errors during cleanup
-        }
-      }
     };
-  }, [handleEvent]);
+  }, []);
 
   if (!state.visible) {
     return null;
