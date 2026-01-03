@@ -279,6 +279,37 @@
 
 ---
 
+## Batch 9: WebSocket + ClientFetch Expansion ✅
+
+**Completed:** January 3, 2026
+
+| Task | Status | Files |
+|------|--------|-------|
+| Refactor QuizRenderer to useWebSocketChannel | ✅ | `components/quiz/QuizRenderer.tsx` |
+| Refactor GuestsPanel/GuestsCard to ClientFetch | ✅ | `GuestsPanel.tsx`, `GuestsCard.tsx` |
+| Add discriminated union types for overlay payloads | ✅ | `lib/models/OverlayEvents.ts` |
+
+### Details
+
+**QuizRenderer refactoring:**
+- Removed ~40 lines of manual WebSocket code
+- Added `QuizEventData` and `QuizEventPayload` interfaces
+- Now uses hook's sendAck for acknowledgments
+- Fixed TypeScript computed property issue in answer.assign handler
+
+**GuestsPanel/GuestsCard refactoring:**
+- Replaced 6 raw fetch() calls with ClientFetch utilities
+- Now uses `apiGet`, `apiPost` from `@/lib/utils/ClientFetch`
+- Type-safe response handling with generics
+
+**Overlay payload types:**
+- Added discriminated unions for: LowerThird, Countdown, Poster, ChatHighlight events
+- Created type guards: `isLowerThirdEvent()`, `isCountdownEvent()`, etc.
+- All events use `type` field as discriminator
+- Backward compatible with existing payload types
+
+---
+
 ## Remaining Work
 
 ### Phase 1: Critical Fixes ✅
@@ -289,12 +320,12 @@
 - [ ] Implement scene item ID lookup in OBS API route
 - [x] Replace console.error with Logger in QuizManager ✅
 - [ ] Add error boundaries for async operations in quiz system
-- [ ] Create payload type definitions with discriminated unions
+- [x] Create payload type definitions with discriminated unions ✅
 - [x] Use exponential backoff for WebSocket reconnection (done in hook)
 
 ### Phase 3: DRY Improvements (Partially Done)
-- [x] Refactor components to use useWebSocketChannel hook (5/7 done)
-- [ ] Refactor components to use ClientFetch utility
+- [x] Refactor components to use useWebSocketChannel hook (6/7 done - QuizRenderer added)
+- [x] Refactor components to use ClientFetch utility (started: GuestsPanel, GuestsCard)
 - [x] Refactor API routes to use ApiResponses helper (49 routes done)
 - [ ] Standardize proxy request patterns
 - [ ] Create CardShell wrapper component
@@ -313,9 +344,9 @@
 | Metric | Value |
 |--------|-------|
 | Files Created | 3 |
-| Files Modified | 59 |
+| Files Modified | 63 |
 | Critical Issues Fixed | 2/2 |
-| High Issues Fixed | 3/14 |
+| High Issues Fixed | 5/14 |
 | Quick Wins Completed | 6/6 |
 | API Routes Standardized | 49 |
-| Lines Removed (boilerplate) | ~370 |
+| Lines Removed (boilerplate) | ~410 |

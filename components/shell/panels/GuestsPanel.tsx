@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Zap } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
+import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { PanelColorMenu } from "../PanelColorMenu";
 
 interface Guest {
@@ -113,8 +114,7 @@ export function GuestsPanel(props: IDockviewPanelProps) {
 
   const fetchGuests = async () => {
     try {
-      const res = await fetch("/api/assets/guests");
-      const data = await res.json();
+      const data = await apiGet<{ guests: Guest[] }>("/api/assets/guests");
       const allEnabledGuests = (data.guests || []).filter((g: Guest) => g.isEnabled);
       setGuests(allEnabledGuests.slice(0, 10));
     } catch (error) {
@@ -131,21 +131,14 @@ export function GuestsPanel(props: IDockviewPanelProps) {
           clearTimeout(hideTimeoutRef.current);
           hideTimeoutRef.current = null;
         }
-        
-        await fetch("/api/actions/lower/hide", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
-        
+
+        await apiPost("/api/actions/lower/hide");
+
         setActiveGuestId(null);
         return;
       }
-      
-      await fetch(`/api/actions/lower/guest/${guest.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ duration: 8 }),
-      });
+
+      await apiPost(`/api/actions/lower/guest/${guest.id}`, { duration: 8 });
     } catch (error) {
       console.error("Failed to show/hide lower third:", error);
     }
