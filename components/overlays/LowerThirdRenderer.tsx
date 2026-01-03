@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { LowerThirdShowPayload, LowerThirdAnimationConfig } from "@/lib/models/OverlayEvents";
 import { LowerThirdDisplay } from "./LowerThirdDisplay";
 import { LowerThirdAnimationTheme } from "@/lib/models/Theme";
-import { getWebSocketUrl } from "@/lib/utils/websocket";
+import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 
 interface ThemeData {
   colors: {
@@ -51,6 +51,15 @@ interface LowerThirdState {
 }
 
 /**
+ * WebSocket message payload for lower third events
+ */
+interface LowerThirdEventData {
+  type: string;
+  payload?: LowerThirdShowPayload;
+  id: string;
+}
+
+/**
  * LowerThirdRenderer displays lower third overlays
  */
 export function LowerThirdRenderer() {
@@ -63,10 +72,10 @@ export function LowerThirdRenderer() {
     accentColor: "#3b82f6",
   });
 
-  const ws = useRef<WebSocket | null>(null);
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const sendAckRef = useRef<(eventId: string) => void>(() => {});
 
-  const handleEvent = useCallback((data: { type: string; payload?: LowerThirdShowPayload; id: string }) => {
+  const handleMessage = useCallback((data: LowerThirdEventData) => {
     if (hideTimeout.current) {
       clearTimeout(hideTimeout.current);
     }
@@ -138,97 +147,17 @@ export function LowerThirdRenderer() {
     }
 
     // Send acknowledgment
-    if (ws.current) {
-      ws.current.send(
-        JSON.stringify({
-          type: "ack",
-          eventId: data.id,
-          channel: "lower",
-          success: true,
-        })
-      );
-    }
+    sendAckRef.current(data.id);
   }, []);
 
-  useEffect(() => {
-    let reconnectTimeout: NodeJS.Timeout;
-    let isMounted = true;
+  const { sendAck } = useWebSocketChannel<LowerThirdEventData>(
+    "lower",
+    handleMessage,
+    { logPrefix: "LowerThird" }
+  );
 
-    const connect = () => {
-      // Don't create new connection if component is unmounting
-      if (!isMounted) return;
-
-      // Close existing connection before creating new one
-      if (ws.current && (ws.current.readyState === WebSocket.OPEN || ws.current.readyState === WebSocket.CONNECTING)) {
-        try {
-          ws.current.close();
-        } catch {
-          // Ignore close errors
-        }
-      }
-
-      ws.current = new WebSocket(getWebSocketUrl());
-
-      ws.current.onopen = () => {
-        if (!isMounted) {
-          ws.current?.close();
-          return;
-        }
-        console.log("[LowerThird] Connected to WebSocket");
-        ws.current?.send(
-          JSON.stringify({
-            type: "subscribe",
-            channel: "lower",
-          })
-        );
-      };
-
-      const handleMessage = (event: MessageEvent) => {
-        if (!isMounted) return;
-        try {
-          const message = JSON.parse(event.data);
-          if (message.channel === "lower") {
-            handleEvent(message.data);
-          }
-        } catch (error) {
-          console.error("[LowerThird] Failed to parse message:", error);
-        }
-      };
-
-      ws.current.onmessage = handleMessage;
-
-      ws.current.onerror = (error) => {
-        console.error("[LowerThird] WebSocket error:", error);
-      };
-
-      ws.current.onclose = (event) => {
-        // Only auto-reconnect on unexpected disconnections
-        // Code 1000 = normal closure, 1001 = going away (page navigation)
-        if (isMounted && event.code !== 1000 && event.code !== 1001) {
-          console.log("[LowerThird] WebSocket closed unexpectedly, reconnecting in 3s...");
-          reconnectTimeout = setTimeout(() => {
-            connect();
-          }, 3000);
-        } else {
-          console.log("[LowerThird] WebSocket closed normally");
-        }
-      };
-    };
-
-    connect();
-
-    return () => {
-      isMounted = false;
-      clearTimeout(reconnectTimeout);
-      if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
-        try {
-          ws.current.close(1000, "Component unmounting");
-        } catch {
-          // Ignore close errors during cleanup
-        }
-      }
-    };
-  }, [handleEvent]);
+  // Keep ref up to date
+  sendAckRef.current = sendAck;
 
   if (!state.visible) {
     return null;
