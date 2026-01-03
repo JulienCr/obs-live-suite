@@ -6,8 +6,26 @@ Continue l'audit du code selon les fichiers de référence et lance des agents p
 
 - `docs/AUDIT-CODE-2026-01.md` - Rapport d'audit complet avec toutes les issues identifiées
 - `docs/AUDIT-PROGRESS.md` - Progression actuelle (à lire à chaque exécution)
+- `docs/audit-reports/` - Rapports d'audit générés par `/audit`
+- `docs/audit-history.json` - Historique des métriques
+
+## Intégration avec /audit
+
+Si un rapport d'audit récent existe dans `docs/audit-reports/`:
+1. Lire le dernier rapport `{date}_audit-report.md` ou `comparison-{date}.json`
+2. Utiliser le "Batch de Corrections Proposé" comme source de tâches
+3. Exécuter les corrections validées par l'utilisateur
+
+Si pas de rapport récent, utiliser le workflow classique ci-dessous.
 
 ## Instructions
+
+### Étape 0: Vérifier Batch de Corrections (Nouveau)
+
+1. Chercher le fichier le plus récent dans `docs/audit-reports/comparison-*.json`
+2. Si trouvé, extraire les corrections de `summary.improvements` et `summary.regressions`
+3. Proposer ces corrections comme tâches prioritaires
+4. Sinon, continuer avec l'Étape 1 classique
 
 ### Étape 1: Analyser l'État Actuel
 
