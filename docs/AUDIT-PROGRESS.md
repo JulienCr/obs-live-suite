@@ -246,6 +246,39 @@
 
 ---
 
+## Batch 8: Action Routes ✅
+
+**Completed:** January 3, 2026
+
+| Task | Status | Files |
+|------|--------|-------|
+| Lower action routes | ✅ | `show/route.ts`, `hide/route.ts`, `guest/[id]/route.ts` |
+| Poster action routes | ✅ | `hide/route.ts`, `next/route.ts`, `previous/route.ts`, `show/[id]/route.ts` |
+| Countdown + Panic routes | ✅ | `countdown/start/route.ts`, `panic/route.ts` |
+| Macro route | ✅ | `macro/route.ts` |
+
+### Details
+
+**Lower action routes (3 routes):**
+- `show` and `guest/[id]` fully refactored with withErrorHandler/withSimpleErrorHandler
+- `guest/[id]` uses RouteContext for typed params
+- Added `[ActionsAPI:Lower:Show]`, `[ActionsAPI:Lower:Guest]` contexts
+
+**Poster action routes (4 routes):**
+- `show/[id]` fully refactored with withErrorHandler and RouteContext
+- `hide`, `next`, `previous` added logPrefix for consistent logging
+- Added `[ActionsAPI:Poster]` context
+
+**Countdown + Panic routes (2 routes):**
+- Countdown wrapped with withSimpleErrorHandler
+- Added `[ActionsAPI:Countdown]`, `[ActionsAPI:Panic]` contexts
+
+**Macro route (1 route):**
+- Wrapped with withSimpleErrorHandler
+- Added `[ActionsAPI:Macro]` context
+
+---
+
 ## Remaining Work
 
 ### Phase 1: Critical Fixes ✅
@@ -262,7 +295,7 @@
 ### Phase 3: DRY Improvements (Partially Done)
 - [x] Refactor components to use useWebSocketChannel hook (5/7 done)
 - [ ] Refactor components to use ClientFetch utility
-- [x] Refactor API routes to use ApiResponses helper (39 routes done)
+- [x] Refactor API routes to use ApiResponses helper (49 routes done)
 - [ ] Standardize proxy request patterns
 - [ ] Create CardShell wrapper component
 - [ ] Build presenter notification factory
@@ -280,9 +313,9 @@
 | Metric | Value |
 |--------|-------|
 | Files Created | 3 |
-| Files Modified | 50 |
+| Files Modified | 59 |
 | Critical Issues Fixed | 2/2 |
 | High Issues Fixed | 3/14 |
 | Quick Wins Completed | 6/6 |
-| API Routes Standardized | 39 |
-| Lines Removed (boilerplate) | ~350 |
+| API Routes Standardized | 49 |
+| Lines Removed (boilerplate) | ~370 |

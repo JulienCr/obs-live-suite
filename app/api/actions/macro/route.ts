@@ -1,31 +1,25 @@
-import { NextRequest, NextResponse } from "next/server";
+import {
+  ApiResponses,
+  withSimpleErrorHandler,
+} from "@/lib/utils/ApiResponses";
+
+const LOG_CONTEXT = "[ActionsAPI:Macro]";
 
 /**
  * POST /api/actions/macro
  * Execute a macro (Stream Deck compatible)
  */
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { macroId } = body;
+export const POST = withSimpleErrorHandler(async (request: Request) => {
+  const body = await request.json();
+  const { macroId } = body;
 
-    if (!macroId) {
-      return NextResponse.json(
-        { error: "macroId is required" },
-        { status: 400 }
-      );
-    }
-
-    // TODO: Implement macro execution via MacroEngine
-    console.log("Execute macro:", macroId);
-
-    return NextResponse.json({ success: true, macroId });
-  } catch (error) {
-    console.error("Macro API error:", error);
-    return NextResponse.json(
-      { error: "Failed to execute macro" },
-      { status: 500 }
-    );
+  if (!macroId) {
+    return ApiResponses.badRequest("macroId is required");
   }
-}
+
+  // TODO: Implement macro execution via MacroEngine
+  console.log(`${LOG_CONTEXT} Execute macro:`, macroId);
+
+  return ApiResponses.ok({ success: true, macroId });
+}, LOG_CONTEXT);
 
