@@ -214,6 +214,38 @@
 
 ---
 
+## Batch 7: LLM + Assets + Cue + Settings Routes ✅
+
+**Completed:** January 3, 2026
+
+| Task | Status | Files |
+|------|--------|-------|
+| LLM routes | ✅ | `models/route.ts`, `summarize/route.ts`, `test/route.ts` |
+| Assets routes | ✅ | `tags/route.ts`, `upload/route.ts`, `quiz/route.ts` |
+| Presenter/cue routes | ✅ | `send/route.ts`, `[messageId]/action/route.ts` |
+| Settings routes | ✅ | `integrations/route.ts`, `overlay/route.ts`, `open-folder/route.ts` |
+
+### Details
+
+**LLM routes (3 routes):**
+- All wrapped with withSimpleErrorHandler
+- Added `[LLMAPI]` logging context
+- Used safeParse for better validation errors in test route
+
+**Assets routes (3 routes):**
+- Added `[AssetsAPI:Tags]`, `[AssetsAPI:Upload]`, `[AssetsAPI:Quiz]` contexts
+- Replaced manual try/catch with wrapper
+
+**Presenter/cue routes (2 routes):**
+- Used RouteContext for typed params in dynamic route
+- Added `[CueSendAPI]`, `[CueActionAPI]` logging contexts
+
+**Settings routes (3 routes):**
+- Added `[SettingsAPI:integrations]`, `[SettingsAPI:overlay]`, `[SettingsAPI:open-folder]` contexts
+- Replaced validation errors with ApiResponses.badRequest()
+
+---
+
 ## Remaining Work
 
 ### Phase 1: Critical Fixes ✅
@@ -230,7 +262,7 @@
 ### Phase 3: DRY Improvements (Partially Done)
 - [x] Refactor components to use useWebSocketChannel hook (5/7 done)
 - [ ] Refactor components to use ClientFetch utility
-- [x] Refactor API routes to use ApiResponses helper (28 routes done)
+- [x] Refactor API routes to use ApiResponses helper (39 routes done)
 - [ ] Standardize proxy request patterns
 - [ ] Create CardShell wrapper component
 - [ ] Build presenter notification factory
@@ -248,9 +280,9 @@
 | Metric | Value |
 |--------|-------|
 | Files Created | 3 |
-| Files Modified | 39 |
+| Files Modified | 50 |
 | Critical Issues Fixed | 2/2 |
 | High Issues Fixed | 3/14 |
 | Quick Wins Completed | 6/6 |
-| API Routes Standardized | 28 |
-| Lines Removed (boilerplate) | ~300 |
+| API Routes Standardized | 39 |
+| Lines Removed (boilerplate) | ~350 |
