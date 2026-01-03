@@ -10,6 +10,7 @@ import { Eye, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
+import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 
 interface Poster {
   id: string;
@@ -224,8 +225,7 @@ export function PosterContent({ className }: PosterContentProps) {
 
   const fetchPosters = async () => {
     try {
-      const res = await fetch("/api/assets/posters");
-      const data = await res.json();
+      const data = await apiGet<{ posters: Poster[] }>("/api/assets/posters");
       // Filter to show only enabled posters
       const enabledPosters = (data.posters || []).filter((p: Poster) => p.isEnabled);
       setPosters(enabledPosters);
@@ -238,8 +238,7 @@ export function PosterContent({ className }: PosterContentProps) {
 
   const fetchDefaultDisplayMode = async () => {
     try {
-      const res = await fetch("/api/settings/general");
-      const data = await res.json();
+      const data = await apiGet<{ settings?: { defaultPosterDisplayMode?: string } }>("/api/settings/general");
       const mode = data.settings?.defaultPosterDisplayMode || "left";
       setDefaultDisplayMode(mode as DisplayMode);
     } catch (error) {
@@ -290,15 +289,7 @@ export function PosterContent({ className }: PosterContentProps) {
         ? "/api/overlays/poster-bigpicture"
         : "/api/overlays/poster";
 
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "hide" }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to hide poster");
-      }
+      await apiPost(endpoint, { action: "hide" });
 
       setActivePoster(null);
       setDisplayMode(null);
@@ -316,7 +307,7 @@ export function PosterContent({ className }: PosterContentProps) {
         ? "/api/overlays/poster-bigpicture"
         : "/api/overlays/poster";
 
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         posterId: poster.id,
         fileUrl: poster.fileUrl,
         type: poster.type,
@@ -329,20 +320,10 @@ export function PosterContent({ className }: PosterContentProps) {
         payload.side = mode;
       }
 
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "show",
-          payload,
-        }),
+      await apiPost(endpoint, {
+        action: "show",
+        payload,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("[PosterCard] Failed to show poster:", errorData);
-        throw new Error(`Failed to show poster: ${errorData.error || response.statusText}`);
-      }
 
       setActivePoster(poster.id);
       setDisplayMode(mode);
@@ -365,11 +346,7 @@ export function PosterContent({ className }: PosterContentProps) {
         : "/api/overlays/poster";
       const action = playbackState.isPlaying ? "pause" : "play";
 
-      await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
+      await apiPost(endpoint, { action });
 
       // Optimistic update
       setPlaybackState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
@@ -384,13 +361,9 @@ export function PosterContent({ className }: PosterContentProps) {
         ? "/api/overlays/poster-bigpicture"
         : "/api/overlays/poster";
 
-      await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "seek",
-          payload: { time }
-        }),
+      await apiPost(endpoint, {
+        action: "seek",
+        payload: { time }
       });
 
       // Optimistic update
@@ -407,11 +380,7 @@ export function PosterContent({ className }: PosterContentProps) {
         : "/api/overlays/poster";
       const action = playbackState.isMuted ? "unmute" : "mute";
 
-      await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
+      await apiPost(endpoint, { action });
 
       // Optimistic update
       setPlaybackState(prev => ({ ...prev, isMuted: !prev.isMuted }));

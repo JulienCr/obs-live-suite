@@ -28,6 +28,7 @@ import {
   DEFAULT_STREAMERBOT_CONNECTION,
 } from "@/lib/models/StreamerbotChat";
 import { getBackendUrl } from "@/lib/utils/websocket";
+import { apiGet, apiPost, apiPut, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 export interface StreamerbotConnectionFormProps {
   value?: StreamerbotConnectionSettings;
@@ -76,33 +77,18 @@ export function StreamerbotConnectionForm({
       const backendUrl = getBackendUrl();
 
       // First, save settings to backend
-      const saveResponse = await fetch(`${backendUrl}/api/streamerbot-chat/settings`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
-      });
-
-      if (!saveResponse.ok) {
-        throw new Error("Failed to save settings");
-      }
+      await apiPut(`${backendUrl}/api/streamerbot-chat/settings`, settings);
 
       // Then, try to connect via backend gateway
-      const connectResponse = await fetch(`${backendUrl}/api/streamerbot-chat/connect`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!connectResponse.ok) {
-        const errorData = await connectResponse.json().catch(() => ({ error: "Connection failed" }));
-        throw new Error(errorData.error || "Connection failed");
-      }
+      await apiPost(`${backendUrl}/api/streamerbot-chat/connect`);
 
       // Wait a bit for connection to establish
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Check connection status
-      const statusResponse = await fetch(`${backendUrl}/api/streamerbot-chat/status`);
-      const status = await statusResponse.json();
+      const status = await apiGet<{ status: string; error?: { message?: string } }>(
+        `${backendUrl}/api/streamerbot-chat/status`
+      );
 
       if (status.status === "connected") {
         setTestResult({
@@ -111,9 +97,7 @@ export function StreamerbotConnectionForm({
         });
 
         // Disconnect after successful test
-        await fetch(`${backendUrl}/api/streamerbot-chat/disconnect`, {
-          method: "POST",
-        });
+        await apiPost(`${backendUrl}/api/streamerbot-chat/disconnect`);
       } else {
         setTestResult({
           success: false,
@@ -123,9 +107,12 @@ export function StreamerbotConnectionForm({
 
       setTesting(false);
     } catch (error) {
+      const message = isClientFetchError(error)
+        ? error.errorMessage
+        : (error instanceof Error ? error.message : "Connection failed");
       setTestResult({
         success: false,
-        message: error instanceof Error ? error.message : "Connection failed",
+        message,
       });
       setTesting(false);
     }

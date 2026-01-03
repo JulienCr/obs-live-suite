@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Loader2
 } from "lucide-react";
+import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 /**
  * Plugin data structure from database
@@ -52,13 +53,14 @@ export function PluginSettings() {
    */
   const loadPlugins = async () => {
     try {
-      const response = await fetch("/api/updater/plugins");
-      if (!response.ok) throw new Error("Failed to load plugins");
-      
-      const data = await response.json();
+      const data = await apiGet<{ plugins?: Plugin[] }>("/api/updater/plugins");
       setPlugins(data.plugins || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load plugins");
+      if (isClientFetchError(err)) {
+        setError(err.errorMessage);
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to load plugins");
+      }
     }
   };
 
@@ -68,18 +70,19 @@ export function PluginSettings() {
   const handleScan = async () => {
     setIsScanning(true);
     setError(null);
-    
+
     try {
-      const response = await fetch("/api/updater/scan", { method: "POST" });
-      if (!response.ok) throw new Error("Failed to scan plugins");
-      
-      const data = await response.json();
+      await apiPost("/api/updater/scan");
       setLastScan(new Date());
-      
+
       // Reload the plugin list
       await loadPlugins();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to scan plugins");
+      if (isClientFetchError(err)) {
+        setError(err.errorMessage);
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to scan plugins");
+      }
     } finally {
       setIsScanning(false);
     }
@@ -91,15 +94,18 @@ export function PluginSettings() {
   const handleCheckUpdates = async () => {
     setIsChecking(true);
     setError(null);
-    
+
     try {
-      const response = await fetch("/api/updater/check", { method: "POST" });
-      if (!response.ok) throw new Error("Failed to check updates");
-      
+      await apiPost("/api/updater/check");
+
       // Reload the plugin list
       await loadPlugins();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to check updates");
+      if (isClientFetchError(err)) {
+        setError(err.errorMessage);
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to check updates");
+      }
     } finally {
       setIsChecking(false);
     }

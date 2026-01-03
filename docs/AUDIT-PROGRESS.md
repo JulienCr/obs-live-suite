@@ -396,6 +396,30 @@
 
 ---
 
+## Batch 13: Dashboard Cards + Settings Completion ✅
+
+**Completed:** January 3, 2026
+
+| Task | Status | Files |
+|------|--------|-------|
+| Refactor dashboard cards to ClientFetch | ✅ | 3 card components |
+| Refactor remaining settings to ClientFetch | ✅ | 4 settings components |
+| Refactor header/updater to ClientFetch | ✅ | 2 components |
+
+### Details
+
+**Dashboard cards refactored (3 files):**
+- `PosterCard.tsx` (7 fetch), `LowerThirdCard.tsx` (6 fetch), `CountdownCard.tsx` (5 fetch)
+- Added typed response interfaces
+
+**Settings refactored (4 files):**
+- `OllamaSettings.tsx`, `PluginSettings.tsx`, `StreamerbotConnectionForm.tsx`, `BackendSettings.tsx`
+
+**Other components (2 files):**
+- `DashboardHeader.tsx`, `UpdaterContainer.tsx`
+
+---
+
 ## Remaining Work
 
 ### Phase 1: Critical Fixes ✅
@@ -411,7 +435,7 @@
 
 ### Phase 3: DRY Improvements (Nearly Complete)
 - [x] Refactor components to use useWebSocketChannel hook (6/7 done)
-- [x] Refactor components to use ClientFetch utility (24 components done)
+- [x] Refactor components to use ClientFetch utility (33 components done)
 - [x] Refactor API routes to use ApiResponses helper (49 routes done)
 - [ ] Standardize proxy request patterns
 - [x] Create CardShell wrapper component ✅
@@ -430,10 +454,10 @@
 | Metric | Value |
 |--------|-------|
 | Files Created | 4 |
-| Files Modified | 87 |
+| Files Modified | 96 |
 | Critical Issues Fixed | 2/2 |
 | High Issues Fixed | 6/14 |
 | Quick Wins Completed | 6/6 |
 | API Routes Standardized | 49 |
-| Components using ClientFetch | 24 |
-| Lines Removed (boilerplate) | ~580 |
+| Components using ClientFetch | 33 |
+| Lines Removed (boilerplate) | ~650 |
