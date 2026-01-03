@@ -1,5 +1,10 @@
 import { LLMProvider } from "./LLMProvider";
 import { Logger } from "../../utils/Logger";
+import { buildSummarizationPrompt } from "./PromptTemplates";
+import {
+  fetchWithTimeout,
+  TimeoutError,
+} from "../../utils/fetchWithTimeout";
 
 /**
  * Anthropic (Claude) LLM Provider
@@ -45,30 +50,28 @@ export class AnthropicProvider implements LLMProvider {
   async testConnection(): Promise<{ success: boolean; error?: string }> {
     try {
       // Anthropic doesn't have a simple test endpoint, so we make a minimal request
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": this.apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: this.model,
-          max_tokens: 10,
-          messages: [
-            {
-              role: "user",
-              content: "test",
-            },
-          ],
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeout);
+      const response = await fetchWithTimeout(
+        "https://api.anthropic.com/v1/messages",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": this.apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: this.model,
+            max_tokens: 10,
+            messages: [
+              {
+                role: "user",
+                content: "test",
+              },
+            ],
+          }),
+          timeout: 5000,
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
@@ -88,47 +91,34 @@ export class AnthropicProvider implements LLMProvider {
   }
 
   private buildPrompt(content: string): string {
-    return `Résume le texte ci-dessous pour un overlay à l'écran.
-
-Contraintes :
-- Sortie EXACTEMENT 3 à 5 lignes.
-- Le markdown est autorisé (mais reste minimal).
-- Chaque ligne DOIT faire au maximum 100 caractères.
-- Pas de numérotation et pas de puces.
-- Pas d'introduction, pas d'avertissement.
-
-Texte : ${content}
-
-Résumé (3-5 lignes) :`;
+    return buildSummarizationPrompt(content);
   }
 
   private async callAnthropic(prompt: string): Promise<string> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeout);
-
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": this.apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: this.model,
-          max_tokens: 500,
-          temperature: this.temperature,
-          messages: [
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeout);
+      const response = await fetchWithTimeout(
+        "https://api.anthropic.com/v1/messages",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": this.apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: this.model,
+            max_tokens: 500,
+            temperature: this.temperature,
+            messages: [
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+          }),
+          timeout: this.timeout,
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -140,12 +130,9 @@ Résumé (3-5 lignes) :`;
       const data = await response.json();
       return data.content?.[0]?.text || "";
     } catch (error) {
-      clearTimeout(timeout);
-
-      if (error instanceof Error && error.name === "AbortError") {
+      if (error instanceof TimeoutError) {
         throw new Error(`Anthropic request timed out after ${this.timeout}ms`);
       }
-
       throw error;
     }
   }

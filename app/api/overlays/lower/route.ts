@@ -1,33 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { BACKEND_URL } from "@/lib/config/urls";
+import { NextRequest } from "next/server";
+import { createPostProxy } from "@/lib/utils/ProxyHelper";
+
+const proxyPost = createPostProxy("/api/overlays/lower", "Failed to update lower third");
 
 /**
  * POST /api/overlays/lower
  * Proxy to backend server
  */
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-
-    const response = await fetch(`${BACKEND_URL}/api/overlays/lower`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return NextResponse.json(data, { status: response.status });
-    }
-
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("[Next.js] Lower third proxy error:", error);
-    return NextResponse.json(
-      { error: "Backend service unavailable" },
-      { status: 503 }
-    );
-  }
+  const body = await request.json();
+  return proxyPost(body);
 }
 

@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { BACKEND_URL } from "@/lib/config/urls";
+import { NextRequest } from "next/server";
+import { proxyToBackend } from "@/lib/utils/ProxyHelper";
 
 /**
  * PUT /api/quiz/questions/[id]
@@ -9,30 +9,13 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    const body = await request.json();
-    
-    const response = await fetch(`${BACKEND_URL}/api/quiz/questions/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-      return NextResponse.json(data, { status: response.status });
-    }
-    
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("Quiz question PUT proxy error:", error);
-    return NextResponse.json(
-      { error: "Failed to update question" },
-      { status: 500 }
-    );
-  }
+  const { id } = await params;
+  const body = await request.json();
+  return proxyToBackend(`/api/quiz/questions/${id}`, {
+    method: "PUT",
+    body,
+    errorMessage: "Failed to update question",
+  });
 }
 
 /**
@@ -43,26 +26,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    
-    const response = await fetch(`${BACKEND_URL}/api/quiz/questions/${id}`, {
-      method: 'DELETE',
-    });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-      return NextResponse.json(data, { status: response.status });
-    }
-    
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("Quiz question DELETE proxy error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete question" },
-      { status: 500 }
-    );
-  }
+  const { id } = await params;
+  return proxyToBackend(`/api/quiz/questions/${id}`, {
+    method: "DELETE",
+    errorMessage: "Failed to delete question",
+  });
 }
 

@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import { PathManager } from "../config/PathManager";
 import { Logger } from "../utils/Logger";
+import { safeJsonParse, safeJsonParseOptional } from "../utils/safeJsonParse";
 import {
   DbGuest,
   DbGuestInput,
@@ -172,20 +173,16 @@ export class DatabaseService {
         
         let updatedCount = 0;
         themes.forEach((theme) => {
-          try {
-            const animation = JSON.parse(theme.lowerThirdAnimation || "{}");
-            if (!animation.styles?.freeTextMaxWidth) {
-              if (!animation.styles) {
-                animation.styles = {};
-              }
-              animation.styles.freeTextMaxWidth = { left: 65, right: 65, center: 90 };
-              
-              this.db.prepare("UPDATE themes SET lowerThirdAnimation = ? WHERE id = ?")
-                .run(JSON.stringify(animation), theme.id);
-              updatedCount++;
+          const animation = safeJsonParse<Record<string, unknown>>(theme.lowerThirdAnimation, {});
+          if (!animation.styles || !(animation.styles as Record<string, unknown>)?.freeTextMaxWidth) {
+            if (!animation.styles) {
+              animation.styles = {};
             }
-          } catch (error) {
-            this.logger.error(`Error updating theme ${theme.id}:`, error);
+            (animation.styles as Record<string, unknown>).freeTextMaxWidth = { left: 65, right: 65, center: 90 };
+
+            this.db.prepare("UPDATE themes SET lowerThirdAnimation = ? WHERE id = ?")
+              .run(JSON.stringify(animation), theme.id);
+            updatedCount++;
           }
         });
         
@@ -659,9 +656,9 @@ export class DatabaseService {
     const rows = stmt.all() as Array<Omit<DbPoster, 'tags' | 'profileIds' | 'metadata' | 'isEnabled' | 'createdAt' | 'updatedAt'> & { tags: string; profileIds: string; metadata: string | null; isEnabled: number; createdAt: string; updatedAt: string }>;
     return rows.map((row) => ({
       ...row,
-      tags: JSON.parse(row.tags || "[]"),
-      profileIds: JSON.parse(row.profileIds || "[]"),
-      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+      tags: safeJsonParse<string[]>(row.tags, []),
+      profileIds: safeJsonParse<string[]>(row.profileIds, []),
+      metadata: safeJsonParseOptional<Record<string, unknown>>(row.metadata),
       isEnabled: row.isEnabled === 1,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
@@ -677,9 +674,9 @@ export class DatabaseService {
     if (!row) return null;
     return {
       ...row,
-      tags: JSON.parse(row.tags || "[]"),
-      profileIds: JSON.parse(row.profileIds || "[]"),
-      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+      tags: safeJsonParse<string[]>(row.tags, []),
+      profileIds: safeJsonParse<string[]>(row.profileIds, []),
+      metadata: safeJsonParseOptional<Record<string, unknown>>(row.metadata),
       isEnabled: row.isEnabled === 1,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
@@ -780,8 +777,8 @@ export class DatabaseService {
     return rows.map((row) => ({
       ...row,
       isActive: Boolean(row.isActive),
-      posterRotation: JSON.parse(row.posterRotation || "[]"),
-      audioSettings: JSON.parse(row.audioSettings || "{}"),
+      posterRotation: safeJsonParse<DbProfile['posterRotation']>(row.posterRotation, []),
+      audioSettings: safeJsonParse<DbProfile['audioSettings']>(row.audioSettings, {}),
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     }));
@@ -797,8 +794,8 @@ export class DatabaseService {
     return {
       ...row,
       isActive: Boolean(row.isActive),
-      posterRotation: JSON.parse(row.posterRotation || "[]"),
-      audioSettings: JSON.parse(row.audioSettings || "{}"),
+      posterRotation: safeJsonParse<DbProfile['posterRotation']>(row.posterRotation, []),
+      audioSettings: safeJsonParse<DbProfile['audioSettings']>(row.audioSettings, {}),
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     };
@@ -814,8 +811,8 @@ export class DatabaseService {
     return {
       ...row,
       isActive: Boolean(row.isActive),
-      posterRotation: JSON.parse(row.posterRotation || "[]"),
-      audioSettings: JSON.parse(row.audioSettings || "{}"),
+      posterRotation: safeJsonParse<DbProfile['posterRotation']>(row.posterRotation, []),
+      audioSettings: safeJsonParse<DbProfile['audioSettings']>(row.audioSettings, {}),
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     };
@@ -895,32 +892,36 @@ export class DatabaseService {
   getAllThemes(): DbTheme[] {
     const stmt = this.db.prepare("SELECT * FROM themes ORDER BY isGlobal DESC, name ASC");
     const rows = stmt.all() as Array<Omit<DbTheme, 'colors' | 'lowerThirdFont' | 'lowerThirdLayout' | 'lowerThirdAnimation' | 'countdownFont' | 'countdownLayout' | 'posterLayout' | 'isGlobal' | 'createdAt' | 'updatedAt'> & { colors: string; lowerThirdFont: string; lowerThirdLayout: string; lowerThirdAnimation?: string; countdownFont: string; countdownLayout: string; posterLayout: string; isGlobal: number; createdAt: string; updatedAt: string }>;
+    const defaultColors: DbTheme['colors'] = { primary: '#000000', accent: '#ffffff', surface: '#333333', text: '#ffffff', success: '#00ff00', warn: '#ff0000' };
+    const defaultFont: DbTheme['lowerThirdFont'] = { family: 'Arial', size: 16, weight: 400 };
+    const defaultLayout: DbTheme['lowerThirdLayout'] = { x: 60, y: 920, scale: 1 };
+    const defaultAnimation: DbTheme['lowerThirdAnimation'] = {
+      timing: {
+        logoFadeDuration: 200,
+        logoScaleDuration: 200,
+        flipDuration: 600,
+        flipDelay: 500,
+        barAppearDelay: 800,
+        barExpandDuration: 450,
+        textAppearDelay: 1000,
+        textFadeDuration: 250,
+      },
+      styles: {
+        barBorderRadius: 16,
+        barMinWidth: 200,
+        avatarBorderWidth: 4,
+        avatarBorderColor: '#272727',
+      },
+    };
     return rows.map((row) => ({
       ...row,
-      colors: JSON.parse(row.colors),
-      lowerThirdFont: JSON.parse(row.lowerThirdFont),
-      lowerThirdLayout: JSON.parse(row.lowerThirdLayout || '{"x":60,"y":920,"scale":1}'),
-      lowerThirdAnimation: row.lowerThirdAnimation ? JSON.parse(row.lowerThirdAnimation) : {
-        timing: {
-          logoFadeDuration: 200,
-          logoScaleDuration: 200,
-          flipDuration: 600,
-          flipDelay: 500,
-          barAppearDelay: 800,
-          barExpandDuration: 450,
-          textAppearDelay: 1000,
-          textFadeDuration: 250,
-        },
-        styles: {
-          barBorderRadius: 16,
-          barMinWidth: 200,
-          avatarBorderWidth: 4,
-          avatarBorderColor: '#272727',
-        },
-      },
-      countdownFont: JSON.parse(row.countdownFont),
-      countdownLayout: JSON.parse(row.countdownLayout || '{"x":960,"y":540,"scale":1}'),
-      posterLayout: JSON.parse(row.posterLayout || '{"x":960,"y":540,"scale":1}'),
+      colors: safeJsonParse<DbTheme['colors']>(row.colors, defaultColors),
+      lowerThirdFont: safeJsonParse<DbTheme['lowerThirdFont']>(row.lowerThirdFont, defaultFont),
+      lowerThirdLayout: safeJsonParse<DbTheme['lowerThirdLayout']>(row.lowerThirdLayout, defaultLayout),
+      lowerThirdAnimation: safeJsonParse<DbTheme['lowerThirdAnimation']>(row.lowerThirdAnimation, defaultAnimation),
+      countdownFont: safeJsonParse<DbTheme['countdownFont']>(row.countdownFont, defaultFont),
+      countdownLayout: safeJsonParse<DbTheme['countdownLayout']>(row.countdownLayout, { x: 960, y: 540, scale: 1 }),
+      posterLayout: safeJsonParse<DbTheme['posterLayout']>(row.posterLayout, { x: 960, y: 540, scale: 1 }),
       isGlobal: Boolean(row.isGlobal),
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
@@ -934,32 +935,36 @@ export class DatabaseService {
     const stmt = this.db.prepare("SELECT * FROM themes WHERE id = ?");
     const row = stmt.get(id) as (Omit<DbTheme, 'colors' | 'lowerThirdFont' | 'lowerThirdLayout' | 'lowerThirdAnimation' | 'countdownFont' | 'countdownLayout' | 'posterLayout' | 'isGlobal' | 'createdAt' | 'updatedAt'> & { colors: string; lowerThirdFont: string; lowerThirdLayout: string; lowerThirdAnimation?: string; countdownFont: string; countdownLayout: string; posterLayout: string; isGlobal: number; createdAt: string; updatedAt: string }) | undefined;
     if (!row) return null;
+    const defaultColors: DbTheme['colors'] = { primary: '#000000', accent: '#ffffff', surface: '#333333', text: '#ffffff', success: '#00ff00', warn: '#ff0000' };
+    const defaultFont: DbTheme['lowerThirdFont'] = { family: 'Arial', size: 16, weight: 400 };
+    const defaultLayout: DbTheme['lowerThirdLayout'] = { x: 60, y: 920, scale: 1 };
+    const defaultAnimation: DbTheme['lowerThirdAnimation'] = {
+      timing: {
+        logoFadeDuration: 200,
+        logoScaleDuration: 200,
+        flipDuration: 600,
+        flipDelay: 500,
+        barAppearDelay: 800,
+        barExpandDuration: 450,
+        textAppearDelay: 1000,
+        textFadeDuration: 250,
+      },
+      styles: {
+        barBorderRadius: 16,
+        barMinWidth: 200,
+        avatarBorderWidth: 4,
+        avatarBorderColor: '#272727',
+      },
+    };
     return {
       ...row,
-      colors: JSON.parse(row.colors),
-      lowerThirdFont: JSON.parse(row.lowerThirdFont),
-      lowerThirdLayout: JSON.parse(row.lowerThirdLayout || '{"x":60,"y":920,"scale":1}'),
-      lowerThirdAnimation: row.lowerThirdAnimation ? JSON.parse(row.lowerThirdAnimation) : {
-        timing: {
-          logoFadeDuration: 200,
-          logoScaleDuration: 200,
-          flipDuration: 600,
-          flipDelay: 500,
-          barAppearDelay: 800,
-          barExpandDuration: 450,
-          textAppearDelay: 1000,
-          textFadeDuration: 250,
-        },
-        styles: {
-          barBorderRadius: 16,
-          barMinWidth: 200,
-          avatarBorderWidth: 4,
-          avatarBorderColor: '#272727',
-        },
-      },
-      countdownFont: JSON.parse(row.countdownFont),
-      countdownLayout: JSON.parse(row.countdownLayout || '{"x":960,"y":540,"scale":1}'),
-      posterLayout: JSON.parse(row.posterLayout || '{"x":960,"y":540,"scale":1}'),
+      colors: safeJsonParse<DbTheme['colors']>(row.colors, defaultColors),
+      lowerThirdFont: safeJsonParse<DbTheme['lowerThirdFont']>(row.lowerThirdFont, defaultFont),
+      lowerThirdLayout: safeJsonParse<DbTheme['lowerThirdLayout']>(row.lowerThirdLayout, defaultLayout),
+      lowerThirdAnimation: safeJsonParse<DbTheme['lowerThirdAnimation']>(row.lowerThirdAnimation, defaultAnimation),
+      countdownFont: safeJsonParse<DbTheme['countdownFont']>(row.countdownFont, defaultFont),
+      countdownLayout: safeJsonParse<DbTheme['countdownLayout']>(row.countdownLayout, { x: 960, y: 540, scale: 1 }),
+      posterLayout: safeJsonParse<DbTheme['posterLayout']>(row.posterLayout, { x: 960, y: 540, scale: 1 }),
       isGlobal: Boolean(row.isGlobal),
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
@@ -1113,9 +1118,9 @@ export class DatabaseService {
     const rows = stmt.all() as Array<Omit<DbRoom, 'quickReplies' | 'canSendCustomMessages' | 'streamerbotConnection' | 'allowPresenterToSendMessage' | 'createdAt' | 'updatedAt'> & { quickReplies: string; canSendCustomMessages: number; streamerbotConnection: string | null; allowPresenterToSendMessage: number; createdAt: string; updatedAt: string }>;
     return rows.map((row) => ({
       ...row,
-      quickReplies: JSON.parse(row.quickReplies || '[]'),
+      quickReplies: safeJsonParse<DbRoom['quickReplies']>(row.quickReplies, []),
       canSendCustomMessages: Boolean(row.canSendCustomMessages),
-      streamerbotConnection: row.streamerbotConnection ? JSON.parse(row.streamerbotConnection) : null,
+      streamerbotConnection: safeJsonParseOptional<DbRoom['streamerbotConnection']>(row.streamerbotConnection) ?? null,
       allowPresenterToSendMessage: Boolean(row.allowPresenterToSendMessage),
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
@@ -1131,9 +1136,9 @@ export class DatabaseService {
     if (!row) return null;
     return {
       ...row,
-      quickReplies: JSON.parse(row.quickReplies || '[]'),
+      quickReplies: safeJsonParse<DbRoom['quickReplies']>(row.quickReplies, []),
       canSendCustomMessages: Boolean(row.canSendCustomMessages),
-      streamerbotConnection: row.streamerbotConnection ? JSON.parse(row.streamerbotConnection) : null,
+      streamerbotConnection: safeJsonParseOptional<DbRoom['streamerbotConnection']>(row.streamerbotConnection) ?? null,
       allowPresenterToSendMessage: Boolean(row.allowPresenterToSendMessage),
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
@@ -1232,12 +1237,12 @@ export class DatabaseService {
     return rows.map((row) => ({
       ...row,
       pinned: row.pinned === 1,
-      actions: JSON.parse(row.actions || '[]'),
-      countdownPayload: row.countdownPayload ? JSON.parse(row.countdownPayload) : null,
-      contextPayload: row.contextPayload ? JSON.parse(row.contextPayload) : null,
-      questionPayload: row.questionPayload ? JSON.parse(row.questionPayload) : null,
-      seenBy: JSON.parse(row.seenBy || '[]'),
-      ackedBy: JSON.parse(row.ackedBy || '[]'),
+      actions: safeJsonParse<string[]>(row.actions, []),
+      countdownPayload: safeJsonParseOptional<Record<string, unknown>>(row.countdownPayload) ?? null,
+      contextPayload: safeJsonParseOptional<Record<string, unknown>>(row.contextPayload) ?? null,
+      questionPayload: safeJsonParseOptional<Record<string, unknown>>(row.questionPayload) ?? null,
+      seenBy: safeJsonParse<string[]>(row.seenBy, []),
+      ackedBy: safeJsonParse<string[]>(row.ackedBy, []),
     }));
   }
 
@@ -1251,12 +1256,12 @@ export class DatabaseService {
     return rows.map((row) => ({
       ...row,
       pinned: row.pinned === 1,
-      actions: JSON.parse(row.actions || '[]'),
-      countdownPayload: row.countdownPayload ? JSON.parse(row.countdownPayload) : null,
-      contextPayload: row.contextPayload ? JSON.parse(row.contextPayload) : null,
-      questionPayload: row.questionPayload ? JSON.parse(row.questionPayload) : null,
-      seenBy: JSON.parse(row.seenBy || '[]'),
-      ackedBy: JSON.parse(row.ackedBy || '[]'),
+      actions: safeJsonParse<string[]>(row.actions, []),
+      countdownPayload: safeJsonParseOptional<Record<string, unknown>>(row.countdownPayload) ?? null,
+      contextPayload: safeJsonParseOptional<Record<string, unknown>>(row.contextPayload) ?? null,
+      questionPayload: safeJsonParseOptional<Record<string, unknown>>(row.questionPayload) ?? null,
+      seenBy: safeJsonParse<string[]>(row.seenBy, []),
+      ackedBy: safeJsonParse<string[]>(row.ackedBy, []),
     }));
   }
 
@@ -1272,12 +1277,12 @@ export class DatabaseService {
     return {
       ...row,
       pinned: row.pinned === 1,
-      actions: JSON.parse(row.actions || '[]'),
-      countdownPayload: row.countdownPayload ? JSON.parse(row.countdownPayload) : null,
-      contextPayload: row.contextPayload ? JSON.parse(row.contextPayload) : null,
-      questionPayload: row.questionPayload ? JSON.parse(row.questionPayload) : null,
-      seenBy: JSON.parse(row.seenBy || '[]'),
-      ackedBy: JSON.parse(row.ackedBy || '[]'),
+      actions: safeJsonParse<string[]>(row.actions, []),
+      countdownPayload: safeJsonParseOptional<Record<string, unknown>>(row.countdownPayload) ?? null,
+      contextPayload: safeJsonParseOptional<Record<string, unknown>>(row.contextPayload) ?? null,
+      questionPayload: safeJsonParseOptional<Record<string, unknown>>(row.questionPayload) ?? null,
+      seenBy: safeJsonParse<string[]>(row.seenBy, []),
+      ackedBy: safeJsonParse<string[]>(row.ackedBy, []),
     };
   }
 
@@ -1427,8 +1432,8 @@ export class DatabaseService {
 
     return rows.map((row) => ({
       ...row,
-      parts: row.parts ? JSON.parse(row.parts) : null,
-      metadata: row.metadata ? JSON.parse(row.metadata) : null,
+      parts: safeJsonParseOptional<DbStreamerbotChatMessage['parts']>(row.parts) ?? null,
+      metadata: safeJsonParseOptional<DbStreamerbotChatMessage['metadata']>(row.metadata) ?? null,
     }));
   }
 
