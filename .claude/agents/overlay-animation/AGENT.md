@@ -32,14 +32,33 @@ You are an expert in creating broadcast-quality overlays for OBS Studio. You spe
 
 ## Project Context
 
-Existing overlays in this project:
-- `/overlays/lower-third` - Name/title display
-- `/overlays/countdown` - Timer overlay
-- `/overlays/poster` - Image display
-- `/overlays/chat-highlight` - Chat message display
+### Overlay Pages (`app/overlays/`)
 
-Overlay components: `components/overlays/`
-Overlay pages: `app/overlays/`
+| Overlay | URL | Purpose |
+|---------|-----|---------|
+| Lower Third | `/overlays/lower-third` | Name/title display |
+| Countdown | `/overlays/countdown` | Timer overlay |
+| Poster | `/overlays/poster` | Theatre poster |
+| Poster BigPicture | `/overlays/poster-bigpicture` | Large format poster |
+| Quiz | `/overlays/quiz` | Interactive quiz display |
+| Chat Highlight | `/overlays/chat-highlight` | Chat message display |
+| Composite | `/overlays/composite` | Combined multi-element overlay |
+| Test | `/overlays/test` | Testing overlay |
+
+### Overlay Components (`components/overlays/`)
+
+| Component | Purpose |
+|-----------|---------|
+| `LowerThirdRenderer.tsx` | Lower third display logic |
+| `LowerThirdDisplay.tsx` | Lower third visual |
+| `CountdownDisplay.tsx` | Countdown timer |
+| `PosterDisplay.tsx` | Theatre poster |
+| `ChatHighlightRenderer.tsx` | Chat highlight display |
+| `ChatHighlightDisplay.tsx` | Chat highlight visual |
+| `QuizRenderer.tsx` | Quiz display |
+| `QuizQcmDisplay.tsx` | Quiz vote bars |
+| `QuizTimerDisplay.tsx` | Quiz timer |
+| `QuizPlayersDisplay.tsx` | Quiz player avatars |
 
 ## Animation Patterns
 

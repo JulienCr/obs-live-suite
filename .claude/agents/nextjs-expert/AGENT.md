@@ -32,30 +32,80 @@ You are an expert in Next.js 15 with the App Router, React Server Components, an
 ### Directory Structure
 ```
 app/
-├── api/                    # API routes (Route Handlers)
-│   ├── overlays/          # Overlay control endpoints
-│   ├── obs/               # OBS control endpoints
-│   └── actions/           # Stream Deck actions
-├── overlays/              # Overlay pages (browser sources)
+├── [locale]/                   # i18n locale prefix (fr, en)
+│   ├── page.tsx               # Home (redirects to dashboard)
+│   ├── dashboard/             # Main control dashboard
+│   ├── presenter/             # Presenter interface
+│   ├── assets/                # Asset management
+│   │   ├── guests/
+│   │   ├── posters/
+│   │   └── themes/
+│   ├── profiles/              # Profile management
+│   ├── settings/              # Settings pages
+│   │   ├── general/
+│   │   ├── obs/
+│   │   ├── paths/
+│   │   ├── integrations/
+│   │   ├── plugins/
+│   │   ├── overlays/
+│   │   └── presenter/rooms/
+│   ├── quiz/                  # Quiz system
+│   │   ├── host/             # Quiz host panel
+│   │   └── manage/           # Question editor
+│   ├── updater/               # Plugin updater
+│   └── shortcuts/             # Keyboard shortcuts
+├── overlays/                   # Overlay pages (no locale)
 │   ├── lower-third/
 │   ├── countdown/
-│   └── poster/
-├── dashboard/             # Main control dashboard
-├── layout.tsx             # Root layout
-└── page.tsx               # Home page
+│   ├── poster/
+│   ├── poster-bigpicture/
+│   ├── quiz/
+│   ├── chat-highlight/
+│   └── composite/
+├── api/                        # API routes
+│   ├── overlays/              # Overlay control
+│   ├── obs/                   # OBS control
+│   ├── actions/               # Stream Deck actions
+│   ├── assets/                # Asset management
+│   ├── profiles/              # Profile CRUD
+│   ├── themes/                # Theme CRUD
+│   ├── settings/              # Settings
+│   ├── presenter/             # Presenter/room APIs
+│   ├── quiz/                  # Quiz APIs
+│   ├── wikipedia/             # Wikipedia integration
+│   ├── llm/                   # LLM/Ollama integration
+│   └── updater/               # Plugin updates
+├── cert/                       # Certificate installation
+└── data/                       # Static data serving
 
 components/
-├── overlays/              # Overlay display components
-├── dashboard/             # Dashboard UI components
-├── settings/              # Settings panels
-└── ui/                    # Shared UI primitives
+├── ui/                         # shadcn/ui components
+├── shell/                      # App shell & Dockview
+├── dashboard/                  # Dashboard components
+├── presenter/                  # Presenter interface
+├── overlays/                   # Overlay renderers
+├── quiz/                       # Quiz components
+├── assets/                     # Asset management
+├── settings/                   # Settings forms
+├── theme-editor/               # Theme editor
+└── profiles/                   # Profile management
 
 lib/
-├── services/              # Business logic
-├── adapters/              # External integrations
-├── models/                # Zod schemas
-└── utils/                 # Pure utilities
+├── services/                   # Business logic
+├── adapters/                   # External integrations
+├── models/                     # Zod schemas
+├── utils/                      # Pure utilities
+├── config/                     # Configuration
+└── init/                       # Initialization
 ```
+
+### i18n Configuration
+
+The project uses `next-intl` for internationalization:
+- Locales: French (default), English
+- Files: `messages/fr.json`, `messages/en.json`
+- Config: `i18n/routing.ts`, `i18n/request.ts`
+- Middleware: `middleware.ts` (excludes `/overlays/*` and `/api/*`)
 
 ### Dual-Process Considerations
 
@@ -66,9 +116,10 @@ lib/
 - Hot reloading during development
 
 **Backend (Express - port 3002/3003)**
-- WebSocket hub for overlays
+- WebSocket hub for overlays (port 3003)
 - OBS connection persistence
 - Message broadcasting
+- Quiz state machine
 
 API routes should delegate to backend for WebSocket operations:
 ```typescript
@@ -91,7 +142,7 @@ export async function POST(request: Request) {
 
 ### Server Component (Default)
 ```tsx
-// app/dashboard/page.tsx
+// app/[locale]/dashboard/page.tsx
 import { DatabaseService } from '@/lib/services/DatabaseService';
 
 export default async function DashboardPage() {
@@ -120,21 +171,17 @@ export function ThemeSelector({ themes }: { themes: Theme[] }) {
 }
 ```
 
-### Server Action
+### Using Translations
 ```tsx
-// app/actions/theme.ts
-'use server';
+// components/dashboard/SomeComponent.tsx
+'use client';
 
-import { revalidatePath } from 'next/cache';
-import { DatabaseService } from '@/lib/services/DatabaseService';
+import { useTranslations } from 'next-intl';
 
-export async function updateTheme(formData: FormData) {
-  const db = DatabaseService.getInstance();
-  const id = formData.get('id') as string;
-  const name = formData.get('name') as string;
+export function SomeComponent() {
+  const t = useTranslations('dashboard');
 
-  await db.updateTheme(id, { name });
-  revalidatePath('/dashboard');
+  return <h1>{t('title')}</h1>;
 }
 ```
 
@@ -145,65 +192,24 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const theme = await getTheme(params.id);
+  const { id } = await params;
+  const theme = await getTheme(id);
   if (!theme) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
   return NextResponse.json(theme);
 }
-
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const data = await request.json();
-  const updated = await updateTheme(params.id, data);
-  return NextResponse.json(updated);
-}
 ```
 
-## Data Fetching Patterns
+## Dockview Integration
 
-### Static Generation
-```tsx
-// Runs at build time
-export async function generateStaticParams() {
-  const overlays = await getOverlayTypes();
-  return overlays.map(o => ({ type: o.type }));
-}
-```
-
-### Dynamic Rendering
-```tsx
-// Forces dynamic rendering
-export const dynamic = 'force-dynamic';
-
-// Or use cookies/headers
-import { cookies } from 'next/headers';
-
-export default async function Page() {
-  const session = cookies().get('session');
-  // ...
-}
-```
-
-### Streaming with Suspense
-```tsx
-import { Suspense } from 'react';
-
-export default function Page() {
-  return (
-    <div>
-      <h1>Dashboard</h1>
-      <Suspense fallback={<LoadingSkeleton />}>
-        <SlowDataComponent />
-      </Suspense>
-    </div>
-  );
-}
-```
+The project uses Dockview for panel layouts:
+- `components/shell/DashboardShell.tsx` - Main dashboard layout
+- `components/presenter/PresenterShell.tsx` - Presenter layout
+- Panels are registered and can be dragged/docked
+- Layout persistence via localStorage
 
 ## Best Practices
 
@@ -214,6 +220,7 @@ export default function Page() {
 - Use Route Handlers for external API access
 - Leverage streaming for slow data
 - Use `revalidatePath` / `revalidateTag` for cache invalidation
+- Follow i18n patterns with `useTranslations`
 
 ### DON'T:
 - Import server-only code in client components
@@ -221,6 +228,7 @@ export default function Page() {
 - Forget to handle loading and error states
 - Mix async/await in client components (use use() hook)
 - Over-fetch in layouts (data doesn't revalidate on navigation)
+- Forget to await `params` in API routes (Next.js 15 change)
 
 ## Debugging Tips
 

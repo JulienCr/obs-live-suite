@@ -31,16 +31,30 @@ You are an expert in the OBS WebSocket v5 protocol and OBS Studio integration. Y
 
 ## Project Context
 
-This project uses:
-- `lib/adapters/OBSConnectionManager.ts` - Connection singleton with auto-reconnect
-- `lib/adapters/OBSStateManager.ts` - State tracking for scenes, sources, streaming status
-- `lib/adapters/OBSSceneController.ts` - Scene switching operations
-- `lib/adapters/OBSSourceController.ts` - Source visibility/settings control
-- Environment vars: `OBS_WS_URL`, `OBS_WS_PASSWORD`
+This project uses OBS adapters located at `lib/adapters/obs/`:
+
+| File | Purpose |
+|------|---------|
+| `OBSConnectionManager.ts` | Connection singleton with auto-reconnect |
+| `OBSStateManager.ts` | State tracking for scenes, sources, streaming status |
+| `OBSSceneController.ts` | Scene switching operations |
+| `OBSSourceController.ts` | Source visibility/settings control |
+| `OBSEventHandler.ts` | OBS event processing |
+| `OBSConnectionEnsurer.ts` | Connection reliability |
+
+Environment vars: `OBS_WS_URL`, `OBS_WS_PASSWORD`
+
+### API Routes
+- `app/api/obs/status/route.ts` - Connection status
+- `app/api/obs/reconnect/route.ts` - Manual reconnect
+- `app/api/obs/record/route.ts` - Recording control
+- `app/api/obs/stream/route.ts` - Streaming control
+- `server/api/obs.ts` - Backend OBS commands
+- `server/api/obs-helpers.ts` - OBS utility functions
 
 ## Workflow
 
-1. First read existing OBS adapters to understand current patterns
+1. First read existing OBS adapters at `lib/adapters/obs/` to understand current patterns
 2. Check OBS WebSocket protocol docs for correct request/response format
 3. Implement following project patterns (singleton, event-driven)
 4. Add proper error handling and reconnection logic

@@ -22,182 +22,140 @@ You are an expert in Elgato Stream Deck plugin development. You understand the S
 ### Plugin Architecture
 ```
 streamdeck-plugin/
-├── com.yourname.plugin.sdPlugin/
-│   ├── manifest.json          # Plugin metadata
-│   ├── plugin.js              # Main plugin code
-│   ├── actions/
-│   │   ├── action1/
-│   │   │   └── property-inspector.html
-│   │   └── action2/
-│   ├── images/                # Icons (20x20, 40x40, 72x72, 144x144)
-│   └── libs/                  # Shared libraries
-└── package.json               # Build tools
+├── obslive-suite/
+│   ├── src/                         # TypeScript source
+│   │   ├── plugin.ts               # Main plugin entry
+│   │   ├── actions/                # Action handlers
+│   │   │   ├── lower-third-guest.ts
+│   │   │   ├── countdown-start.ts
+│   │   │   ├── poster-show.ts
+│   │   │   ├── panic.ts
+│   │   │   └── ...
+│   │   └── utils/                  # Utilities
+│   │       ├── api-client.ts
+│   │       ├── config-manager.ts
+│   │       ├── image-helper.ts
+│   │       └── websocket-manager.ts
+│   └── com.julien-cruau.obslive-suite.sdPlugin/
+│       ├── manifest.json           # Plugin metadata
+│       ├── bin/
+│       │   └── plugin.js          # Compiled plugin
+│       ├── ui/                    # Property Inspector HTML
+│       └── imgs/                  # Icons
+└── CHANGELOG.md
 ```
 
 ## Project Context
 
-This project has a Stream Deck plugin at:
-- `streamdeck-plugin/obslive-suite/`
+This project has a Stream Deck plugin at `streamdeck-plugin/obslive-suite/`
 
 The plugin communicates with the backend:
 - HTTP API at `http://localhost:3002/api/actions/*`
-- Actions trigger overlay updates and OBS commands
+- WebSocket at `ws://localhost:3003` for real-time updates
 
-### Available Actions (check with `pnpm streamdeck:ids`)
-- Lower third show/hide
-- Countdown start/stop
-- Scene switching
-- Source visibility toggles
+### Available Actions
+
+| Action | Endpoint | Purpose |
+|--------|----------|---------|
+| Lower Third Guest | `/api/actions/lower/guest/:id` | Show guest lower third |
+| Lower Third Show | `/api/actions/lower/show` | Show custom lower third |
+| Lower Third Hide | `/api/actions/lower/hide` | Hide lower third |
+| Countdown Start | `/api/actions/countdown/start` | Start countdown |
+| Poster Show | `/api/actions/poster/show/:id` | Show poster |
+| Poster Next | `/api/actions/poster/next` | Next poster |
+| Poster Previous | `/api/actions/poster/previous` | Previous poster |
+| Poster Hide | `/api/actions/poster/hide` | Hide poster |
+| Panic | `/api/actions/panic` | Hide all overlays |
+| Macro | `/api/actions/macro` | Run macro |
+
+Run `pnpm streamdeck:ids` to list all action IDs.
 
 ## Plugin Development Patterns
 
-### Manifest.json Structure
-```json
-{
-  "Name": "OBS Live Suite",
-  "Description": "Control OBS Live Suite overlays",
-  "Version": "1.0.0",
-  "Author": "Your Name",
-  "Category": "OBS Live Suite",
-  "CategoryIcon": "images/category-icon",
-  "Icon": "images/plugin-icon",
-  "CodePath": "plugin.js",
-  "Actions": [
-    {
-      "UUID": "com.obslive.lowerthird.toggle",
-      "Name": "Lower Third Toggle",
-      "Icon": "images/lower-third",
-      "Tooltip": "Show/hide lower third overlay",
-      "PropertyInspectorPath": "actions/lower-third/pi.html",
-      "States": [
-        { "Image": "images/lower-third-off" },
-        { "Image": "images/lower-third-on" }
-      ]
+### Main Plugin Entry (TypeScript)
+```typescript
+// src/plugin.ts
+import streamDeck, { LogLevel } from "@elgato/streamdeck";
+import { LowerThirdGuestAction } from "./actions/lower-third-guest";
+import { CountdownStartAction } from "./actions/countdown-start";
+
+streamDeck.logger.setLevel(LogLevel.DEBUG);
+
+streamDeck.actions.registerAction(new LowerThirdGuestAction());
+streamDeck.actions.registerAction(new CountdownStartAction());
+
+streamDeck.connect();
+```
+
+### Action Handler
+```typescript
+// src/actions/lower-third-guest.ts
+import streamDeck, { action, KeyDownEvent, SingletonAction } from "@elgato/streamdeck";
+import { ApiClient } from "../utils/api-client";
+
+@action({ UUID: "com.julien-cruau.obslive-suite.lower-third-guest" })
+export class LowerThirdGuestAction extends SingletonAction {
+  private apiClient = new ApiClient();
+
+  override async onKeyDown(ev: KeyDownEvent): Promise<void> {
+    const settings = ev.payload.settings as { guestId?: string };
+
+    if (!settings.guestId) {
+      await ev.action.showAlert();
+      return;
     }
-  ],
-  "SDKVersion": 2,
-  "Software": {
-    "MinimumVersion": "6.0"
-  },
-  "OS": [
-    { "Platform": "mac", "MinimumVersion": "10.15" },
-    { "Platform": "windows", "MinimumVersion": "10" }
-  ]
+
+    try {
+      await this.apiClient.showLowerThirdGuest(settings.guestId);
+      await ev.action.showOk();
+    } catch (error) {
+      await ev.action.showAlert();
+    }
+  }
 }
 ```
 
-### Main Plugin Code
-```javascript
-// plugin.js
-$SD.on('connected', (jsonObj) => {
-  console.log('Connected to Stream Deck');
-});
+### API Client
+```typescript
+// src/utils/api-client.ts
+export class ApiClient {
+  private baseUrl = 'http://localhost:3002';
 
-$SD.on('willAppear', (jsonObj) => {
-  const { action, context, payload } = jsonObj;
-  // Initialize action state
-});
-
-$SD.on('keyDown', async (jsonObj) => {
-  const { action, context, payload } = jsonObj;
-  const settings = payload.settings;
-
-  try {
-    const response = await fetch('http://localhost:3002/api/actions/lower-third', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'toggle',
-        ...settings
-      })
-    });
-
-    if (response.ok) {
-      // Update button state
-      $SD.setState(context, 1);
-    }
-  } catch (error) {
-    $SD.showAlert(context);
+  async showLowerThirdGuest(guestId: string): Promise<void> {
+    const response = await fetch(
+      `${this.baseUrl}/api/actions/lower/guest/${guestId}`,
+      { method: 'POST' }
+    );
+    if (!response.ok) throw new Error('API call failed');
   }
-});
 
-$SD.on('didReceiveSettings', (jsonObj) => {
-  const { context, payload } = jsonObj;
-  // Handle settings update from PI
-});
+  async panic(): Promise<void> {
+    await fetch(`${this.baseUrl}/api/actions/panic`, { method: 'POST' });
+  }
+}
 ```
 
-### Property Inspector (PI)
+### Property Inspector
 ```html
-<!-- actions/lower-third/pi.html -->
+<!-- ui/lower-third-guest.html -->
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="stylesheet" href="../../libs/sdpi.css">
-  <script src="../../libs/sdpi.js"></script>
+  <link rel="stylesheet" href="../libs/sdpi.css">
 </head>
 <body>
   <div class="sdpi-wrapper">
     <div class="sdpi-item">
-      <div class="sdpi-item-label">Name</div>
-      <input class="sdpi-item-value" id="name" type="text">
-    </div>
-    <div class="sdpi-item">
-      <div class="sdpi-item-label">Title</div>
-      <input class="sdpi-item-value" id="title" type="text">
+      <div class="sdpi-item-label">Guest</div>
+      <select class="sdpi-item-value" id="guestId">
+        <!-- Populated dynamically -->
+      </select>
     </div>
   </div>
-
-  <script>
-    $PI.on('connected', (jsn) => {
-      const settings = jsn.actionInfo.payload.settings;
-      document.getElementById('name').value = settings.name || '';
-      document.getElementById('title').value = settings.title || '';
-    });
-
-    document.querySelectorAll('input').forEach(input => {
-      input.addEventListener('change', () => {
-        $PI.setSettings({
-          name: document.getElementById('name').value,
-          title: document.getElementById('title').value
-        });
-      });
-    });
-  </script>
+  <script src="../libs/common.js"></script>
+  <script src="lower-third-guest.js"></script>
 </body>
 </html>
-```
-
-## HTTP API Integration
-
-### Action Endpoint Pattern
-```typescript
-// server/api/actions/lower-third.ts
-import { Router } from 'express';
-import { ChannelManager } from '@/lib/services/ChannelManager';
-
-const router = Router();
-
-router.post('/lower-third', async (req, res) => {
-  const { action, name, title } = req.body;
-
-  const channel = ChannelManager.getInstance();
-
-  if (action === 'show') {
-    channel.publish('lower-third', {
-      type: 'show',
-      data: { name, title }
-    });
-  } else if (action === 'hide') {
-    channel.publish('lower-third', { type: 'hide' });
-  } else if (action === 'toggle') {
-    channel.publish('lower-third', { type: 'toggle', data: { name, title } });
-  }
-
-  res.json({ success: true });
-});
-
-export default router;
 ```
 
 ## Icon Guidelines
@@ -218,8 +176,8 @@ export default router;
 
 ### Building Plugin
 ```bash
-cd streamdeck-plugin
-pnpm build
+cd streamdeck-plugin/obslive-suite
+npm run build
 ```
 
 ### Installing for Testing
@@ -234,7 +192,7 @@ pnpm build
 - Check Stream Deck logs:
    - Windows: `%APPDATA%\Elgato\StreamDeck\logs\`
    - macOS: `~/Library/Logs/ElgatoStreamDeck/`
-- Add console.log in plugin.js (visible in DevTools)
+- Add console.log in plugin.ts (visible in DevTools)
 
 ## Best Practices
 
@@ -242,8 +200,9 @@ pnpm build
 - Use meaningful UUIDs (reverse domain notation)
 - Validate settings in Property Inspector
 - Handle network errors gracefully
-- Show visual feedback on button (setState, showAlert)
+- Show visual feedback on button (showOk, showAlert)
 - Support both single and multi-action
+- Use WebSocket for real-time button state updates
 
 ### DON'T:
 - Make blocking API calls (use async/await)

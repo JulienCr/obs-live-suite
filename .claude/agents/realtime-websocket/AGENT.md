@@ -44,7 +44,7 @@ Overlay Pages (connected clients)
 
 ### Key Components
 
-**WebSocket Hub** (`server/websocket/WebSocketHub.ts`)
+**WebSocket Hub** (`lib/services/WebSocketHub.ts`)
 - Singleton WebSocket server on port 3003
 - Manages client connections and channels
 - Handles subscription/unsubscription
@@ -57,9 +57,17 @@ Overlay Pages (connected clients)
 - Cross-process communication bridge
 
 **Backend API** (`server/api/`)
-- Express routes for overlay control
-- HTTP-to-WebSocket bridge
-- Message validation and transformation
+- `overlays.ts` - Overlay event publishing
+- `rooms.ts` - Room messaging for presenter
+- `cue.ts` - Presenter cue system
+- `streamerbot-chat.ts` - Chat message forwarding
+- `quiz.ts` - Quiz state broadcasting
+
+### Room System (Presenter)
+The project includes a room-based messaging system for presenter communication:
+- `lib/services/RoomService.ts` - Room management
+- `lib/models/Room.ts` - Room schemas
+- Rooms enable control room ↔ presenter messaging
 
 ## Message Flow Patterns
 
@@ -71,20 +79,39 @@ const response = await fetch('/api/overlays/lower-third', {
   body: JSON.stringify({ name: 'John', title: 'Host' })
 });
 
-// 2. API route publishes to channel
+// 2. API route forwards to backend
+await fetch('http://localhost:3002/api/overlays/lower-third', { ... });
+
+// 3. Backend publishes to channel
 channelManager.publish('lower-third', {
   type: 'show',
   data: { name: 'John', title: 'Host' }
 });
 
-// 3. WebSocket hub broadcasts
+// 4. WebSocket hub broadcasts
 wsHub.broadcast('lower-third', message);
 
-// 4. Overlay receives and renders
+// 5. Overlay receives and renders
 ws.onmessage = (event) => {
   const { type, data } = JSON.parse(event.data);
   if (type === 'show') setOverlayData(data);
 };
+```
+
+### Control Room to Presenter
+```typescript
+// 1. Control room sends cue
+POST /api/presenter/cue/send
+{ roomId, type: 'cue', severity: 'urgent', body: 'Go to break!' }
+
+// 2. RoomService stores message
+RoomService.getInstance().addMessage(roomId, message);
+
+// 3. ChannelManager publishes to room channel
+channelManager.publish(`room:${roomId}`, message);
+
+// 4. Presenter receives via WebSocket
+// Presenter UI updates with new cue
 ```
 
 ### Overlay Acknowledgment
@@ -159,6 +186,19 @@ function broadcast(channel: string, message: unknown) {
   }
 }
 ```
+
+## Channels in Use
+
+| Channel | Purpose |
+|---------|---------|
+| `lower-third` | Lower third overlay events |
+| `countdown` | Countdown timer events |
+| `poster` | Poster overlay events |
+| `poster-bigpicture` | BigPicture poster events |
+| `quiz` | Quiz state and answers |
+| `chat-highlight` | Chat highlight events |
+| `room:{id}` | Presenter room messages |
+| `streamerbot-chat` | Streamerbot chat messages |
 
 ## Debugging Tips
 

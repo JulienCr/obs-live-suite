@@ -32,10 +32,27 @@ You are an expert in Twitch and YouTube streaming platform APIs. You specialize 
 ## Project Context
 
 This project integrates with Streamer.bot for chat:
-- `components/presenter/hooks/useStreamerbotClient.ts` - WebSocket connection
-- `components/presenter/hooks/useStreamerbotMessages.ts` - Chat messages
-- `components/presenter/panels/StreamerbotChatPanel.tsx` - Chat display
-- `lib/models/StreamerbotChat.ts` - Message types
+
+### Streamerbot Integration Files
+
+| File | Purpose |
+|------|---------|
+| `lib/adapters/streamerbot/StreamerbotGateway.ts` | WebSocket client for Streamer.bot |
+| `lib/models/StreamerbotChat.ts` | Chat message types |
+| `components/presenter/hooks/useStreamerbotClient.ts` | React hook for connection |
+| `components/presenter/hooks/useStreamerbotMessages.ts` | React hook for messages |
+| `components/presenter/panels/streamerbot-chat/StreamerbotChatPanel.tsx` | Chat panel UI |
+| `components/presenter/panels/streamerbot-chat/StreamerbotChatHeader.tsx` | Header with status |
+| `components/presenter/panels/streamerbot-chat/StreamerbotChatToolbar.tsx` | Toolbar controls |
+| `components/presenter/panels/streamerbot-chat/StreamerbotChatMessageList.tsx` | Message list |
+| `server/api/streamerbot-chat.ts` | Backend chat forwarding |
+
+### Quiz Chat Integration
+
+The quiz system uses Streamer.bot for chat commands:
+- `server/api/quiz-bot.ts` - Webhook for chat commands
+- Commands: `!a`, `!b`, `!c`, `!d`, `!n [number]`, `!rep [text]`
+- `lib/services/QuizViewerInputService.ts` - Input processing
 
 ## Twitch Integration Patterns
 
@@ -100,121 +117,37 @@ client.on('message', (channel, tags, message, self) => {
 await client.connect();
 ```
 
-### Twitch Authentication
-```typescript
-import { RefreshingAuthProvider } from '@twurple/auth';
-
-const authProvider = new RefreshingAuthProvider({
-  clientId: process.env.TWITCH_CLIENT_ID!,
-  clientSecret: process.env.TWITCH_CLIENT_SECRET!,
-});
-
-authProvider.onRefresh((userId, newTokenData) => {
-  // Save refreshed tokens
-  saveTokens(userId, newTokenData);
-});
-
-await authProvider.addUserForToken(existingTokenData);
-```
-
-## YouTube Integration Patterns
-
-### Live Chat Polling
-```typescript
-import { google } from 'googleapis';
-
-const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
-
-async function pollLiveChat(liveChatId: string) {
-  let pageToken: string | undefined;
-
-  const poll = async () => {
-    const response = await youtube.liveChatMessages.list({
-      liveChatId,
-      part: ['snippet', 'authorDetails'],
-      pageToken
-    });
-
-    const messages = response.data.items || [];
-    pageToken = response.data.nextPageToken;
-
-    for (const msg of messages) {
-      broadcastChatMessage({
-        id: msg.id,
-        username: msg.authorDetails?.displayName,
-        message: msg.snippet?.displayMessage,
-        timestamp: new Date(msg.snippet?.publishedAt || '')
-      });
-    }
-
-    // Poll at recommended interval
-    const pollingInterval = response.data.pollingIntervalMillis || 5000;
-    setTimeout(poll, pollingInterval);
-  };
-
-  poll();
-}
-```
-
 ## Streamer.bot Integration
 
-### WebSocket Connection
+### Using @streamerbot/client
 ```typescript
-const STREAMERBOT_WS = 'ws://localhost:8080/';
+import { StreamerbotClient } from '@streamerbot/client';
 
-class StreamerbotClient {
-  private ws: WebSocket;
-
-  connect() {
-    this.ws = new WebSocket(STREAMERBOT_WS);
-
-    this.ws.onopen = () => {
-      // Subscribe to events
-      this.send({
-        request: 'Subscribe',
-        events: {
-          Twitch: ['ChatMessage', 'Follow', 'Sub', 'ReSub', 'Cheer'],
-          YouTube: ['Message', 'SuperChat']
-        }
-      });
-    };
-
-    this.ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      this.handleEvent(data);
-    };
+const client = new StreamerbotClient({
+  host: '127.0.0.1',
+  port: 8080,
+  endpoint: '/',
+  subscribe: {
+    'Twitch': ['ChatMessage', 'Follow', 'Sub', 'Cheer'],
+    'YouTube': ['Message', 'SuperChat']
   }
+});
 
-  handleEvent(data: StreamerbotEvent) {
-    switch (data.event.type) {
-      case 'ChatMessage':
-        this.onChatMessage(data.data);
-        break;
-      case 'Follow':
-        this.onFollow(data.data);
-        break;
-      // ... handle other events
-    }
-  }
+client.on('Twitch.ChatMessage', (data) => {
+  const { message, user } = data;
+  console.log(`${user.display_name}: ${message.message}`);
+});
 
-  send(message: object) {
-    this.ws.send(JSON.stringify(message));
-  }
-}
+await client.connect();
 ```
 
 ### Executing Streamer.bot Actions
 ```typescript
 // Trigger a Streamer.bot action
-async function triggerAction(actionId: string, actionName: string) {
-  ws.send(JSON.stringify({
-    request: 'DoAction',
-    action: {
-      id: actionId,
-      name: actionName
-    }
-  }));
-}
+await client.doAction({
+  id: 'action-uuid',
+  name: 'ActionName'
+});
 ```
 
 ## Chat Overlay Patterns
@@ -297,6 +230,13 @@ function parseEmotes(message: string, emotes: EmoteMap): React.ReactNode[] {
 }
 ```
 
+## Chat Highlight Overlay
+
+The project has a chat highlight overlay:
+- `app/overlays/chat-highlight/page.tsx` - Overlay page
+- `components/overlays/ChatHighlightRenderer.tsx` - Display component
+- `app/api/overlays/chat-highlight/route.ts` - Control endpoint
+
 ## Best Practices
 
 ### DO:
@@ -306,6 +246,7 @@ function parseEmotes(message: string, emotes: EmoteMap): React.ReactNode[] {
 - Handle disconnections gracefully
 - Filter/moderate chat appropriately
 - Support multiple platforms simultaneously
+- Use virtualized lists for high-volume chat
 
 ### DON'T:
 - Store tokens in plain text
