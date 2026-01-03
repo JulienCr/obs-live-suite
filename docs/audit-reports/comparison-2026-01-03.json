@@ -1,0 +1,286 @@
+{
+  "current": {
+    "timestamp": "2026-01-03T02:09:19.935Z",
+    "commit": "f7debce",
+    "branch": "refactor/audit-phase1-phase2"
+  },
+  "previous": {
+    "date": "2026-01-03",
+    "commit": "5a4dfbd",
+    "label": "Post Phase 2.5"
+  },
+  "scores": {
+    "quality": {
+      "current": 4.1,
+      "previous": 6.5,
+      "delta": -2.4000000000000004,
+      "deltaFormatted": "-2.4000000000000004",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "maintainability": {
+      "current": 8.9,
+      "previous": 7,
+      "delta": 1.9000000000000004,
+      "deltaFormatted": "+1.9000000000000004",
+      "trend": {
+        "symbol": "↑",
+        "label": "improved",
+        "color": "green"
+      }
+    },
+    "dry": {
+      "current": 8.5,
+      "previous": 5.5,
+      "delta": 3,
+      "deltaFormatted": "+3",
+      "trend": {
+        "symbol": "↑",
+        "label": "improved",
+        "color": "green"
+      }
+    },
+    "tests": {
+      "current": 0,
+      "previous": 2.5,
+      "delta": -2.5,
+      "deltaFormatted": "-2.5",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "overall": {
+      "current": 5.4,
+      "previous": 5.4,
+      "delta": 0,
+      "deltaFormatted": "0",
+      "trend": {
+        "symbol": "→",
+        "label": "stable",
+        "color": "yellow"
+      }
+    }
+  },
+  "quality": {
+    "unsafeJsonParse": {
+      "current": 4,
+      "previous": 8,
+      "delta": -4,
+      "deltaFormatted": "-4",
+      "trend": {
+        "symbol": "↑",
+        "label": "improved",
+        "color": "green"
+      }
+    },
+    "exposedErrors": {
+      "current": 20,
+      "previous": 10,
+      "delta": 10,
+      "deltaFormatted": "+10",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "asAnyCasts": {
+      "current": 7,
+      "previous": 5,
+      "delta": 2,
+      "deltaFormatted": "+2",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "magicNumbers": {
+      "current": 0,
+      "previous": 5,
+      "delta": -5,
+      "deltaFormatted": "-5",
+      "trend": {
+        "symbol": "↑",
+        "label": "improved",
+        "color": "green"
+      }
+    }
+  },
+  "maintainability": {
+    "largestFile": {
+      "current": 1005,
+      "previous": 887,
+      "file": "lib\\services\\DatabaseService.ts",
+      "delta": 118,
+      "trend": {
+        "symbol": "↑",
+        "label": "improved",
+        "color": "green"
+      }
+    },
+    "avgServiceLines": {
+      "current": 206,
+      "previous": 245,
+      "delta": -39,
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "repositoriesExtracted": {
+      "current": 6,
+      "previous": 6,
+      "delta": 0,
+      "trend": {
+        "symbol": "→",
+        "label": "stable",
+        "color": "yellow"
+      }
+    }
+  },
+  "dry": {
+    "proxyHelperAdoption": {
+      "current": 23,
+      "previous": 23,
+      "delta": 0,
+      "trend": {
+        "symbol": "→",
+        "label": "stable",
+        "color": "yellow"
+      }
+    },
+    "rawFetchRemaining": {
+      "current": 4,
+      "previous": 5,
+      "delta": -1,
+      "trend": {
+        "symbol": "↑",
+        "label": "improved",
+        "color": "green"
+      }
+    },
+    "estimatedDuplicateLines": {
+      "current": 160,
+      "previous": 600,
+      "delta": -440,
+      "trend": {
+        "symbol": "↑",
+        "label": "improved",
+        "color": "green"
+      }
+    }
+  },
+  "tests": {
+    "testFileCount": {
+      "current": 26,
+      "previous": 19,
+      "delta": 7,
+      "trend": {
+        "symbol": "↑",
+        "label": "improved",
+        "color": "green"
+      }
+    },
+    "lineCoverage": {
+      "current": 0,
+      "previous": null,
+      "delta": null,
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    }
+  },
+  "summary": {
+    "improvements": [
+      {
+        "metric": "scores.maintainability",
+        "delta": "+1.9000000000000004",
+        "current": 8.9
+      },
+      {
+        "metric": "scores.dry",
+        "delta": "+3",
+        "current": 8.5
+      },
+      {
+        "metric": "quality.unsafeJsonParse",
+        "delta": "-4",
+        "current": 4
+      },
+      {
+        "metric": "quality.magicNumbers",
+        "delta": "-5",
+        "current": 0
+      },
+      {
+        "metric": "maintainability.largestFile",
+        "current": 1005
+      },
+      {
+        "metric": "dry.rawFetchRemaining",
+        "current": 4
+      },
+      {
+        "metric": "dry.estimatedDuplicateLines",
+        "current": 160
+      },
+      {
+        "metric": "tests.testFileCount",
+        "current": 26
+      }
+    ],
+    "regressions": [
+      {
+        "metric": "scores.quality",
+        "delta": "-2.4000000000000004",
+        "current": 4.1
+      },
+      {
+        "metric": "scores.tests",
+        "delta": "-2.5",
+        "current": 0
+      },
+      {
+        "metric": "quality.exposedErrors",
+        "delta": "+10",
+        "current": 20
+      },
+      {
+        "metric": "quality.asAnyCasts",
+        "delta": "+2",
+        "current": 7
+      },
+      {
+        "metric": "maintainability.avgServiceLines",
+        "current": 206
+      },
+      {
+        "metric": "tests.lineCoverage",
+        "current": 0
+      }
+    ],
+    "stable": [
+      {
+        "metric": "scores.overall",
+        "current": 5.4
+      },
+      {
+        "metric": "maintainability.repositoriesExtracted",
+        "current": 6
+      },
+      {
+        "metric": "dry.proxyHelperAdoption",
+        "current": 23
+      }
+    ]
+  }
+}
