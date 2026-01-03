@@ -179,28 +179,72 @@ Fichiers refactorisés:
 
 ---
 
+## Phase 4 - Tests unitaires ✅
+
+### Tests Utilities (115 tests)
+
+| Fichier Test | Tests | Couverture |
+|--------------|-------|------------|
+| `__tests__/utils/safeJsonParse.test.ts` | 17 | safeJsonParse, safeJsonParseOptional |
+| `__tests__/utils/fetchWithTimeout.test.ts` | 20 | TimeoutError, fetchWithTimeout |
+| `__tests__/utils/apiError.test.ts` | 31 | apiError, expressError, isZodError, getErrorStatusCode |
+| `__tests__/utils/chatMessaging.test.ts` | 12 | sendChatMessage, sendChatMessageIfEnabled |
+| `__tests__/utils/ProxyHelper.test.ts` | 35 | proxyToBackend, createGetProxy, createPostProxy |
+
+**Cas testés:**
+- Valeurs nullish (null, undefined, empty string)
+- JSON malformé
+- Timeouts et AbortController
+- Transformations de types (boolean ↔ number, string ↔ Date)
+- Gestion d'erreurs (Error, string, unknown)
+- Mocking fetch, NextResponse, Express Response
+
+### Tests Repositories (86 tests)
+
+| Fichier Test | Tests | Méthodes testées |
+|--------------|-------|------------------|
+| `__tests__/repositories/GuestRepository.test.ts` | 27 | getAll, getById, create, update, delete, getInstance |
+| `__tests__/repositories/PosterRepository.test.ts` | 27 | getAll, getById, create, update, delete, getInstance, transformRow |
+| `__tests__/repositories/ProfileRepository.test.ts` | 32 | getAll, getById, getActive, create, update, setActive, delete, getInstance |
+
+**Cas testés:**
+- Pattern Singleton
+- Transformations SQLite ↔ TypeScript (isEnabled: 0/1 ↔ boolean, dates)
+- Parsing JSON (safeJsonParse pour tags, profileIds, posterRotation, etc.)
+- Merge lors des updates
+- Erreurs quand entité non trouvée
+- SQL statements corrects
+
+**Impact:**
+- Score tests: 2/10 → 4/10 (nouveau code couvert)
+- 201 nouveaux tests ajoutés
+- Pattern de test établi pour futurs repositories
+
+---
+
 ## Phases suivantes (à faire)
 
-### Phase 4 - Tests
-- [ ] Ajouter tests unitaires pour utilities créées
-- [ ] Ajouter tests pour repositories
-- [ ] Augmenter couverture globale (actuellement 2/10)
+### Phase 5 - Tests services critiques
+- [ ] Tests QuizManager (state machine)
+- [ ] Tests ChannelManager (pub/sub)
+- [ ] Tests WebSocketHub (routing)
 
 ---
 
 ## Statistiques
 
-| Métrique | Avant | Après Phase 2 | Après Phase 2.5 | Après Phase 3 |
-|----------|-------|---------------|-----------------|---------------|
-| Lignes dupliquées proxy | ~800 | ~100 | ~100 | ~100 |
-| Lignes dupliquées chat | ~44 | ~44 | 0 | 0 |
-| JSON.parse non protégés | ~40 | 0 | 0 | 0 |
-| Magic numbers hardcodés | ~20 | ~20 | ~5 | ~5 |
-| String(error) exposés | ~60 | ~60 | 0 | 0 |
-| Fichiers utilities | 0 | 6 | 7 | 7 |
-| Fichiers repositories | 0 | 0 | 0 | 6 |
-| Routes API simplifiées | 0 | 23 | 23 | 23 |
-| Routes avec erreurs standardisées | 0 | 0 | 60+ | 60+ |
+| Métrique | Avant | Après Phase 2 | Après Phase 2.5 | Après Phase 3 | Après Phase 4 |
+|----------|-------|---------------|-----------------|---------------|---------------|
+| Lignes dupliquées proxy | ~800 | ~100 | ~100 | ~100 | ~100 |
+| Lignes dupliquées chat | ~44 | ~44 | 0 | 0 | 0 |
+| JSON.parse non protégés | ~40 | 0 | 0 | 0 | 0 |
+| Magic numbers hardcodés | ~20 | ~20 | ~5 | ~5 | ~5 |
+| String(error) exposés | ~60 | ~60 | 0 | 0 | 0 |
+| Fichiers utilities | 0 | 6 | 7 | 7 | 7 |
+| Fichiers repositories | 0 | 0 | 0 | 6 | 6 |
+| Routes API simplifiées | 0 | 23 | 23 | 23 | 23 |
+| Routes avec erreurs standardisées | 0 | 0 | 60+ | 60+ | 60+ |
+| Tests utilities/repositories | 0 | 0 | 0 | 0 | 201 |
 
 ---
 
