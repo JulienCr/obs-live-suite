@@ -6,6 +6,7 @@ import { DatabaseService } from "../../lib/services/DatabaseService";
 import { WebSocketHub } from "../../lib/services/WebSocketHub";
 import { createRoomSchema } from "../../lib/models/Room";
 import { randomUUID } from "crypto";
+import { expressError } from "../../lib/utils/apiError";
 
 const router = Router();
 const db = DatabaseService.getInstance();
@@ -20,8 +21,7 @@ router.get("/", (req, res) => {
     const rooms = db.getAllRooms();
     res.json({ rooms });
   } catch (error) {
-    console.error("[Rooms] List error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to list rooms", { context: "[RoomsAPI]" });
   }
 });
 
@@ -47,8 +47,7 @@ router.post("/", (req, res) => {
     const room = db.getRoomById(id);
     res.status(201).json({ room });
   } catch (error) {
-    console.error("[Rooms] Create error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to create room", { context: "[RoomsAPI]" });
   }
 });
 
@@ -64,8 +63,7 @@ router.get("/:id", (req, res) => {
     }
     res.json({ room });
   } catch (error) {
-    console.error("[Rooms] Get error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to get room", { context: "[RoomsAPI]" });
   }
 });
 
@@ -90,8 +88,7 @@ router.put("/:id", (req, res) => {
     const room = db.getRoomById(req.params.id);
     res.json({ room });
   } catch (error) {
-    console.error("[Rooms] Update error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to update room", { context: "[RoomsAPI]" });
   }
 });
 
@@ -109,8 +106,7 @@ router.delete("/:id", (req, res) => {
     db.deleteRoom(req.params.id);
     res.json({ success: true });
   } catch (error) {
-    console.error("[Rooms] Delete error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to delete room", { context: "[RoomsAPI]" });
   }
 });
 
@@ -128,8 +124,7 @@ router.get("/:id/presence", (req, res) => {
     const presence = wsHub.getPresence(req.params.id);
     res.json({ presence });
   } catch (error) {
-    console.error("[Rooms] Presence error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to get room presence", { context: "[RoomsAPI]" });
   }
 });
 

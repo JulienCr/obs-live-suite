@@ -32,6 +32,7 @@ import streamerbotChatRouter from "./api/streamerbot-chat";
 import overlaysRouter from "./api/overlays";
 import { APP_PORT, BACKEND_PORT, WS_PORT } from "../lib/config/urls";
 import { createServerWithFallback } from "../lib/utils/CertificateManager";
+import { expressError } from "../lib/utils/apiError";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -76,8 +77,7 @@ class BackendServer {
           ...state,
         });
       } catch (error) {
-        this.logger.error('Error in /api/obs/status:', error);
-        res.status(500).json({ error: String(error) });
+        expressError(res, error, "Failed to get OBS status", { context: "[BackendOBS]" });
       }
     });
 
@@ -88,7 +88,7 @@ class BackendServer {
         await this.obsManager.connect();
         res.json({ success: true });
       } catch (error) {
-        res.status(500).json({ error: String(error) });
+        expressError(res, error, "OBS reconnect failed", { context: "[BackendOBS]" });
       }
     });
 
@@ -103,7 +103,7 @@ class BackendServer {
         }
         res.json({ success: true });
       } catch (error) {
-        res.status(500).json({ error: String(error) });
+        expressError(res, error, "Stream control failed", { context: "[BackendOBS]" });
       }
     });
 
@@ -118,7 +118,7 @@ class BackendServer {
         }
         res.json({ success: true });
       } catch (error) {
-        res.status(500).json({ error: String(error) });
+        expressError(res, error, "Record control failed", { context: "[BackendOBS]" });
       }
     });
 
@@ -203,8 +203,7 @@ class BackendServer {
 
         res.json({ success: true });
       } catch (error) {
-        this.logger.error('Failed to publish message', error);
-        res.status(500).json({ error: String(error) });
+        expressError(res, error, "Failed to publish message", { context: "[BackendPublish]" });
       }
     });
 

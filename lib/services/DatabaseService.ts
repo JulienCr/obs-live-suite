@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { PathManager } from "../config/PathManager";
 import { Logger } from "../utils/Logger";
 import { safeJsonParse, safeJsonParseOptional } from "../utils/safeJsonParse";
+import { DATABASE, LAYOUT_DEFAULTS, LOWER_THIRD_ANIMATION } from "../config/Constants";
 import {
   DbGuest,
   DbGuestInput,
@@ -894,23 +895,23 @@ export class DatabaseService {
     const rows = stmt.all() as Array<Omit<DbTheme, 'colors' | 'lowerThirdFont' | 'lowerThirdLayout' | 'lowerThirdAnimation' | 'countdownFont' | 'countdownLayout' | 'posterLayout' | 'isGlobal' | 'createdAt' | 'updatedAt'> & { colors: string; lowerThirdFont: string; lowerThirdLayout: string; lowerThirdAnimation?: string; countdownFont: string; countdownLayout: string; posterLayout: string; isGlobal: number; createdAt: string; updatedAt: string }>;
     const defaultColors: DbTheme['colors'] = { primary: '#000000', accent: '#ffffff', surface: '#333333', text: '#ffffff', success: '#00ff00', warn: '#ff0000' };
     const defaultFont: DbTheme['lowerThirdFont'] = { family: 'Arial', size: 16, weight: 400 };
-    const defaultLayout: DbTheme['lowerThirdLayout'] = { x: 60, y: 920, scale: 1 };
+    const defaultLayout: DbTheme['lowerThirdLayout'] = LAYOUT_DEFAULTS.LOWER_THIRD;
     const defaultAnimation: DbTheme['lowerThirdAnimation'] = {
       timing: {
-        logoFadeDuration: 200,
-        logoScaleDuration: 200,
-        flipDuration: 600,
-        flipDelay: 500,
-        barAppearDelay: 800,
-        barExpandDuration: 450,
-        textAppearDelay: 1000,
-        textFadeDuration: 250,
+        logoFadeDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_FADE_DURATION,
+        logoScaleDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_SCALE_DURATION,
+        flipDuration: LOWER_THIRD_ANIMATION.TIMING.FLIP_DURATION,
+        flipDelay: LOWER_THIRD_ANIMATION.TIMING.FLIP_DELAY,
+        barAppearDelay: LOWER_THIRD_ANIMATION.TIMING.BAR_APPEAR_DELAY,
+        barExpandDuration: LOWER_THIRD_ANIMATION.TIMING.BAR_EXPAND_DURATION,
+        textAppearDelay: LOWER_THIRD_ANIMATION.TIMING.TEXT_APPEAR_DELAY,
+        textFadeDuration: LOWER_THIRD_ANIMATION.TIMING.TEXT_FADE_DURATION,
       },
       styles: {
-        barBorderRadius: 16,
-        barMinWidth: 200,
-        avatarBorderWidth: 4,
-        avatarBorderColor: '#272727',
+        barBorderRadius: LOWER_THIRD_ANIMATION.STYLES.BAR_BORDER_RADIUS,
+        barMinWidth: LOWER_THIRD_ANIMATION.STYLES.BAR_MIN_WIDTH,
+        avatarBorderWidth: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_WIDTH,
+        avatarBorderColor: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_COLOR,
       },
     };
     return rows.map((row) => ({
@@ -920,8 +921,8 @@ export class DatabaseService {
       lowerThirdLayout: safeJsonParse<DbTheme['lowerThirdLayout']>(row.lowerThirdLayout, defaultLayout),
       lowerThirdAnimation: safeJsonParse<DbTheme['lowerThirdAnimation']>(row.lowerThirdAnimation, defaultAnimation),
       countdownFont: safeJsonParse<DbTheme['countdownFont']>(row.countdownFont, defaultFont),
-      countdownLayout: safeJsonParse<DbTheme['countdownLayout']>(row.countdownLayout, { x: 960, y: 540, scale: 1 }),
-      posterLayout: safeJsonParse<DbTheme['posterLayout']>(row.posterLayout, { x: 960, y: 540, scale: 1 }),
+      countdownLayout: safeJsonParse<DbTheme['countdownLayout']>(row.countdownLayout, LAYOUT_DEFAULTS.COUNTDOWN),
+      posterLayout: safeJsonParse<DbTheme['posterLayout']>(row.posterLayout, LAYOUT_DEFAULTS.POSTER),
       isGlobal: Boolean(row.isGlobal),
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
@@ -937,23 +938,23 @@ export class DatabaseService {
     if (!row) return null;
     const defaultColors: DbTheme['colors'] = { primary: '#000000', accent: '#ffffff', surface: '#333333', text: '#ffffff', success: '#00ff00', warn: '#ff0000' };
     const defaultFont: DbTheme['lowerThirdFont'] = { family: 'Arial', size: 16, weight: 400 };
-    const defaultLayout: DbTheme['lowerThirdLayout'] = { x: 60, y: 920, scale: 1 };
+    const defaultLayout: DbTheme['lowerThirdLayout'] = LAYOUT_DEFAULTS.LOWER_THIRD;
     const defaultAnimation: DbTheme['lowerThirdAnimation'] = {
       timing: {
-        logoFadeDuration: 200,
-        logoScaleDuration: 200,
-        flipDuration: 600,
-        flipDelay: 500,
-        barAppearDelay: 800,
-        barExpandDuration: 450,
-        textAppearDelay: 1000,
-        textFadeDuration: 250,
+        logoFadeDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_FADE_DURATION,
+        logoScaleDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_SCALE_DURATION,
+        flipDuration: LOWER_THIRD_ANIMATION.TIMING.FLIP_DURATION,
+        flipDelay: LOWER_THIRD_ANIMATION.TIMING.FLIP_DELAY,
+        barAppearDelay: LOWER_THIRD_ANIMATION.TIMING.BAR_APPEAR_DELAY,
+        barExpandDuration: LOWER_THIRD_ANIMATION.TIMING.BAR_EXPAND_DURATION,
+        textAppearDelay: LOWER_THIRD_ANIMATION.TIMING.TEXT_APPEAR_DELAY,
+        textFadeDuration: LOWER_THIRD_ANIMATION.TIMING.TEXT_FADE_DURATION,
       },
       styles: {
-        barBorderRadius: 16,
-        barMinWidth: 200,
-        avatarBorderWidth: 4,
-        avatarBorderColor: '#272727',
+        barBorderRadius: LOWER_THIRD_ANIMATION.STYLES.BAR_BORDER_RADIUS,
+        barMinWidth: LOWER_THIRD_ANIMATION.STYLES.BAR_MIN_WIDTH,
+        avatarBorderWidth: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_WIDTH,
+        avatarBorderColor: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_COLOR,
       },
     };
     return {
@@ -963,11 +964,35 @@ export class DatabaseService {
       lowerThirdLayout: safeJsonParse<DbTheme['lowerThirdLayout']>(row.lowerThirdLayout, defaultLayout),
       lowerThirdAnimation: safeJsonParse<DbTheme['lowerThirdAnimation']>(row.lowerThirdAnimation, defaultAnimation),
       countdownFont: safeJsonParse<DbTheme['countdownFont']>(row.countdownFont, defaultFont),
-      countdownLayout: safeJsonParse<DbTheme['countdownLayout']>(row.countdownLayout, { x: 960, y: 540, scale: 1 }),
-      posterLayout: safeJsonParse<DbTheme['posterLayout']>(row.posterLayout, { x: 960, y: 540, scale: 1 }),
+      countdownLayout: safeJsonParse<DbTheme['countdownLayout']>(row.countdownLayout, LAYOUT_DEFAULTS.COUNTDOWN),
+      posterLayout: safeJsonParse<DbTheme['posterLayout']>(row.posterLayout, LAYOUT_DEFAULTS.POSTER),
       isGlobal: Boolean(row.isGlobal),
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
+    };
+  }
+
+  /**
+   * Get the default lower third animation config using constants
+   */
+  private getDefaultLowerThirdAnimation(): DbTheme['lowerThirdAnimation'] {
+    return {
+      timing: {
+        logoFadeDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_FADE_DURATION,
+        logoScaleDuration: LOWER_THIRD_ANIMATION.TIMING.LOGO_SCALE_DURATION,
+        flipDuration: LOWER_THIRD_ANIMATION.TIMING.FLIP_DURATION,
+        flipDelay: LOWER_THIRD_ANIMATION.TIMING.FLIP_DELAY,
+        barAppearDelay: LOWER_THIRD_ANIMATION.TIMING.BAR_APPEAR_DELAY,
+        barExpandDuration: LOWER_THIRD_ANIMATION.TIMING.BAR_EXPAND_DURATION,
+        textAppearDelay: LOWER_THIRD_ANIMATION.TIMING.TEXT_APPEAR_DELAY,
+        textFadeDuration: LOWER_THIRD_ANIMATION.TIMING.TEXT_FADE_DURATION,
+      },
+      styles: {
+        barBorderRadius: LOWER_THIRD_ANIMATION.STYLES.BAR_BORDER_RADIUS,
+        barMinWidth: LOWER_THIRD_ANIMATION.STYLES.BAR_MIN_WIDTH,
+        avatarBorderWidth: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_WIDTH,
+        avatarBorderColor: LOWER_THIRD_ANIMATION.STYLES.AVATAR_BORDER_COLOR,
+      },
     };
   }
 
@@ -986,29 +1011,12 @@ export class DatabaseService {
       JSON.stringify(theme.colors),
       theme.lowerThirdTemplate,
       JSON.stringify(theme.lowerThirdFont),
-      JSON.stringify(theme.lowerThirdLayout || { x: 60, y: 920, scale: 1 }),
-      JSON.stringify(theme.lowerThirdAnimation || {
-        timing: {
-          logoFadeDuration: 200,
-          logoScaleDuration: 200,
-          flipDuration: 600,
-          flipDelay: 500,
-          barAppearDelay: 800,
-          barExpandDuration: 450,
-          textAppearDelay: 1000,
-          textFadeDuration: 250,
-        },
-        styles: {
-          barBorderRadius: 16,
-          barMinWidth: 200,
-          avatarBorderWidth: 4,
-          avatarBorderColor: '#272727',
-        },
-      }),
+      JSON.stringify(theme.lowerThirdLayout || LAYOUT_DEFAULTS.LOWER_THIRD),
+      JSON.stringify(theme.lowerThirdAnimation || this.getDefaultLowerThirdAnimation()),
       theme.countdownStyle,
       JSON.stringify(theme.countdownFont),
-      JSON.stringify(theme.countdownLayout || { x: 960, y: 540, scale: 1 }),
-      JSON.stringify(theme.posterLayout || { x: 960, y: 540, scale: 1 }),
+      JSON.stringify(theme.countdownLayout || LAYOUT_DEFAULTS.COUNTDOWN),
+      JSON.stringify(theme.posterLayout || LAYOUT_DEFAULTS.POSTER),
       theme.isGlobal ? 1 : 0,
       (theme.createdAt || now).toISOString(),
       (theme.updatedAt || now).toISOString()
@@ -1029,29 +1037,12 @@ export class DatabaseService {
       JSON.stringify(updates.colors),
       updates.lowerThirdTemplate,
       JSON.stringify(updates.lowerThirdFont),
-      JSON.stringify(updates.lowerThirdLayout || { x: 60, y: 920, scale: 1 }),
-      JSON.stringify(updates.lowerThirdAnimation || {
-        timing: {
-          logoFadeDuration: 200,
-          logoScaleDuration: 200,
-          flipDuration: 600,
-          flipDelay: 500,
-          barAppearDelay: 800,
-          barExpandDuration: 450,
-          textAppearDelay: 1000,
-          textFadeDuration: 250,
-        },
-        styles: {
-          barBorderRadius: 16,
-          barMinWidth: 200,
-          avatarBorderWidth: 4,
-          avatarBorderColor: '#272727',
-        },
-      }),
+      JSON.stringify(updates.lowerThirdLayout || LAYOUT_DEFAULTS.LOWER_THIRD),
+      JSON.stringify(updates.lowerThirdAnimation || this.getDefaultLowerThirdAnimation()),
       updates.countdownStyle,
       JSON.stringify(updates.countdownFont),
-      JSON.stringify(updates.countdownLayout || { x: 960, y: 540, scale: 1 }),
-      JSON.stringify(updates.posterLayout || { x: 960, y: 540, scale: 1 }),
+      JSON.stringify(updates.countdownLayout || LAYOUT_DEFAULTS.COUNTDOWN),
+      JSON.stringify(updates.posterLayout || LAYOUT_DEFAULTS.POSTER),
       updates.isGlobal ? 1 : 0,
       (updates.updatedAt || new Date()).toISOString(),
       id
@@ -1414,12 +1405,12 @@ export class DatabaseService {
 
   // ==================== STREAMERBOT CHAT MESSAGES ====================
 
-  private readonly CHAT_BUFFER_SIZE = 200;
+  private readonly CHAT_BUFFER_SIZE = DATABASE.CHAT_BUFFER_SIZE;
 
   /**
    * Get recent chat messages, ordered by timestamp descending
    */
-  getStreamerbotChatMessages(limit: number = 200): DbStreamerbotChatMessage[] {
+  getStreamerbotChatMessages(limit: number = DATABASE.CHAT_BUFFER_SIZE): DbStreamerbotChatMessage[] {
     const stmt = this.db.prepare(`
       SELECT * FROM streamerbot_chat_messages
       ORDER BY timestamp DESC
@@ -1438,7 +1429,7 @@ export class DatabaseService {
   }
 
   /**
-   * Insert a chat message and maintain rolling buffer of 200 messages
+   * Insert a chat message and maintain rolling buffer (see DATABASE.CHAT_BUFFER_SIZE)
    */
   insertStreamerbotChatMessage(message: DbStreamerbotChatMessageInput): void {
     const now = Date.now();
@@ -1469,7 +1460,7 @@ export class DatabaseService {
   }
 
   /**
-   * Trim chat buffer to maintain max 200 messages
+   * Trim chat buffer to maintain max CHAT_BUFFER_SIZE messages
    * Deletes oldest messages by createdAt
    */
   private trimStreamerbotChatBuffer(): void {

@@ -4,9 +4,8 @@ import { SettingsService } from "@/lib/services/SettingsService";
 import { BackendClient } from "@/lib/utils/BackendClient";
 import { LowerThirdEventType, OverlayChannel } from "@/lib/models/OverlayEvents";
 import { enrichLowerThirdPayload } from "@/lib/utils/themeEnrichment";
-import { DbGuest } from "@/lib/models/Database";
 import { sendPresenterNotification } from "@/lib/utils/presenterNotifications";
-import { BACKEND_URL } from "@/lib/config/urls";
+import { sendChatMessageIfEnabled } from "@/lib/utils/chatMessaging";
 
 /**
  * POST /api/actions/lower/guest/[id]
@@ -66,19 +65,7 @@ export async function POST(
 
     // Send chat message if enabled and defined (non-blocking)
     const chatSettings = settingsService.getChatMessageSettings();
-
-    if (chatSettings.guestChatMessageEnabled && guest.chatMessage) {
-      fetch(`${BACKEND_URL}/api/streamerbot-chat/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          platform: 'twitch',
-          message: guest.chatMessage,
-        }),
-      }).catch((error) => {
-        console.error("[GuestAction] Failed to send chat message:", error);
-      });
-    }
+    sendChatMessageIfEnabled({ enabled: chatSettings.guestChatMessageEnabled }, guest.chatMessage);
 
     return NextResponse.json({
       success: true,

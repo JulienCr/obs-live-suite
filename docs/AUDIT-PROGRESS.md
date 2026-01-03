@@ -105,6 +105,55 @@ Fichier: `lib/services/DatabaseService.ts`
 
 ---
 
+## Phase 2.5 - DRY et Nettoyage ✅
+
+### 7. `lib/utils/chatMessaging.ts` ✅ (NEW)
+- `sendChatMessage(message, platform)` - Envoi fire-and-forget avec Logger
+- `sendChatMessageIfEnabled(settings, message, platform)` - Envoi conditionnel
+- **Impact**: Élimine ~44 lignes de code dupliqué dans 4 fichiers
+
+Fichiers refactorisés:
+- `app/api/actions/lower/guest/[id]/route.ts`
+- `app/api/actions/poster/show/[id]/route.ts`
+- `app/api/overlays/poster/route.ts`
+- `app/api/overlays/poster-bigpicture/route.ts`
+
+### Application Constants.ts aux magic numbers ✅
+
+**Fichiers modifiés:**
+
+| Fichier | Magic numbers remplacés |
+|---------|-------------------------|
+| `lib/services/QuizManager.ts` | 45→QUIZ.ZOOM_DURATION_SECONDS, 35→QUIZ.ZOOM_MAX_LEVEL, 30→QUIZ.ZOOM_FPS, 60→QUIZ.MYSTERY_IMAGE_INTERVAL_MS, 300→BUZZER.LOCK_DELAY_MS, 4000→BUZZER.STEAL_WINDOW_MS, 20→QUIZ.DEFAULT_TIMER_SECONDS |
+| `lib/services/WebSocketHub.ts` | 30000→WEBSOCKET.HEARTBEAT_INTERVAL_MS |
+| `lib/services/ChannelManager.ts` | 5000→WEBSOCKET.ACK_TIMEOUT_MS |
+| `lib/services/DatabaseService.ts` | 200→DATABASE.CHAT_BUFFER_SIZE, layouts→LAYOUT_DEFAULTS.*, animations→LOWER_THIRD_ANIMATION.* |
+| `lib/services/ThemeService.ts` | layouts→LAYOUT_DEFAULTS.*, animations→LOWER_THIRD_ANIMATION.* |
+| `server/api/quiz-bot.ts` | 1500→VIEWER_LIMITS.PER_USER_COOLDOWN_MS, 5→VIEWER_LIMITS.PER_USER_MAX_ATTEMPTS, 50→VIEWER_LIMITS.GLOBAL_RPS, 200→QUIZ.OPEN_ANSWER_MAX_LENGTH |
+
+### Standardisation erreurs avec apiError/expressError ✅
+
+**Routes Express standardisées:**
+- `server/api/overlays.ts` (6 endpoints)
+- `server/api/obs.ts` (6 endpoints)
+- `server/api/rooms.ts` (6 endpoints)
+- `server/api/cue.ts` (7 endpoints)
+- `server/api/quiz.ts` (25+ endpoints)
+- `server/api/quiz-bot.ts` (1 endpoint)
+- `server/api/streamerbot-chat.ts` (7 endpoints)
+- `server/backend.ts` (5 endpoints)
+
+**Routes Next.js standardisées:**
+- `app/api/ollama/test/route.ts`
+- `app/api/debug/websocket/route.ts`
+- `app/api/test/lower-third/route.ts`
+
+### Nettoyage imports BACKEND_URL ✅
+- 23 routes vérifiées (déjà nettoyées lors du refactoring ProxyHelper)
+- Imports légitimes conservés pour les 5 fichiers avec logique complexe
+
+---
+
 ## Phases suivantes (à faire)
 
 ### Phase 3 - Restructuration services
@@ -117,21 +166,20 @@ Fichier: `lib/services/DatabaseService.ts`
 - [ ] Ajouter tests pour DatabaseService
 - [ ] Augmenter couverture globale (actuellement 2/10)
 
-### Phase 5 - Nettoyage
-- [ ] Supprimer imports BACKEND_URL non utilisés
-- [ ] Appliquer Constants.ts aux magic numbers restants
-- [ ] Standardiser erreurs avec apiError dans routes restantes
-
 ---
 
 ## Statistiques
 
-| Métrique | Avant | Après Phase 2 |
-|----------|-------|---------------|
-| Lignes dupliquées proxy | ~800 | ~100 (5 fichiers complexes) |
-| JSON.parse non protégés | ~40 | 0 |
-| Fichiers utilities | 0 | 6 |
-| Routes API simplifiées | 0 | 23 |
+| Métrique | Avant | Après Phase 2 | Après Phase 2.5 |
+|----------|-------|---------------|-----------------|
+| Lignes dupliquées proxy | ~800 | ~100 | ~100 |
+| Lignes dupliquées chat | ~44 | ~44 | 0 |
+| JSON.parse non protégés | ~40 | 0 | 0 |
+| Magic numbers hardcodés | ~20 | ~20 | ~5 (SQL migrations) |
+| String(error) exposés | ~60 | ~60 | 0 |
+| Fichiers utilities | 0 | 6 | 7 |
+| Routes API simplifiées | 0 | 23 | 23 |
+| Routes avec erreurs standardisées | 0 | 0 | 60+ |
 
 ---
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { BackendClient } from "@/lib/utils/BackendClient";
+import { apiError } from "@/lib/utils/apiError";
 
 /**
  * Debug endpoint to check WebSocket connections
@@ -17,10 +18,7 @@ export async function GET() {
       posterSubscribers: stats.channels.poster || 0,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: String(error), message: 'Backend server may not be running' },
-      { status: 500 }
-    );
+    return apiError(error, "Backend server may not be running", { context: "[DebugAPI]" });
   }
 }
 

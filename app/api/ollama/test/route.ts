@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OllamaSummarizerService } from "@/lib/services/OllamaSummarizerService";
+import { apiError } from "@/lib/utils/apiError";
 
 /**
  * POST /api/ollama/test
@@ -31,13 +32,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiError(error, "Ollama connection test failed", { context: "[OllamaAPI]" });
   }
 }
 
@@ -55,14 +50,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       models,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-        models: [],
-      },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to get Ollama models", { context: "[OllamaAPI]" });
   }
 }
 

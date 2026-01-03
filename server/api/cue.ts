@@ -8,6 +8,7 @@ import { WebSocketHub } from "../../lib/services/WebSocketHub";
 import { createCueMessageSchema, CueType, CueFrom, CueAction } from "../../lib/models/Cue";
 import { RoomEventType } from "../../lib/models/OverlayEvents";
 import { randomUUID } from "crypto";
+import { expressError } from "../../lib/utils/apiError";
 
 const router = Router();
 const db = DatabaseService.getInstance();
@@ -58,8 +59,7 @@ router.post("/send", async (req, res) => {
 
     res.status(201).json({ message });
   } catch (error) {
-    console.error("[Cue] Send error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to send cue", { context: "[CueAPI]" });
   }
 });
 
@@ -83,8 +83,7 @@ router.get("/:roomId/messages", (req, res) => {
 
     res.json({ messages, pinnedMessages });
   } catch (error) {
-    console.error("[Cue] Messages error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to get messages", { context: "[CueAPI]" });
   }
 });
 
@@ -178,8 +177,7 @@ router.post("/:messageId/action", async (req, res) => {
       res.json({ message: updated });
     }
   } catch (error) {
-    console.error("[Cue] Action error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to perform action", { context: "[CueAPI]" });
   }
 });
 
@@ -232,8 +230,7 @@ router.post("/promote-question", async (req, res) => {
 
     res.status(201).json({ message });
   } catch (error) {
-    console.error("[Cue] Promote question error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to promote question", { context: "[CueAPI]" });
   }
 });
 
@@ -261,8 +258,7 @@ router.post("/:messageId/seen", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Cue] Seen error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to mark as seen", { context: "[CueAPI]" });
   }
 });
 
@@ -290,8 +286,7 @@ router.delete("/:roomId/clear", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Cue] Clear error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to clear messages", { context: "[CueAPI]" });
   }
 });
 

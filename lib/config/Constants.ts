@@ -244,3 +244,17 @@ export type LayoutPosition = {
   readonly y: number;
   readonly scale: number;
 };
+
+// ============================================================================
+// HELPER FUNCTIONS FOR SQL DEFAULTS
+// ============================================================================
+
+/**
+ * Get JSON string for layout defaults (for SQL DEFAULT clauses).
+ * SQL requires quoted JSON strings, so these return stringified versions.
+ */
+export const LAYOUT_DEFAULTS_JSON = {
+  LOWER_THIRD: JSON.stringify(LAYOUT_DEFAULTS.LOWER_THIRD),
+  COUNTDOWN: JSON.stringify(LAYOUT_DEFAULTS.COUNTDOWN),
+  POSTER: JSON.stringify(LAYOUT_DEFAULTS.POSTER),
+} as const;

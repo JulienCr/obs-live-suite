@@ -6,6 +6,7 @@ import { StreamerbotGateway } from "../../lib/adapters/streamerbot/StreamerbotGa
 import { SettingsService } from "../../lib/services/SettingsService";
 import { DatabaseService } from "../../lib/services/DatabaseService";
 import { chatPlatformSchema } from "../../lib/models/StreamerbotChat";
+import { expressError } from "../../lib/utils/apiError";
 
 const router = Router();
 
@@ -20,8 +21,7 @@ router.get("/status", async (req, res) => {
 
     res.json(status);
   } catch (error) {
-    console.error("[StreamerbotGateway] Status error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to get Streamerbot status", { context: "[StreamerbotAPI]" });
   }
 });
 
@@ -40,8 +40,7 @@ router.get("/history", async (req, res) => {
       count: messages.length,
     });
   } catch (error) {
-    console.error("[StreamerbotGateway] History fetch error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to fetch chat history", { context: "[StreamerbotAPI]" });
   }
 });
 
@@ -62,8 +61,7 @@ router.post("/connect", async (req, res) => {
 
     res.json({ success: true, message: "Connected to Streamer.bot" });
   } catch (error) {
-    console.error("[StreamerbotGateway] Connect error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to connect to Streamer.bot", { context: "[StreamerbotAPI]" });
   }
 });
 
@@ -80,8 +78,7 @@ router.post("/disconnect", async (req, res) => {
 
     res.json({ success: true, message: "Disconnected from Streamer.bot" });
   } catch (error) {
-    console.error("[StreamerbotGateway] Disconnect error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to disconnect from Streamer.bot", { context: "[StreamerbotAPI]" });
   }
 });
 
@@ -114,8 +111,7 @@ router.post("/send", async (req, res) => {
 
     res.json({ success: true, message: "Message sent" });
   } catch (error) {
-    console.error("[StreamerbotGateway] Send error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to send message", { context: "[StreamerbotAPI]" });
   }
 });
 
@@ -148,8 +144,7 @@ router.put("/settings", async (req, res) => {
 
     res.json({ success: true, message: "Settings updated" });
   } catch (error) {
-    console.error("[StreamerbotGateway] Settings update error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to update settings", { context: "[StreamerbotAPI]" });
   }
 });
 
@@ -170,8 +165,7 @@ router.get("/settings", async (req, res) => {
       hasPassword: !!password,
     });
   } catch (error) {
-    console.error("[StreamerbotGateway] Get settings error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to get settings", { context: "[StreamerbotAPI]" });
   }
 });
 

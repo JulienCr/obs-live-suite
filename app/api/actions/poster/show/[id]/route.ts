@@ -4,6 +4,7 @@ import { SettingsService } from "@/lib/services/SettingsService";
 import { enrichPosterPayload } from "@/lib/utils/themeEnrichment";
 import { DbPoster } from "@/lib/models/Database";
 import { BACKEND_URL } from "@/lib/config/urls";
+import { sendChatMessageIfEnabled } from "@/lib/utils/chatMessaging";
 
 /**
  * POST /api/actions/poster/show/[id]
@@ -53,19 +54,7 @@ export async function POST(
     // Send chat message if enabled and defined (non-blocking)
     const settingsService = SettingsService.getInstance();
     const chatSettings = settingsService.getChatMessageSettings();
-
-    if (chatSettings.posterChatMessageEnabled && poster.chatMessage) {
-      fetch(`${BACKEND_URL}/api/streamerbot-chat/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          platform: 'twitch',
-          message: poster.chatMessage,
-        }),
-      }).catch((error) => {
-        console.error("[PosterAction] Failed to send chat message:", error);
-      });
-    }
+    sendChatMessageIfEnabled({ enabled: chatSettings.posterChatMessageEnabled }, poster.chatMessage);
 
     return NextResponse.json({
       success: true,

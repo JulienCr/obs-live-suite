@@ -6,6 +6,7 @@ import { OBSConnectionManager } from "../../lib/adapters/obs/OBSConnectionManage
 import { OBSStateManager } from "../../lib/adapters/obs/OBSStateManager";
 import { OBSSceneController } from "../../lib/adapters/obs/OBSSceneController";
 import { OBSSourceController } from "../../lib/adapters/obs/OBSSourceController";
+import { expressError } from "../../lib/utils/apiError";
 
 const router = Router();
 
@@ -24,8 +25,7 @@ router.get("/status", async (req, res) => {
       ...state,
     });
   } catch (error) {
-    console.error("[OBS] Status error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Failed to get OBS status", { context: "[OBSAPI]" });
   }
 });
 
@@ -41,8 +41,7 @@ router.post("/reconnect", async (req, res) => {
     
     res.json({ success: true, message: "Reconnecting to OBS..." });
   } catch (error) {
-    console.error("[OBS] Reconnect error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "OBS reconnect failed", { context: "[OBSAPI]" });
   }
 });
 
@@ -65,8 +64,7 @@ router.post("/stream", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[OBS] Stream control error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Stream control failed", { context: "[OBSAPI]" });
   }
 });
 
@@ -89,8 +87,7 @@ router.post("/record", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[OBS] Record control error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Record control failed", { context: "[OBSAPI]" });
   }
 });
 
@@ -111,8 +108,7 @@ router.post("/scene", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[OBS] Scene switch error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Scene switch failed", { context: "[OBSAPI]" });
   }
 });
 
@@ -139,8 +135,7 @@ router.post("/source/visibility", async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[OBS] Source visibility error:", error);
-    res.status(500).json({ error: String(error) });
+    expressError(res, error, "Source visibility update failed", { context: "[OBSAPI]" });
   }
 });
 
