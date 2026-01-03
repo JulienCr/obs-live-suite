@@ -90,7 +90,9 @@
       "Bash(sqlite3:*)",
       "Bash(findstr:*)",
       "Bash(cd:*)",
-      "Bash(node scripts/generate-pwa-icons.js:*)"
+      "Bash(node scripts/generate-pwa-icons.js:*)",
+      "Bash(if not exist \"D:\\\\dev\\\\obs-tools\\\\lib\\\\repositories\" mkdir \"D:\\\\dev\\\\obs-tools\\\\lib\\\\repositories\")",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": [

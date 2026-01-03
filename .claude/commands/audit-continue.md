@@ -4,10 +4,8 @@ Continue l'audit du code selon les fichiers de référence et lance des agents p
 
 ## Fichiers de Référence
 
-- `docs/AUDIT-CODE-2026-01.md` - Rapport d'audit complet avec toutes les issues identifiées
+- `docs/audit-reports/CURRENT-AUDIT.md` - Rapport d'audit complet avec toutes les issues identifiées. Chaque scope a son propre fichier, lien dans le rapport.
 - `docs/AUDIT-PROGRESS.md` - Progression actuelle (à lire à chaque exécution)
-- `docs/audit-reports/` - Rapports d'audit générés par `/audit`
-- `docs/audit-history.json` - Historique des métriques
 
 ## Intégration avec /audit
 

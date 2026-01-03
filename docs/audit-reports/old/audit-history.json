@@ -86,6 +86,54 @@
           "coverage": null
         }
       }
+    },
+    {
+      "date": "2026-01-03",
+      "label": "Post Phase 5 - Critical Services Tests",
+      "commit": "23ebee7",
+      "branch": "refactor/audit-phase1-phase2",
+      "scores": {
+        "quality": 4.1,
+        "maintainability": 8.9,
+        "dry": 8.5,
+        "tests": 0,
+        "overall": 5.4
+      },
+      "metrics": {
+        "quality": {
+          "unsafeJsonParse": { "count": 4 },
+          "exposedErrors": { "count": 20 },
+          "asAnyCasts": { "count": 7 },
+          "magicNumbers": { "count": 0 }
+        },
+        "maintainability": {
+          "fileSizes": [
+            { "file": "lib/services/DatabaseService.ts", "lines": 1005 },
+            { "file": "lib/services/WikipediaResolverService.ts", "lines": 609 },
+            { "file": "lib/services/WebSocketHub.ts", "lines": 490 }
+          ],
+          "avgServiceLines": 206,
+          "repositories": {
+            "extracted": 6,
+            "files": [
+              "GuestRepository.ts",
+              "PosterRepository.ts",
+              "ProfileRepository.ts",
+              "ThemeRepository.ts",
+              "RoomRepository.ts",
+              "CueMessageRepository.ts"
+            ]
+          }
+        },
+        "dry": {
+          "proxyHelper": { "usingProxyHelper": 23, "usingRawFetch": 4 },
+          "estimatedDuplicateLines": 160
+        },
+        "tests": {
+          "testFileCount": 32,
+          "coverage": null
+        }
+      }
     }
   ]
 }
