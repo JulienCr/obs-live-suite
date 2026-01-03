@@ -15,6 +15,7 @@ import type { ChatMessage, StreamerbotConnectionSettings } from "@/lib/models/St
 import { CueType, CueFrom, CueAction } from "@/lib/models/Cue";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { useToast } from "@/hooks/use-toast";
+import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 
 /**
  * Regie Public Chat Panel - Streamerbot chat with highlight functionality
@@ -33,11 +34,10 @@ function RegiePublicChatContent() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const response = await fetch(`/api/presenter/rooms/${DEFAULT_ROOM_ID}`);
-        if (response.ok) {
-          const data = await response.json();
-          setConnectionSettings(data.room?.streamerbotConnection || null);
-        }
+        const data = await apiGet<{ room?: { streamerbotConnection?: StreamerbotConnectionSettings } }>(
+          `/api/presenter/rooms/${DEFAULT_ROOM_ID}`
+        );
+        setConnectionSettings(data.room?.streamerbotConnection || null);
       } catch (error) {
         console.error("Failed to fetch room settings:", error);
       } finally {
@@ -105,26 +105,11 @@ function RegiePublicChatContent() {
         actions: [CueAction.TAKE, CueAction.SKIP],
       };
 
-      const response = await fetch("/api/presenter/cue/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      await apiPost("/api/presenter/cue/send", payload);
+      toast({
+        title: "Message sent",
+        description: `Question from ${message.displayName} sent to presenter`,
       });
-
-      if (response.ok) {
-        toast({
-          title: "Message sent",
-          description: `Question from ${message.displayName} sent to presenter`,
-        });
-      } else {
-        const errorText = await response.text();
-        console.error("Failed to highlight message:", errorText);
-        toast({
-          title: "Error",
-          description: "Failed to send message to presenter",
-          variant: "destructive",
-        });
-      }
     } catch (error) {
       console.error("Failed to highlight message:", error);
       toast({
@@ -147,51 +132,37 @@ function RegiePublicChatContent() {
 
     setShowingInOverlayId(message.id);
     try {
-      const response = await fetch("/api/overlays/chat-highlight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          action === "show"
-            ? {
-                action: "show",
-                payload: {
-                  messageId: message.id,
-                  platform: message.platform,
-                  username: message.username,
-                  displayName: message.displayName,
-                  message: message.message,
-                  parts: message.parts,
-                  metadata: message.metadata,
-                  duration: 10,
-                },
-              }
-            : { action: "hide" }
-        ),
-      });
+      const overlayPayload = action === "show"
+        ? {
+            action: "show",
+            payload: {
+              messageId: message.id,
+              platform: message.platform,
+              username: message.username,
+              displayName: message.displayName,
+              message: message.message,
+              parts: message.parts,
+              metadata: message.metadata,
+              duration: 10,
+            },
+          }
+        : { action: "hide" };
 
-      if (response.ok) {
-        if (action === "show") {
-          setCurrentlyDisplayedId(message.id);
-          toast({
-            title: "Showing in overlay",
-            description: `Message from ${message.displayName}`,
-          });
+      await apiPost("/api/overlays/chat-highlight", overlayPayload);
 
-          // Auto-clear the displayed ID after duration
-          setTimeout(() => {
-            setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
-          }, 10000);
-        } else {
-          setCurrentlyDisplayedId(null);
-        }
-      } else {
-        const errorText = await response.text();
-        console.error("Failed to update overlay:", errorText);
+      if (action === "show") {
+        setCurrentlyDisplayedId(message.id);
         toast({
-          title: "Error",
-          description: "Failed to update overlay",
-          variant: "destructive",
+          title: "Showing in overlay",
+          description: `Message from ${message.displayName}`,
         });
+
+        // Auto-clear the displayed ID after duration
+        setTimeout(() => {
+          setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
+        }, 10000);
+      } else {
+        setCurrentlyDisplayedId(null);
       }
     } catch (error) {
       console.error("Failed to update overlay:", error);

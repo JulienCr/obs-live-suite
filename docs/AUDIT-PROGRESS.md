@@ -369,6 +369,33 @@
 
 ---
 
+## Batch 12: Shell Panels + Notification Factory ✅
+
+**Completed:** January 3, 2026
+
+| Task | Status | Files |
+|------|--------|-------|
+| Refactor shell panels to ClientFetch | ✅ | 7 shell panel components |
+| Refactor quiz host to ClientFetch | ✅ | `SessionSelector.tsx` |
+| Create presenter notification factory | ✅ | `presenterNotifications.ts` |
+
+### Details
+
+**Shell panels refactored (7 files):**
+- `LowerThirdPanel`, `CountdownPanel`, `CueComposerPanel`, `PresenceStatusPanel`
+- `RegieInternalChatPanel`, `RegiePublicChatPanel`, `RegieInternalChatViewPanel`
+- Replaced ~20 fetch() calls with ClientFetch utilities
+
+**SessionSelector refactored:**
+- Replaced fetch with apiGet for sessions list
+
+**Notification factory created:**
+- Added `buildLowerThirdNotification()`, `buildGuestNotification()`, `buildPosterNotification()`
+- Added YouTube thumbnail extraction utilities
+- Typed payload interfaces for each notification type
+
+---
+
 ## Remaining Work
 
 ### Phase 1: Critical Fixes ✅
@@ -382,13 +409,13 @@
 - [x] Create payload type definitions with discriminated unions ✅
 - [x] Use exponential backoff for WebSocket reconnection (done in hook)
 
-### Phase 3: DRY Improvements (Mostly Done)
+### Phase 3: DRY Improvements (Nearly Complete)
 - [x] Refactor components to use useWebSocketChannel hook (6/7 done)
-- [x] Refactor components to use ClientFetch utility (16 components done)
+- [x] Refactor components to use ClientFetch utility (24 components done)
 - [x] Refactor API routes to use ApiResponses helper (49 routes done)
 - [ ] Standardize proxy request patterns
 - [x] Create CardShell wrapper component ✅
-- [ ] Build presenter notification factory
+- [x] Build presenter notification factory ✅
 
 ### Phase 4: Medium Priority (Pending)
 - [ ] Extract remaining magic numbers to Constants.ts
@@ -403,10 +430,10 @@
 | Metric | Value |
 |--------|-------|
 | Files Created | 4 |
-| Files Modified | 78 |
+| Files Modified | 87 |
 | Critical Issues Fixed | 2/2 |
 | High Issues Fixed | 6/14 |
 | Quick Wins Completed | 6/6 |
 | API Routes Standardized | 49 |
-| Components using ClientFetch | 16 |
-| Lines Removed (boilerplate) | ~520 |
+| Components using ClientFetch | 24 |
+| Lines Removed (boilerplate) | ~580 |

@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CueType, CueSeverity, CueFrom } from "@/lib/models/Cue";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
+import { apiPost } from "@/lib/utils/ClientFetch";
 
 const cueTypeOptions = [
   { value: CueType.CUE, label: "Cue", icon: AlertCircle },
@@ -61,20 +62,11 @@ function CueComposerContent() {
         };
       }
 
-      const response = await fetch("/api/presenter/cue/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        // Clear form
-        setTitle("");
-        setBody("");
-        setPinned(false);
-      } else {
-        console.error("Failed to send cue:", await response.text());
-      }
+      await apiPost("/api/presenter/cue/send", payload);
+      // Clear form
+      setTitle("");
+      setBody("");
+      setPinned(false);
     } catch (error) {
       console.error("Failed to send cue:", error);
     } finally {
