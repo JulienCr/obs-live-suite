@@ -179,6 +179,41 @@
 
 ---
 
+## Batch 6: Proxy Routes + Wikipedia API Standardization ✅
+
+**Completed:** January 3, 2026
+
+| Task | Status | Files |
+|------|--------|-------|
+| Settings/paths route | ✅ | `app/api/settings/paths/route.ts` |
+| Overlays routes | ✅ | `lower/route.ts`, `countdown/route.ts`, `chat-highlight/route.ts` |
+| OBS routes | ✅ | `status/route.ts`, `reconnect/route.ts`, `record/route.ts`, `stream/route.ts` |
+| Wikipedia routes | ✅ | `search/route.ts`, `resolve/route.ts`, `summarize/route.ts`, `cache/route.ts` |
+
+### Details
+
+**Settings/paths route:**
+- Wrapped with withSimpleErrorHandler
+- Added `[PathsSettingsAPI]` logging context
+
+**Overlays routes (3 routes):**
+- All using withSimpleErrorHandler wrapper
+- Added `[OverlaysAPI:Lower]`, `[OverlaysAPI:Countdown]`, `[OverlaysAPI:ChatHighlight]` contexts
+- Simplified from createPostProxy to direct proxyToBackend calls
+
+**OBS routes (4 routes):**
+- Added `[OBSAPI]` logging context to all routes
+- Updated ProxyHelper to use ApiResponses.serviceUnavailable() for network errors
+- Simplified from createGetProxy/createPostProxy to direct proxyToBackend calls
+
+**Wikipedia routes (4 routes):**
+- All wrapped with withSimpleErrorHandler
+- Added logging contexts: `[WikipediaCacheAPI]`, `[WikipediaSearchAPI]`, `[WikipediaResolveAPI]`, `[WikipediaSummarizeAPI]`
+- Used ApiResponses.serviceUnavailable() for LLM errors
+- Preserved typed responses where needed for API contract compatibility
+
+---
+
 ## Remaining Work
 
 ### Phase 1: Critical Fixes ✅
@@ -195,7 +230,7 @@
 ### Phase 3: DRY Improvements (Partially Done)
 - [x] Refactor components to use useWebSocketChannel hook (5/7 done)
 - [ ] Refactor components to use ClientFetch utility
-- [x] Refactor API routes to use ApiResponses helper (16 routes done)
+- [x] Refactor API routes to use ApiResponses helper (28 routes done)
 - [ ] Standardize proxy request patterns
 - [ ] Create CardShell wrapper component
 - [ ] Build presenter notification factory
@@ -213,9 +248,9 @@
 | Metric | Value |
 |--------|-------|
 | Files Created | 3 |
-| Files Modified | 26 |
+| Files Modified | 39 |
 | Critical Issues Fixed | 2/2 |
 | High Issues Fixed | 3/14 |
 | Quick Wins Completed | 6/6 |
-| API Routes Standardized | 16 |
-| Lines Removed (boilerplate) | ~260 |
+| API Routes Standardized | 28 |
+| Lines Removed (boilerplate) | ~300 |
