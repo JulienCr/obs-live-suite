@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
 import { proxyToBackend } from "@/lib/utils/ProxyHelper";
+import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
+
+const LOG_CONTEXT = "[QuizQuestionsAPI]";
 
 /**
  * POST /api/quiz/questions/bulk
@@ -8,21 +10,17 @@ import { proxyToBackend } from "@/lib/utils/ProxyHelper";
  * Body: { questions: Array<Partial<Question>> }
  * Returns: { imported: number, questions: Question[] }
  */
-export async function POST(request: Request) {
+export const POST = withSimpleErrorHandler(async (request: Request) => {
   const body = await request.json();
 
   if (!body.questions || !Array.isArray(body.questions)) {
-    return NextResponse.json(
-      { error: "Invalid request: 'questions' array is required" },
-      { status: 400 }
+    return ApiResponses.badRequest(
+      "Invalid request: 'questions' array is required"
     );
   }
 
   if (body.questions.length === 0) {
-    return NextResponse.json(
-      { error: "No questions to import" },
-      { status: 400 }
-    );
+    return ApiResponses.badRequest("No questions to import");
   }
 
   return proxyToBackend("/api/quiz/questions/bulk", {
@@ -30,5 +28,5 @@ export async function POST(request: Request) {
     body,
     errorMessage: "Failed to import questions",
   });
-}
+}, LOG_CONTEXT);
 

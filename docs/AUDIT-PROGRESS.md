@@ -148,6 +148,37 @@
 
 ---
 
+## Batch 5: More API Route Standardization ✅
+
+**Completed:** January 3, 2026
+
+| Task | Status | File |
+|------|--------|------|
+| Refactor settings/general route | ✅ | `app/api/settings/general/route.ts` |
+| Refactor settings/obs route | ✅ | `app/api/settings/obs/route.ts` |
+| Refactor quiz/questions routes | ✅ | `app/api/quiz/questions/route.ts`, `[id]/route.ts`, `bulk/route.ts` |
+| Refactor presenter/rooms routes | ✅ | `app/api/presenter/rooms/route.ts`, `[id]/route.ts`, `[id]/clear/route.ts` |
+
+### Details
+
+**Settings routes refactoring:**
+- Both general and obs settings routes wrapped with withSimpleErrorHandler
+- Added `[GeneralSettingsAPI]` and `[OBSSettingsAPI]` logging contexts
+- Replaced NextResponse.json with ApiResponses helpers
+
+**Quiz questions routes refactoring:**
+- All 3 routes (list, [id], bulk) refactored
+- [id] route uses RouteContext<{ id: string }> for typed params
+- Added `[QuizQuestionsAPI]` logging context
+
+**Presenter rooms routes refactoring:**
+- All 3 routes (list, [id], [id]/clear) refactored
+- Dynamic routes use RouteContext<{ id: string }> for typed params
+- Added `[RoomsAPI]` logging context
+- Added JSDoc comments for each endpoint
+
+---
+
 ## Remaining Work
 
 ### Phase 1: Critical Fixes ✅
@@ -164,7 +195,7 @@
 ### Phase 3: DRY Improvements (Partially Done)
 - [x] Refactor components to use useWebSocketChannel hook (5/7 done)
 - [ ] Refactor components to use ClientFetch utility
-- [x] Refactor API routes to use ApiResponses helper (8 routes done)
+- [x] Refactor API routes to use ApiResponses helper (16 routes done)
 - [ ] Standardize proxy request patterns
 - [ ] Create CardShell wrapper component
 - [ ] Build presenter notification factory
@@ -182,8 +213,9 @@
 | Metric | Value |
 |--------|-------|
 | Files Created | 3 |
-| Files Modified | 18 |
+| Files Modified | 26 |
 | Critical Issues Fixed | 2/2 |
 | High Issues Fixed | 3/14 |
 | Quick Wins Completed | 6/6 |
+| API Routes Standardized | 16 |
 | Lines Removed (boilerplate) | ~260 |

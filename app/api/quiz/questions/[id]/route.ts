@@ -1,35 +1,37 @@
-import { NextRequest } from "next/server";
 import { proxyToBackend } from "@/lib/utils/ProxyHelper";
+import { withErrorHandler, RouteContext } from "@/lib/utils/ApiResponses";
+
+const LOG_CONTEXT = "[QuizQuestionsAPI]";
 
 /**
  * PUT /api/quiz/questions/[id]
  * Update a question (proxies to backend)
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  const body = await request.json();
-  return proxyToBackend(`/api/quiz/questions/${id}`, {
-    method: "PUT",
-    body,
-    errorMessage: "Failed to update question",
-  });
-}
+export const PUT = withErrorHandler<{ id: string }>(
+  async (request: Request, context: RouteContext<{ id: string }>) => {
+    const { id } = await context.params;
+    const body = await request.json();
+    return proxyToBackend(`/api/quiz/questions/${id}`, {
+      method: "PUT",
+      body,
+      errorMessage: "Failed to update question",
+    });
+  },
+  LOG_CONTEXT
+);
 
 /**
  * DELETE /api/quiz/questions/[id]
  * Delete a question (proxies to backend)
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  return proxyToBackend(`/api/quiz/questions/${id}`, {
-    method: "DELETE",
-    errorMessage: "Failed to delete question",
-  });
-}
+export const DELETE = withErrorHandler<{ id: string }>(
+  async (_request: Request, context: RouteContext<{ id: string }>) => {
+    const { id } = await context.params;
+    return proxyToBackend(`/api/quiz/questions/${id}`, {
+      method: "DELETE",
+      errorMessage: "Failed to delete question",
+    });
+  },
+  LOG_CONTEXT
+);
 

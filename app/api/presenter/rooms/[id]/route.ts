@@ -1,36 +1,53 @@
-import { NextRequest } from "next/server";
 import { proxyToBackend } from "@/lib/utils/ProxyHelper";
+import {
+  withErrorHandler,
+  RouteContext,
+} from "@/lib/utils/ApiResponses";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  return proxyToBackend(`/api/rooms/${id}`, {
-    errorMessage: "Failed to fetch room",
-  });
-}
+const LOG_CONTEXT = "[RoomsAPI]";
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  const body = await request.json();
-  return proxyToBackend(`/api/rooms/${id}`, {
-    method: "PUT",
-    body,
-    errorMessage: "Failed to update room",
-  });
-}
+/**
+ * GET /api/presenter/rooms/[id]
+ * Get a room by ID
+ */
+export const GET = withErrorHandler<{ id: string }>(
+  async (_request, context: RouteContext<{ id: string }>) => {
+    const { id } = await context.params;
+    return proxyToBackend(`/api/rooms/${id}`, {
+      errorMessage: "Failed to fetch room",
+    });
+  },
+  LOG_CONTEXT
+);
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  return proxyToBackend(`/api/rooms/${id}`, {
-    method: "DELETE",
-    errorMessage: "Failed to delete room",
-  });
-}
+/**
+ * PUT /api/presenter/rooms/[id]
+ * Update a room
+ */
+export const PUT = withErrorHandler<{ id: string }>(
+  async (request, context: RouteContext<{ id: string }>) => {
+    const { id } = await context.params;
+    const body = await request.json();
+    return proxyToBackend(`/api/rooms/${id}`, {
+      method: "PUT",
+      body,
+      errorMessage: "Failed to update room",
+    });
+  },
+  LOG_CONTEXT
+);
+
+/**
+ * DELETE /api/presenter/rooms/[id]
+ * Delete a room
+ */
+export const DELETE = withErrorHandler<{ id: string }>(
+  async (_request, context: RouteContext<{ id: string }>) => {
+    const { id } = await context.params;
+    return proxyToBackend(`/api/rooms/${id}`, {
+      method: "DELETE",
+      errorMessage: "Failed to delete room",
+    });
+  },
+  LOG_CONTEXT
+);
