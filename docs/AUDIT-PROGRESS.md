@@ -222,29 +222,84 @@ Fichiers refactorisés:
 
 ---
 
-## Phases suivantes (à faire)
+## Phase 5 - Tests services critiques ✅
 
-### Phase 5 - Tests services critiques
-- [ ] Tests QuizManager (state machine)
-- [ ] Tests ChannelManager (pub/sub)
-- [ ] Tests WebSocketHub (routing)
+### Tests Services (198 tests)
+
+| Fichier Test | Tests | Couverture |
+|--------------|-------|------------|
+| `__tests__/services/QuizManager.test.ts` | 89 | State machine, session, rounds, questions, answers, zoom, mystery, buzzer, timer, scores |
+| `__tests__/services/ChannelManager.test.ts` | 42 | Pub/sub, acknowledgments, timeouts, room channels, subscriber management |
+| `__tests__/services/WebSocketHub.test.ts` | 67 | Client connections, message handling, broadcasting, heartbeat, room system |
+
+**Cas testés:**
+
+**QuizManager:**
+- Singleton pattern avec Constants.ts
+- Session et round management
+- Question state machine (show → accept_answers → lock → reveal → score_update)
+- Player answer submission
+- Zoom, mystery image, buzzer controls
+- Timer management
+- Score calculation et applyWinners
+- Error handling
+
+**ChannelManager:**
+- Event publishing avec UUID et timestamps
+- Acknowledgment handling avec timeout (WEBSOCKET.ACK_TIMEOUT_MS)
+- Room channel utilities (getRoomChannel, isRoomChannel, getRoomIdFromChannel)
+- Subscriber count management
+- clearPendingAcks
+
+**WebSocketHub:**
+- Client connection lifecycle (connect, message, close, error, pong)
+- Message handling (subscribe, unsubscribe, ack, state)
+- Broadcasting to subscribed clients
+- Heartbeat mechanism (WEBSOCKET.HEARTBEAT_INTERVAL_MS)
+- Room system (join-room, leave-room, presence, sendReplay)
+- setOnRoomJoinCallback
+
+**Impact:**
+- Score tests: 4/10 → 6/10 (services critiques couverts)
+- 198 nouveaux tests ajoutés
+- Pattern de test établi pour services avec mocks complexes
 
 ---
 
 ## Statistiques
 
-| Métrique | Avant | Après Phase 2 | Après Phase 2.5 | Après Phase 3 | Après Phase 4 |
-|----------|-------|---------------|-----------------|---------------|---------------|
-| Lignes dupliquées proxy | ~800 | ~100 | ~100 | ~100 | ~100 |
-| Lignes dupliquées chat | ~44 | ~44 | 0 | 0 | 0 |
-| JSON.parse non protégés | ~40 | 0 | 0 | 0 | 0 |
-| Magic numbers hardcodés | ~20 | ~20 | ~5 | ~5 | ~5 |
-| String(error) exposés | ~60 | ~60 | 0 | 0 | 0 |
-| Fichiers utilities | 0 | 6 | 7 | 7 | 7 |
-| Fichiers repositories | 0 | 0 | 0 | 6 | 6 |
-| Routes API simplifiées | 0 | 23 | 23 | 23 | 23 |
-| Routes avec erreurs standardisées | 0 | 0 | 60+ | 60+ | 60+ |
-| Tests utilities/repositories | 0 | 0 | 0 | 0 | 201 |
+| Métrique | Avant | Après Phase 2 | Après Phase 2.5 | Après Phase 3 | Après Phase 4 | Après Phase 5 |
+|----------|-------|---------------|-----------------|---------------|---------------|---------------|
+| Lignes dupliquées proxy | ~800 | ~100 | ~100 | ~100 | ~100 | ~100 |
+| Lignes dupliquées chat | ~44 | ~44 | 0 | 0 | 0 | 0 |
+| JSON.parse non protégés | ~40 | 0 | 0 | 0 | 0 | 0 |
+| Magic numbers hardcodés | ~20 | ~20 | ~5 | ~5 | ~5 | ~5 |
+| String(error) exposés | ~60 | ~60 | 0 | 0 | 0 | 0 |
+| Fichiers utilities | 0 | 6 | 7 | 7 | 7 | 7 |
+| Fichiers repositories | 0 | 0 | 0 | 6 | 6 | 6 |
+| Routes API simplifiées | 0 | 23 | 23 | 23 | 23 | 23 |
+| Routes avec erreurs standardisées | 0 | 0 | 60+ | 60+ | 60+ | 60+ |
+| Tests utilities/repositories | 0 | 0 | 0 | 0 | 201 | 201 |
+| Tests services critiques | 0 | 0 | 0 | 0 | 0 | 198 |
+| **Total tests ajoutés** | 0 | 0 | 0 | 0 | 201 | **399** |
+
+---
+
+## Audit Complet ✅
+
+Toutes les phases de l'audit ont été complétées:
+- ✅ Phase 1 - Utilities créées
+- ✅ Phase 2 - Application des utilities
+- ✅ Phase 2.5 - DRY et nettoyage
+- ✅ Phase 3 - Restructuration services (repositories)
+- ✅ Phase 4 - Tests unitaires (utilities + repositories)
+- ✅ Phase 5 - Tests services critiques
+
+**Amélioration globale:**
+- Qualité: 5.5/10 → 7/10
+- Maintenabilité: 6.5/10 → 8/10
+- DRY: 4/10 → 8/10
+- Tests: 2/10 → 6/10
 
 ---
 
