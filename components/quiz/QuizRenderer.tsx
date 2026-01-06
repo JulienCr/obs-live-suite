@@ -6,7 +6,9 @@ import { QuizScorePanel } from "./QuizScorePanel";
 import { QuizZoomReveal } from "./QuizZoomReveal";
 import { QuizOpenDisplay } from "./QuizOpenDisplay";
 import { QuizMysteryImage } from "./QuizMysteryImage";
-import { getWebSocketUrl, getBackendUrl } from "@/lib/utils/websocket";
+import { getBackendUrl } from "@/lib/utils/websocket";
+import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
+import type { QuizEventType } from "@/lib/models/QuizEvents";
 
 interface QuizState {
   phase: string;
@@ -39,14 +41,67 @@ interface QuizState {
   winner?: { name: string; avatar?: string };
 }
 
+/**
+ * WebSocket event data structure for quiz events
+ */
+interface QuizEventData {
+  id?: string;
+  type: QuizEventType | string;
+  payload?: QuizEventPayload;
+}
+
+/**
+ * Union of all possible quiz event payloads
+ */
+interface QuizEventPayload {
+  // question.show
+  question_id?: string;
+  zoom_steps?: number;
+  zoom_maxZoom?: number;
+  // vote.update
+  counts?: Record<string, number>;
+  percentages?: Record<string, number>;
+  // timer.tick
+  s?: number;
+  phase?: string;
+  // zoom.step
+  cur_step?: number;
+  total?: number;
+  maxZoom?: number;
+  // zoom.start
+  steps?: number;
+  // mystery.step / mystery.start
+  revealed_squares?: number;
+  total_squares?: number;
+  // buzzer.hit
+  player?: { name: string; avatar?: string };
+  // answer.assign
+  player_id?: string;
+  option?: string;
+  // scorepanel.toggle
+  visible?: boolean;
+  // score.update
+  user_id?: string;
+  delta?: number;
+  // Used by both zoom.complete and score.update (total score)
+  // Note: 'total' already defined above for zoom.step
+}
+
 export function QuizRenderer() {
-  const ws = useRef<WebSocket | null>(null);
-  const [state, setState] = useState<QuizState>({ 
+  const [state, setState] = useState<QuizState>({
     phase: "idle",
     scorePanelVisible: true, // Default to visible
   });
 
-  const handleEvent = useCallback(async (data: any) => {
+  // Ref to hold sendAck function for use in handleMessage callback
+  const sendAckRef = useRef<(eventId: string) => void>(() => {});
+
+  const handleMessage = useCallback(async (data: QuizEventData) => {
+    // Send acknowledgment if event has an ID
+    if (data.id) {
+      sendAckRef.current(data.id);
+    }
+
     const { type, payload } = data;
     switch (type) {
       case "quiz.start_round":
@@ -170,11 +225,13 @@ export function QuizRenderer() {
       case "answer.assign":
         // Update player assignments
         if (payload?.player_id && payload?.option) {
+          const playerId = payload.player_id;
+          const optionValue = payload.option;
           setState((prev) => ({
             ...prev,
             playerAssignments: {
               ...prev.playerAssignments,
-              [payload.player_id]: payload.option,
+              [playerId]: optionValue,
             },
           }));
         }
@@ -242,49 +299,15 @@ export function QuizRenderer() {
     fetchInitialState();
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-    const connect = () => {
-      if (!isMounted) return;
-      if (ws.current?.readyState === WebSocket.OPEN || ws.current?.readyState === WebSocket.CONNECTING) {
-        try { ws.current.close(); } catch {}
-      }
-      ws.current = new WebSocket(getWebSocketUrl());
-      ws.current.onopen = () => {
-        if (!isMounted) return;
-        ws.current?.send(JSON.stringify({ type: "subscribe", channel: "quiz" }));
-      };
-      ws.current.onmessage = (e) => {
-        if (!isMounted) return;
-        try {
-          const msg = JSON.parse(e.data);
-          
-          // Send acknowledgment if event has an ID (msg.data contains the actual event)
-          if (msg.data?.id && ws.current?.readyState === WebSocket.OPEN) {
-            ws.current.send(
-              JSON.stringify({
-                type: "ack",
-                eventId: msg.data.id,
-                success: true,
-              })
-            );
-          }
-          
-          if (msg.channel === "quiz") handleEvent(msg.data);
-        } catch (error) {
-          console.error("QuizRenderer: Failed to handle message", error);
-        }
-      };
-      ws.current.onclose = () => {
-        if (isMounted) setTimeout(connect, 3000);
-      };
-    };
-    connect();
-    return () => {
-      isMounted = false;
-      try { ws.current?.close(); } catch {}
-    };
-  }, [handleEvent]);
+  // Connect to WebSocket and subscribe to quiz channel
+  const { sendAck } = useWebSocketChannel<QuizEventData>(
+    "quiz",
+    handleMessage,
+    { logPrefix: "QuizRenderer" }
+  );
+
+  // Keep sendAck ref up to date for use in handleMessage callback
+  sendAckRef.current = sendAck;
 
   // Determine which display to show based on question mode and type
   const renderDisplay = () => {

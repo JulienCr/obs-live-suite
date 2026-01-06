@@ -103,7 +103,13 @@ describe('Guest Model', () => {
       const guest = new GuestModel(guestData);
       const json = guest.toJSON();
 
-      expect(json).toEqual(guestData);
+      expect(json).toEqual({
+        ...guestData,
+        subtitle: null,
+        avatarUrl: null,
+        chatMessage: null,
+        isEnabled: true,
+      });
     });
 
     it('should create from JSON', () => {

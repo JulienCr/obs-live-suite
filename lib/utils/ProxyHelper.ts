@@ -118,16 +118,18 @@ export async function proxyToBackend(
  *
  * @param endpoint - Backend API endpoint path
  * @param errorMessage - Custom error message for failures
+ * @param logPrefix - Optional log prefix for error messages
  * @returns Async function that returns NextResponse
  *
  * @example
- * export const GET = createGetProxy("/api/obs/status", "Failed to get OBS status");
+ * export const GET = createGetProxy("/api/obs/status", "Failed to get OBS status", "[OBSAPI]");
  */
 export function createGetProxy(
   endpoint: string,
-  errorMessage?: string
+  errorMessage?: string,
+  logPrefix?: string
 ): () => Promise<NextResponse> {
-  return () => proxyToBackend(endpoint, { method: "GET", errorMessage });
+  return () => proxyToBackend(endpoint, { method: "GET", errorMessage, logPrefix });
 }
 
 /**
@@ -146,8 +148,107 @@ export function createGetProxy(
  */
 export function createPostProxy(
   endpoint: string,
-  errorMessage?: string
+  errorMessage?: string,
+  logPrefix?: string
 ): (body: unknown) => Promise<NextResponse> {
   return (body: unknown) =>
-    proxyToBackend(endpoint, { method: "POST", body, errorMessage });
+    proxyToBackend(endpoint, { method: "POST", body, errorMessage, logPrefix });
+}
+
+/**
+ * Send a request to the backend and return the raw fetch Response
+ *
+ * This is useful for routes that need to do additional processing after
+ * the backend request, such as sending notifications or enriching data.
+ *
+ * @param endpoint - Backend API endpoint path
+ * @param options - Proxy options including method, body, and error handling
+ * @returns The raw fetch Response from the backend
+ * @throws Error if the request fails
+ *
+ * @example
+ * // POST with body and handle response manually
+ * const response = await fetchFromBackend("/api/overlays/poster", {
+ *   method: "POST",
+ *   body: enrichedPayload,
+ *   logPrefix: "[PosterAPI]",
+ * });
+ * if (!response.ok) {
+ *   return ApiResponses.serverError("Backend request failed");
+ * }
+ * const data = await response.json();
+ * // ... do additional processing ...
+ * return ApiResponses.ok(data);
+ */
+export async function fetchFromBackend(
+  endpoint: string,
+  options: ProxyOptions = {}
+): Promise<Response> {
+  const {
+    method = "GET",
+    body,
+    errorMessage = "Backend request failed",
+    logPrefix,
+  } = options;
+
+  try {
+    const fetchOptions: RequestInit = {
+      method,
+      headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    };
+
+    return await fetch(`${BACKEND_URL}${endpoint}`, fetchOptions);
+  } catch (error) {
+    if (logPrefix) {
+      console.error(`${logPrefix} Backend fetch error:`, error);
+    } else {
+      console.error(`[ProxyHelper] ${errorMessage}:`, error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Parse a backend response and convert to NextResponse
+ *
+ * Useful for handling backend responses after fetchFromBackend
+ * with proper error logging and status forwarding.
+ *
+ * @param response - The fetch Response from the backend
+ * @param logPrefix - Optional log prefix for error messages
+ * @returns NextResponse with the backend response data
+ *
+ * @example
+ * const response = await fetchFromBackend("/api/overlays/poster", options);
+ * if (!response.ok) {
+ *   return parseBackendResponse(response, "[PosterAPI]");
+ * }
+ * // ... do additional processing ...
+ * return ApiResponses.ok(data);
+ */
+export async function parseBackendResponse(
+  response: Response,
+  logPrefix?: string
+): Promise<NextResponse> {
+  const contentType = response.headers.get("content-type");
+
+  if (!contentType?.includes("application/json")) {
+    const text = await response.text();
+    if (!response.ok && logPrefix) {
+      console.error(`${logPrefix} Backend error:`, response.status, text);
+    }
+    return NextResponse.json(
+      response.ok ? { message: text } : { error: text || "Backend request failed" },
+      { status: response.status }
+    );
+  }
+
+  const data = await response.json();
+
+  if (!response.ok && logPrefix) {
+    console.error(`${logPrefix} Backend error:`, response.status, data);
+  }
+
+  return NextResponse.json(data, { status: response.status });
 }

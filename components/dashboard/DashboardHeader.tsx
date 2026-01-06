@@ -9,13 +9,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Radio, Maximize, Loader2, ChevronDown, Check } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAppMode } from "@/components/shell/AppModeContext";
 import { HeaderOverflowMenu } from "./HeaderOverflowMenu";
-import { cn } from "@/lib/utils";
+import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 
 interface OBSStatus {
   connected: boolean;
@@ -28,6 +27,10 @@ interface Profile {
   id: string;
   name: string;
   isActive: boolean;
+}
+
+interface ProfilesResponse {
+  profiles: Profile[];
 }
 
 /**
@@ -59,8 +62,7 @@ export function DashboardHeader() {
     // Fetch OBS status from API
     const fetchStatus = async () => {
       try {
-        const res = await fetch("/api/obs/status");
-        const data = await res.json();
+        const data = await apiGet<OBSStatus>("/api/obs/status");
         setStatus({
           connected: data.connected,
           currentScene: data.currentScene,
@@ -89,8 +91,7 @@ export function DashboardHeader() {
     // Fetch profiles
     const fetchProfiles = async () => {
       try {
-        const res = await fetch("/api/profiles");
-        const data = await res.json();
+        const data = await apiGet<ProfilesResponse>("/api/profiles");
         setProfiles(data.profiles || []);
       } catch (error) {
         console.error("Failed to fetch profiles:", error);
@@ -103,7 +104,7 @@ export function DashboardHeader() {
   const handleReconnect = async () => {
     setIsConnecting(true);
     try {
-      await fetch("/api/obs/reconnect", { method: "POST" });
+      await apiPost("/api/obs/reconnect");
     } catch (error) {
       console.error("Failed to reconnect to OBS:", error);
     } finally {
@@ -128,10 +129,9 @@ export function DashboardHeader() {
 
   const handleActivateProfile = async (profileId: string) => {
     try {
-      await fetch(`/api/profiles/${profileId}/activate`, { method: "POST" });
+      await apiPost(`/api/profiles/${profileId}/activate`);
       // Refresh profiles list
-      const res = await fetch("/api/profiles");
-      const data = await res.json();
+      const data = await apiGet<ProfilesResponse>("/api/profiles");
       setProfiles(data.profiles || []);
     } catch (error) {
       console.error("Failed to activate profile:", error);

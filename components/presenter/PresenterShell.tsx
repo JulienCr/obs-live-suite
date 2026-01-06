@@ -11,6 +11,7 @@ import { usePresenterWebSocket } from "./hooks/usePresenterWebSocket";
 import { useOverlayState } from "./hooks/useOverlayState";
 import { Wifi, WifiOff, Users, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 import { Button } from "@/components/ui/button";
 import type { Room } from "@/lib/models/Room";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
@@ -68,57 +69,45 @@ export function PresenterShell() {
     setShowingInOverlayId(message.id);
     try {
       const payload = message.questionPayload;
-      const response = await fetch("/api/overlays/chat-highlight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          action === "show"
-            ? {
-                action: "show",
-                payload: {
-                  messageId: message.id,
-                  platform: payload.platform || "twitch",
-                  username: payload.author?.toLowerCase() || "",
-                  displayName: payload.author || "",
-                  message: payload.text || "",
-                  parts: payload.parts,
-                  metadata: {
-                    color: payload.color,
-                    badges: payload.badges,
-                  },
-                  duration: 10,
+      await apiPost(
+        "/api/overlays/chat-highlight",
+        action === "show"
+          ? {
+              action: "show",
+              payload: {
+                messageId: message.id,
+                platform: payload.platform || "twitch",
+                username: payload.author?.toLowerCase() || "",
+                displayName: payload.author || "",
+                message: payload.text || "",
+                parts: payload.parts,
+                metadata: {
+                  color: payload.color,
+                  badges: payload.badges,
                 },
-              }
-            : { action: "hide" }
-        ),
-      });
+                duration: 10,
+              },
+            }
+          : { action: "hide" }
+      );
 
-      if (response.ok) {
-        if (action === "show") {
-          setCurrentlyDisplayedId(message.id);
-          toast({
-            title: t("overlay.showingInOverlay"),
-            description: t("overlay.messageFrom", { author: payload.author }),
-          });
-
-          // Auto-clear the displayed ID after duration
-          setTimeout(() => {
-            setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
-          }, 10000);
-        } else {
-          setCurrentlyDisplayedId(null);
-        }
-      } else {
-        const errorText = await response.text();
-        console.error("Failed to update overlay:", errorText);
+      if (action === "show") {
+        setCurrentlyDisplayedId(message.id);
         toast({
-          title: t("status.error"),
-          description: t("overlay.failedToUpdate"),
-          variant: "destructive",
+          title: t("overlay.showingInOverlay"),
+          description: t("overlay.messageFrom", { author: payload.author }),
         });
+
+        // Auto-clear the displayed ID after duration
+        setTimeout(() => {
+          setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
+        }, 10000);
+      } else {
+        setCurrentlyDisplayedId(null);
       }
     } catch (error) {
-      console.error("Failed to update overlay:", error);
+      const errorMessage = isClientFetchError(error) ? error.errorMessage : String(error);
+      console.error("Failed to update overlay:", errorMessage);
       toast({
         title: t("status.error"),
         description: t("overlay.failedToUpdate"),
@@ -133,13 +122,13 @@ export function PresenterShell() {
   useEffect(() => {
     async function fetchRoom() {
       try {
-        const res = await fetch(`/api/presenter/rooms/${roomId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setRoomConfig(data.room);
-        }
+        const data = await apiGet<{ room: Room }>(`/api/presenter/rooms/${roomId}`);
+        setRoomConfig(data.room);
       } catch (error) {
-        console.error("Failed to fetch room:", error);
+        // 404 is expected for non-existent rooms, only log unexpected errors
+        if (!isClientFetchError(error) || error.status !== 404) {
+          console.error("Failed to fetch room:", error);
+        }
       } finally {
         setLoading(false);
       }

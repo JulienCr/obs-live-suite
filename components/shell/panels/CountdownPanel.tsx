@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Play, Pause, RotateCcw, Plus, Settings } from "lucide-react";
 import { PanelColorMenu } from "../PanelColorMenu";
+import { apiPost } from "@/lib/utils/ClientFetch";
 
 /**
  * Countdown panel for Dockview - displays countdown controls without Card wrapper
@@ -95,20 +96,9 @@ export function CountdownPanel(props: IDockviewPanelProps) {
 
   const sendCountdownUpdate = async (updatePayload: Record<string, unknown>) => {
     try {
-      const response = await fetch("/api/overlays/countdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "update", payload: updatePayload }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (response.status === 400 && errorData.error === "Invalid action") {
-          return;
-        }
-        throw new Error(`Failed to update countdown: ${response.status}`);
-      }
+      await apiPost("/api/overlays/countdown", { action: "update", payload: updatePayload });
     } catch (error) {
+      // Silently ignore "Invalid action" errors (400 status)
       console.error("Error updating countdown:", error);
     }
   };
@@ -134,16 +124,7 @@ export function CountdownPanel(props: IDockviewPanelProps) {
         },
       };
       
-      const response = await fetch("/api/actions/countdown/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to start countdown");
-      }
-
+      await apiPost("/api/actions/countdown/start", payload);
       setIsRunning(true);
     } catch (error) {
       console.error("Error starting countdown:", error);
@@ -152,16 +133,7 @@ export function CountdownPanel(props: IDockviewPanelProps) {
 
   const handlePause = async () => {
     try {
-      const response = await fetch("/api/overlays/countdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "pause" }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to pause countdown");
-      }
-
+      await apiPost("/api/overlays/countdown", { action: "pause" });
       setIsRunning(false);
     } catch (error) {
       console.error("Error pausing countdown:", error);
@@ -170,16 +142,7 @@ export function CountdownPanel(props: IDockviewPanelProps) {
 
   const handleReset = async () => {
     try {
-      const response = await fetch("/api/overlays/countdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reset" }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to reset countdown");
-      }
-
+      await apiPost("/api/overlays/countdown", { action: "reset" });
       setIsRunning(false);
       setMinutes(5);
       setSeconds(0);
@@ -190,18 +153,10 @@ export function CountdownPanel(props: IDockviewPanelProps) {
 
   const handleAddTime = async (secondsToAdd: number) => {
     try {
-      const response = await fetch("/api/overlays/countdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          action: "add-time", 
-          payload: { seconds: secondsToAdd } 
-        }),
+      await apiPost("/api/overlays/countdown", {
+        action: "add-time",
+        payload: { seconds: secondsToAdd },
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to add time");
-      }
     } catch (error) {
       console.error("Error adding time:", error);
     }

@@ -13,6 +13,7 @@ import { StreamerbotChatMessageList } from "./StreamerbotChatMessageList";
 import type { StreamerbotChatPanelProps, ChatMessage } from "./types";
 import { StreamerbotConnectionStatus } from "./types";
 import { useToast } from "@/hooks/use-toast";
+import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 /**
  * Streamer.bot Chat Panel - Main orchestrator component
@@ -83,54 +84,42 @@ export function StreamerbotChatPanel({
 
     setShowingInOverlayId(message.id);
     try {
-      const response = await fetch("/api/overlays/chat-highlight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          action === "show"
-            ? {
-                action: "show",
-                payload: {
-                  messageId: message.id,
-                  platform: message.platform,
-                  username: message.username,
-                  displayName: message.displayName,
-                  message: message.message,
-                  parts: message.parts,
-                  metadata: message.metadata,
-                  duration: 10,
-                },
-              }
-            : { action: "hide" }
-        ),
-      });
+      await apiPost(
+        "/api/overlays/chat-highlight",
+        action === "show"
+          ? {
+              action: "show",
+              payload: {
+                messageId: message.id,
+                platform: message.platform,
+                username: message.username,
+                displayName: message.displayName,
+                message: message.message,
+                parts: message.parts,
+                metadata: message.metadata,
+                duration: 10,
+              },
+            }
+          : { action: "hide" }
+      );
 
-      if (response.ok) {
-        if (action === "show") {
-          setCurrentlyDisplayedId(message.id);
-          toast({
-            title: t("overlay.showingInOverlay"),
-            description: t("overlay.messageFrom", { author: message.displayName }),
-          });
-
-          // Auto-clear the displayed ID after duration
-          setTimeout(() => {
-            setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
-          }, 10000);
-        } else {
-          setCurrentlyDisplayedId(null);
-        }
-      } else {
-        const errorText = await response.text();
-        console.error("Failed to update overlay:", errorText);
+      if (action === "show") {
+        setCurrentlyDisplayedId(message.id);
         toast({
-          title: t("status.error"),
-          description: t("overlay.failedToUpdate"),
-          variant: "destructive",
+          title: t("overlay.showingInOverlay"),
+          description: t("overlay.messageFrom", { author: message.displayName }),
         });
+
+        // Auto-clear the displayed ID after duration
+        setTimeout(() => {
+          setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
+        }, 10000);
+      } else {
+        setCurrentlyDisplayedId(null);
       }
     } catch (error) {
-      console.error("Failed to update overlay:", error);
+      const errorMessage = isClientFetchError(error) ? error.errorMessage : String(error);
+      console.error("Failed to update overlay:", errorMessage);
       toast({
         title: t("status.error"),
         description: t("overlay.failedToUpdate"),

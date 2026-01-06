@@ -10,6 +10,7 @@ import { Eye, EyeOff, Timer, Wand2, Loader2, ExternalLink, FileText, X, Search, 
 import { cn } from "@/lib/utils/cn";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { toast } from "sonner";
+import { apiPost } from "@/lib/utils/ClientFetch";
 
 interface LowerThirdCardProps {
   size?: string;
@@ -28,6 +29,30 @@ interface WikipediaSearchOption {
   title: string;
   snippet: string;
   pageid?: number;
+}
+
+interface WikipediaSearchResponse {
+  success: boolean;
+  results?: WikipediaSearchOption[];
+}
+
+interface WikipediaResolveResponse {
+  success: boolean;
+  error?: string;
+  data?: {
+    title: string;
+    url: string;
+    extract: string;
+    thumbnail?: string;
+  };
+}
+
+interface LlmSummarizeResponse {
+  success: boolean;
+  error?: string;
+  data?: {
+    summary: string[];
+  };
 }
 
 /**
@@ -67,15 +92,7 @@ export function LowerThirdCard({ size, className, settings }: LowerThirdCardProp
               side,
             };
 
-      const response = await fetch("/api/actions/lower/show", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to show lower third");
-      }
+      await apiPost("/api/actions/lower/show", payload);
 
       setIsVisible(true);
     } catch (error) {
@@ -85,14 +102,7 @@ export function LowerThirdCard({ size, className, settings }: LowerThirdCardProp
 
   const handleHide = async () => {
     try {
-      const response = await fetch("/api/actions/lower/hide", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to hide lower third");
-      }
+      await apiPost("/api/actions/lower/hide");
 
       setIsVisible(false);
     } catch (error) {
@@ -120,15 +130,7 @@ export function LowerThirdCard({ size, className, settings }: LowerThirdCardProp
               duration: 5,
             };
 
-      const response = await fetch("/api/actions/lower/show", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to show lower third");
-      }
+      await apiPost("/api/actions/lower/show", payload);
 
       setIsVisible(true);
       setTimeout(() => setIsVisible(false), 5000);
@@ -154,15 +156,9 @@ export function LowerThirdCard({ size, className, settings }: LowerThirdCardProp
     try {
       // If no specific title selected, first search for options
       if (!selectedTitle) {
-        const searchResponse = await fetch("/api/wikipedia/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: queryToUse.trim() }),
-        });
+        try {
+          const searchData = await apiPost<WikipediaSearchResponse>("/api/wikipedia/search", { query: queryToUse.trim() });
 
-        if (searchResponse.ok) {
-          const searchData = await searchResponse.json();
-          
           if (searchData.success && searchData.results && searchData.results.length > 1) {
             // Multiple results - show options to user
             setWikipediaOptions(searchData.results);
@@ -171,28 +167,19 @@ export function LowerThirdCard({ size, className, settings }: LowerThirdCardProp
             setIsWikipediaLoading(false);
             return;
           }
+        } catch {
+          // Search failed, continue to resolve
         }
       }
 
       // Call Wikipedia resolve API with title if provided
-      const payload: any = selectedTitle 
+      const payload = selectedTitle
         ? { query: queryToUse.trim(), title: selectedTitle }
         : { query: queryToUse.trim() };
 
-      const response = await fetch("/api/wikipedia/resolve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const data = await apiPost<WikipediaResolveResponse>("/api/wikipedia/resolve", payload);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch Wikipedia page");
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
+      if (data.success && data.data) {
         // Replace textarea content with raw Wikipedia extract
         setMarkdown(data.data.extract);
 
@@ -255,20 +242,9 @@ export function LowerThirdCard({ size, className, settings }: LowerThirdCardProp
     const toastId = toast.loading(t("toasts.summarizingAI"));
 
     try {
-      const response = await fetch("/api/llm/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: markdown.trim() }),
-      });
+      const data = await apiPost<LlmSummarizeResponse>("/api/llm/summarize", { text: markdown.trim() });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to summarize");
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
+      if (data.success && data.data) {
         // Replace textarea content with summary
         const summaryText = data.data.summary.join("\n");
         setMarkdown(summaryText);

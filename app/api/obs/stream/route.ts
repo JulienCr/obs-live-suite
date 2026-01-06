@@ -1,13 +1,13 @@
-import { NextRequest } from "next/server";
 import { proxyToBackend } from "@/lib/utils/ProxyHelper";
+import { withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
 
-const LOG_CONTEXT = "[OBSAPI]";
+const LOG_CONTEXT = "[OBSAPI:Stream]";
 
 /**
  * POST /api/obs/stream
  * Toggle streaming (proxies to backend)
  */
-export async function POST(request: NextRequest) {
+export const POST = withSimpleErrorHandler(async (request: Request) => {
   const body = await request.json();
   return proxyToBackend("/api/obs/stream", {
     method: "POST",
@@ -15,5 +15,5 @@ export async function POST(request: NextRequest) {
     errorMessage: "Failed to control stream",
     logPrefix: LOG_CONTEXT,
   });
-}
+}, LOG_CONTEXT);
 

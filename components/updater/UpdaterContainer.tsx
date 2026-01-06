@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, ExternalLink, Eye, EyeOff } from "lucide-react";
+import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 
 interface Plugin {
   id: string;
@@ -16,6 +17,10 @@ interface Plugin {
   releaseUrl?: string;
   isIgnored: boolean;
   isWatched: boolean;
+}
+
+interface PluginsResponse {
+  plugins: Plugin[];
 }
 
 /**
@@ -33,11 +38,8 @@ export function UpdaterContainer() {
   const loadPlugins = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/updater/plugins");
-      if (response.ok) {
-        const data = await response.json();
-        setPlugins(data.plugins || []);
-      }
+      const data = await apiGet<PluginsResponse>("/api/updater/plugins");
+      setPlugins(data.plugins || []);
     } catch (error) {
       console.error("Failed to load plugins:", error);
     } finally {
@@ -48,10 +50,8 @@ export function UpdaterContainer() {
   const handleScan = async () => {
     setScanning(true);
     try {
-      const response = await fetch("/api/updater/scan", { method: "POST" });
-      if (response.ok) {
-        await loadPlugins();
-      }
+      await apiPost("/api/updater/scan");
+      await loadPlugins();
     } catch (error) {
       console.error("Failed to scan plugins:", error);
     } finally {
@@ -62,7 +62,7 @@ export function UpdaterContainer() {
   const handleCheckUpdates = async () => {
     setLoading(true);
     try {
-      await fetch("/api/updater/check", { method: "POST" });
+      await apiPost("/api/updater/check");
       await loadPlugins();
     } catch (error) {
       console.error("Failed to check updates:", error);
@@ -73,7 +73,7 @@ export function UpdaterContainer() {
 
   const handleToggleIgnore = async (pluginId: string) => {
     try {
-      await fetch(`/api/updater/plugins/${pluginId}/ignore`, { method: "POST" });
+      await apiPost(`/api/updater/plugins/${pluginId}/ignore`);
       await loadPlugins();
     } catch (error) {
       console.error("Failed to toggle ignore:", error);
@@ -82,7 +82,7 @@ export function UpdaterContainer() {
 
   const handleToggleWatch = async (pluginId: string) => {
     try {
-      await fetch(`/api/updater/plugins/${pluginId}/watch`, { method: "POST" });
+      await apiPost(`/api/updater/plugins/${pluginId}/watch`);
       await loadPlugins();
     } catch (error) {
       console.error("Failed to toggle watch:", error);

@@ -274,15 +274,13 @@ describe("ProxyHelper", () => {
 
         expect(NextResponse.json).toHaveBeenCalledWith(
           {
-            error: "Request failed",
-            details: "Network error",
+            error: "Request failed: Network error",
           },
           { status: 503 }
         );
         expect(result).toEqual({
           body: {
-            error: "Request failed",
-            details: "Network error",
+            error: "Request failed: Network error",
           },
           status: 503,
         });
@@ -297,8 +295,7 @@ describe("ProxyHelper", () => {
 
         expect(NextResponse.json).toHaveBeenCalledWith(
           expect.objectContaining({
-            error: "Request failed",
-            details: "ECONNREFUSED",
+            error: "Request failed: ECONNREFUSED",
           }),
           { status: 503 }
         );
@@ -457,12 +454,11 @@ describe("ProxyHelper", () => {
 
         expect(NextResponse.json).toHaveBeenCalledWith(
           {
-            error: "Failed to update overlay",
-            details: "Network error",
+            error: "Failed to update overlay: Network error",
           },
           { status: 503 }
         );
-        expect(result.body.error).toBe("Failed to update overlay");
+        expect(result.body.error).toBe("Failed to update overlay: Network error");
       });
 
       it("uses default errorMessage when not provided", async () => {
@@ -470,7 +466,7 @@ describe("ProxyHelper", () => {
 
         const result = await proxyToBackend("/api/test");
 
-        expect(result.body.error).toBe("Request failed");
+        expect(result.body.error).toBe("Request failed: Connection timeout");
       });
     });
 
@@ -482,8 +478,7 @@ describe("ProxyHelper", () => {
 
         expect(NextResponse.json).toHaveBeenCalledWith(
           {
-            error: "Request failed",
-            details: "String error",
+            error: "Request failed: String error",
           },
           { status: 503 }
         );
@@ -496,8 +491,7 @@ describe("ProxyHelper", () => {
 
         expect(NextResponse.json).toHaveBeenCalledWith(
           {
-            error: "Request failed",
-            details: "[object Object]",
+            error: "Request failed: [object Object]",
           },
           { status: 503 }
         );
@@ -538,7 +532,7 @@ describe("ProxyHelper", () => {
       );
       const result = await getHandler();
 
-      expect(result.body.error).toBe("Failed to get status");
+      expect(result.body.error).toBe("Failed to get status: Connection failed");
     });
 
     it("uses default errorMessage when not provided", async () => {
@@ -547,7 +541,7 @@ describe("ProxyHelper", () => {
       const getHandler = createGetProxy("/api/status");
       const result = await getHandler();
 
-      expect(result.body.error).toBe("Request failed");
+      expect(result.body.error).toBe("Request failed: Network error");
     });
 
     it("returns a function that can be called multiple times", async () => {
@@ -607,7 +601,7 @@ describe("ProxyHelper", () => {
       );
       const result = await postHandler({ name: "Test" });
 
-      expect(result.body.error).toBe("Failed to create item");
+      expect(result.body.error).toBe("Failed to create item: Server error");
     });
 
     it("uses default errorMessage when not provided", async () => {
@@ -616,7 +610,7 @@ describe("ProxyHelper", () => {
       const postHandler = createPostProxy("/api/items");
       const result = await postHandler({ data: "test" });
 
-      expect(result.body.error).toBe("Request failed");
+      expect(result.body.error).toBe("Request failed: Network error");
     });
 
     it("handles different body types", async () => {

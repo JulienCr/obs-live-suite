@@ -1,3 +1,5 @@
+import { RATE_LIMITING } from "../config/Constants";
+
 /**
  * Rate limiter using token bucket algorithm
  * Supports per-key rate limiting (e.g., per IP, per session)
@@ -14,9 +16,9 @@ export class RateLimiterService {
 
   private constructor() {
     this.buckets = new Map();
-    
-    // Cleanup old buckets every 10 minutes
-    setInterval(() => this.cleanup(), 10 * 60 * 1000);
+
+    // Cleanup old buckets periodically
+    setInterval(() => this.cleanup(), RATE_LIMITING.BUCKET_CLEANUP_INTERVAL_MS);
   }
 
   /**
@@ -87,14 +89,14 @@ export class RateLimiterService {
   }
 
   /**
-   * Cleanup old buckets that haven't been used in the last hour
+   * Cleanup old buckets that haven't been used recently
    */
   private cleanup(): void {
     const now = Date.now();
-    const oneHourAgo = now - 60 * 60 * 1000;
+    const expiryThreshold = now - RATE_LIMITING.BUCKET_EXPIRY_MS;
 
     for (const [key, bucket] of this.buckets.entries()) {
-      if (bucket.lastRefill < oneHourAgo) {
+      if (bucket.lastRefill < expiryThreshold) {
         this.buckets.delete(key);
       }
     }

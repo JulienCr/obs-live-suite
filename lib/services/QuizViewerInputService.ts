@@ -1,3 +1,5 @@
+import { RATE_LIMITING } from "../config/Constants";
+
 interface AttemptState {
   lastAt: number;
   attempts: number;
@@ -20,7 +22,7 @@ export class QuizViewerInputService {
 
   private withinRps(): boolean {
     const now = Date.now();
-    if (now - this.windowStart >= 1000) {
+    if (now - this.windowStart >= RATE_LIMITING.WINDOW_MS) {
       this.windowStart = now;
       this.windowCount = 0;
     }

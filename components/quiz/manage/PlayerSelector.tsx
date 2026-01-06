@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
+import { apiGet } from "@/lib/utils/ClientFetch";
 
 interface Guest {
   id: string;
@@ -27,8 +28,7 @@ export function PlayerSelector({ selectedPlayers, onChange }: PlayerSelectorProp
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    fetch("/api/assets/guests")
-      .then(r => r.json())
+    apiGet<{ guests: Guest[] }>("/api/assets/guests")
       .then(data => {
         setGuests(data.guests || []);
         setLoading(false);

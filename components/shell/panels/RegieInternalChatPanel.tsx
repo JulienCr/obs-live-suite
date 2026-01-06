@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CueType, CueSeverity, CueFrom } from "@/lib/models/Cue";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { cn } from "@/lib/utils";
+import { apiPost } from "@/lib/utils/ClientFetch";
 
 const cueTypeOptions = [
   { value: CueType.CUE, labelKey: "cueTypes.cue", icon: AlertCircle },
@@ -67,19 +68,10 @@ function RegieInternalChatContent() {
         };
       }
 
-      const response = await fetch("/api/presenter/cue/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        setBody("");
-        setPinned(false);
-        textareaRef.current?.focus();
-      } else {
-        console.error("Failed to send message:", await response.text());
-      }
+      await apiPost("/api/presenter/cue/send", payload);
+      setBody("");
+      setPinned(false);
+      textareaRef.current?.focus();
     } catch (error) {
       console.error("Failed to send message:", error);
     } finally {

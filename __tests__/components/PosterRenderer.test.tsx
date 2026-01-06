@@ -3,61 +3,85 @@
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import { PosterRenderer } from '@/components/overlays/PosterRenderer';
-
-// Mock WebSocket
-class MockWebSocket {
-  onopen: ((event: Event) => void) | null = null;
-  onmessage: ((event: MessageEvent) => void) | null = null;
-  onerror: ((event: Event) => void) | null = null;
-  onclose: ((event: Event) => void) | null = null;
-  
-  readyState: number = 0; // CONNECTING
-  
-  send = jest.fn();
-  close = jest.fn((code?: number, reason?: string) => {
-    this.readyState = 3; // CLOSED
-    if (this.onclose) {
-      this.onclose({ code: code || 1000, reason: reason || '' } as any);
-    }
-  });
-
-  simulateOpen() {
-    this.readyState = 1; // OPEN
-    if (this.onopen) {
-      this.onopen(new Event('open'));
-    }
-  }
-
-  simulateMessage(data: unknown) {
-    if (this.onmessage) {
-      this.onmessage(new MessageEvent('message', { data: JSON.stringify(data) }));
-    }
-  }
-}
-
-// Define WebSocket constants
-const MOCK_WEBSOCKET_CONNECTING = 0;
-const MOCK_WEBSOCKET_OPEN = 1;
-const MOCK_WEBSOCKET_CLOSING = 2;
-const MOCK_WEBSOCKET_CLOSED = 3;
+import {
+  setupWebSocketMock,
+  getLastMockWebSocket,
+  MockWebSocket,
+} from '@/__tests__/test-utils/websocket-mock';
 
 describe('PosterRenderer', () => {
-  let mockWs: MockWebSocket;
+  let cleanupWebSocket: () => void;
+  const originalImage = global.Image;
+  const originalCreateElement = document.createElement.bind(document);
 
   beforeEach(() => {
-    mockWs = new MockWebSocket();
-    (global as any).WebSocket = jest.fn(() => mockWs);
-    (global as any).WebSocket.CONNECTING = MOCK_WEBSOCKET_CONNECTING;
-    (global as any).WebSocket.OPEN = MOCK_WEBSOCKET_OPEN;
-    (global as any).WebSocket.CLOSING = MOCK_WEBSOCKET_CLOSING;
-    (global as any).WebSocket.CLOSED = MOCK_WEBSOCKET_CLOSED;
+    cleanupWebSocket = setupWebSocketMock();
     jest.useFakeTimers();
+
+    // Mock Image constructor to immediately trigger onload
+    // This is needed because detectAspectRatio creates Image elements
+    // and waits for them to load, which doesn't happen with fake timers
+    global.Image = class MockImage {
+      naturalWidth = 800;
+      naturalHeight = 600;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      private _src = '';
+
+      get src() { return this._src; }
+      set src(value: string) {
+        this._src = value;
+        // Use setTimeout to simulate async behavior but with fake timers
+        setTimeout(() => {
+          if (this.onload) this.onload();
+        }, 0);
+      }
+    } as unknown as typeof Image;
+
+    // Mock document.createElement to handle video element for aspect ratio detection
+    document.createElement = ((tagName: string) => {
+      if (tagName === 'video') {
+        // Create a real video element and override properties for aspect ratio detection
+        const realVideo = originalCreateElement('video');
+        Object.defineProperty(realVideo, 'videoWidth', { value: 1920, writable: true });
+        Object.defineProperty(realVideo, 'videoHeight', { value: 1080, writable: true });
+
+        // Store original src setter
+        const originalSrcDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
+
+        // Override src to trigger onloadedmetadata
+        Object.defineProperty(realVideo, 'src', {
+          get() { return this._mockSrc || ''; },
+          set(value: string) {
+            this._mockSrc = value;
+            if (originalSrcDescriptor?.set) {
+              originalSrcDescriptor.set.call(this, value);
+            }
+            setTimeout(() => {
+              if (this.onloadedmetadata) this.onloadedmetadata(new Event('loadedmetadata'));
+            }, 0);
+          },
+        });
+
+        return realVideo;
+      }
+      return originalCreateElement(tagName);
+    }) as typeof document.createElement;
   });
 
   afterEach(() => {
+    cleanupWebSocket();
     jest.clearAllMocks();
     jest.useRealTimers();
+    global.Image = originalImage;
+    document.createElement = originalCreateElement;
   });
+
+  // Helper to render and get WebSocket
+  const renderAndGetWs = (): MockWebSocket | null => {
+    render(<PosterRenderer />);
+    return getLastMockWebSocket();
+  };
 
   it('should render nothing initially', () => {
     const { container } = render(<PosterRenderer />);
@@ -65,15 +89,16 @@ describe('PosterRenderer', () => {
   });
 
   it('should connect to WebSocket on mount', () => {
-    render(<PosterRenderer />);
-    expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:3003');
+    const ws = renderAndGetWs();
+    expect(ws).not.toBeNull();
+    expect(ws?.url).toBe('ws://localhost:3003');
   });
 
   it('should display poster image when show event is received', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -85,6 +110,9 @@ describe('PosterRenderer', () => {
       },
     });
 
+    // Advance timers to allow Image mock onload to fire
+    jest.runAllTimers();
+
     await waitFor(() => {
       const img = screen.getByAltText('Poster');
       expect(img).toBeInTheDocument();
@@ -93,10 +121,10 @@ describe('PosterRenderer', () => {
   });
 
   it('should display video poster when video URL is provided', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -107,6 +135,9 @@ describe('PosterRenderer', () => {
         id: 'test-event-2',
       },
     });
+
+    // Advance timers to allow aspect ratio detection
+    jest.runAllTimers();
 
     await waitFor(() => {
       const video = document.querySelector('video');
@@ -120,9 +151,10 @@ describe('PosterRenderer', () => {
 
     for (const format of videoFormats) {
       const { unmount } = render(<PosterRenderer />);
-      mockWs.simulateOpen();
+      const ws = getLastMockWebSocket();
+      ws?.simulateOpen();
 
-      mockWs.simulateMessage({
+      ws?.simulateMessage({
         channel: 'poster',
         data: {
           type: 'show',
@@ -134,6 +166,9 @@ describe('PosterRenderer', () => {
         },
       });
 
+      // Advance timers to allow aspect ratio detection
+      jest.runAllTimers();
+
       await waitFor(() => {
         const video = document.querySelector('video');
         expect(video).toBeInTheDocument();
@@ -144,10 +179,10 @@ describe('PosterRenderer', () => {
   });
 
   it('should send acknowledgment after receiving event', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -160,7 +195,7 @@ describe('PosterRenderer', () => {
     });
 
     await waitFor(() => {
-      expect(mockWs.send).toHaveBeenCalledWith(
+      expect(ws?.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: 'ack',
           eventId: 'test-event-3',
@@ -172,11 +207,11 @@ describe('PosterRenderer', () => {
   });
 
   it('should hide poster when hide event is received', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
     // Show first
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -188,12 +223,14 @@ describe('PosterRenderer', () => {
       },
     });
 
+    jest.runAllTimers();
+
     await waitFor(() => {
       expect(screen.getByAltText('Poster')).toBeInTheDocument();
     });
 
     // Then hide
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'hide',
@@ -201,16 +238,18 @@ describe('PosterRenderer', () => {
       },
     });
 
+    jest.runAllTimers();
+
     await waitFor(() => {
       expect(screen.queryByAltText('Poster')).not.toBeInTheDocument();
     });
   });
 
   it('should auto-hide after duration', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -223,12 +262,14 @@ describe('PosterRenderer', () => {
       },
     });
 
+    jest.runAllTimers();
+
     await waitFor(() => {
       expect(screen.getByAltText('Poster')).toBeInTheDocument();
     });
 
-    // Fast-forward 3 seconds
-    jest.advanceTimersByTime(3000);
+    // Fast-forward 3 seconds + fade out time
+    jest.advanceTimersByTime(4000);
 
     await waitFor(() => {
       expect(screen.queryByAltText('Poster')).not.toBeInTheDocument();
@@ -240,9 +281,10 @@ describe('PosterRenderer', () => {
 
     for (const transition of transitions) {
       const { unmount } = render(<PosterRenderer />);
-      mockWs.simulateOpen();
+      const ws = getLastMockWebSocket();
+      ws?.simulateOpen();
 
-      mockWs.simulateMessage({
+      ws?.simulateMessage({
         channel: 'poster',
         data: {
           type: 'show',
@@ -254,8 +296,10 @@ describe('PosterRenderer', () => {
         },
       });
 
+      jest.runAllTimers();
+
       await waitFor(() => {
-        const poster = document.querySelector('.poster');
+        const poster = document.querySelector('.poster-layer');
         expect(poster).toHaveClass(`poster-transition-${transition}`);
       });
 
@@ -264,10 +308,10 @@ describe('PosterRenderer', () => {
   });
 
   it('should ignore messages from other channels', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'countdown',
       data: {
         type: 'show',
@@ -283,28 +327,30 @@ describe('PosterRenderer', () => {
 
   it('should close WebSocket on unmount', () => {
     const { unmount } = render(<PosterRenderer />);
+    const ws = getLastMockWebSocket();
     unmount();
-    expect(mockWs.close).toHaveBeenCalled();
+    expect(ws?.close).toHaveBeenCalled();
   });
 
   it('should clear timeout on unmount', async () => {
     const { unmount } = render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = getLastMockWebSocket();
+    ws?.simulateOpen();
 
-    await waitFor(() => {
-      mockWs.simulateMessage({
-        channel: 'poster',
-        data: {
-          type: 'show',
-          payload: {
-            fileUrl: '/test.jpg',
-            transition: 'fade',
-            duration: 5,
-          },
-          id: 'test-event-8',
+    ws?.simulateMessage({
+      channel: 'poster',
+      data: {
+        type: 'show',
+        payload: {
+          fileUrl: '/test.jpg',
+          transition: 'fade',
+          duration: 5,
         },
-      });
+        id: 'test-event-8',
+      },
     });
+
+    jest.runAllTimers();
 
     // Wait for state updates
     await waitFor(() => {
@@ -313,15 +359,15 @@ describe('PosterRenderer', () => {
 
     unmount();
     // Cleanup is called automatically, we just verify unmount doesn't throw
-    expect(mockWs.close).toHaveBeenCalled();
+    expect(ws?.close).toHaveBeenCalled();
   });
 
   it('should cancel previous timeout when new show event arrives', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
     // First poster with duration
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -334,13 +380,15 @@ describe('PosterRenderer', () => {
       },
     });
 
+    jest.runAllTimers();
+
     await waitFor(() => {
       const img = screen.getByAltText('Poster');
       expect(img).toHaveAttribute('src', '/first.jpg');
     });
 
     // Second poster before first duration expires
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -351,6 +399,8 @@ describe('PosterRenderer', () => {
         id: 'test-event-10',
       },
     });
+
+    jest.runAllTimers();
 
     await waitFor(() => {
       const img = screen.getByAltText('Poster');

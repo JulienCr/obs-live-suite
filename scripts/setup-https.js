@@ -19,14 +19,18 @@ import path from 'path';
 import https from 'https';
 import { createWriteStream } from 'fs';
 import { pipeline } from 'stream/promises';
-import {
-  PROJECT_ROOT,
-  CERT_PATH,
-  KEY_PATH,
-  CERT_HOSTNAMES,
-} from '../lib/config/certificates.mjs';
+import { fileURLToPath } from 'url';
 
-const ROOT_DIR = PROJECT_ROOT;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Certificate configuration (same as lib/config/certificates.ts)
+const ROOT_DIR = path.resolve(__dirname, '..');
+const CERT_FILENAME = 'localhost+4.pem';
+const KEY_FILENAME = 'localhost+4-key.pem';
+const CERT_PATH = path.join(ROOT_DIR, CERT_FILENAME);
+const KEY_PATH = path.join(ROOT_DIR, KEY_FILENAME);
+const CERT_HOSTNAMES = ['localhost', 'edison', '192.168.1.10', '127.0.0.1', '::1'];
 
 // Colors for console output
 const colors = {

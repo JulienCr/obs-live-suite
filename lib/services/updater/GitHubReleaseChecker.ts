@@ -1,5 +1,6 @@
 import { Logger } from "../../utils/Logger";
 import { AppConfig } from "../../config/AppConfig";
+import { GITHUB } from "../../config/Constants";
 import * as semver from "semver";
 
 /**
@@ -25,7 +26,7 @@ export class GitHubReleaseChecker {
     this.logger = new Logger("GitHubReleaseChecker");
     this.config = AppConfig.getInstance();
     this.cache = new Map();
-    this.cacheDuration = 3600000; // 1 hour
+    this.cacheDuration = GITHUB.RELEASE_CACHE_DURATION_MS;
   }
 
   /**

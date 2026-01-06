@@ -39,9 +39,9 @@ describe("Quiz Workflow (Functional)", () => {
     await manager.reveal();
     expect(manager.getPhase()).toBe("score_update");
 
-    // Move to next
+    // Move to next - phase resets to idle when advancing questions
     await manager.nextQuestion();
-    expect(manager.getPhase()).toBe("interstitial");
+    expect(manager.getPhase()).toBe("idle");
   });
 
   it("should maintain session state across operations", async () => {

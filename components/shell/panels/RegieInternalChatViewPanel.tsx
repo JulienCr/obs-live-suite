@@ -11,6 +11,7 @@ import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { CueMessage } from "@/lib/models/Cue";
+import { apiPost } from "@/lib/utils/ClientFetch";
 
 function RegieInternalChatViewContent() {
   const { toast } = useToast();
@@ -37,54 +38,40 @@ function RegieInternalChatViewContent() {
     setShowingInOverlayId(message.id);
     try {
       const payload = message.questionPayload;
-      const response = await fetch("/api/overlays/chat-highlight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          action === "show"
-            ? {
-                action: "show",
-                payload: {
-                  messageId: message.id,
-                  platform: payload.platform || "twitch",
-                  username: payload.author?.toLowerCase() || "",
-                  displayName: payload.author || "",
-                  message: payload.text || "",
-                  parts: payload.parts,
-                  metadata: {
-                    color: payload.color,
-                    badges: payload.badges,
-                  },
-                  duration: 10,
-                },
-              }
-            : { action: "hide" }
-        ),
-      });
+      const overlayPayload = action === "show"
+        ? {
+            action: "show",
+            payload: {
+              messageId: message.id,
+              platform: payload.platform || "twitch",
+              username: payload.author?.toLowerCase() || "",
+              displayName: payload.author || "",
+              message: payload.text || "",
+              parts: payload.parts,
+              metadata: {
+                color: payload.color,
+                badges: payload.badges,
+              },
+              duration: 10,
+            },
+          }
+        : { action: "hide" };
 
-      if (response.ok) {
-        if (action === "show") {
-          setCurrentlyDisplayedId(message.id);
-          toast({
-            title: "Showing in overlay",
-            description: `Message from ${payload.author}`,
-          });
+      await apiPost("/api/overlays/chat-highlight", overlayPayload);
 
-          // Auto-clear the displayed ID after duration
-          setTimeout(() => {
-            setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
-          }, 10000);
-        } else {
-          setCurrentlyDisplayedId(null);
-        }
-      } else {
-        const errorText = await response.text();
-        console.error("Failed to update overlay:", errorText);
+      if (action === "show") {
+        setCurrentlyDisplayedId(message.id);
         toast({
-          title: "Error",
-          description: "Failed to update overlay",
-          variant: "destructive",
+          title: "Showing in overlay",
+          description: `Message from ${payload.author}`,
         });
+
+        // Auto-clear the displayed ID after duration
+        setTimeout(() => {
+          setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
+        }, 10000);
+      } else {
+        setCurrentlyDisplayedId(null);
       }
     } catch (error) {
       console.error("Failed to update overlay:", error);

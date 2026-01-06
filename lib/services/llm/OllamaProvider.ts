@@ -5,6 +5,7 @@ import {
   fetchWithTimeout,
   TimeoutError,
 } from "../../utils/fetchWithTimeout";
+import { LLM } from "../../config/Constants";
 
 /**
  * Ollama LLM Provider
@@ -25,8 +26,8 @@ export class OllamaProvider implements LLMProvider {
     this.logger = new Logger("OllamaProvider");
     this.url = config.url;
     this.model = config.model;
-    this.temperature = config.temperature ?? 0.3;
-    this.timeout = config.timeout ?? 60000; // 60 seconds
+    this.temperature = config.temperature ?? LLM.DEFAULT_TEMPERATURE;
+    this.timeout = config.timeout ?? LLM.DEFAULT_TIMEOUT_MS;
   }
 
   getName(): string {
@@ -50,7 +51,7 @@ export class OllamaProvider implements LLMProvider {
   async testConnection(): Promise<{ success: boolean; error?: string }> {
     try {
       const url = `${this.url}/api/tags`;
-      const response = await fetchWithTimeout(url, { timeout: 5000 });
+      const response = await fetchWithTimeout(url, { timeout: LLM.CONNECTION_TEST_TIMEOUT_MS });
 
       if (!response.ok) {
         return {
@@ -98,7 +99,7 @@ export class OllamaProvider implements LLMProvider {
           prompt,
           stream: false,
           options: {
-            num_ctx: 2048,
+            num_ctx: LLM.OLLAMA_CONTEXT_SIZE,
             temperature: this.temperature,
           },
         }),

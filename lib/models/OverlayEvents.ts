@@ -323,3 +323,400 @@ export const roomReplayEventSchema = z.object({
 });
 
 export type RoomReplayEvent = z.infer<typeof roomReplayEventSchema>;
+
+// =============================================================================
+// DISCRIMINATED UNION TYPES FOR OVERLAY EVENTS
+// =============================================================================
+
+/**
+ * Theme data structure for lower third overlays.
+ * Contains colors, font settings, and optional layout positioning.
+ */
+export interface LowerThirdThemeData {
+  colors: {
+    primary: string;
+    accent: string;
+    surface: string;
+    text: string;
+    success: string;
+    warn: string;
+  };
+  font: {
+    family: string;
+    size: number;
+    weight: number;
+  };
+  layout?: {
+    x: number;
+    y: number;
+    scale: number;
+  };
+}
+
+/**
+ * Event to display a lower third overlay.
+ * Contains guest/text information, positioning, and theming.
+ */
+export interface LowerThirdShowEvent {
+  type: "show";
+  payload: LowerThirdShowPayload;
+  id: string;
+}
+
+/**
+ * Event to hide the lower third overlay.
+ * No payload required - simply triggers the hide animation.
+ */
+export interface LowerThirdHideEvent {
+  type: "hide";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to update the currently displayed lower third.
+ * Allows partial updates to existing content without full show/hide cycle.
+ */
+export interface LowerThirdUpdateEvent {
+  type: "update";
+  payload?: Partial<LowerThirdShowPayload>;
+  id: string;
+}
+
+/**
+ * Discriminated union of all lower third events.
+ * Use type guards like `event.type === "show"` to narrow the type.
+ */
+export type LowerThirdEvent =
+  | LowerThirdShowEvent
+  | LowerThirdHideEvent
+  | LowerThirdUpdateEvent;
+
+// -----------------------------------------------------------------------------
+// Countdown Events
+// -----------------------------------------------------------------------------
+
+/**
+ * Theme data structure for countdown overlays.
+ */
+export interface CountdownThemeData {
+  colors?: {
+    primary: string;
+    accent: string;
+    surface: string;
+    text: string;
+    success: string;
+    warn: string;
+  };
+  style?: string;
+  font?: {
+    family: string;
+    size: number;
+    weight: number;
+  };
+  layout?: {
+    x: number;
+    y: number;
+    scale: number;
+  };
+  color?: string;
+  shadow?: boolean;
+}
+
+/**
+ * Base payload for countdown events that modify display settings.
+ */
+export interface CountdownDisplayPayload {
+  style?: "bold" | "corner" | "banner";
+  position?: { x: number; y: number };
+  format?: "mm:ss" | "hh:mm:ss" | "seconds";
+  size?: { scale: number };
+  theme?: CountdownThemeData;
+}
+
+/**
+ * Event to set the countdown timer with initial seconds and display options.
+ * This makes the countdown visible but does not start it.
+ */
+export interface CountdownSetEvent {
+  type: "set";
+  payload: CountdownDisplayPayload & {
+    /** Initial number of seconds for the countdown */
+    seconds: number;
+  };
+  id: string;
+}
+
+/**
+ * Event to start the countdown timer.
+ * The countdown must have been set first.
+ */
+export interface CountdownStartEvent {
+  type: "start";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to pause the countdown timer.
+ * Can be resumed with a start event.
+ */
+export interface CountdownPauseEvent {
+  type: "pause";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to reset the countdown timer.
+ * Hides the countdown and resets to 0 seconds.
+ */
+export interface CountdownResetEvent {
+  type: "reset";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to update countdown display settings without affecting the timer.
+ */
+export interface CountdownUpdateEvent {
+  type: "update";
+  payload?: CountdownDisplayPayload;
+  id: string;
+}
+
+/**
+ * Event to add time to the current countdown.
+ * Can be positive (add time) or negative (subtract time).
+ */
+export interface CountdownAddTimeEvent {
+  type: "add-time";
+  payload: {
+    /** Number of seconds to add (positive) or subtract (negative) */
+    seconds: number;
+  };
+  id: string;
+}
+
+/**
+ * Event for countdown tick updates (usually internal).
+ * Broadcasts current time remaining.
+ */
+export interface CountdownTickEvent {
+  type: "tick";
+  payload: {
+    /** Current remaining seconds */
+    seconds: number;
+  };
+  id: string;
+}
+
+/**
+ * Discriminated union of all countdown events.
+ * Use type guards like `event.type === "set"` to narrow the type.
+ */
+export type CountdownEvent =
+  | CountdownSetEvent
+  | CountdownStartEvent
+  | CountdownPauseEvent
+  | CountdownResetEvent
+  | CountdownUpdateEvent
+  | CountdownAddTimeEvent
+  | CountdownTickEvent;
+
+// -----------------------------------------------------------------------------
+// Poster Events
+// -----------------------------------------------------------------------------
+
+/**
+ * Event to display a poster (image, video, or YouTube).
+ * Supports transitions and auto-hide duration.
+ */
+export interface PosterShowEvent {
+  type: "show";
+  payload: PosterShowPayload;
+  id: string;
+}
+
+/**
+ * Event to hide the poster overlay.
+ * Triggers fade-out animation.
+ */
+export interface PosterHideEvent {
+  type: "hide";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to show the next poster in a sequence.
+ * Implementation-specific behavior.
+ */
+export interface PosterNextEvent {
+  type: "next";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to show the previous poster in a sequence.
+ * Implementation-specific behavior.
+ */
+export interface PosterPreviousEvent {
+  type: "previous";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to start playback of video/YouTube poster.
+ */
+export interface PosterPlayEvent {
+  type: "play";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to pause playback of video/YouTube poster.
+ */
+export interface PosterPauseEvent {
+  type: "pause";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to seek to a specific time in video/YouTube poster.
+ */
+export interface PosterSeekEvent {
+  type: "seek";
+  payload: PosterSeekPayload;
+  id: string;
+}
+
+/**
+ * Event to mute video/YouTube poster audio.
+ */
+export interface PosterMuteEvent {
+  type: "mute";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to unmute video/YouTube poster audio.
+ */
+export interface PosterUnmuteEvent {
+  type: "unmute";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Discriminated union of all poster events.
+ * Use type guards like `event.type === "show"` to narrow the type.
+ */
+export type PosterEvent =
+  | PosterShowEvent
+  | PosterHideEvent
+  | PosterNextEvent
+  | PosterPreviousEvent
+  | PosterPlayEvent
+  | PosterPauseEvent
+  | PosterSeekEvent
+  | PosterMuteEvent
+  | PosterUnmuteEvent;
+
+// -----------------------------------------------------------------------------
+// Chat Highlight Events
+// -----------------------------------------------------------------------------
+
+/**
+ * Event to display a chat message highlight.
+ * Shows username, message, and platform-specific badges/emotes.
+ */
+export interface ChatHighlightShowEvent {
+  type: "show";
+  payload: ChatHighlightShowPayload;
+  id: string;
+}
+
+/**
+ * Event to hide the chat highlight overlay.
+ * Triggers fade-out animation.
+ */
+export interface ChatHighlightHideEvent {
+  type: "hide";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Discriminated union of all chat highlight events.
+ * Use type guards like `event.type === "show"` to narrow the type.
+ */
+export type ChatHighlightEvent =
+  | ChatHighlightShowEvent
+  | ChatHighlightHideEvent;
+
+// -----------------------------------------------------------------------------
+// Generic Overlay Event Union
+// -----------------------------------------------------------------------------
+
+/**
+ * Union of all typed overlay events across all channels.
+ * Useful for generic event handling where channel is known separately.
+ */
+export type TypedOverlayEvent =
+  | LowerThirdEvent
+  | CountdownEvent
+  | PosterEvent
+  | ChatHighlightEvent;
+
+/**
+ * Type guard to check if an event is a lower third event.
+ */
+export function isLowerThirdEvent(event: { type: string }): event is LowerThirdEvent {
+  return event.type === "show" || event.type === "hide" || event.type === "update";
+}
+
+/**
+ * Type guard to check if an event is a countdown event.
+ */
+export function isCountdownEvent(event: { type: string }): event is CountdownEvent {
+  return (
+    event.type === "set" ||
+    event.type === "start" ||
+    event.type === "pause" ||
+    event.type === "reset" ||
+    event.type === "update" ||
+    event.type === "add-time" ||
+    event.type === "tick"
+  );
+}
+
+/**
+ * Type guard to check if an event is a poster event.
+ */
+export function isPosterEvent(event: { type: string }): event is PosterEvent {
+  return (
+    event.type === "show" ||
+    event.type === "hide" ||
+    event.type === "next" ||
+    event.type === "previous" ||
+    event.type === "play" ||
+    event.type === "pause" ||
+    event.type === "seek" ||
+    event.type === "mute" ||
+    event.type === "unmute"
+  );
+}
+
+/**
+ * Type guard to check if an event is a chat highlight event.
+ */
+export function isChatHighlightEvent(event: { type: string }): event is ChatHighlightEvent {
+  return event.type === "show" || event.type === "hide";
+}

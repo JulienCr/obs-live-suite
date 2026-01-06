@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2, CheckCircle, XCircle, RefreshCw, Trash2 } from "lucide-react";
+import { apiGet, apiPost, apiDelete, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 type LLMProvider = "ollama" | "openai" | "anthropic";
 
@@ -70,28 +71,26 @@ export function OllamaSettings() {
 
   const loadSettings = async () => {
     try {
-      const response = await fetch("/api/settings/integrations");
-      if (response.ok) {
-        const data = await response.json();
-        setSettings(prev => ({
-          ...prev,
-          ...data.settings,
-        }));
-      }
+      const data = await apiGet<{ settings: Partial<LLMSettings> }>("/api/settings/integrations");
+      setSettings(prev => ({
+        ...prev,
+        ...data.settings,
+      }));
     } catch (error) {
       console.error("Failed to load settings:", error);
-      toast.error("Failed to load settings");
+      if (isClientFetchError(error)) {
+        toast.error(error.errorMessage);
+      } else {
+        toast.error("Failed to load settings");
+      }
     }
   };
 
   const loadAvailableModels = async () => {
     setIsLoadingModels(true);
     try {
-      const response = await fetch("/api/llm/models");
-      if (response.ok) {
-        const data = await response.json();
-        setAvailableModels(data.models || []);
-      }
+      const data = await apiGet<{ models?: string[] }>("/api/llm/models");
+      setAvailableModels(data.models || []);
     } catch (error) {
       console.error("Failed to load models:", error);
     } finally {
@@ -102,30 +101,28 @@ export function OllamaSettings() {
   const handleTest = async () => {
     setIsTesting(true);
     setTestResult(null);
-    
+
     try {
-      const response = await fetch("/api/llm/test", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
-      });
-      
-      const data = await response.json();
-      
+      const data = await apiPost<{ success: boolean; provider?: string; error?: string }>(
+        "/api/llm/test",
+        settings
+      );
+
       setTestResult({
         success: data.success,
-        message: data.success 
-          ? `✓ Connected to ${data.provider}` 
-          : `✗ ${data.error || "Connection failed"}`,
+        message: data.success
+          ? `Connected to ${data.provider}`
+          : `${data.error || "Connection failed"}`,
       });
-      
+
       if (data.success) {
         toast.success(`Connected to ${data.provider}`);
       } else {
         toast.error(data.error || "Connection failed");
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Connection failed";
+      const message = isClientFetchError(error) ? error.errorMessage :
+        (error instanceof Error ? error.message : "Connection failed");
       setTestResult({ success: false, message });
       toast.error(message);
     } finally {
@@ -136,20 +133,15 @@ export function OllamaSettings() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const response = await fetch("/api/settings/integrations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save settings");
-      }
-
+      await apiPost("/api/settings/integrations", settings);
       toast.success("Settings saved successfully");
     } catch (error) {
       console.error("Failed to save settings:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to save settings");
+      if (isClientFetchError(error)) {
+        toast.error(error.errorMessage);
+      } else {
+        toast.error(error instanceof Error ? error.message : "Failed to save settings");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -162,18 +154,15 @@ export function OllamaSettings() {
 
     setIsClearingCache(true);
     try {
-      const response = await fetch("/api/wikipedia/cache", {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to clear cache");
-      }
-
+      await apiDelete("/api/wikipedia/cache");
       toast.success("Cache cleared successfully");
     } catch (error) {
       console.error("Failed to clear cache:", error);
-      toast.error("Failed to clear cache");
+      if (isClientFetchError(error)) {
+        toast.error(error.errorMessage);
+      } else {
+        toast.error("Failed to clear cache");
+      }
     } finally {
       setIsClearingCache(false);
     }

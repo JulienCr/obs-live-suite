@@ -4,6 +4,7 @@ import { OpenAIProvider } from "./OpenAIProvider";
 import { AnthropicProvider } from "./AnthropicProvider";
 import { DatabaseService } from "../DatabaseService";
 import { Logger } from "../../utils/Logger";
+import { LLM } from "../../config/Constants";
 
 /**
  * Factory to create LLM providers based on configuration
@@ -27,16 +28,16 @@ export class LLMProviderFactory {
         return new OpenAIProvider({
           apiKey: db.getSetting("openai_api_key") || "",
           model: db.getSetting("openai_model") || "gpt-5-mini",
-          temperature: 0.3,
-          timeout: 60000,
+          temperature: LLM.DEFAULT_TEMPERATURE,
+          timeout: LLM.DEFAULT_TIMEOUT_MS,
         });
 
       case LLMProviderType.ANTHROPIC:
         return new AnthropicProvider({
           apiKey: db.getSetting("anthropic_api_key") || "",
           model: db.getSetting("anthropic_model") || "claude-3-5-sonnet-20241022",
-          temperature: 0.3,
-          timeout: 60000, // 60 seconds
+          temperature: LLM.DEFAULT_TEMPERATURE,
+          timeout: LLM.DEFAULT_TIMEOUT_MS,
         });
 
       case LLMProviderType.OLLAMA:
@@ -44,8 +45,8 @@ export class LLMProviderFactory {
         return new OllamaProvider({
           url: db.getSetting("ollama_url") || "http://localhost:11434",
           model: db.getSetting("ollama_model") || "mistral:latest",
-          temperature: 0.3,
-          timeout: 60000, // 60 seconds
+          temperature: LLM.DEFAULT_TEMPERATURE,
+          timeout: LLM.DEFAULT_TIMEOUT_MS,
         });
     }
   }

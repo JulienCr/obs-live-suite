@@ -4,7 +4,7 @@ import {
   RouteContext,
 } from "@/lib/utils/ApiResponses";
 
-const LOG_CONTEXT = "[RoomsAPI]";
+const LOG_CONTEXT = "[PresenterAPI:Rooms:Clear]";
 
 /**
  * DELETE /api/presenter/rooms/[id]/clear
@@ -16,6 +16,7 @@ export const DELETE = withErrorHandler<{ id: string }>(
     return proxyToBackend(`/api/cue/${id}/clear`, {
       method: "DELETE",
       errorMessage: "Failed to clear messages",
+      logPrefix: LOG_CONTEXT,
     });
   },
   LOG_CONTEXT

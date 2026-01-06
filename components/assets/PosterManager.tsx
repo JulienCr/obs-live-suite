@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PosterUploader } from "./PosterUploader";
 import { VirtualizedPosterGrid } from "./VirtualizedPosterGrid";
 import { Plus, Trash2, Upload, ChevronDown, ChevronUp, Image as ImageIcon, Video, Youtube, Loader2 } from "lucide-react";
+import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/utils/ClientFetch";
 
 interface Poster {
   id: string;
@@ -70,8 +71,7 @@ export function PosterManager() {
 
   const fetchPosters = async () => {
     try {
-      const res = await fetch("/api/assets/posters");
-      const data = await res.json();
+      const data = await apiGet<{ posters: Poster[] }>("/api/assets/posters");
       setPosters(data.posters || []);
     } catch (error) {
       console.error("Failed to fetch posters:", error);
@@ -82,8 +82,7 @@ export function PosterManager() {
 
   const fetchTagSuggestions = async () => {
     try {
-      const res = await fetch("/api/assets/tags");
-      const data = await res.json();
+      const data = await apiGet<{ tags: string[] }>("/api/assets/tags");
       setTagSuggestions(data.tags || []);
     } catch (error) {
       console.error("Failed to fetch tags:", error);
@@ -158,13 +157,12 @@ export function PosterManager() {
     // Auto-fetch metadata for YouTube
     if (type === "youtube") {
       try {
-        const res = await fetch(`/api/utils/metadata?url=${encodeURIComponent(url)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.title) title = data.title;
-          if (data.author_name && data.title) {
-            source = `${data.author_name} | ${data.title}`;
-          }
+        const data = await apiGet<{ title?: string; author_name?: string }>(
+          `/api/utils/metadata?url=${encodeURIComponent(url)}`
+        );
+        if (data.title) title = data.title;
+        if (data.author_name && data.title) {
+          source = `${data.author_name} | ${data.title}`;
         }
       } catch (error) {
         console.error("Failed to fetch metadata:", error);
@@ -203,30 +201,16 @@ export function PosterManager() {
     try {
       if (editingId) {
         // Update existing poster
-        const res = await fetch(`/api/assets/posters/${editingId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-
-        if (res.ok) {
-          fetchPosters();
-          fetchTagSuggestions();
-          resetForm();
-        }
+        await apiPatch<Poster>(`/api/assets/posters/${editingId}`, formData);
+        fetchPosters();
+        fetchTagSuggestions();
+        resetForm();
       } else {
         // Create new poster
-        const res = await fetch("/api/assets/posters", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-
-        if (res.ok) {
-          fetchPosters();
-          fetchTagSuggestions();
-          resetForm();
-        }
+        await apiPost<{ poster: Poster }>("/api/assets/posters", formData);
+        fetchPosters();
+        fetchTagSuggestions();
+        resetForm();
       }
     } catch (error) {
       console.error("Failed to save poster:", error);
@@ -244,11 +228,7 @@ export function PosterManager() {
 
   const handleToggleEnabled = async (poster: Poster) => {
     try {
-      await fetch(`/api/assets/posters/${poster.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isEnabled: !poster.isEnabled }),
-      });
+      await apiPatch<Poster>(`/api/assets/posters/${poster.id}`, { isEnabled: !poster.isEnabled });
       fetchPosters();
     } catch (error) {
       console.error("Failed to toggle poster:", error);
@@ -259,7 +239,7 @@ export function PosterManager() {
     if (!confirm(`Delete "${poster.title}"?`)) return;
 
     try {
-      await fetch(`/api/assets/posters/${poster.id}`, { method: "DELETE" });
+      await apiDelete<{ success: boolean }>(`/api/assets/posters/${poster.id}`);
       fetchPosters();
     } catch (error) {
       console.error("Failed to delete poster:", error);
@@ -268,11 +248,7 @@ export function PosterManager() {
 
   const handleEnableFromSearch = async (posterId: string) => {
     try {
-      await fetch(`/api/assets/posters/${posterId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isEnabled: true }),
-      });
+      await apiPatch<Poster>(`/api/assets/posters/${posterId}`, { isEnabled: true });
       fetchPosters();
       setSearchOpen(false);
       setSearchValue("");
@@ -312,18 +288,11 @@ export function PosterManager() {
 
     setIsBulkDeleting(true);
     try {
-      const response = await fetch('/api/assets/posters/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      await apiPost<{ success: boolean; deleted: number }>('/api/assets/posters/bulk', {
+        ids: Array.from(selectedIds),
       });
-
-      if (response.ok) {
-        setSelectedIds(new Set());
-        fetchPosters();
-      } else {
-        console.error('Bulk delete failed');
-      }
+      setSelectedIds(new Set());
+      fetchPosters();
     } catch (error) {
       console.error('Failed to bulk delete posters:', error);
     } finally {

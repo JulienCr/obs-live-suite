@@ -17,6 +17,232 @@ export interface NotificationOptions {
   posterId?: string; // For tracking poster on screen
 }
 
+// ============================================================================
+// Notification Factory Types
+// ============================================================================
+
+/**
+ * Payload for lower third notifications (manual/custom lower thirds)
+ */
+export interface LowerThirdNotificationPayload {
+  title?: string;
+  subtitle?: string;
+  body?: string;
+  imageUrl?: string;
+}
+
+/**
+ * Payload for guest notifications (when showing a guest lower third)
+ */
+export interface GuestNotificationPayload {
+  displayName: string;
+  subtitle?: string;
+  avatarUrl?: string;
+  guestId: string;
+}
+
+/**
+ * Poster media type
+ */
+export type PosterMediaType = 'image' | 'youtube' | 'video';
+
+/**
+ * Payload for poster notifications
+ */
+export interface PosterNotificationPayload {
+  title: string;
+  description?: string;
+  fileUrl: string;
+  type: PosterMediaType;
+  source?: string;
+  posterId?: string;
+}
+
+// ============================================================================
+// YouTube Utilities
+// ============================================================================
+
+/**
+ * Extract YouTube video ID from various URL formats
+ * Supports: youtube.com/watch?v=, youtu.be/, youtube.com/embed/
+ */
+export function extractYoutubeVideoId(url: string): string | null {
+  if (!url) return null;
+
+  // youtube.com/watch?v=VIDEO_ID
+  const watchMatch = url.match(/youtube\.com\/watch\?v=([^&]+)/);
+  if (watchMatch) return watchMatch[1];
+
+  // youtu.be/VIDEO_ID
+  const shortMatch = url.match(/youtu\.be\/([^?]+)/);
+  if (shortMatch) return shortMatch[1];
+
+  // youtube.com/embed/VIDEO_ID
+  const embedMatch = url.match(/youtube\.com\/embed\/([^?]+)/);
+  if (embedMatch) return embedMatch[1];
+
+  return null;
+}
+
+/**
+ * Get YouTube thumbnail URL from video ID
+ */
+export function getYoutubeThumbnailUrl(videoId: string): string {
+  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+}
+
+// ============================================================================
+// Link Generation Utilities
+// ============================================================================
+
+/**
+ * Link labels for different poster media types
+ */
+const POSTER_LINK_LABELS: Record<PosterMediaType, string> = {
+  youtube: 'Voir sur YouTube',
+  image: 'Voir l\'image en grand',
+  video: 'Voir la video',
+};
+
+/**
+ * Build a link object for a poster based on its type
+ */
+function buildPosterLink(
+  fileUrl: string,
+  type: PosterMediaType
+): { url: string; title: string } {
+  return {
+    url: fileUrl,
+    title: POSTER_LINK_LABELS[type],
+  };
+}
+
+// ============================================================================
+// Notification Factory Functions
+// ============================================================================
+
+/**
+ * Build a notification for a lower third display
+ *
+ * @param payload - Lower third payload with title, subtitle, body, imageUrl
+ * @returns NotificationOptions ready to be sent via sendPresenterNotification
+ *
+ * @example
+ * ```typescript
+ * const notification = buildLowerThirdNotification({
+ *   title: "John Doe",
+ *   subtitle: "Software Engineer",
+ *   imageUrl: "/uploads/avatar.png"
+ * });
+ * await sendPresenterNotification(notification);
+ * ```
+ */
+export function buildLowerThirdNotification(
+  payload: LowerThirdNotificationPayload
+): NotificationOptions {
+  const bullets: string[] = [];
+  if (payload.title) bullets.push(payload.title);
+  if (payload.subtitle) bullets.push(payload.subtitle);
+
+  const links = payload.imageUrl
+    ? [{ url: payload.imageUrl, title: 'Voir l\'image en grand' }]
+    : undefined;
+
+  return {
+    type: 'lower-third',
+    title: 'Lower Third',
+    body: payload.body,
+    imageUrl: payload.imageUrl,
+    bullets: bullets.length > 0 ? bullets : undefined,
+    links,
+  };
+}
+
+/**
+ * Build a notification for a guest lower third display
+ *
+ * @param payload - Guest data with displayName, subtitle, avatarUrl, guestId
+ * @returns NotificationOptions ready to be sent via sendPresenterNotification
+ *
+ * @example
+ * ```typescript
+ * const notification = buildGuestNotification({
+ *   displayName: "Jane Smith",
+ *   subtitle: "CEO at TechCorp",
+ *   avatarUrl: "/uploads/jane.png",
+ *   guestId: "guest-123"
+ * });
+ * await sendPresenterNotification(notification);
+ * ```
+ */
+export function buildGuestNotification(
+  payload: GuestNotificationPayload
+): NotificationOptions {
+  return {
+    type: 'guest',
+    title: `Guest: ${payload.displayName}`,
+    imageUrl: payload.avatarUrl,
+    bullets: payload.subtitle ? [payload.subtitle] : undefined,
+    guestId: payload.guestId,
+  };
+}
+
+/**
+ * Build a notification for a poster display
+ *
+ * Handles different media types (image, youtube, video) with appropriate
+ * image URLs and links. For YouTube videos, extracts the thumbnail.
+ *
+ * @param payload - Poster data with title, description, fileUrl, type, source, posterId
+ * @returns NotificationOptions ready to be sent via sendPresenterNotification
+ *
+ * @example
+ * ```typescript
+ * const notification = buildPosterNotification({
+ *   title: "Episode 42",
+ *   description: "Season finale!",
+ *   fileUrl: "https://youtube.com/watch?v=abc123",
+ *   type: "youtube",
+ *   source: "YouTube",
+ *   posterId: "poster-456"
+ * });
+ * await sendPresenterNotification(notification);
+ * ```
+ */
+export function buildPosterNotification(
+  payload: PosterNotificationPayload
+): NotificationOptions {
+  // Build bullets with source if provided
+  const bullets: string[] = [];
+  if (payload.source) {
+    bullets.push(`Source: ${payload.source}`);
+  }
+
+  // Build link based on type
+  const links = [buildPosterLink(payload.fileUrl, payload.type)];
+
+  // Determine imageUrl based on type
+  let imageUrl: string | undefined;
+  if (payload.type === 'image') {
+    imageUrl = payload.fileUrl;
+  } else if (payload.type === 'youtube') {
+    const videoId = extractYoutubeVideoId(payload.fileUrl);
+    if (videoId) {
+      imageUrl = getYoutubeThumbnailUrl(videoId);
+    }
+  }
+
+  return {
+    type: 'poster',
+    title: `Poster: ${payload.title}`,
+    body: payload.description,
+    imageUrl,
+    bullets: bullets.length > 0 ? bullets : undefined,
+    links,
+    posterId: payload.posterId,
+  };
+}
+
 /**
  * Normalize URL for display
  * @param url - URL to normalize (can be relative or absolute)

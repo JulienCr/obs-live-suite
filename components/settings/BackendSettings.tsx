@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, XCircle, Loader2, RefreshCw } from "lucide-react";
+import { CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { BACKEND_URL, WS_URL } from "@/lib/config/urls";
+import { apiGet, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface BackendHealth {
   status: string;
@@ -34,14 +35,15 @@ export function BackendSettings() {
 
   const checkHealth = async () => {
     try {
-      const res = await fetch(`${backendUrl}/health`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      
-      const data = await res.json();
+      const data = await apiGet<BackendHealth>(`${backendUrl}/health`);
       setHealth(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to connect");
+      if (isClientFetchError(err)) {
+        setError(err.errorMessage);
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to connect");
+      }
       setHealth(null);
     }
   };

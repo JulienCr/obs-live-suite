@@ -18,7 +18,7 @@ import fs from "fs";
 import https from "https";
 import http from "http";
 import type { Application } from "express";
-import { CERT_PATH, KEY_PATH } from "@/lib/config/certificates.mjs";
+import { CERT_PATH, KEY_PATH } from "@/lib/config/certificates";
 
 /**
  * Certificate configuration
@@ -39,7 +39,7 @@ export interface HttpsOptions {
 
 /**
  * Get certificate file paths
- * Uses centralized config from lib/config/certificates.mjs
+ * Uses centralized config from lib/config/certificates.ts
  */
 export function getCertificatePaths(): { certPath: string; keyPath: string } {
   return {

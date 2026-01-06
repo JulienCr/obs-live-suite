@@ -8,6 +8,7 @@ import { Eye, EyeOff, Timer, Loader2, ExternalLink, FileText, X, Search, Sparkle
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { toast } from "sonner";
 import { PanelColorMenu } from "../PanelColorMenu";
+import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface WikipediaPreview {
   title: string;
@@ -46,8 +47,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch("/api/settings/overlay");
-        const data = await res.json();
+        const data = await apiGet<{ settings?: { lowerThirdDuration?: number } }>("/api/settings/overlay");
         if (data.settings?.lowerThirdDuration) {
           setLowerThirdDuration(data.settings.lowerThirdDuration);
         }
@@ -76,16 +76,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
               side,
             };
 
-      const response = await fetch("/api/actions/lower/show", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to show lower third");
-      }
-
+      await apiPost("/api/actions/lower/show", payload);
       setIsVisible(true);
     } catch (error) {
       console.error("Error showing lower third:", error);
@@ -94,15 +85,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
 
   const handleHide = async () => {
     try {
-      const response = await fetch("/api/actions/lower/hide", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to hide lower third");
-      }
-
+      await apiPost("/api/actions/lower/hide");
       setIsVisible(false);
     } catch (error) {
       console.error("Error hiding lower third:", error);
@@ -129,16 +112,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
               duration: lowerThirdDuration,
             };
 
-      const response = await fetch("/api/actions/lower/show", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to show lower third");
-      }
-
+      await apiPost("/api/actions/lower/show", payload);
       setIsVisible(true);
       setTimeout(() => setIsVisible(false), lowerThirdDuration * 1000);
     } catch (error) {
@@ -159,15 +133,12 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
 
     try {
       if (!selectedTitle) {
-        const searchResponse = await fetch("/api/wikipedia/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: queryToUse.trim() }),
-        });
+        try {
+          const searchData = await apiPost<{ success: boolean; results?: WikipediaSearchOption[] }>(
+            "/api/wikipedia/search",
+            { query: queryToUse.trim() }
+          );
 
-        if (searchResponse.ok) {
-          const searchData = await searchResponse.json();
-          
           if (searchData.success && searchData.results && searchData.results.length > 1) {
             setWikipediaOptions(searchData.results);
             setShowWikipediaOptions(true);
@@ -175,27 +146,22 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
             setIsWikipediaLoading(false);
             return;
           }
+        } catch {
+          // Search failed, continue to resolve
         }
       }
 
-      const payload: any = selectedTitle 
+      const payload = selectedTitle
         ? { query: queryToUse.trim(), title: selectedTitle }
         : { query: queryToUse.trim() };
 
-      const response = await fetch("/api/wikipedia/resolve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const data = await apiPost<{
+        success: boolean;
+        error?: string;
+        data?: { title: string; url: string; extract: string; thumbnail?: string };
+      }>("/api/wikipedia/resolve", payload);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch Wikipedia page");
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
+      if (data.success && data.data) {
         setMarkdown(data.data.extract);
 
         if (data.data.thumbnail) {
@@ -223,16 +189,18 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
       console.error("Wikipedia search error:", error);
 
       let errorMessage = t("toasts.failedLoadWiki");
-      if (error instanceof Error) {
-        if (error.message.includes("not found")) {
+      if (isClientFetchError(error)) {
+        if (error.errorMessage.includes("not found")) {
           errorMessage = t("toasts.wikiPageNotFound");
-        } else if (error.message.includes("timeout")) {
+        } else if (error.errorMessage.includes("timeout")) {
           errorMessage = t("toasts.requestTimeout");
-        } else if (error.message.includes("rate limit")) {
+        } else if (error.errorMessage.includes("rate limit")) {
           errorMessage = t("toasts.rateLimitHit");
         } else {
-          errorMessage = error.message;
+          errorMessage = error.errorMessage;
         }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
       }
 
       toast.error(errorMessage, { id: toastId });
@@ -251,20 +219,13 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
     const toastId = toast.loading(t("toasts.summarizingAI"));
 
     try {
-      const response = await fetch("/api/llm/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: markdown.trim() }),
-      });
+      const data = await apiPost<{
+        success: boolean;
+        error?: string;
+        data?: { summary: string[] };
+      }>("/api/llm/summarize", { text: markdown.trim() });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to summarize");
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
+      if (data.success && data.data) {
         const summaryText = data.data.summary.join("\n");
         setMarkdown(summaryText);
 
@@ -278,14 +239,16 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
       console.error("Summarization error:", error);
 
       let errorMessage = t("toasts.failedGenerateSummary");
-      if (error instanceof Error) {
-        if (error.message.includes("rate limit")) {
+      if (isClientFetchError(error)) {
+        if (error.errorMessage.includes("rate limit")) {
           errorMessage = t("toasts.rateLimitHit");
-        } else if (error.message.includes("LLM")) {
+        } else if (error.errorMessage.includes("LLM")) {
           errorMessage = t("toasts.llmUnavailable");
         } else {
-          errorMessage = error.message;
+          errorMessage = error.errorMessage;
         }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
       }
 
       toast.error(errorMessage, { id: toastId });

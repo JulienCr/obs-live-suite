@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import type { PanelId, ColorScheme } from "@/lib/models/PanelColor";
+import { apiGet, apiPost, apiDelete } from "@/lib/utils/ClientFetch";
 
 interface PanelColorEntry {
   scheme: ColorScheme;
@@ -36,15 +37,12 @@ export function PanelColorsProvider({ children }: PanelColorsProviderProps) {
   useEffect(() => {
     async function fetchColors() {
       try {
-        const response = await fetch("/api/panel-colors");
-        if (response.ok) {
-          const data = await response.json();
-          const colorMap: Record<string, PanelColorEntry> = {};
-          for (const color of data.colors) {
-            colorMap[color.panelId] = { scheme: color.scheme };
-          }
-          setColors(colorMap);
+        const data = await apiGet<{ colors: Array<{ panelId: string; scheme: ColorScheme }> }>("/api/panel-colors");
+        const colorMap: Record<string, PanelColorEntry> = {};
+        for (const color of data.colors) {
+          colorMap[color.panelId] = { scheme: color.scheme };
         }
+        setColors(colorMap);
       } catch (error) {
         console.error("Failed to fetch panel colors:", error);
       } finally {
@@ -57,19 +55,11 @@ export function PanelColorsProvider({ children }: PanelColorsProviderProps) {
 
   const setScheme = useCallback(async (panelId: PanelId, scheme: ColorScheme) => {
     try {
-      const response = await fetch("/api/panel-colors", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ panelId, scheme }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setColors((prev) => ({
-          ...prev,
-          [panelId]: { scheme: data.panelColor.scheme },
-        }));
-      }
+      const data = await apiPost<{ panelColor: { scheme: ColorScheme } }>("/api/panel-colors", { panelId, scheme });
+      setColors((prev) => ({
+        ...prev,
+        [panelId]: { scheme: data.panelColor.scheme },
+      }));
     } catch (error) {
       console.error("Failed to update panel scheme:", error);
     }
@@ -77,17 +67,12 @@ export function PanelColorsProvider({ children }: PanelColorsProviderProps) {
 
   const resetScheme = useCallback(async (panelId: PanelId) => {
     try {
-      const response = await fetch(`/api/panel-colors/${panelId}`, {
-        method: "DELETE",
+      await apiDelete(`/api/panel-colors/${panelId}`);
+      setColors((prev) => {
+        const next = { ...prev };
+        delete next[panelId];
+        return next;
       });
-
-      if (response.ok) {
-        setColors((prev) => {
-          const next = { ...prev };
-          delete next[panelId];
-          return next;
-        });
-      }
     } catch (error) {
       console.error("Failed to reset panel scheme:", error);
     }

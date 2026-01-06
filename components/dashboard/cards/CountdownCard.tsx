@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Play, Pause, RotateCcw, Plus, Settings } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface CountdownCardProps {
   size?: string;
@@ -113,28 +114,14 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
   const sendCountdownUpdate = async (updatePayload: Record<string, unknown>) => {
     try {
       console.log("[Frontend] Sending countdown update:", updatePayload);
-      const response = await fetch("/api/overlays/countdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "update", payload: updatePayload }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        
-        // If backend doesn't support "update" action yet, silently ignore
-        if (response.status === 400 && errorData.error === "Invalid action") {
-          console.warn("[Frontend] Backend doesn't support 'update' action yet. Please restart the backend server to enable real-time updates.");
-          return;
-        }
-        
-        console.error("[Frontend] Update failed:", response.status, errorData);
-        throw new Error(`Failed to update countdown: ${response.status} ${errorData.error || response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await apiPost("/api/overlays/countdown", { action: "update", payload: updatePayload });
       console.log("[Frontend] Update successful:", result);
     } catch (error) {
+      // If backend doesn't support "update" action yet, silently ignore
+      if (isClientFetchError(error) && error.status === 400 && error.errorMessage === "Invalid action") {
+        console.warn("[Frontend] Backend doesn't support 'update' action yet. Please restart the backend server to enable real-time updates.");
+        return;
+      }
       console.error("Error updating countdown:", error);
     }
   };
@@ -142,7 +129,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
   const handleStart = async () => {
     try {
       const totalSeconds = minutes * 60 + seconds;
-      
+
       const payload = {
         seconds: totalSeconds,
         style,
@@ -159,16 +146,8 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
           shadow,
         },
       };
-      
-      const response = await fetch("/api/actions/countdown/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
 
-      if (!response.ok) {
-        throw new Error("Failed to start countdown");
-      }
+      await apiPost("/api/actions/countdown/start", payload);
 
       setIsRunning(true);
     } catch (error) {
@@ -178,15 +157,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
 
   const handlePause = async () => {
     try {
-      const response = await fetch("/api/overlays/countdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "pause" }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to pause countdown");
-      }
+      await apiPost("/api/overlays/countdown", { action: "pause" });
 
       setIsRunning(false);
     } catch (error) {
@@ -196,15 +167,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
 
   const handleReset = async () => {
     try {
-      const response = await fetch("/api/overlays/countdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reset" }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to reset countdown");
-      }
+      await apiPost("/api/overlays/countdown", { action: "reset" });
 
       setIsRunning(false);
       setMinutes(5);
@@ -216,18 +179,10 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
 
   const handleAddTime = async (secondsToAdd: number) => {
     try {
-      const response = await fetch("/api/overlays/countdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          action: "add-time", 
-          payload: { seconds: secondsToAdd } 
-        }),
+      await apiPost("/api/overlays/countdown", {
+        action: "add-time",
+        payload: { seconds: secondsToAdd }
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to add time");
-      }
     } catch (error) {
       console.error("Error adding time:", error);
     }

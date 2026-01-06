@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import type { RoomPresence, Room } from "@/lib/models/Room";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { getBackendUrl } from "@/lib/utils/websocket";
+import { apiGet } from "@/lib/utils/ClientFetch";
 
 function formatLastSeen(timestamp: number): string {
   const now = Date.now();
@@ -30,24 +31,30 @@ function PresenceStatusContent() {
 
   const fetchPresence = async () => {
     try {
-      const res = await fetch(`/api/presenter/rooms/${DEFAULT_ROOM_ID}`);
-      if (res.ok) {
-        const data = await res.json();
+      // Fetch room info
+      try {
+        const data = await apiGet<{ room: Room }>(`/api/presenter/rooms/${DEFAULT_ROOM_ID}`);
         setRoom(data.room);
+      } catch {
+        // Room may not exist yet
       }
 
       // Fetch presence from backend
-      const presenceRes = await fetch(`${getBackendUrl()}/api/rooms/${DEFAULT_ROOM_ID}/presence`);
-      if (presenceRes.ok) {
-        const presenceData = await presenceRes.json();
+      try {
+        const presenceData = await apiGet<{ presence?: RoomPresence[] }>(
+          `${getBackendUrl()}/api/rooms/${DEFAULT_ROOM_ID}/presence`
+        );
         setPresence(presenceData.presence || []);
+      } catch {
+        // Backend may not be available
       }
 
       // Check WebSocket status
-      const wsRes = await fetch(`${getBackendUrl()}/ws/stats`);
-      if (wsRes.ok) {
-        const wsData = await wsRes.json();
+      try {
+        const wsData = await apiGet<{ isRunning: boolean }>(`${getBackendUrl()}/ws/stats`);
         setWsConnected(wsData.isRunning);
+      } catch {
+        setWsConnected(false);
       }
 
       setError(null);

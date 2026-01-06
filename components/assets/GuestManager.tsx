@@ -12,6 +12,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { AvatarUploader } from "./AvatarUploader";
 import { VirtualizedGuestGrid } from "./VirtualizedGuestGrid";
 import { Plus, User, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/utils/ClientFetch";
 
 interface Guest {
   id: string;
@@ -51,8 +52,7 @@ export function GuestManager() {
 
   const fetchGuests = async () => {
     try {
-      const res = await fetch("/api/assets/guests");
-      const data = await res.json();
+      const data = await apiGet<{ guests: Guest[] }>("/api/assets/guests");
       setGuests(data.guests || []);
     } catch (error) {
       console.error("Failed to fetch guests:", error);
@@ -66,37 +66,19 @@ export function GuestManager() {
       if (editingId) {
         // Update existing guest
         console.log("[GuestManager] Updating guest with data:", formData);
-        const res = await fetch(`/api/assets/guests/${editingId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        
-        if (res.ok) {
-          fetchGuests();
-          setShowForm(false);
-          setEditingId(null);
-          resetForm();
-        }
+        await apiPatch<Guest>(`/api/assets/guests/${editingId}`, formData);
+        fetchGuests();
+        setShowForm(false);
+        setEditingId(null);
+        resetForm();
       } else {
         // Create new guest
         console.log("[GuestManager] Creating new guest with data:", formData);
-        const res = await fetch("/api/assets/guests", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        
-        if (res.ok) {
-          const result = await res.json();
-          console.log("[GuestManager] Guest created successfully:", result);
-          fetchGuests();
-          setShowForm(false);
-          resetForm();
-        } else {
-          const error = await res.json();
-          console.error("[GuestManager] Failed to create guest:", error);
-        }
+        const result = await apiPost<{ guest: Guest }>("/api/assets/guests", formData);
+        console.log("[GuestManager] Guest created successfully:", result);
+        fetchGuests();
+        setShowForm(false);
+        resetForm();
       }
     } catch (error) {
       console.error("Failed to save guest:", error);
@@ -133,11 +115,7 @@ export function GuestManager() {
 
   const handleToggleEnabled = async (guest: Guest) => {
     try {
-      await fetch(`/api/assets/guests/${guest.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isEnabled: !guest.isEnabled }),
-      });
+      await apiPatch<Guest>(`/api/assets/guests/${guest.id}`, { isEnabled: !guest.isEnabled });
       fetchGuests();
     } catch (error) {
       console.error("Failed to toggle guest:", error);
@@ -148,7 +126,7 @@ export function GuestManager() {
     if (!confirm(`Delete ${guest.displayName}?`)) return;
 
     try {
-      await fetch(`/api/assets/guests/${guest.id}`, { method: "DELETE" });
+      await apiDelete<{ success: boolean }>(`/api/assets/guests/${guest.id}`);
       fetchGuests();
     } catch (error) {
       console.error("Failed to delete guest:", error);
@@ -157,12 +135,8 @@ export function GuestManager() {
 
   const handleQuickLowerThird = async (guest: Guest) => {
     try {
-      await fetch(`/api/actions/lower/guest/${guest.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          duration: 8,
-        }),
+      await apiPost<{ success: boolean }>(`/api/actions/lower/guest/${guest.id}`, {
+        duration: 8,
       });
     } catch (error) {
       console.error("Failed to show lower third:", error);
@@ -171,11 +145,7 @@ export function GuestManager() {
 
   const handleEnableFromSearch = async (guestId: string) => {
     try {
-      await fetch(`/api/assets/guests/${guestId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isEnabled: true }),
-      });
+      await apiPatch<Guest>(`/api/assets/guests/${guestId}`, { isEnabled: true });
       fetchGuests();
       setSearchOpen(false);
       setSearchValue("");

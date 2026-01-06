@@ -7,6 +7,20 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { CheckCircle2, Loader2, MonitorPlay, MessageSquare } from "lucide-react";
+import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
+
+interface GeneralSettingsResponse {
+  settings?: {
+    defaultPosterDisplayMode?: string;
+    posterChatMessageEnabled?: boolean;
+    guestChatMessageEnabled?: boolean;
+  };
+}
+
+interface SaveResponse {
+  success: boolean;
+  error?: string;
+}
 
 /**
  * General UI settings
@@ -30,8 +44,7 @@ export function GeneralSettings() {
 
   const loadSettings = async () => {
     try {
-      const res = await fetch("/api/settings/general");
-      const data = await res.json();
+      const data = await apiGet<GeneralSettingsResponse>("/api/settings/general");
       setDefaultDisplayMode(data.settings?.defaultPosterDisplayMode || "left");
       setPosterChatMessageEnabled(data.settings?.posterChatMessageEnabled || false);
       setGuestChatMessageEnabled(data.settings?.guestChatMessageEnabled || false);
@@ -47,17 +60,11 @@ export function GeneralSettings() {
     setSaveResult(null);
 
     try {
-      const res = await fetch("/api/settings/general", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          defaultPosterDisplayMode: defaultDisplayMode,
-          posterChatMessageEnabled,
-          guestChatMessageEnabled,
-        }),
+      const data = await apiPost<SaveResponse>("/api/settings/general", {
+        defaultPosterDisplayMode: defaultDisplayMode,
+        posterChatMessageEnabled,
+        guestChatMessageEnabled,
       });
-
-      const data = await res.json();
 
       if (data.success) {
         setSaveResult({
@@ -71,10 +78,17 @@ export function GeneralSettings() {
         });
       }
     } catch (error) {
-      setSaveResult({
-        success: false,
-        message: error instanceof Error ? error.message : t("saveFailed"),
-      });
+      if (isClientFetchError(error)) {
+        setSaveResult({
+          success: false,
+          message: error.errorMessage,
+        });
+      } else {
+        setSaveResult({
+          success: false,
+          message: error instanceof Error ? error.message : t("saveFailed"),
+        });
+      }
     } finally {
       setSaving(false);
     }
