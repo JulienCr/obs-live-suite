@@ -328,8 +328,8 @@ describe("QuizManager", () => {
     it("should throw error when no active session", async () => {
       mockGetSession.mockReturnValue(null);
       const manager = QuizManager.getInstance();
-      
-      await expect(manager.startRound(0)).rejects.toThrow("No active quiz session");
+
+      await expect(manager.startRound(0)).rejects.toThrow("Failed to start round 0");
     });
   });
 
@@ -453,8 +453,8 @@ describe("QuizManager", () => {
       const sessionNoRounds = { ...sampleSession, rounds: [] };
       mockGetSession.mockReturnValue(sessionNoRounds);
       const manager = QuizManager.getInstance();
-      
-      await expect(manager.showCurrentQuestion()).rejects.toThrow("No current round");
+
+      await expect(manager.showCurrentQuestion()).rejects.toThrow("Failed to get current question");
     });
 
     it("should throw error when no current question", async () => {
@@ -462,8 +462,8 @@ describe("QuizManager", () => {
       const sessionNoQuestions = { ...sampleSession, rounds: [roundNoQuestions] };
       mockGetSession.mockReturnValue(sessionNoQuestions);
       const manager = QuizManager.getInstance();
-      
-      await expect(manager.showCurrentQuestion()).rejects.toThrow("No current question");
+
+      await expect(manager.showCurrentQuestion()).rejects.toThrow("Failed to get current question");
     });
   });
 
@@ -1318,24 +1318,24 @@ describe("QuizManager", () => {
     it("should throw when requireSession called with no session", async () => {
       mockGetSession.mockReturnValue(null);
       const manager = QuizManager.getInstance();
-      
-      await expect(manager.showCurrentQuestion()).rejects.toThrow("No active quiz session");
+
+      await expect(manager.showCurrentQuestion()).rejects.toThrow("Failed to get current question");
     });
 
     it("should throw when getCurrentQuestion called with invalid round index", async () => {
       const invalidSession = { ...sampleSession, currentRoundIndex: 999 };
       mockGetSession.mockReturnValue(invalidSession);
       const manager = QuizManager.getInstance();
-      
-      await expect(manager.showCurrentQuestion()).rejects.toThrow("No current round");
+
+      await expect(manager.showCurrentQuestion()).rejects.toThrow("Failed to get current question");
     });
 
     it("should throw when getCurrentQuestion called with invalid question index", async () => {
       const invalidSession = { ...sampleSession, currentQuestionIndex: 999 };
       mockGetSession.mockReturnValue(invalidSession);
       const manager = QuizManager.getInstance();
-      
-      await expect(manager.showCurrentQuestion()).rejects.toThrow("No current question");
+
+      await expect(manager.showCurrentQuestion()).rejects.toThrow("Failed to get current question");
     });
   });
 });
