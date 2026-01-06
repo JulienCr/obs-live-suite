@@ -1,9 +1,17 @@
 /**
  * Integration test for Wikipedia Summarization API
  * Tests the full flow from API request to cached response
+ *
+ * NOTE: These tests are skipped by default because they require:
+ * 1. The Next.js development server running on localhost:3000
+ * 2. Some tests also require Ollama running locally for LLM summarization
+ *
+ * To run these tests manually:
+ * 1. Start the dev server: pnpm dev
+ * 2. Run the tests: pnpm test __tests__/integration/wikipedia-summarize-api.test.ts
  */
 
-describe("Wikipedia Summarize API", () => {
+describe.skip("Wikipedia Summarize API", () => {
   const API_URL = "http://localhost:3000/api/wikipedia/summarize";
 
   describe("POST /api/wikipedia/summarize", () => {

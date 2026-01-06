@@ -2,9 +2,13 @@
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { resolve } from 'path';
-import { CERT_PATH, KEY_PATH } from '../lib/config/certificates.mjs';
 
 const CWD = resolve('.');
+
+// Certificate paths (same as lib/config/certificates.ts)
+const CERT_PATH = resolve(CWD, 'localhost+4.pem');
+const KEY_PATH = resolve(CWD, 'localhost+4-key.pem');
+
 const hasBuild = existsSync(resolve(CWD, '.next', 'BUILD_ID'));
 const hasHttpsCerts = existsSync(CERT_PATH) && existsSync(KEY_PATH);
 
