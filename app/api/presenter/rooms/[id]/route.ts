@@ -4,7 +4,7 @@ import {
   RouteContext,
 } from "@/lib/utils/ApiResponses";
 
-const LOG_CONTEXT = "[RoomsAPI]";
+const LOG_CONTEXT = "[PresenterAPI:Rooms]";
 
 /**
  * GET /api/presenter/rooms/[id]
@@ -15,6 +15,7 @@ export const GET = withErrorHandler<{ id: string }>(
     const { id } = await context.params;
     return proxyToBackend(`/api/rooms/${id}`, {
       errorMessage: "Failed to fetch room",
+      logPrefix: LOG_CONTEXT,
     });
   },
   LOG_CONTEXT
@@ -32,6 +33,7 @@ export const PUT = withErrorHandler<{ id: string }>(
       method: "PUT",
       body,
       errorMessage: "Failed to update room",
+      logPrefix: LOG_CONTEXT,
     });
   },
   LOG_CONTEXT
@@ -47,6 +49,7 @@ export const DELETE = withErrorHandler<{ id: string }>(
     return proxyToBackend(`/api/rooms/${id}`, {
       method: "DELETE",
       errorMessage: "Failed to delete room",
+      logPrefix: LOG_CONTEXT,
     });
   },
   LOG_CONTEXT

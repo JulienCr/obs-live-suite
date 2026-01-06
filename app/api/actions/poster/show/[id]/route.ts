@@ -1,12 +1,11 @@
-import { NextResponse } from "next/server";
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { SettingsService } from "@/lib/services/SettingsService";
 import { enrichPosterPayload } from "@/lib/utils/themeEnrichment";
-import { BACKEND_URL } from "@/lib/config/urls";
 import { sendChatMessageIfEnabled } from "@/lib/utils/chatMessaging";
+import { fetchFromBackend, parseBackendResponse } from "@/lib/utils/ProxyHelper";
 import { ApiResponses, withErrorHandler, RouteContext } from "@/lib/utils/ApiResponses";
 
-const LOG_CONTEXT = "[ActionsAPI:Poster]";
+const LOG_CONTEXT = "[ActionsAPI:Poster:Show]";
 
 /**
  * POST /api/actions/poster/show/[id]
@@ -33,18 +32,19 @@ export const POST = withErrorHandler<{ id: string }>(
     const enrichedPayload = enrichPosterPayload(basePayload, db);
     console.log(`${LOG_CONTEXT} Publishing with theme:`, !!enrichedPayload.theme);
 
-    const response = await fetch(`${BACKEND_URL}/api/overlays/poster`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    // Proxy to backend using standardized helper
+    const response = await fetchFromBackend("/api/overlays/poster", {
+      method: "POST",
+      body: {
         action: 'show',
         payload: enrichedPayload,
-      }),
+      },
+      errorMessage: "Failed to show poster",
+      logPrefix: LOG_CONTEXT,
     });
 
     if (!response.ok) {
-      const data = await response.json();
-      return NextResponse.json(data, { status: response.status });
+      return parseBackendResponse(response, LOG_CONTEXT);
     }
 
     // Send chat message if enabled and defined (non-blocking)

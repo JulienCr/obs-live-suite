@@ -6,6 +6,7 @@ import {
   type CachedResult,
   type WikipediaCacheEntry,
 } from "../models/Wikipedia";
+import { DATABASE, WIKIPEDIA } from "../config/Constants";
 
 /**
  * WikipediaCacheService provides two-tier caching for Wikipedia summaries
@@ -17,16 +18,16 @@ export class WikipediaCacheService {
   private logger: Logger;
   private db: DatabaseService;
   private memoryCache: Map<string, CachedResult>;
-  private readonly MAX_MEMORY_ENTRIES = 100;
-  private readonly DEFAULT_TTL = 604800; // 7 days in seconds
+  private readonly MAX_MEMORY_ENTRIES = WIKIPEDIA.MAX_MEMORY_ENTRIES;
+  private readonly DEFAULT_TTL = DATABASE.WIKIPEDIA_CACHE_TTL_SECONDS;
 
   private constructor() {
     this.logger = new Logger("WikipediaCacheService");
     this.db = DatabaseService.getInstance();
     this.memoryCache = new Map();
-    
-    // Schedule periodic cleanup every 6 hours
-    setInterval(() => this.cleanup(), 6 * 60 * 60 * 1000);
+
+    // Schedule periodic cleanup
+    setInterval(() => this.cleanup(), WIKIPEDIA.CLEANUP_INTERVAL_MS);
   }
 
   /**

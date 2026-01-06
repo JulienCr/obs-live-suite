@@ -16,13 +16,13 @@ import {
 } from "../models/Wikipedia";
 import { Logger } from "../utils/Logger";
 import { cleanWikipediaContent } from "../utils/textProcessing";
+import { WIKIPEDIA } from "../config/Constants";
 
 // Conditional imports for Wikidata support
 let wdk: WikibaseSDK | null = null;
 let wikidataPatterns: Record<string, string> | null = null;
 
 // Configuration constants
-const MAX_SECTIONS = 3; // Intro + 2 first sections
 const DISABLE_WIKIDATA_FALLBACK = true;
 
 // Only import Wikidata dependencies if not disabled
@@ -52,7 +52,7 @@ export interface WikipediaResult {
 export class WikipediaResolverService {
   private static instance: WikipediaResolverService;
   private logger: Logger;
-  private readonly TIMEOUT_MS = 5000;
+  private readonly TIMEOUT_MS = WIKIPEDIA.API_TIMEOUT_MS;
 
 
   private constructor() {
@@ -181,7 +181,7 @@ export class WikipediaResolverService {
       let sectionsAdded = 0;
 
       for (const section of fullContent) {
-        if (sectionsAdded >= MAX_SECTIONS) break;
+        if (sectionsAdded >= WIKIPEDIA.MAX_SECTIONS) break;
 
         // Skip navigation/reference sections
         const skipTitles = ['voir aussi', 'notes et références', 'articles connexes', 'liens externes', 'bibliographie'];
@@ -198,7 +198,7 @@ export class WikipediaResolverService {
         // Add subsections content (but count them toward the total)
         if (section.items) {
           for (const item of section.items) {
-            if (sectionsAdded >= MAX_SECTIONS) break;
+            if (sectionsAdded >= WIKIPEDIA.MAX_SECTIONS) break;
             if (item.content) {
               wikitext += item.content + '\n\n';
               sectionsAdded++;
@@ -221,7 +221,7 @@ export class WikipediaResolverService {
 
       return {
         title: summary.title,
-        extract: this.truncateToTokenLimit(cleanedContent, 25000), // ~10k tokens
+        extract: this.truncateToTokenLimit(cleanedContent, WIKIPEDIA.TOKEN_CHAR_LIMIT),
         thumbnail: summary.thumbnail?.source || summary.originalimage?.source,
         source: WikipediaSource.DIRECT,
       };
@@ -277,12 +277,12 @@ export class WikipediaResolverService {
               // Parse with wtf_wikipedia
               const doc = wtf(wikitext);
 
-              // Get text from first MAX_SECTIONS sections
+              // Get text from first WIKIPEDIA.MAX_SECTIONS sections
               const sections = doc.sections();
               let combinedText = '';
               let sectionsAdded = 0;
 
-              for (let i = 0; i < sections.length && sectionsAdded < MAX_SECTIONS; i++) {
+              for (let i = 0; i < sections.length && sectionsAdded < WIKIPEDIA.MAX_SECTIONS; i++) {
                 const section = sections[i];
                 // Skip navigation/reference sections
                 const skipTitles = ['voir aussi', 'notes et références', 'articles connexes', 'liens externes', 'bibliographie'];
@@ -317,7 +317,7 @@ export class WikipediaResolverService {
 
       return {
         title: summaryData.title,
-        extract: this.truncateToTokenLimit(cleanedContent, 25000), // ~10k tokens
+        extract: this.truncateToTokenLimit(cleanedContent, WIKIPEDIA.TOKEN_CHAR_LIMIT),
         thumbnail: summaryData.thumbnail?.source || summaryData.originalimage?.source,
         source: WikipediaSource.DIRECT,
       };

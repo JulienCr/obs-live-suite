@@ -3,61 +3,33 @@
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import { LowerThirdRenderer } from '@/components/overlays/LowerThirdRenderer';
-
-// Mock WebSocket
-class MockWebSocket {
-  onopen: ((event: Event) => void) | null = null;
-  onmessage: ((event: MessageEvent) => void) | null = null;
-  onerror: ((event: Event) => void) | null = null;
-  onclose: ((event: Event) => void) | null = null;
-  
-  readyState: number = 0; // CONNECTING
-  
-  send = jest.fn();
-  close = jest.fn((code?: number, reason?: string) => {
-    this.readyState = 3; // CLOSED
-    if (this.onclose) {
-      this.onclose({ code: code || 1000, reason: reason || '' } as any);
-    }
-  });
-
-  simulateOpen() {
-    this.readyState = 1; // OPEN
-    if (this.onopen) {
-      this.onopen(new Event('open'));
-    }
-  }
-
-  simulateMessage(data: unknown) {
-    if (this.onmessage) {
-      this.onmessage(new MessageEvent('message', { data: JSON.stringify(data) }));
-    }
-  }
-}
-
-// Define WebSocket constants
-const MOCK_WEBSOCKET_CONNECTING = 0;
-const MOCK_WEBSOCKET_OPEN = 1;
-const MOCK_WEBSOCKET_CLOSING = 2;
-const MOCK_WEBSOCKET_CLOSED = 3;
+import {
+  setupWebSocketMock,
+  getLastMockWebSocket,
+  type MockWebSocket,
+} from '@/__tests__/test-utils/websocket-mock';
 
 describe('LowerThirdRenderer', () => {
-  let mockWs: MockWebSocket;
+  let mockWs: MockWebSocket | null;
+  let cleanupWebSocket: () => void;
 
   beforeEach(() => {
-    mockWs = new MockWebSocket();
-    (global as any).WebSocket = jest.fn(() => mockWs);
-    (global as any).WebSocket.CONNECTING = MOCK_WEBSOCKET_CONNECTING;
-    (global as any).WebSocket.OPEN = MOCK_WEBSOCKET_OPEN;
-    (global as any).WebSocket.CLOSING = MOCK_WEBSOCKET_CLOSING;
-    (global as any).WebSocket.CLOSED = MOCK_WEBSOCKET_CLOSED;
+    cleanupWebSocket = setupWebSocketMock();
     jest.useFakeTimers();
   });
 
   afterEach(() => {
+    cleanupWebSocket();
     jest.clearAllMocks();
     jest.useRealTimers();
   });
+
+  // Helper to get the mock WebSocket after rendering
+  const renderAndGetWs = () => {
+    render(<LowerThirdRenderer />);
+    mockWs = getLastMockWebSocket();
+    return mockWs;
+  };
 
   it('should render nothing initially', () => {
     const { container } = render(<LowerThirdRenderer />);
@@ -65,15 +37,16 @@ describe('LowerThirdRenderer', () => {
   });
 
   it('should connect to WebSocket on mount', () => {
-    render(<LowerThirdRenderer />);
-    expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:3003');
+    renderAndGetWs();
+    expect(mockWs).not.toBeNull();
+    expect(mockWs?.url).toBe('ws://localhost:3003');
   });
 
   it('should display lower third when show event is received', async () => {
-    render(<LowerThirdRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'lower',
       data: {
         type: 'show',
@@ -93,10 +66,10 @@ describe('LowerThirdRenderer', () => {
   });
 
   it('should send acknowledgment after receiving event', async () => {
-    render(<LowerThirdRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'lower',
       data: {
         type: 'show',
@@ -108,7 +81,7 @@ describe('LowerThirdRenderer', () => {
     });
 
     await waitFor(() => {
-      expect(mockWs.send).toHaveBeenCalledWith(
+      expect(ws?.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: 'ack',
           eventId: 'test-event-2',
@@ -120,11 +93,11 @@ describe('LowerThirdRenderer', () => {
   });
 
   it('should hide lower third when hide event is received', async () => {
-    render(<LowerThirdRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
     // Show first
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'lower',
       data: {
         type: 'show',
@@ -140,7 +113,7 @@ describe('LowerThirdRenderer', () => {
     });
 
     // Then hide
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'lower',
       data: {
         type: 'hide',
@@ -154,10 +127,10 @@ describe('LowerThirdRenderer', () => {
   });
 
   it('should auto-hide after duration', async () => {
-    render(<LowerThirdRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'lower',
       data: {
         type: 'show',
@@ -182,11 +155,11 @@ describe('LowerThirdRenderer', () => {
   });
 
   it('should update lower third content', async () => {
-    render(<LowerThirdRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
     // Show first
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'lower',
       data: {
         type: 'show',
@@ -202,7 +175,7 @@ describe('LowerThirdRenderer', () => {
     });
 
     // Update
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'lower',
       data: {
         type: 'update',
@@ -220,10 +193,10 @@ describe('LowerThirdRenderer', () => {
   });
 
   it('should apply correct side class', async () => {
-    render(<LowerThirdRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'lower',
       data: {
         type: 'show',
@@ -242,10 +215,10 @@ describe('LowerThirdRenderer', () => {
   });
 
   it('should ignore messages from other channels', async () => {
-    render(<LowerThirdRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'countdown',
       data: {
         type: 'show',
@@ -260,27 +233,27 @@ describe('LowerThirdRenderer', () => {
   });
 
   it('should close WebSocket on unmount', () => {
+    const ws = renderAndGetWs();
     const { unmount } = render(<LowerThirdRenderer />);
     unmount();
-    expect(mockWs.close).toHaveBeenCalled();
+    expect(ws?.close).toHaveBeenCalled();
   });
 
   it('should clear timeout on unmount', async () => {
     const { unmount } = render(<LowerThirdRenderer />);
-    mockWs.simulateOpen();
+    const ws = getLastMockWebSocket();
+    ws?.simulateOpen();
 
-    await waitFor(() => {
-      mockWs.simulateMessage({
-        channel: 'lower',
-        data: {
-          type: 'show',
-          payload: {
-            title: 'Test',
-            duration: 5,
-          },
-          id: 'test-event-10',
+    ws?.simulateMessage({
+      channel: 'lower',
+      data: {
+        type: 'show',
+        payload: {
+          title: 'Test',
+          duration: 5,
         },
-      });
+        id: 'test-event-10',
+      },
     });
 
     // Wait for state updates
@@ -290,7 +263,7 @@ describe('LowerThirdRenderer', () => {
 
     unmount();
     // Cleanup is called automatically, we just verify unmount doesn't throw
-    expect(mockWs.close).toHaveBeenCalled();
+    expect(ws?.close).toHaveBeenCalled();
   });
 });
 

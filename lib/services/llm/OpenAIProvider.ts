@@ -5,6 +5,7 @@ import {
   buildSummarizationPrompt,
   SUMMARIZATION_SYSTEM_MESSAGE,
 } from "./PromptTemplates";
+import { LLM } from "../../config/Constants";
 
 // Force temperature to 1 for this models 
 
@@ -31,8 +32,8 @@ export class OpenAIProvider implements LLMProvider {
   }) {
     this.logger = new Logger("OpenAIProvider");
     this.model = config.model || "gpt-5-nano";
-    this.temperature = modelsWithTemperature1.includes(this.model) ? 1 : config.temperature ?? 0.3;
-    this.timeout = config.timeout ?? 60000; // 60 seconds
+    this.temperature = modelsWithTemperature1.includes(this.model) ? 1 : config.temperature ?? LLM.DEFAULT_TEMPERATURE;
+    this.timeout = config.timeout ?? LLM.DEFAULT_TIMEOUT_MS;
 
     this.client = new OpenAI({
       apiKey: config.apiKey,
@@ -90,7 +91,7 @@ export class OpenAIProvider implements LLMProvider {
           },
         ],
         temperature: this.temperature,
-        max_completion_tokens: 2000, // Increased for reasoning models
+        max_completion_tokens: LLM.OPENAI_MAX_COMPLETION_TOKENS,
       });
 
       // Log full response for debugging

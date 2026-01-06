@@ -3,6 +3,7 @@ import { OBSConnectionManager } from "../adapters/obs/OBSConnectionManager";
 import { OBSStateManager } from "../adapters/obs/OBSStateManager";
 import { DatabaseService } from "./DatabaseService";
 import { Logger } from "../utils/Logger";
+import { RECONNECTION } from "../config/Constants";
 
 /**
  * ServiceEnsurer ensures all services are running in the current process
@@ -29,7 +30,7 @@ export class ServiceEnsurer {
             clearInterval(check);
             resolve(undefined);
           }
-        }, 100);
+        }, RECONNECTION.POLL_INTERVAL_MS);
       });
       return;
     }
@@ -48,7 +49,7 @@ export class ServiceEnsurer {
       if (!wsHub.isRunning() && !wsHub.wasAttempted()) {
         wsHub.start();
         // Wait a bit to see if it started successfully
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, RECONNECTION.POLL_INTERVAL_MS));
         if (wsHub.isRunning()) {
           this.logger.info("✓ WebSocket hub started");
         } else {

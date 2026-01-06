@@ -1,7 +1,7 @@
 import { proxyToBackend } from "@/lib/utils/ProxyHelper";
 import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
 
-const LOG_CONTEXT = "[QuizQuestionsAPI]";
+const LOG_CONTEXT = "[QuizAPI:Questions:Bulk]";
 
 /**
  * POST /api/quiz/questions/bulk
@@ -27,6 +27,7 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
     method: "POST",
     body,
     errorMessage: "Failed to import questions",
+    logPrefix: LOG_CONTEXT,
   });
 }, LOG_CONTEXT);
 

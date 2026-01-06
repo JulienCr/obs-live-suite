@@ -4,6 +4,10 @@ import { Logger } from "../utils/Logger";
 import { safeJsonParse, safeJsonParseOptional } from "../utils/safeJsonParse";
 import { DATABASE } from "../config/Constants";
 import {
+  MigrationError,
+  MigrationErrorCode,
+} from "../errors/MigrationError";
+import {
   DbGuest,
   DbGuestInput,
   DbGuestUpdate,
@@ -67,119 +71,135 @@ export class DatabaseService {
    * Run database migrations
    */
   private runMigrations(): void {
-    // Check if layout columns exist in themes table
-    try {
-      const tableInfo = this.db.prepare("PRAGMA table_info(themes)").all() as Array<{ name: string }>;
-      const hasLowerThirdLayout = tableInfo.some((col) => col.name === "lowerThirdLayout");
-      const hasCountdownLayout = tableInfo.some((col) => col.name === "countdownLayout");
-      const hasPosterLayout = tableInfo.some((col) => col.name === "posterLayout");
+    this.logger.info("Starting database migrations...");
 
-      if (!hasLowerThirdLayout) {
-        this.logger.info("Adding lowerThirdLayout column to themes table");
-        this.db.exec(`
-          ALTER TABLE themes ADD COLUMN lowerThirdLayout TEXT NOT NULL DEFAULT '{"x":60,"y":920,"scale":1}';
-        `);
-      }
+    // Migration 1: Add layout columns to themes table
+    this.runMigration({
+      name: "themes_layout_columns",
+      table: "themes",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(themes)").all() as Array<{ name: string }>;
+        const hasLowerThirdLayout = tableInfo.some((col) => col.name === "lowerThirdLayout");
+        const hasCountdownLayout = tableInfo.some((col) => col.name === "countdownLayout");
+        const hasPosterLayout = tableInfo.some((col) => col.name === "posterLayout");
 
-      if (!hasCountdownLayout) {
-        this.logger.info("Adding countdownLayout column to themes table");
-        this.db.exec(`
-          ALTER TABLE themes ADD COLUMN countdownLayout TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}';
-        `);
-      }
+        if (!hasLowerThirdLayout) {
+          this.logger.info("Adding lowerThirdLayout column to themes table");
+          this.db.exec(`
+            ALTER TABLE themes ADD COLUMN lowerThirdLayout TEXT NOT NULL DEFAULT '{"x":60,"y":920,"scale":1}';
+          `);
+        }
 
-      if (!hasPosterLayout) {
-        this.logger.info("Adding posterLayout column to themes table");
-        this.db.exec(`
-          ALTER TABLE themes ADD COLUMN posterLayout TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}';
-        `);
-      }
+        if (!hasCountdownLayout) {
+          this.logger.info("Adding countdownLayout column to themes table");
+          this.db.exec(`
+            ALTER TABLE themes ADD COLUMN countdownLayout TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}';
+          `);
+        }
 
-      if (!hasLowerThirdLayout || !hasCountdownLayout || !hasPosterLayout) {
-        this.logger.info("Theme table migration completed");
-      }
-    } catch (error) {
-      this.logger.error("Migration error:", error);
-      // If themes table doesn't exist yet, that's fine - it will be created
-    }
+        if (!hasPosterLayout) {
+          this.logger.info("Adding posterLayout column to themes table");
+          this.db.exec(`
+            ALTER TABLE themes ADD COLUMN posterLayout TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}';
+          `);
+        }
 
-    // Check if isEnabled column exists in guests table
-    try {
-      const guestTableInfo = this.db.prepare("PRAGMA table_info(guests)").all() as Array<{ name: string }>;
-      const hasIsEnabled = guestTableInfo.some((col) => col.name === "isEnabled");
+        return !hasLowerThirdLayout || !hasCountdownLayout || !hasPosterLayout;
+      },
+    });
 
-      if (!hasIsEnabled) {
-        this.logger.info("Adding isEnabled column to guests table");
-        this.db.exec(`
-          ALTER TABLE guests ADD COLUMN isEnabled INTEGER NOT NULL DEFAULT 1;
-        `);
-        this.logger.info("Guests table migration completed");
-      }
-    } catch (error) {
-      this.logger.error("Migration error for guests table:", error);
-    }
+    // Migration 2: Add isEnabled column to guests table
+    this.runMigration({
+      name: "guests_isEnabled",
+      table: "guests",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(guests)").all() as Array<{ name: string }>;
+        const hasIsEnabled = tableInfo.some((col) => col.name === "isEnabled");
 
-    // Check if isEnabled column exists in posters table
-    try {
-      const posterTableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
-      const hasIsEnabled = posterTableInfo.some((col) => col.name === "isEnabled");
+        if (!hasIsEnabled) {
+          this.logger.info("Adding isEnabled column to guests table");
+          this.db.exec(`
+            ALTER TABLE guests ADD COLUMN isEnabled INTEGER NOT NULL DEFAULT 1;
+          `);
+          return true;
+        }
+        return false;
+      },
+    });
 
-      if (!hasIsEnabled) {
-        this.logger.info("Adding isEnabled column to posters table");
-        this.db.exec(`
-          ALTER TABLE posters ADD COLUMN isEnabled INTEGER NOT NULL DEFAULT 1;
-        `);
-        this.logger.info("Posters table migration completed");
-      }
-    } catch (error) {
-      this.logger.error("Migration error for posters table:", error);
-    }
+    // Migration 3: Add isEnabled column to posters table
+    this.runMigration({
+      name: "posters_isEnabled",
+      table: "posters",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
+        const hasIsEnabled = tableInfo.some((col) => col.name === "isEnabled");
 
-    // Check if description and source columns exist in posters table
-    try {
-      const posterTableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
-      const hasDescription = posterTableInfo.some((col) => col.name === "description");
-      const hasSource = posterTableInfo.some((col) => col.name === "source");
+        if (!hasIsEnabled) {
+          this.logger.info("Adding isEnabled column to posters table");
+          this.db.exec(`
+            ALTER TABLE posters ADD COLUMN isEnabled INTEGER NOT NULL DEFAULT 1;
+          `);
+          return true;
+        }
+        return false;
+      },
+    });
 
-      if (!hasDescription) {
-        this.logger.info("Adding description column to posters table");
-        this.db.exec(`
-          ALTER TABLE posters ADD COLUMN description TEXT;
-        `);
-      }
+    // Migration 4: Add description and source columns to posters table
+    this.runMigration({
+      name: "posters_description_source",
+      table: "posters",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
+        const hasDescription = tableInfo.some((col) => col.name === "description");
+        const hasSource = tableInfo.some((col) => col.name === "source");
+        let modified = false;
 
-      if (!hasSource) {
-        this.logger.info("Adding source column to posters table");
-        this.db.exec(`
-          ALTER TABLE posters ADD COLUMN source TEXT;
-        `);
-      }
+        if (!hasDescription) {
+          this.logger.info("Adding description column to posters table");
+          this.db.exec(`ALTER TABLE posters ADD COLUMN description TEXT;`);
+          modified = true;
+        }
 
-      if (!hasDescription || !hasSource) {
-        this.logger.info("Posters table description/source migration completed");
-      }
-    } catch (error) {
-      this.logger.error("Migration error for posters table (description/source):", error);
-    }
+        if (!hasSource) {
+          this.logger.info("Adding source column to posters table");
+          this.db.exec(`ALTER TABLE posters ADD COLUMN source TEXT;`);
+          modified = true;
+        }
 
-    // Check if lowerThirdAnimation column exists in themes table
-    try {
-      const themeTableInfo = this.db.prepare("PRAGMA table_info(themes)").all() as Array<{ name: string }>;
-      const hasLowerThirdAnimation = themeTableInfo.some((col) => col.name === "lowerThirdAnimation");
+        return modified;
+      },
+    });
 
-      if (!hasLowerThirdAnimation) {
-        this.logger.info("Adding lowerThirdAnimation column to themes table");
-        this.db.exec(`
-          ALTER TABLE themes ADD COLUMN lowerThirdAnimation TEXT DEFAULT '{"timing":{"logoFadeDuration":200,"logoScaleDuration":200,"flipDuration":600,"flipDelay":500,"barAppearDelay":800,"barExpandDuration":450,"textAppearDelay":1000,"textFadeDuration":250},"styles":{"barBorderRadius":16,"barMinWidth":200,"avatarBorderWidth":4,"avatarBorderColor":"#272727","freeTextMaxWidth":{"left":65,"right":65,"center":90}}}';
-        `);
-        this.logger.info("Themes table lowerThirdAnimation migration completed");
-      } else {
-        // Update existing records to include freeTextMaxWidth if missing
-        this.logger.info("Checking for freeTextMaxWidth in existing themes...");
+    // Migration 5: Add lowerThirdAnimation column to themes table
+    this.runMigration({
+      name: "themes_lowerThirdAnimation",
+      table: "themes",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(themes)").all() as Array<{ name: string }>;
+        const hasLowerThirdAnimation = tableInfo.some((col) => col.name === "lowerThirdAnimation");
+
+        if (!hasLowerThirdAnimation) {
+          this.logger.info("Adding lowerThirdAnimation column to themes table");
+          this.db.exec(`
+            ALTER TABLE themes ADD COLUMN lowerThirdAnimation TEXT DEFAULT '{"timing":{"logoFadeDuration":200,"logoScaleDuration":200,"flipDuration":600,"flipDelay":500,"barAppearDelay":800,"barExpandDuration":450,"textAppearDelay":1000,"textFadeDuration":250},"styles":{"barBorderRadius":16,"barMinWidth":200,"avatarBorderWidth":4,"avatarBorderColor":"#272727","freeTextMaxWidth":{"left":65,"right":65,"center":90}}}';
+          `);
+          return true;
+        }
+        return false;
+      },
+    });
+
+    // Migration 5b: Update existing themes with freeTextMaxWidth (data migration)
+    this.runMigration({
+      name: "themes_freeTextMaxWidth_data",
+      table: "themes",
+      run: () => {
         const themes = this.db.prepare("SELECT id, lowerThirdAnimation FROM themes").all() as Array<{ id: string; lowerThirdAnimation: string }>;
-        
+
         let updatedCount = 0;
-        themes.forEach((theme) => {
+        for (const theme of themes) {
           const animation = safeJsonParse<Record<string, unknown>>(theme.lowerThirdAnimation, {});
           if (!animation.styles || !(animation.styles as Record<string, unknown>)?.freeTextMaxWidth) {
             if (!animation.styles) {
@@ -191,143 +211,231 @@ export class DatabaseService {
               .run(JSON.stringify(animation), theme.id);
             updatedCount++;
           }
-        });
-        
+        }
+
         if (updatedCount > 0) {
           this.logger.info(`Updated ${updatedCount} theme(s) with freeTextMaxWidth`);
+          return true;
         }
-      }
-    } catch (error) {
-      this.logger.error("Migration error for themes table (lowerThirdAnimation):", error);
-    }
+        return false;
+      },
+    });
 
-    // Check if wikipedia_cache table exists
-    try {
-      const tables = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='wikipedia_cache'").all() as Array<{ name: string }>;
-      
-      if (tables.length === 0) {
-        this.logger.info("Creating wikipedia_cache table");
-        this.db.exec(`
-          CREATE TABLE wikipedia_cache (
-            id TEXT PRIMARY KEY,
-            query TEXT NOT NULL,
-            lang TEXT NOT NULL DEFAULT 'fr',
-            title TEXT NOT NULL,
-            summary TEXT NOT NULL,
-            thumbnail TEXT,
-            source TEXT NOT NULL,
-            created_at INTEGER NOT NULL,
-            ttl INTEGER NOT NULL DEFAULT 604800,
-            raw_extract TEXT
-          );
-          CREATE INDEX idx_wikipedia_cache_query ON wikipedia_cache(query, lang);
-          CREATE INDEX idx_wikipedia_cache_created_at ON wikipedia_cache(created_at);
-        `);
-        this.logger.info("Wikipedia cache table created");
-      } else {
-        // Check if raw_extract column exists and add it if not
-        const cacheTableInfo = this.db.prepare("PRAGMA table_info(wikipedia_cache)").all() as Array<{ name: string }>;
-        const hasRawExtract = cacheTableInfo.some((col) => col.name === "raw_extract");
-        
+    // Migration 6: Create wikipedia_cache table
+    this.runMigration({
+      name: "wikipedia_cache_table",
+      table: "wikipedia_cache",
+      run: () => {
+        const tables = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='wikipedia_cache'").all() as Array<{ name: string }>;
+
+        if (tables.length === 0) {
+          this.logger.info("Creating wikipedia_cache table");
+          this.db.exec(`
+            CREATE TABLE wikipedia_cache (
+              id TEXT PRIMARY KEY,
+              query TEXT NOT NULL,
+              lang TEXT NOT NULL DEFAULT 'fr',
+              title TEXT NOT NULL,
+              summary TEXT NOT NULL,
+              thumbnail TEXT,
+              source TEXT NOT NULL,
+              created_at INTEGER NOT NULL,
+              ttl INTEGER NOT NULL DEFAULT 604800,
+              raw_extract TEXT
+            );
+            CREATE INDEX idx_wikipedia_cache_query ON wikipedia_cache(query, lang);
+            CREATE INDEX idx_wikipedia_cache_created_at ON wikipedia_cache(created_at);
+          `);
+          return true;
+        }
+        return false;
+      },
+    });
+
+    // Migration 6b: Add raw_extract column to wikipedia_cache
+    this.runMigration({
+      name: "wikipedia_cache_raw_extract",
+      table: "wikipedia_cache",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(wikipedia_cache)").all() as Array<{ name: string }>;
+        const hasRawExtract = tableInfo.some((col) => col.name === "raw_extract");
+
         if (!hasRawExtract) {
           this.logger.info("Adding raw_extract column to wikipedia_cache table");
           this.db.exec(`ALTER TABLE wikipedia_cache ADD COLUMN raw_extract TEXT`);
-          this.logger.info("Wikipedia cache table raw_extract migration completed");
+          return true;
         }
-      }
-    } catch (error) {
-      this.logger.error("Migration error for wikipedia_cache table:", error);
-    }
+        return false;
+      },
+    });
 
-    // Check if canSendCustomMessages column exists in rooms table
+    // Migration 7: Add canSendCustomMessages column to rooms table
+    this.runMigration({
+      name: "rooms_canSendCustomMessages",
+      table: "rooms",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(rooms)").all() as Array<{ name: string }>;
+        const hasColumn = tableInfo.some((col) => col.name === "canSendCustomMessages");
+
+        if (!hasColumn) {
+          this.logger.info("Adding canSendCustomMessages column to rooms table");
+          this.db.exec(`
+            ALTER TABLE rooms ADD COLUMN canSendCustomMessages INTEGER NOT NULL DEFAULT 0;
+          `);
+          return true;
+        }
+        return false;
+      },
+    });
+
+    // Migration 8: Add streamerbotConnection column to rooms table
+    this.runMigration({
+      name: "rooms_streamerbotConnection",
+      table: "rooms",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(rooms)").all() as Array<{ name: string }>;
+        const hasColumn = tableInfo.some((col) => col.name === "streamerbotConnection");
+
+        if (!hasColumn) {
+          this.logger.info("Adding streamerbotConnection column to rooms table");
+          this.db.exec(`ALTER TABLE rooms ADD COLUMN streamerbotConnection TEXT;`);
+          return true;
+        }
+        return false;
+      },
+    });
+
+    // Migration 9: Add allowPresenterToSendMessage column to rooms table
+    this.runMigration({
+      name: "rooms_allowPresenterToSendMessage",
+      table: "rooms",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(rooms)").all() as Array<{ name: string }>;
+        const hasColumn = tableInfo.some((col) => col.name === "allowPresenterToSendMessage");
+
+        if (!hasColumn) {
+          this.logger.info("Adding allowPresenterToSendMessage column to rooms table");
+          this.db.exec(`
+            ALTER TABLE rooms ADD COLUMN allowPresenterToSendMessage INTEGER NOT NULL DEFAULT 0;
+          `);
+          return true;
+        }
+        return false;
+      },
+    });
+
+    // Migration 10: Add scheme column to panel_colors table
+    this.runMigration({
+      name: "panel_colors_scheme",
+      table: "panel_colors",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(panel_colors)").all() as Array<{ name: string }>;
+        const hasScheme = tableInfo.some((col) => col.name === "scheme");
+
+        if (!hasScheme) {
+          this.logger.info("Adding scheme column to panel_colors table");
+          this.db.exec(`
+            ALTER TABLE panel_colors ADD COLUMN scheme TEXT NOT NULL DEFAULT 'neutral';
+          `);
+          return true;
+        }
+        return false;
+      },
+    });
+
+    // Migration 11: Add chatMessage column to guests table
+    this.runMigration({
+      name: "guests_chatMessage",
+      table: "guests",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(guests)").all() as Array<{ name: string }>;
+        const hasChatMessage = tableInfo.some((col) => col.name === "chatMessage");
+
+        if (!hasChatMessage) {
+          this.logger.info("Adding chatMessage column to guests table");
+          this.db.exec(`ALTER TABLE guests ADD COLUMN chatMessage TEXT;`);
+          return true;
+        }
+        return false;
+      },
+    });
+
+    // Migration 12: Add chatMessage column to posters table
+    this.runMigration({
+      name: "posters_chatMessage",
+      table: "posters",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
+        const hasChatMessage = tableInfo.some((col) => col.name === "chatMessage");
+
+        if (!hasChatMessage) {
+          this.logger.info("Adding chatMessage column to posters table");
+          this.db.exec(`ALTER TABLE posters ADD COLUMN chatMessage TEXT;`);
+          return true;
+        }
+        return false;
+      },
+    });
+
+    this.logger.info("Database migrations completed");
+  }
+
+  /**
+   * Execute a single migration with proper error handling
+   * @param options Migration configuration
+   * @returns true if migration was applied, false if skipped
+   */
+  private runMigration(options: {
+    name: string;
+    table: string;
+    run: () => boolean;
+  }): boolean {
+    const { name, table, run } = options;
+
     try {
-      const roomTableInfo = this.db.prepare("PRAGMA table_info(rooms)").all() as Array<{ name: string }>;
-      const hasCanSendCustomMessages = roomTableInfo.some((col) => col.name === "canSendCustomMessages");
-
-      if (!hasCanSendCustomMessages) {
-        this.logger.info("Adding canSendCustomMessages column to rooms table");
-        this.db.exec(`
-          ALTER TABLE rooms ADD COLUMN canSendCustomMessages INTEGER NOT NULL DEFAULT 0;
-        `);
-        this.logger.info("Rooms table canSendCustomMessages migration completed");
+      const applied = run();
+      if (applied) {
+        this.logger.info(`Migration "${name}" applied successfully`);
       }
+      return applied;
     } catch (error) {
-      this.logger.error("Migration error for rooms table (canSendCustomMessages):", error);
-    }
+      const migrationError = new MigrationError({
+        migrationName: name,
+        tableName: table,
+        operation: "ALTER/CREATE",
+        originalError: error,
+      });
 
-    // Check if streamerbotConnection column exists in rooms table
-    try {
-      const roomTableInfo = this.db.prepare("PRAGMA table_info(rooms)").all() as Array<{ name: string }>;
-      const hasStreamerbotConnection = roomTableInfo.some((col) => col.name === "streamerbotConnection");
+      // Log detailed error information
+      this.logger.error(`Migration failed: ${migrationError.message}`, migrationError.toLogObject());
 
-      if (!hasStreamerbotConnection) {
-        this.logger.info("Adding streamerbotConnection column to rooms table");
-        this.db.exec(`
-          ALTER TABLE rooms ADD COLUMN streamerbotConnection TEXT;
-        `);
-        this.logger.info("Rooms table streamerbotConnection migration completed");
+      // Handle based on error type
+      if (migrationError.isRecoverable) {
+        const code = migrationError.code;
+        if (code === MigrationErrorCode.TABLE_NOT_FOUND) {
+          // Table doesn't exist yet - this is expected on first run before initializeTables
+          // The table will be created and migration will apply on next start
+          this.logger.warn(
+            `Migration "${name}" skipped: table "${table}" does not exist yet. ` +
+            `This is expected if the table will be created during initialization.`
+          );
+        } else if (code === MigrationErrorCode.COLUMN_EXISTS) {
+          // Column already exists - migration was already applied
+          this.logger.info(
+            `Migration "${name}" skipped: column already exists in table "${table}". ` +
+            `This indicates the migration was already applied.`
+          );
+        }
+        return false;
       }
-    } catch (error) {
-      this.logger.error("Migration error for rooms table (streamerbotConnection):", error);
-    }
 
-    // Check if allowPresenterToSendMessage column exists in rooms table
-    try {
-      const roomTableInfo = this.db.prepare("PRAGMA table_info(rooms)").all() as Array<{ name: string }>;
-      const hasAllowPresenterToSendMessage = roomTableInfo.some((col) => col.name === "allowPresenterToSendMessage");
-
-      if (!hasAllowPresenterToSendMessage) {
-        this.logger.info("Adding allowPresenterToSendMessage column to rooms table");
-        this.db.exec(`
-          ALTER TABLE rooms ADD COLUMN allowPresenterToSendMessage INTEGER NOT NULL DEFAULT 0;
-        `);
-        this.logger.info("Rooms table allowPresenterToSendMessage migration completed");
-      }
-    } catch (error) {
-      this.logger.error("Migration error for rooms table (allowPresenterToSendMessage):", error);
-    }
-
-    // Migrate panel_colors table to use scheme instead of individual color columns
-    try {
-      const panelColorTableInfo = this.db.prepare("PRAGMA table_info(panel_colors)").all() as Array<{ name: string }>;
-      const hasScheme = panelColorTableInfo.some((col) => col.name === "scheme");
-
-      if (!hasScheme) {
-        this.logger.info("Adding scheme column to panel_colors table");
-        this.db.exec(`
-          ALTER TABLE panel_colors ADD COLUMN scheme TEXT NOT NULL DEFAULT 'neutral';
-        `);
-        this.logger.info("Panel colors table scheme migration completed");
-      }
-    } catch (error) {
-      this.logger.error("Migration error for panel_colors table (scheme):", error);
-    }
-
-    // Add chatMessage column to guests and posters tables
-    try {
-      const guestTableInfo = this.db.prepare("PRAGMA table_info(guests)").all() as Array<{ name: string }>;
-      const hasChatMessage = guestTableInfo.some((col) => col.name === "chatMessage");
-
-      if (!hasChatMessage) {
-        this.logger.info("Adding chatMessage column to guests table");
-        this.db.exec(`ALTER TABLE guests ADD COLUMN chatMessage TEXT;`);
-        this.logger.info("Guests table chatMessage migration completed");
-      }
-    } catch (error) {
-      this.logger.error("Migration error for guests table (chatMessage):", error);
-    }
-
-    try {
-      const posterTableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
-      const hasChatMessage = posterTableInfo.some((col) => col.name === "chatMessage");
-
-      if (!hasChatMessage) {
-        this.logger.info("Adding chatMessage column to posters table");
-        this.db.exec(`ALTER TABLE posters ADD COLUMN chatMessage TEXT;`);
-        this.logger.info("Posters table chatMessage migration completed");
-      }
-    } catch (error) {
-      this.logger.error("Migration error for posters table (chatMessage):", error);
+      // Non-recoverable error - re-throw to surface the issue
+      // This includes SQL syntax errors or unexpected failures
+      this.logger.error(
+        `FATAL: Migration "${name}" encountered an unrecoverable error. ` +
+        `Database may be in an inconsistent state. Manual intervention may be required.`
+      );
+      throw migrationError;
     }
   }
 

@@ -5,6 +5,7 @@ import {
   fetchWithTimeout,
   TimeoutError,
 } from "../../utils/fetchWithTimeout";
+import { LLM } from "../../config/Constants";
 
 /**
  * Anthropic (Claude) LLM Provider
@@ -25,8 +26,8 @@ export class AnthropicProvider implements LLMProvider {
     this.logger = new Logger("AnthropicProvider");
     this.apiKey = config.apiKey;
     this.model = config.model || "claude-sonnet-4"; // Default to cost-effective model
-    this.temperature = config.temperature ?? 0.3;
-    this.timeout = config.timeout ?? 60000; // 60 seconds
+    this.temperature = config.temperature ?? LLM.DEFAULT_TEMPERATURE;
+    this.timeout = config.timeout ?? LLM.DEFAULT_TIMEOUT_MS;
   }
 
   getName(): string {
@@ -61,7 +62,7 @@ export class AnthropicProvider implements LLMProvider {
           },
           body: JSON.stringify({
             model: this.model,
-            max_tokens: 10,
+            max_tokens: LLM.TEST_MAX_TOKENS,
             messages: [
               {
                 role: "user",
@@ -69,7 +70,7 @@ export class AnthropicProvider implements LLMProvider {
               },
             ],
           }),
-          timeout: 5000,
+          timeout: LLM.CONNECTION_TEST_TIMEOUT_MS,
         }
       );
 
@@ -107,7 +108,7 @@ export class AnthropicProvider implements LLMProvider {
           },
           body: JSON.stringify({
             model: this.model,
-            max_tokens: 500,
+            max_tokens: LLM.SUMMARIZATION_MAX_TOKENS,
             temperature: this.temperature,
             messages: [
               {

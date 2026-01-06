@@ -1,15 +1,15 @@
 import { createGetProxy, createPostProxy } from "@/lib/utils/ProxyHelper";
 import { withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
 
-const LOG_CONTEXT = "[RoomsAPI]";
+const LOG_CONTEXT = "[PresenterAPI:Rooms]";
 
 /**
  * GET /api/presenter/rooms
  * List all rooms
  */
-export const GET = createGetProxy("/api/rooms", "Failed to fetch rooms");
+export const GET = createGetProxy("/api/rooms", "Failed to fetch rooms", LOG_CONTEXT);
 
-const proxyPost = createPostProxy("/api/rooms", "Failed to create room");
+const proxyPost = createPostProxy("/api/rooms", "Failed to create room", LOG_CONTEXT);
 
 /**
  * POST /api/presenter/rooms

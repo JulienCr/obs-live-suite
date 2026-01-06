@@ -1,7 +1,7 @@
 import { proxyToBackend } from "@/lib/utils/ProxyHelper";
 import { withErrorHandler, RouteContext } from "@/lib/utils/ApiResponses";
 
-const LOG_CONTEXT = "[QuizQuestionsAPI]";
+const LOG_CONTEXT = "[QuizAPI:Questions]";
 
 /**
  * PUT /api/quiz/questions/[id]
@@ -15,6 +15,7 @@ export const PUT = withErrorHandler<{ id: string }>(
       method: "PUT",
       body,
       errorMessage: "Failed to update question",
+      logPrefix: LOG_CONTEXT,
     });
   },
   LOG_CONTEXT
@@ -30,6 +31,7 @@ export const DELETE = withErrorHandler<{ id: string }>(
     return proxyToBackend(`/api/quiz/questions/${id}`, {
       method: "DELETE",
       errorMessage: "Failed to delete question",
+      logPrefix: LOG_CONTEXT,
     });
   },
   LOG_CONTEXT

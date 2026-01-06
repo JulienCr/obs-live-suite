@@ -4,7 +4,7 @@ import {
   RouteContext,
 } from "@/lib/utils/ApiResponses";
 
-const LOG_CONTEXT = "[CueActionAPI]";
+const LOG_CONTEXT = "[PresenterAPI:Cue:Action]";
 
 interface CueActionParams {
   messageId: string;

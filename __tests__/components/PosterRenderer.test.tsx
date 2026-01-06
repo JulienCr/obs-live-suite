@@ -3,61 +3,31 @@
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import { PosterRenderer } from '@/components/overlays/PosterRenderer';
-
-// Mock WebSocket
-class MockWebSocket {
-  onopen: ((event: Event) => void) | null = null;
-  onmessage: ((event: MessageEvent) => void) | null = null;
-  onerror: ((event: Event) => void) | null = null;
-  onclose: ((event: Event) => void) | null = null;
-  
-  readyState: number = 0; // CONNECTING
-  
-  send = jest.fn();
-  close = jest.fn((code?: number, reason?: string) => {
-    this.readyState = 3; // CLOSED
-    if (this.onclose) {
-      this.onclose({ code: code || 1000, reason: reason || '' } as any);
-    }
-  });
-
-  simulateOpen() {
-    this.readyState = 1; // OPEN
-    if (this.onopen) {
-      this.onopen(new Event('open'));
-    }
-  }
-
-  simulateMessage(data: unknown) {
-    if (this.onmessage) {
-      this.onmessage(new MessageEvent('message', { data: JSON.stringify(data) }));
-    }
-  }
-}
-
-// Define WebSocket constants
-const MOCK_WEBSOCKET_CONNECTING = 0;
-const MOCK_WEBSOCKET_OPEN = 1;
-const MOCK_WEBSOCKET_CLOSING = 2;
-const MOCK_WEBSOCKET_CLOSED = 3;
+import {
+  setupWebSocketMock,
+  getLastMockWebSocket,
+  MockWebSocket,
+} from '@/__tests__/test-utils/websocket-mock';
 
 describe('PosterRenderer', () => {
-  let mockWs: MockWebSocket;
+  let cleanupWebSocket: () => void;
 
   beforeEach(() => {
-    mockWs = new MockWebSocket();
-    (global as any).WebSocket = jest.fn(() => mockWs);
-    (global as any).WebSocket.CONNECTING = MOCK_WEBSOCKET_CONNECTING;
-    (global as any).WebSocket.OPEN = MOCK_WEBSOCKET_OPEN;
-    (global as any).WebSocket.CLOSING = MOCK_WEBSOCKET_CLOSING;
-    (global as any).WebSocket.CLOSED = MOCK_WEBSOCKET_CLOSED;
+    cleanupWebSocket = setupWebSocketMock();
     jest.useFakeTimers();
   });
 
   afterEach(() => {
+    cleanupWebSocket();
     jest.clearAllMocks();
     jest.useRealTimers();
   });
+
+  // Helper to render and get WebSocket
+  const renderAndGetWs = (): MockWebSocket | null => {
+    render(<PosterRenderer />);
+    return getLastMockWebSocket();
+  };
 
   it('should render nothing initially', () => {
     const { container } = render(<PosterRenderer />);
@@ -65,15 +35,16 @@ describe('PosterRenderer', () => {
   });
 
   it('should connect to WebSocket on mount', () => {
-    render(<PosterRenderer />);
-    expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:3003');
+    const ws = renderAndGetWs();
+    expect(ws).not.toBeNull();
+    expect(ws?.url).toBe('ws://localhost:3003');
   });
 
   it('should display poster image when show event is received', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -93,10 +64,10 @@ describe('PosterRenderer', () => {
   });
 
   it('should display video poster when video URL is provided', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -120,9 +91,10 @@ describe('PosterRenderer', () => {
 
     for (const format of videoFormats) {
       const { unmount } = render(<PosterRenderer />);
-      mockWs.simulateOpen();
+      const ws = getLastMockWebSocket();
+      ws?.simulateOpen();
 
-      mockWs.simulateMessage({
+      ws?.simulateMessage({
         channel: 'poster',
         data: {
           type: 'show',
@@ -144,10 +116,10 @@ describe('PosterRenderer', () => {
   });
 
   it('should send acknowledgment after receiving event', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -160,7 +132,7 @@ describe('PosterRenderer', () => {
     });
 
     await waitFor(() => {
-      expect(mockWs.send).toHaveBeenCalledWith(
+      expect(ws?.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: 'ack',
           eventId: 'test-event-3',
@@ -172,11 +144,11 @@ describe('PosterRenderer', () => {
   });
 
   it('should hide poster when hide event is received', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
     // Show first
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -193,7 +165,7 @@ describe('PosterRenderer', () => {
     });
 
     // Then hide
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'hide',
@@ -207,10 +179,10 @@ describe('PosterRenderer', () => {
   });
 
   it('should auto-hide after duration', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -240,9 +212,10 @@ describe('PosterRenderer', () => {
 
     for (const transition of transitions) {
       const { unmount } = render(<PosterRenderer />);
-      mockWs.simulateOpen();
+      const ws = getLastMockWebSocket();
+      ws?.simulateOpen();
 
-      mockWs.simulateMessage({
+      ws?.simulateMessage({
         channel: 'poster',
         data: {
           type: 'show',
@@ -264,10 +237,10 @@ describe('PosterRenderer', () => {
   });
 
   it('should ignore messages from other channels', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'countdown',
       data: {
         type: 'show',
@@ -282,28 +255,28 @@ describe('PosterRenderer', () => {
   });
 
   it('should close WebSocket on unmount', () => {
+    const ws = renderAndGetWs();
     const { unmount } = render(<PosterRenderer />);
     unmount();
-    expect(mockWs.close).toHaveBeenCalled();
+    expect(ws?.close).toHaveBeenCalled();
   });
 
   it('should clear timeout on unmount', async () => {
     const { unmount } = render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = getLastMockWebSocket();
+    ws?.simulateOpen();
 
-    await waitFor(() => {
-      mockWs.simulateMessage({
-        channel: 'poster',
-        data: {
-          type: 'show',
-          payload: {
-            fileUrl: '/test.jpg',
-            transition: 'fade',
-            duration: 5,
-          },
-          id: 'test-event-8',
+    ws?.simulateMessage({
+      channel: 'poster',
+      data: {
+        type: 'show',
+        payload: {
+          fileUrl: '/test.jpg',
+          transition: 'fade',
+          duration: 5,
         },
-      });
+        id: 'test-event-8',
+      },
     });
 
     // Wait for state updates
@@ -313,15 +286,15 @@ describe('PosterRenderer', () => {
 
     unmount();
     // Cleanup is called automatically, we just verify unmount doesn't throw
-    expect(mockWs.close).toHaveBeenCalled();
+    expect(ws?.close).toHaveBeenCalled();
   });
 
   it('should cancel previous timeout when new show event arrives', async () => {
-    render(<PosterRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
     // First poster with duration
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',
@@ -340,7 +313,7 @@ describe('PosterRenderer', () => {
     });
 
     // Second poster before first duration expires
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'poster',
       data: {
         type: 'show',

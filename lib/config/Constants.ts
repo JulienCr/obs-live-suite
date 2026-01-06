@@ -235,6 +235,175 @@ export const LOWER_THIRD_ANIMATION = {
 } as const;
 
 // ============================================================================
+// RECONNECTION CONSTANTS
+// ============================================================================
+
+/**
+ * WebSocket and connection reconnection constants.
+ */
+export const RECONNECTION = {
+  /**
+   * Base delay in milliseconds before first reconnection attempt.
+   * Used for OBS and Streamer.bot connections.
+   * @see lib/adapters/obs/OBSConnectionManager.ts
+   * @see lib/adapters/streamerbot/StreamerbotGateway.ts
+   */
+  BASE_DELAY_MS: 3000,
+
+  /**
+   * Maximum number of reconnection attempts before giving up.
+   * @see lib/adapters/obs/OBSConnectionManager.ts
+   * @see lib/adapters/streamerbot/StreamerbotGateway.ts
+   */
+  MAX_ATTEMPTS: 10,
+
+  /**
+   * Polling interval in milliseconds for waiting on initialization.
+   * @see lib/services/ServiceEnsurer.ts
+   */
+  POLL_INTERVAL_MS: 100,
+} as const;
+
+// ============================================================================
+// WIKIPEDIA CONSTANTS
+// ============================================================================
+
+/**
+ * Wikipedia service configuration constants.
+ */
+export const WIKIPEDIA = {
+  /**
+   * Maximum number of sections to fetch from Wikipedia articles.
+   * Includes intro + first N-1 sections.
+   * @see lib/services/WikipediaResolverService.ts
+   */
+  MAX_SECTIONS: 3,
+
+  /**
+   * Maximum character limit for truncating Wikipedia content.
+   * Approximately 10k tokens for LLM processing.
+   * @see lib/services/WikipediaResolverService.ts
+   */
+  TOKEN_CHAR_LIMIT: 25000,
+
+  /**
+   * HTTP request timeout in milliseconds for Wikipedia API.
+   * @see lib/services/WikipediaResolverService.ts
+   */
+  API_TIMEOUT_MS: 5000,
+
+  /**
+   * Maximum number of entries in the in-memory LRU cache.
+   * @see lib/services/WikipediaCacheService.ts
+   */
+  MAX_MEMORY_ENTRIES: 100,
+
+  /**
+   * Cache cleanup interval in milliseconds (6 hours).
+   * @see lib/services/WikipediaCacheService.ts
+   */
+  CLEANUP_INTERVAL_MS: 6 * 60 * 60 * 1000,
+} as const;
+
+// ============================================================================
+// LLM PROVIDER CONSTANTS
+// ============================================================================
+
+/**
+ * LLM provider configuration constants.
+ */
+export const LLM = {
+  /**
+   * Default timeout in milliseconds for LLM API requests.
+   * @see lib/services/llm/OllamaProvider.ts
+   * @see lib/services/llm/OpenAIProvider.ts
+   * @see lib/services/llm/AnthropicProvider.ts
+   */
+  DEFAULT_TIMEOUT_MS: 60000,
+
+  /**
+   * Default temperature for LLM generation.
+   * Lower values = more deterministic output.
+   * @see lib/services/llm/*.ts
+   */
+  DEFAULT_TEMPERATURE: 0.3,
+
+  /**
+   * Max tokens for summarization responses.
+   * @see lib/services/llm/AnthropicProvider.ts
+   */
+  SUMMARIZATION_MAX_TOKENS: 500,
+
+  /**
+   * Max tokens for OpenAI reasoning models.
+   * @see lib/services/llm/OpenAIProvider.ts
+   */
+  OPENAI_MAX_COMPLETION_TOKENS: 2000,
+
+  /**
+   * Context window size for Ollama.
+   * @see lib/services/llm/OllamaProvider.ts
+   */
+  OLLAMA_CONTEXT_SIZE: 2048,
+
+  /**
+   * Timeout for connection test requests.
+   * @see lib/services/llm/AnthropicProvider.ts
+   * @see lib/services/llm/OllamaProvider.ts
+   */
+  CONNECTION_TEST_TIMEOUT_MS: 5000,
+
+  /**
+   * Max tokens for minimal test requests.
+   * @see lib/services/llm/AnthropicProvider.ts
+   */
+  TEST_MAX_TOKENS: 10,
+} as const;
+
+// ============================================================================
+// RATE LIMITING CONSTANTS
+// ============================================================================
+
+/**
+ * Rate limiting and cleanup constants.
+ */
+export const RATE_LIMITING = {
+  /**
+   * Cleanup interval in milliseconds for expired rate limit buckets (10 minutes).
+   * @see lib/services/RateLimiterService.ts
+   */
+  BUCKET_CLEANUP_INTERVAL_MS: 10 * 60 * 1000,
+
+  /**
+   * Bucket expiry time in milliseconds (1 hour).
+   * Buckets older than this are cleaned up.
+   * @see lib/services/RateLimiterService.ts
+   */
+  BUCKET_EXPIRY_MS: 60 * 60 * 1000,
+
+  /**
+   * Rate limiting window in milliseconds for RPS calculations.
+   * @see lib/services/QuizViewerInputService.ts
+   */
+  WINDOW_MS: 1000,
+} as const;
+
+// ============================================================================
+// GITHUB RELEASE CHECKER CONSTANTS
+// ============================================================================
+
+/**
+ * GitHub release checker configuration.
+ */
+export const GITHUB = {
+  /**
+   * Cache duration in milliseconds for GitHub release checks (1 hour).
+   * @see lib/services/updater/GitHubReleaseChecker.ts
+   */
+  RELEASE_CACHE_DURATION_MS: 3600000,
+} as const;
+
+// ============================================================================
 // TYPE EXPORTS
 // ============================================================================
 

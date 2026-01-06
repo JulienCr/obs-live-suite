@@ -1,6 +1,7 @@
 import OBSWebSocket from "obs-websocket-js";
 import { Logger } from "../../utils/Logger";
 import { SettingsService } from "../../services/SettingsService";
+import { RECONNECTION } from "../../config/Constants";
 
 /**
  * Connection status enum
@@ -32,8 +33,8 @@ export class OBSConnectionManager {
     this.settingsService = SettingsService.getInstance();
     this.status = ConnectionStatus.DISCONNECTED;
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 10;
-    this.reconnectDelay = 3000;
+    this.maxReconnectAttempts = RECONNECTION.MAX_ATTEMPTS;
+    this.reconnectDelay = RECONNECTION.BASE_DELAY_MS;
 
     this.setupEventListeners();
   }

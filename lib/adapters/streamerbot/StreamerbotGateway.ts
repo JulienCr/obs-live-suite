@@ -3,6 +3,7 @@ import { Logger } from "../../utils/Logger";
 import { SettingsService } from "../../services/SettingsService";
 import { WebSocketHub } from "../../services/WebSocketHub";
 import { DatabaseService } from "../../services/DatabaseService";
+import { RECONNECTION } from "../../config/Constants";
 import {
   ChatMessage,
   StreamerbotConnectionStatus,
@@ -49,8 +50,8 @@ export class StreamerbotGateway {
     this.wsHub = WebSocketHub.getInstance();
     this.status = StreamerbotConnectionStatus.DISCONNECTED;
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 10;
-    this.reconnectDelay = 3000;
+    this.maxReconnectAttempts = RECONNECTION.MAX_ATTEMPTS;
+    this.reconnectDelay = RECONNECTION.BASE_DELAY_MS;
   }
 
   /**

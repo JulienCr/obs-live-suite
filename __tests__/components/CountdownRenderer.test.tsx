@@ -3,59 +3,29 @@
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import { CountdownRenderer } from '@/components/overlays/CountdownRenderer';
-
-// Mock WebSocket
-class MockWebSocket {
-  onopen: ((event: Event) => void) | null = null;
-  onmessage: ((event: MessageEvent) => void) | null = null;
-  onerror: ((event: Event) => void) | null = null;
-  onclose: ((event: Event) => void) | null = null;
-  
-  readyState: number = 0; // CONNECTING
-  
-  send = jest.fn();
-  close = jest.fn((code?: number, reason?: string) => {
-    this.readyState = 3; // CLOSED
-    if (this.onclose) {
-      this.onclose({ code: code || 1000, reason: reason || '' } as any);
-    }
-  });
-
-  simulateOpen() {
-    this.readyState = 1; // OPEN
-    if (this.onopen) {
-      this.onopen(new Event('open'));
-    }
-  }
-
-  simulateMessage(data: unknown) {
-    if (this.onmessage) {
-      this.onmessage(new MessageEvent('message', { data: JSON.stringify(data) }));
-    }
-  }
-}
-
-// Define WebSocket constants
-const MOCK_WEBSOCKET_CONNECTING = 0;
-const MOCK_WEBSOCKET_OPEN = 1;
-const MOCK_WEBSOCKET_CLOSING = 2;
-const MOCK_WEBSOCKET_CLOSED = 3;
+import {
+  setupWebSocketMock,
+  getLastMockWebSocket,
+  type MockWebSocket,
+} from '@/__tests__/test-utils/websocket-mock';
 
 describe('CountdownRenderer', () => {
-  let mockWs: MockWebSocket;
+  let cleanupWebSocket: () => void;
 
   beforeEach(() => {
-    mockWs = new MockWebSocket();
-    (global as any).WebSocket = jest.fn(() => mockWs);
-    (global as any).WebSocket.CONNECTING = MOCK_WEBSOCKET_CONNECTING;
-    (global as any).WebSocket.OPEN = MOCK_WEBSOCKET_OPEN;
-    (global as any).WebSocket.CLOSING = MOCK_WEBSOCKET_CLOSING;
-    (global as any).WebSocket.CLOSED = MOCK_WEBSOCKET_CLOSED;
+    cleanupWebSocket = setupWebSocketMock();
   });
 
   afterEach(() => {
+    cleanupWebSocket();
     jest.clearAllMocks();
   });
+
+  // Helper to render and get WebSocket
+  const renderAndGetWs = (): MockWebSocket | null => {
+    render(<CountdownRenderer />);
+    return getLastMockWebSocket();
+  };
 
   it('should render nothing initially', () => {
     const { container } = render(<CountdownRenderer />);
@@ -63,15 +33,16 @@ describe('CountdownRenderer', () => {
   });
 
   it('should connect to WebSocket on mount', () => {
-    render(<CountdownRenderer />);
-    expect(global.WebSocket).toHaveBeenCalledWith('ws://localhost:3003');
+    const ws = renderAndGetWs();
+    expect(ws).not.toBeNull();
+    expect(ws?.url).toBe('ws://localhost:3003');
   });
 
   it('should display countdown when set event is received', async () => {
-    render(<CountdownRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'countdown',
       data: {
         type: 'set',
@@ -86,10 +57,10 @@ describe('CountdownRenderer', () => {
   });
 
   it('should send acknowledgment after receiving event', async () => {
-    render(<CountdownRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'countdown',
       data: {
         type: 'set',
@@ -99,7 +70,7 @@ describe('CountdownRenderer', () => {
     });
 
     await waitFor(() => {
-      expect(mockWs.send).toHaveBeenCalledWith(
+      expect(ws?.send).toHaveBeenCalledWith(
         JSON.stringify({
           type: 'ack',
           eventId: 'test-event-2',
@@ -111,11 +82,11 @@ describe('CountdownRenderer', () => {
   });
 
   it('should handle start event', async () => {
-    render(<CountdownRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
     // First set the countdown
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'countdown',
       data: {
         type: 'set',
@@ -125,7 +96,7 @@ describe('CountdownRenderer', () => {
     });
 
     // Then start it
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'countdown',
       data: {
         type: 'start',
@@ -139,10 +110,10 @@ describe('CountdownRenderer', () => {
   });
 
   it('should handle pause event', async () => {
-    render(<CountdownRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'countdown',
       data: {
         type: 'pause',
@@ -151,15 +122,15 @@ describe('CountdownRenderer', () => {
     });
 
     await waitFor(() => {
-      expect(mockWs.send).toHaveBeenCalled();
+      expect(ws?.send).toHaveBeenCalled();
     });
   });
 
   it('should handle reset event', async () => {
-    render(<CountdownRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'countdown',
       data: {
         type: 'reset',
@@ -174,10 +145,10 @@ describe('CountdownRenderer', () => {
   });
 
   it('should format time correctly', async () => {
-    render(<CountdownRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'countdown',
       data: {
         type: 'set',
@@ -192,10 +163,10 @@ describe('CountdownRenderer', () => {
   });
 
   it('should ignore messages from other channels', async () => {
-    render(<CountdownRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    mockWs.simulateMessage({
+    ws?.simulateMessage({
       channel: 'lower',
       data: {
         type: 'set',
@@ -212,19 +183,19 @@ describe('CountdownRenderer', () => {
   });
 
   it('should close WebSocket on unmount', () => {
+    const ws = renderAndGetWs();
     const { unmount } = render(<CountdownRenderer />);
     unmount();
-    expect(mockWs.close).toHaveBeenCalled();
+    expect(ws?.close).toHaveBeenCalled();
   });
 
   it('should handle invalid JSON messages gracefully', () => {
     const consoleError = jest.spyOn(console, 'error').mockImplementation();
-    render(<CountdownRenderer />);
-    mockWs.simulateOpen();
+    const ws = renderAndGetWs();
+    ws?.simulateOpen();
 
-    if (mockWs.onmessage) {
-      mockWs.onmessage(new MessageEvent('message', { data: 'invalid json' }));
-    }
+    // Use simulateRawMessage to send invalid JSON
+    ws?.simulateRawMessage('invalid json');
 
     expect(consoleError).toHaveBeenCalledWith(
       '[Countdown] Failed to parse message:',

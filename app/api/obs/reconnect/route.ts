@@ -1,20 +1,23 @@
 import { proxyToBackend } from "@/lib/utils/ProxyHelper";
+import { withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
 
-const LOG_CONTEXT = "[OBSAPI]";
+const LOG_CONTEXT = "[OBSAPI:Reconnect]";
 
 /**
- * POST/GET /api/obs/reconnect
+ * POST /api/obs/reconnect
  * Reconnect to OBS (proxies to backend)
  */
-export async function POST() {
+export const POST = withSimpleErrorHandler(async () => {
   return proxyToBackend("/api/obs/reconnect", {
     method: "POST",
     errorMessage: "Failed to reconnect to OBS",
     logPrefix: LOG_CONTEXT,
   });
-}
+}, LOG_CONTEXT);
 
-export async function GET() {
-  return POST();
-}
+/**
+ * GET /api/obs/reconnect
+ * Reconnect to OBS (proxies to backend) - GET alias for POST
+ */
+export const GET = POST;
 
