@@ -2,12 +2,30 @@
  * @jest-environment jsdom
  */
 import { render, screen, waitFor } from '@testing-library/react';
-import { LowerThirdRenderer } from '@/components/overlays/LowerThirdRenderer';
 import {
   setupWebSocketMock,
   getLastMockWebSocket,
   type MockWebSocket,
 } from '@/__tests__/test-utils/websocket-mock';
+
+// Mock react-markdown to avoid ESM import issues in Jest
+jest.mock('react-markdown', () => ({
+  __esModule: true,
+  default: ({ children }: { children: string }) => <>{children}</>,
+}));
+
+jest.mock('remark-gfm', () => ({
+  __esModule: true,
+  default: () => {},
+}));
+
+jest.mock('remark-breaks', () => ({
+  __esModule: true,
+  default: () => {},
+}));
+
+// Import after mocks are set up
+import { LowerThirdRenderer } from '@/components/overlays/LowerThirdRenderer';
 
 describe('LowerThirdRenderer', () => {
   let mockWs: MockWebSocket | null;
@@ -59,6 +77,9 @@ describe('LowerThirdRenderer', () => {
       },
     });
 
+    // Advance timers for animation sequence (initial delay + text appear)
+    jest.advanceTimersByTime(600);
+
     await waitFor(() => {
       expect(screen.getByText('Test Title')).toBeInTheDocument();
       expect(screen.getByText('Test Subtitle')).toBeInTheDocument();
@@ -108,6 +129,9 @@ describe('LowerThirdRenderer', () => {
       },
     });
 
+    // Advance timers for animation
+    jest.advanceTimersByTime(600);
+
     await waitFor(() => {
       expect(screen.getByText('Will Hide')).toBeInTheDocument();
     });
@@ -120,6 +144,9 @@ describe('LowerThirdRenderer', () => {
         id: 'test-event-4',
       },
     });
+
+    // Advance timers for hide animation
+    jest.advanceTimersByTime(600);
 
     await waitFor(() => {
       expect(screen.queryByText('Will Hide')).not.toBeInTheDocument();
@@ -142,12 +169,15 @@ describe('LowerThirdRenderer', () => {
       },
     });
 
+    // Advance timers for animation
+    jest.advanceTimersByTime(600);
+
     await waitFor(() => {
       expect(screen.getByText('Auto Hide')).toBeInTheDocument();
     });
 
-    // Fast-forward 2 seconds
-    jest.advanceTimersByTime(2000);
+    // Fast-forward past duration + hide animation
+    jest.advanceTimersByTime(2500);
 
     await waitFor(() => {
       expect(screen.queryByText('Auto Hide')).not.toBeInTheDocument();
@@ -169,6 +199,9 @@ describe('LowerThirdRenderer', () => {
         id: 'test-event-6',
       },
     });
+
+    // Advance timers for animation
+    jest.advanceTimersByTime(600);
 
     await waitFor(() => {
       expect(screen.getByText('Original Title')).toBeInTheDocument();
@@ -208,9 +241,12 @@ describe('LowerThirdRenderer', () => {
       },
     });
 
+    // Advance timers for animation
+    jest.advanceTimersByTime(600);
+
     await waitFor(() => {
-      const element = screen.getByText('Right Side').closest('.lower-third');
-      expect(element).toHaveClass('lower-third-right');
+      const element = screen.getByText('Right Side').closest('.lowerthird');
+      expect(element).toHaveClass('lowerthird--right');
     });
   });
 
@@ -233,8 +269,8 @@ describe('LowerThirdRenderer', () => {
   });
 
   it('should close WebSocket on unmount', () => {
-    const ws = renderAndGetWs();
     const { unmount } = render(<LowerThirdRenderer />);
+    const ws = getLastMockWebSocket();
     unmount();
     expect(ws?.close).toHaveBeenCalled();
   });
@@ -255,6 +291,9 @@ describe('LowerThirdRenderer', () => {
         id: 'test-event-10',
       },
     });
+
+    // Advance timers for animation
+    jest.advanceTimersByTime(600);
 
     // Wait for state updates
     await waitFor(() => {

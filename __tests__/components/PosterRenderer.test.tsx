@@ -11,16 +11,70 @@ import {
 
 describe('PosterRenderer', () => {
   let cleanupWebSocket: () => void;
+  const originalImage = global.Image;
+  const originalCreateElement = document.createElement.bind(document);
 
   beforeEach(() => {
     cleanupWebSocket = setupWebSocketMock();
     jest.useFakeTimers();
+
+    // Mock Image constructor to immediately trigger onload
+    // This is needed because detectAspectRatio creates Image elements
+    // and waits for them to load, which doesn't happen with fake timers
+    global.Image = class MockImage {
+      naturalWidth = 800;
+      naturalHeight = 600;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      private _src = '';
+
+      get src() { return this._src; }
+      set src(value: string) {
+        this._src = value;
+        // Use setTimeout to simulate async behavior but with fake timers
+        setTimeout(() => {
+          if (this.onload) this.onload();
+        }, 0);
+      }
+    } as unknown as typeof Image;
+
+    // Mock document.createElement to handle video element for aspect ratio detection
+    document.createElement = ((tagName: string) => {
+      if (tagName === 'video') {
+        // Create a real video element and override properties for aspect ratio detection
+        const realVideo = originalCreateElement('video');
+        Object.defineProperty(realVideo, 'videoWidth', { value: 1920, writable: true });
+        Object.defineProperty(realVideo, 'videoHeight', { value: 1080, writable: true });
+
+        // Store original src setter
+        const originalSrcDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
+
+        // Override src to trigger onloadedmetadata
+        Object.defineProperty(realVideo, 'src', {
+          get() { return this._mockSrc || ''; },
+          set(value: string) {
+            this._mockSrc = value;
+            if (originalSrcDescriptor?.set) {
+              originalSrcDescriptor.set.call(this, value);
+            }
+            setTimeout(() => {
+              if (this.onloadedmetadata) this.onloadedmetadata(new Event('loadedmetadata'));
+            }, 0);
+          },
+        });
+
+        return realVideo;
+      }
+      return originalCreateElement(tagName);
+    }) as typeof document.createElement;
   });
 
   afterEach(() => {
     cleanupWebSocket();
     jest.clearAllMocks();
     jest.useRealTimers();
+    global.Image = originalImage;
+    document.createElement = originalCreateElement;
   });
 
   // Helper to render and get WebSocket
@@ -56,6 +110,9 @@ describe('PosterRenderer', () => {
       },
     });
 
+    // Advance timers to allow Image mock onload to fire
+    jest.runAllTimers();
+
     await waitFor(() => {
       const img = screen.getByAltText('Poster');
       expect(img).toBeInTheDocument();
@@ -78,6 +135,9 @@ describe('PosterRenderer', () => {
         id: 'test-event-2',
       },
     });
+
+    // Advance timers to allow aspect ratio detection
+    jest.runAllTimers();
 
     await waitFor(() => {
       const video = document.querySelector('video');
@@ -105,6 +165,9 @@ describe('PosterRenderer', () => {
           id: `test-event-${format}`,
         },
       });
+
+      // Advance timers to allow aspect ratio detection
+      jest.runAllTimers();
 
       await waitFor(() => {
         const video = document.querySelector('video');
@@ -160,6 +223,8 @@ describe('PosterRenderer', () => {
       },
     });
 
+    jest.runAllTimers();
+
     await waitFor(() => {
       expect(screen.getByAltText('Poster')).toBeInTheDocument();
     });
@@ -172,6 +237,8 @@ describe('PosterRenderer', () => {
         id: 'test-event-5',
       },
     });
+
+    jest.runAllTimers();
 
     await waitFor(() => {
       expect(screen.queryByAltText('Poster')).not.toBeInTheDocument();
@@ -195,12 +262,14 @@ describe('PosterRenderer', () => {
       },
     });
 
+    jest.runAllTimers();
+
     await waitFor(() => {
       expect(screen.getByAltText('Poster')).toBeInTheDocument();
     });
 
-    // Fast-forward 3 seconds
-    jest.advanceTimersByTime(3000);
+    // Fast-forward 3 seconds + fade out time
+    jest.advanceTimersByTime(4000);
 
     await waitFor(() => {
       expect(screen.queryByAltText('Poster')).not.toBeInTheDocument();
@@ -227,8 +296,10 @@ describe('PosterRenderer', () => {
         },
       });
 
+      jest.runAllTimers();
+
       await waitFor(() => {
-        const poster = document.querySelector('.poster');
+        const poster = document.querySelector('.poster-layer');
         expect(poster).toHaveClass(`poster-transition-${transition}`);
       });
 
@@ -255,8 +326,8 @@ describe('PosterRenderer', () => {
   });
 
   it('should close WebSocket on unmount', () => {
-    const ws = renderAndGetWs();
     const { unmount } = render(<PosterRenderer />);
+    const ws = getLastMockWebSocket();
     unmount();
     expect(ws?.close).toHaveBeenCalled();
   });
@@ -278,6 +349,8 @@ describe('PosterRenderer', () => {
         id: 'test-event-8',
       },
     });
+
+    jest.runAllTimers();
 
     // Wait for state updates
     await waitFor(() => {
@@ -307,6 +380,8 @@ describe('PosterRenderer', () => {
       },
     });
 
+    jest.runAllTimers();
+
     await waitFor(() => {
       const img = screen.getByAltText('Poster');
       expect(img).toHaveAttribute('src', '/first.jpg');
@@ -324,6 +399,8 @@ describe('PosterRenderer', () => {
         id: 'test-event-10',
       },
     });
+
+    jest.runAllTimers();
 
     await waitFor(() => {
       const img = screen.getByAltText('Poster');

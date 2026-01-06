@@ -183,8 +183,8 @@ describe('CountdownRenderer', () => {
   });
 
   it('should close WebSocket on unmount', () => {
-    const ws = renderAndGetWs();
     const { unmount } = render(<CountdownRenderer />);
+    const ws = getLastMockWebSocket();
     unmount();
     expect(ws?.close).toHaveBeenCalled();
   });
