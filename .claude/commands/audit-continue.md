@@ -52,6 +52,8 @@ Sélectionner les tâches du batch selon:
 
 ### Étape 3: Lancer les Agents Parallèles
 
+IMPORTANT: lancer chaque tâche avec l'agent le plus adapté, et lancer plusieurs tâches en parallèle si possible.
+
 Utiliser les agents appropriés selon le type de tâche:
 
 | Type de tâche | Agent | Justification |

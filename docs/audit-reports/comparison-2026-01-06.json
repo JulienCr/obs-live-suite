@@ -1,0 +1,281 @@
+{
+  "current": {
+    "timestamp": "2026-01-06T23:25:06.382Z",
+    "commit": "b66d158",
+    "branch": "refactor/next"
+  },
+  "previous": null,
+  "scores": {
+    "quality": {
+      "current": 4.3,
+      "previous": null,
+      "delta": null,
+      "deltaFormatted": "N/A",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "maintainability": {
+      "current": 8.5,
+      "previous": null,
+      "delta": null,
+      "deltaFormatted": "N/A",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "dry": {
+      "current": 10,
+      "previous": null,
+      "delta": null,
+      "deltaFormatted": "N/A",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "tests": {
+      "current": 0,
+      "previous": null,
+      "delta": null,
+      "deltaFormatted": "N/A",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "overall": {
+      "current": 5.7,
+      "previous": null,
+      "delta": null,
+      "deltaFormatted": "N/A",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    }
+  },
+  "quality": {
+    "unsafeJsonParse": {
+      "current": 4,
+      "previous": null,
+      "delta": null,
+      "deltaFormatted": "N/A",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "exposedErrors": {
+      "current": 20,
+      "previous": null,
+      "delta": null,
+      "deltaFormatted": "N/A",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "asAnyCasts": {
+      "current": 5,
+      "previous": null,
+      "delta": null,
+      "deltaFormatted": "N/A",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "magicNumbers": {
+      "current": 0,
+      "previous": null,
+      "delta": null,
+      "deltaFormatted": "N/A",
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    }
+  },
+  "maintainability": {
+    "largestFile": {
+      "current": 1113,
+      "previous": null,
+      "file": "lib\\services\\DatabaseService.ts",
+      "delta": null,
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "avgServiceLines": {
+      "current": 218,
+      "previous": null,
+      "delta": null,
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "repositoriesExtracted": {
+      "current": 6,
+      "previous": null,
+      "delta": null,
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    }
+  },
+  "dry": {
+    "proxyHelperAdoption": {
+      "current": 23,
+      "previous": null,
+      "delta": null,
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "rawFetchRemaining": {
+      "current": 0,
+      "previous": null,
+      "delta": null,
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "estimatedDuplicateLines": {
+      "current": 0,
+      "previous": null,
+      "delta": null,
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    }
+  },
+  "tests": {
+    "testFileCount": {
+      "current": 32,
+      "previous": null,
+      "delta": null,
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    },
+    "lineCoverage": {
+      "current": 0,
+      "previous": null,
+      "delta": null,
+      "trend": {
+        "symbol": "↓",
+        "label": "regressed",
+        "color": "red"
+      }
+    }
+  },
+  "summary": {
+    "improvements": [],
+    "regressions": [
+      {
+        "metric": "scores.quality",
+        "delta": "N/A",
+        "current": 4.3
+      },
+      {
+        "metric": "scores.maintainability",
+        "delta": "N/A",
+        "current": 8.5
+      },
+      {
+        "metric": "scores.dry",
+        "delta": "N/A",
+        "current": 10
+      },
+      {
+        "metric": "scores.tests",
+        "delta": "N/A",
+        "current": 0
+      },
+      {
+        "metric": "scores.overall",
+        "delta": "N/A",
+        "current": 5.7
+      },
+      {
+        "metric": "quality.unsafeJsonParse",
+        "delta": "N/A",
+        "current": 4
+      },
+      {
+        "metric": "quality.exposedErrors",
+        "delta": "N/A",
+        "current": 20
+      },
+      {
+        "metric": "quality.asAnyCasts",
+        "delta": "N/A",
+        "current": 5
+      },
+      {
+        "metric": "quality.magicNumbers",
+        "delta": "N/A",
+        "current": 0
+      },
+      {
+        "metric": "maintainability.largestFile",
+        "current": 1113
+      },
+      {
+        "metric": "maintainability.avgServiceLines",
+        "current": 218
+      },
+      {
+        "metric": "maintainability.repositoriesExtracted",
+        "current": 6
+      },
+      {
+        "metric": "dry.proxyHelperAdoption",
+        "current": 23
+      },
+      {
+        "metric": "dry.rawFetchRemaining",
+        "current": 0
+      },
+      {
+        "metric": "dry.estimatedDuplicateLines",
+        "current": 0
+      },
+      {
+        "metric": "tests.testFileCount",
+        "current": 32
+      },
+      {
+        "metric": "tests.lineCoverage",
+        "current": 0
+      }
+    ],
+    "stable": []
+  }
+}

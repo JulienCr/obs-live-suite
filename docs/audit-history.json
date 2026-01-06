@@ -1,0 +1,39 @@
+{
+  "audits": [
+    {
+      "date": "2026-01-07",
+      "label": "Baseline - Post ClientFetch migration",
+      "commit": "b66d158",
+      "branch": "refactor/next",
+      "scores": {
+        "quality": 4.3,
+        "maintainability": 8.5,
+        "dry": 10,
+        "tests": 0,
+        "overall": 5.7
+      },
+      "metrics": {
+        "quality": {
+          "unsafeJsonParse": 4,
+          "exposedErrors": 20,
+          "asAnyCasts": 5,
+          "magicNumbers": 0
+        },
+        "maintainability": {
+          "largestFile": 1113,
+          "avgServiceLines": 218,
+          "repositoriesExtracted": 6
+        },
+        "dry": {
+          "proxyHelperAdoption": 23,
+          "proxyHelperTotal": 23,
+          "rawFetchRemaining": 0
+        },
+        "tests": {
+          "testFileCount": 32,
+          "coverage": null
+        }
+      }
+    }
+  ]
+}
