@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, Play, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield, Package, Sparkles, MessageSquare } from "lucide-react";
+import { ChevronDown, ChevronRight, Play, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield, Package, Sparkles, MessageSquare, Twitch } from "lucide-react";
 
 interface NavSection {
   id: string;
@@ -56,6 +56,7 @@ const navigationSections: NavSection[] = [
     labelKey: "integrations",
     items: [
       { labelKey: "obs", href: "/settings/obs", icon: Plug },
+      { labelKey: "twitch", href: "/settings/twitch", icon: Twitch },
       { labelKey: "streamDeck", href: "/integrations/stream-deck", icon: Shield },
       { labelKey: "pluginsUpdates", href: "/updater", icon: Download },
     ],
