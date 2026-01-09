@@ -182,6 +182,9 @@ export function useWebSocketChannel<T = unknown>(
       return;
     }
 
+    // Debounce timeout to avoid React Strict Mode double-connect
+    let connectDebounceTimeout: NodeJS.Timeout | undefined;
+
     const connect = () => {
       // Don't create new connection if component is unmounting or disabled
       if (!isMountedRef.current || !enabled) return;
@@ -268,17 +271,18 @@ export function useWebSocketChannel<T = unknown>(
       };
     };
 
-    connect();
+    // Debounce connection to handle React Strict Mode double-mount
+    connectDebounceTimeout = setTimeout(() => {
+      if (isMountedRef.current) {
+        connect();
+      }
+    }, 50);
 
     return () => {
       isMountedRef.current = false;
+      clearTimeout(connectDebounceTimeout);
+      clearTimeout(reconnectTimeoutRef.current);
 
-      // Clear any pending reconnection
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-
-      // Close the WebSocket connection
       if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
         try {
           wsRef.current.close(1000, "Component unmounting");
