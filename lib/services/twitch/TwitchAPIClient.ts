@@ -36,7 +36,6 @@ const TWITCH_API_BASE = "https://api.twitch.tv/helix";
 export class TwitchAPIClient {
   private logger: Logger;
   private oauthManager: TwitchOAuthManager;
-  private clientId: string | null = null;
 
   constructor(oauthManager: TwitchOAuthManager) {
     this.logger = new Logger("TwitchAPIClient");

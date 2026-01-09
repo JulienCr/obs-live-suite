@@ -45,7 +45,7 @@ import type {
  * - Provider status
  * - Auto-refresh via WebSocket
  */
-export function TwitchPanel(props: IDockviewPanelProps) {
+export function TwitchPanel(_props: IDockviewPanelProps) {
   const t = useTranslations("dashboard.twitch");
   const tCommon = useTranslations("common");
   const { toast } = useToast();
@@ -269,13 +269,9 @@ export function TwitchPanel(props: IDockviewPanelProps) {
             {/* Provider status */}
             {providerStatus && (
               <Badge variant={getProviderBadgeVariant()} className="text-xs">
-                {providerStatus.activeProvider === "streamerbot" && (
+                {providerStatus.activeProvider === "twitch-api" ? (
                   <Wifi className="h-3 w-3 mr-1" />
-                )}
-                {providerStatus.activeProvider === "twitch-api" && (
-                  <Wifi className="h-3 w-3 mr-1" />
-                )}
-                {providerStatus.activeProvider === "none" && (
+                ) : (
                   <WifiOff className="h-3 w-3 mr-1" />
                 )}
                 {providerStatus.activeProvider}

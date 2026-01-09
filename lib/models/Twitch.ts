@@ -81,7 +81,7 @@ export type TwitchCategorySearchResult = z.infer<typeof TwitchCategorySearchResu
 /**
  * Provider types
  */
-export const TwitchProviderType = z.enum(["streamerbot", "twitch-api", "none"]);
+export const TwitchProviderType = z.enum(["twitch-api", "none"]);
 export type TwitchProviderType = z.infer<typeof TwitchProviderType>;
 
 /**
@@ -90,8 +90,6 @@ export type TwitchProviderType = z.infer<typeof TwitchProviderType>;
 export const TwitchProviderStatusSchema = z.object({
   /** Currently active provider */
   activeProvider: TwitchProviderType,
-  /** Whether Streamer.bot connection is available */
-  streamerbotAvailable: z.boolean(),
   /** Whether direct Twitch API is available (has valid OAuth token) */
   twitchApiAvailable: z.boolean(),
   /** Last successful poll timestamp */
@@ -170,7 +168,7 @@ export const TwitchSettingsSchema = z.object({
   /** Polling interval in milliseconds */
   pollIntervalMs: z.number().min(10000).max(300000).default(30000),
   /** Preferred provider order */
-  preferredProvider: TwitchProviderType.default("streamerbot"),
+  preferredProvider: TwitchProviderType.default("twitch-api"),
   /** OAuth tokens (encrypted in DB) */
   oauth: TwitchOAuthTokensSchema.nullable().optional(),
   /** Twitch Client ID (for direct API) */
@@ -185,7 +183,7 @@ export type TwitchSettings = z.infer<typeof TwitchSettingsSchema>;
 export const DEFAULT_TWITCH_SETTINGS: TwitchSettings = {
   enabled: true,
   pollIntervalMs: 30000,
-  preferredProvider: "streamerbot",
+  preferredProvider: "twitch-api",
   oauth: null,
   clientId: undefined,
 };

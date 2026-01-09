@@ -202,9 +202,9 @@ export const TwitchValidateResponseSchema = z.object({
 export type TwitchValidateResponse = z.infer<typeof TwitchValidateResponseSchema>;
 
 /**
- * User info from Twitch API
+ * Raw user info from Twitch API (snake_case field names)
  */
-export const TwitchUserInfoSchema = z.object({
+export const TwitchAPIUserInfoSchema = z.object({
   id: z.string(),
   login: z.string(),
   display_name: z.string(),
@@ -212,7 +212,7 @@ export const TwitchUserInfoSchema = z.object({
   profile_image_url: z.string().optional(),
 });
 
-export type TwitchUserInfo = z.infer<typeof TwitchUserInfoSchema>;
+export type TwitchAPIUserInfo = z.infer<typeof TwitchAPIUserInfoSchema>;
 
 // ============================================================================
 // CREDENTIALS SCHEMAS
@@ -295,4 +295,22 @@ export function isAuthenticated(status: TwitchAuthStatus): boolean {
 export function getTimeUntilExpiry(status: TwitchAuthStatus): number | null {
   if (!status.expiresAt) return null;
   return status.expiresAt - Date.now();
+}
+
+/**
+ * Cached user info type (non-nullable version of TwitchAuthStatus["user"])
+ */
+export type CachedUserInfo = NonNullable<TwitchAuthStatus["user"]>;
+
+/**
+ * Transform Twitch API user response to cached user info format
+ */
+export function toCachedUserInfo(apiUser: TwitchAPIUserInfo): CachedUserInfo {
+  return {
+    id: apiUser.id,
+    login: apiUser.login,
+    displayName: apiUser.display_name,
+    email: apiUser.email,
+    profileImageUrl: apiUser.profile_image_url,
+  };
 }

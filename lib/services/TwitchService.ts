@@ -409,11 +409,8 @@ export class TwitchService {
    * Get current provider status
    */
   getProviderStatus(): TwitchProviderStatus {
-    const authStatus = this.oauthManager.getStatus();
-
     return {
       activeProvider: this.isAvailable() ? "twitch-api" : "none",
-      streamerbotAvailable: false, // Removed
       twitchApiAvailable: this.isAvailable(),
       lastPollTime: this.lastPollTime,
       pollIntervalMs: this.pollIntervalMs,

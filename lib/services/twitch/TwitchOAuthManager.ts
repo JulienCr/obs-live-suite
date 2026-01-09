@@ -15,14 +15,12 @@ import { WebSocketHub } from "../WebSocketHub";
 import { generateCodeVerifier, generateCodeChallenge, generateState } from "../../utils/pkce";
 import { TWITCH } from "../../config/Constants";
 import {
-  TwitchAuthState,
   TwitchAuthStatus,
   TwitchAuthError,
   TwitchAuthErrorType,
-  TwitchOAuthState,
   TwitchTokenResponseSchema,
   TwitchValidateResponseSchema,
-  TwitchUserInfoSchema,
+  TwitchAPIUserInfoSchema,
   TwitchCredentials,
   TWITCH_OAUTH_SCOPES,
   TWITCH_OAUTH_ENDPOINTS,
@@ -31,9 +29,9 @@ import {
   DEFAULT_AUTH_STATUS,
   isValidAuthTransition,
   createAuthError,
+  toCachedUserInfo,
 } from "../../models/TwitchAuth";
-import type { TwitchTokenResponse, TwitchValidateResponse, TwitchUserInfo } from "../../models/TwitchAuth";
-import type { TwitchOAuthTokens } from "../../models/Twitch";
+import type { TwitchTokenResponse, TwitchValidateResponse, TwitchAPIUserInfo } from "../../models/TwitchAuth";
 
 // ============================================================================
 // CONSTANTS
@@ -141,13 +139,7 @@ export class TwitchOAuthManager {
 
         const fetchedUser = await this.fetchUserInfo(tokens.accessToken, settings.clientId);
         if (fetchedUser) {
-          userInfo = {
-            id: fetchedUser.id,
-            login: fetchedUser.login,
-            displayName: fetchedUser.display_name,
-            email: fetchedUser.email,
-            profileImageUrl: fetchedUser.profile_image_url,
-          };
+          userInfo = toCachedUserInfo(fetchedUser);
           // Cache the user info for future reloads
           this.settingsService.saveTwitchOAuthTokens({
             ...tokens,
@@ -355,7 +347,8 @@ export class TwitchOAuthManager {
       const expiresAt = Date.now() + tokens.expires_in * 1000;
 
       // Fetch user info BEFORE saving tokens so we can include it in the save
-      const userInfo = await this.fetchUserInfo(tokens.access_token, settings.clientId);
+      const apiUserInfo = await this.fetchUserInfo(tokens.access_token, settings.clientId);
+      const cachedUser = apiUserInfo ? toCachedUserInfo(apiUserInfo) : null;
 
       // Save tokens with user info
       this.settingsService.saveTwitchOAuthTokens({
@@ -363,25 +356,13 @@ export class TwitchOAuthManager {
         refreshToken: tokens.refresh_token,
         expiresAt,
         scope: tokens.scope,
-        user: userInfo ? {
-          id: userInfo.id,
-          login: userInfo.login,
-          displayName: userInfo.display_name,
-          email: userInfo.email,
-          profileImageUrl: userInfo.profile_image_url,
-        } : undefined,
+        user: cachedUser ?? undefined,
       });
 
       // Update status to authorized
       this.updateStatus({
         state: "authorized",
-        user: userInfo ? {
-          id: userInfo.id,
-          login: userInfo.login,
-          displayName: userInfo.display_name,
-          email: userInfo.email,
-          profileImageUrl: userInfo.profile_image_url,
-        } : null,
+        user: cachedUser,
         expiresAt,
         scopes: tokens.scope,
         error: null,
@@ -392,7 +373,7 @@ export class TwitchOAuthManager {
       this.startRefreshTimer();
 
       this.logger.info("OAuth callback successful", {
-        user: userInfo?.login,
+        user: cachedUser?.login,
         scopes: tokens.scope.length,
       });
     } catch (error) {
@@ -630,7 +611,7 @@ export class TwitchOAuthManager {
   /**
    * Fetch user info from Twitch API
    */
-  private async fetchUserInfo(accessToken: string, clientId: string): Promise<TwitchUserInfo | null> {
+  private async fetchUserInfo(accessToken: string, clientId: string): Promise<TwitchAPIUserInfo | null> {
     try {
       const response = await fetch("https://api.twitch.tv/helix/users", {
         headers: {
@@ -648,7 +629,7 @@ export class TwitchOAuthManager {
         return null;
       }
 
-      return TwitchUserInfoSchema.parse(data.data[0]);
+      return TwitchAPIUserInfoSchema.parse(data.data[0]);
     } catch {
       return null;
     }
