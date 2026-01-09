@@ -396,8 +396,62 @@ export class SettingsService {
     this.db.deleteSetting("twitch.pollIntervalMs");
     this.db.deleteSetting("twitch.preferredProvider");
     this.db.deleteSetting("twitch.clientId");
+    this.db.deleteSetting("twitch.clientSecret");
     this.db.deleteSetting("twitch.oauth");
     this.logger.info("Twitch settings cleared from database");
+  }
+
+  /**
+   * Save Twitch Client Secret
+   */
+  saveTwitchClientSecret(secret: string | null): void {
+    if (secret) {
+      this.db.setSetting("twitch.clientSecret", secret);
+    } else {
+      this.db.deleteSetting("twitch.clientSecret");
+    }
+    this.logger.info("Twitch client secret saved");
+  }
+
+  /**
+   * Get Twitch Client Secret
+   */
+  getTwitchClientSecret(): string | null {
+    return this.db.getSetting("twitch.clientSecret");
+  }
+
+  /**
+   * Check if Twitch credentials are fully configured
+   */
+  hasTwitchCredentials(): boolean {
+    const settings = this.getTwitchSettings();
+    const clientSecret = this.getTwitchClientSecret();
+    return !!(settings.clientId && clientSecret);
+  }
+
+  /**
+   * Save pending OAuth state (for PKCE flow)
+   */
+  saveTwitchOAuthState(state: { state: string; codeVerifier: string; createdAt: number; returnUrl?: string } | null): void {
+    if (state) {
+      this.db.setSetting("twitch.pendingOAuth", JSON.stringify(state));
+    } else {
+      this.db.deleteSetting("twitch.pendingOAuth");
+    }
+  }
+
+  /**
+   * Get pending OAuth state
+   */
+  getTwitchOAuthState(): { state: string; codeVerifier: string; createdAt: number; returnUrl?: string } | null {
+    const json = this.db.getSetting("twitch.pendingOAuth");
+    if (!json) return null;
+
+    try {
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
   }
 }
 
