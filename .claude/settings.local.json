@@ -93,7 +93,10 @@
       "Bash(node scripts/generate-pwa-icons.js:*)",
       "Bash(if not exist \"D:\\\\dev\\\\obs-tools\\\\lib\\\\repositories\" mkdir \"D:\\\\dev\\\\obs-tools\\\\lib\\\\repositories\")",
       "Bash(mkdir:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(where:*)",
+      "Bash(echo:*)",
+      "Bash(tr:*)"
     ],
     "deny": [],
     "ask": [
