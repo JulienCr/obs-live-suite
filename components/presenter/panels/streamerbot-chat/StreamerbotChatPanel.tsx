@@ -14,6 +14,8 @@ import type { StreamerbotChatPanelProps, ChatMessage } from "./types";
 import { StreamerbotConnectionStatus } from "./types";
 import { useToast } from "@/hooks/use-toast";
 import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
+import type { TwitchEvent } from "@/lib/models/Twitch";
 
 /**
  * Streamer.bot Chat Panel - Main orchestrator component
@@ -32,6 +34,18 @@ export function StreamerbotChatPanel({
   const [showSearch, setShowSearch] = useState(false);
   const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
   const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
+  const [viewerCount, setViewerCount] = useState<number>(0);
+
+  // Subscribe to Twitch WebSocket for viewer count updates
+  const handleTwitchEvent = useCallback((data: TwitchEvent) => {
+    if (data.type === "stream-info") {
+      setViewerCount(data.data.viewerCount);
+    }
+  }, []);
+
+  useWebSocketChannel<TwitchEvent>("twitch", handleTwitchEvent, {
+    logPrefix: "StreamerbotChatPanel",
+  });
 
   // Chat settings from localStorage
   const {
@@ -150,6 +164,7 @@ export function StreamerbotChatPanel({
         status={status}
         error={error ?? undefined}
         messageCount={messageCount}
+        viewerCount={viewerCount}
         showSearch={showSearch}
         onToggleSearch={() => setShowSearch(!showSearch)}
         onClearMessages={clearMessages}

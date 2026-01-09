@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Wifi, WifiOff, Search, Trash2, Loader2 } from "lucide-react";
+import { Wifi, WifiOff, Search, Trash2, Loader2, Eye, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   StreamerbotChatHeaderProps,
@@ -55,6 +55,7 @@ export function StreamerbotChatHeader({
   status,
   error,
   messageCount,
+  viewerCount,
   showSearch,
   onToggleSearch,
   onClearMessages,
@@ -81,8 +82,14 @@ export function StreamerbotChatHeader({
           <span className="text-xs">{statusText}</span>
         </div>
 
-        {/* Message count */}
-        <span className="text-xs text-muted-foreground">({messageCount})</span>
+        {/* Viewers and message count */}
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Eye className="h-3 w-3" />
+          <span>{t("stats.viewers")}: {viewerCount ?? 0}</span>
+          <span className="mx-1">-</span>
+          <MessageSquare className="h-3 w-3" />
+          <span>{t("stats.messages")}: {messageCount}</span>
+        </div>
       </div>
 
       <div className="flex items-center gap-1">
