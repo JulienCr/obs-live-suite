@@ -96,7 +96,8 @@
       "Bash(npx tsc:*)",
       "Bash(where:*)",
       "Bash(echo:*)",
-      "Bash(tr:*)"
+      "Bash(tr:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -20 \"\"{}\"\"')"
     ],
     "deny": [],
     "ask": [
@@ -110,7 +111,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-call.py"
+            "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\post-tool-call.py\""
           }
         ]
       }
