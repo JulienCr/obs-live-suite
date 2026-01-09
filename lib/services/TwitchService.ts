@@ -157,15 +157,8 @@ export class TwitchService {
     }
 
     try {
-      // Get broadcaster ID if we don't have it
-      if (!this.broadcasterId) {
-        await this.fetchBroadcasterId();
-      }
-
-      if (!this.broadcasterId) {
-        this.logger.warn("Could not determine broadcaster ID");
-        return;
-      }
+      // Ensure broadcaster ID is available (fetches if needed)
+      await this.ensureBroadcasterId();
 
       const streamInfo = await this.fetchStreamInfo();
       this.lastPollTime = Date.now();
@@ -199,6 +192,20 @@ export class TwitchService {
       this.broadcasterId = user.id;
       this.logger.info("Broadcaster ID fetched:", { id: user.id, login: user.login });
     }
+  }
+
+  /**
+   * Ensure broadcaster ID is available, fetching if needed
+   * @throws Error if broadcaster ID cannot be determined
+   */
+  private async ensureBroadcasterId(): Promise<string> {
+    if (!this.broadcasterId) {
+      await this.fetchBroadcasterId();
+    }
+    if (!this.broadcasterId) {
+      throw new Error("Could not determine broadcaster ID");
+    }
+    return this.broadcasterId;
   }
 
   /**
@@ -304,10 +311,8 @@ export class TwitchService {
       return null;
     }
 
-    // Get broadcaster ID if we don't have it
-    if (!this.broadcasterId) {
-      await this.fetchBroadcasterId();
-    }
+    // Ensure broadcaster ID is available (fetches if needed)
+    await this.ensureBroadcasterId();
 
     const streamInfo = await this.fetchStreamInfo();
     this.lastStreamInfo = streamInfo;
@@ -323,19 +328,13 @@ export class TwitchService {
       throw new Error("Twitch API not available");
     }
 
-    if (!this.broadcasterId) {
-      await this.fetchBroadcasterId();
-    }
-
-    if (!this.broadcasterId) {
-      throw new Error("Could not determine broadcaster ID");
-    }
+    const broadcasterId = await this.ensureBroadcasterId();
 
     const updates: { title?: string; game_id?: string } = {};
     if (params.title) updates.title = params.title;
     if (params.categoryId) updates.game_id = params.categoryId;
 
-    await this.apiClient.updateChannelInfo(this.broadcasterId, updates);
+    await this.apiClient.updateChannelInfo(broadcasterId, updates);
 
     this.logger.info("Stream info updated", params);
 
@@ -384,17 +383,11 @@ export class TwitchService {
       throw new Error("Twitch API not available");
     }
 
-    if (!this.broadcasterId) {
-      await this.fetchBroadcasterId();
-    }
-
-    if (!this.broadcasterId) {
-      throw new Error("Could not determine broadcaster ID");
-    }
+    const broadcasterId = await this.ensureBroadcasterId();
 
     const result = await this.apiClient.sendChatMessage(
-      this.broadcasterId,
-      this.broadcasterId, // Sender is the broadcaster
+      broadcasterId,
+      broadcasterId, // Sender is the broadcaster
       message
     );
 

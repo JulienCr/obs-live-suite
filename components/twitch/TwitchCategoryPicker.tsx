@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Check, ChevronsUpDown, Loader2, Search, Gamepad2 } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
@@ -20,6 +18,8 @@ import {
 } from "@/components/ui/popover";
 import { apiGet, isClientFetchError } from "@/lib/utils/ClientFetch";
 import type { TwitchCategory } from "@/lib/models/Twitch";
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 interface TwitchCategoryPickerProps {
   value?: TwitchCategory | null;
@@ -47,7 +47,6 @@ export function TwitchCategoryPicker({
   const [categories, setCategories] = useState<TwitchCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Search categories with debounce
   const searchCategories = useCallback(async (query: string) => {
@@ -82,21 +81,10 @@ export function TwitchCategoryPicker({
     }
   }, []);
 
-  // Debounced search
+  // Debounced search effect
   useEffect(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    debounceRef.current = setTimeout(() => {
-      searchCategories(search);
-    }, 300);
-
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
+    const timer = setTimeout(() => searchCategories(search), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
   }, [search, searchCategories]);
 
   // Format box art URL with size
