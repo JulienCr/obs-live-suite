@@ -8,6 +8,7 @@ import { Eye, EyeOff, Timer, Loader2, ExternalLink, FileText, X, Search, Sparkle
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { toast } from "sonner";
 import { PanelColorMenu } from "../PanelColorMenu";
+import { LowerThirdPreviewDialog } from "./LowerThirdPreviewDialog";
 import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface WikipediaPreview {
@@ -42,6 +43,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
   const [wikipediaOptions, setWikipediaOptions] = useState<WikipediaSearchOption[]>([]);
   const [showWikipediaOptions, setShowWikipediaOptions] = useState(false);
   const [lowerThirdDuration, setLowerThirdDuration] = useState(8); // Default, will be updated from settings
+  const [showPreview, setShowPreview] = useState(false);
 
   // Fetch overlay settings on mount
   useEffect(() => {
@@ -525,6 +527,15 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
             {t("hide")}
           </Button>
           <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowPreview(true)}
+            disabled={mode === "guest" ? !title : !markdown.trim()}
+            title={t("preview")}
+          >
+            <Eye className="w-4 h-4" />
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             onClick={handleAuto}
@@ -534,6 +545,18 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
           </Button>
         </div>
         </div>
+
+        <LowerThirdPreviewDialog
+          open={showPreview}
+          onOpenChange={setShowPreview}
+          mode={mode}
+          title={title}
+          subtitle={subtitle}
+          markdown={markdown}
+          imageUrl={imageUrl}
+          imageAlt={imageAlt}
+          side={side}
+        />
       </div>
     </PanelColorMenu>
   );
