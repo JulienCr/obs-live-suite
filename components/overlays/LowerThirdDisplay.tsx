@@ -212,7 +212,9 @@ export function LowerThirdDisplay({
   }, [isPreview, side, layout.scale, layout.x, layout.y, centeredBottomOffset]);
 
   // Calculate CSS max-width in pixels based on broadcast width for consistency
-  const freeTextMaxWidthPx = (BROADCAST_WIDTH * freeTextMaxWidth) / 100;
+  // Divide by layout.scale so the final scaled width matches the target
+  // e.g., for center (90vw = 1728px) with scale 1.6: 1728/1.6 = 1080px base → 1080*1.6 = 1728px final
+  const freeTextMaxWidthPx = (BROADCAST_WIDTH * freeTextMaxWidth) / 100 / layout.scale;
 
   // Container style - no transform here, just CSS variables
   const containerStyle = useMemo(() => ({
@@ -310,8 +312,30 @@ export function LowerThirdDisplay({
 
     // Safety margin to account for canvas vs CSS rendering differences
     // Canvas measureText can be slightly less accurate than actual rendering
-    const safetyMargin = fontSize * 0.5; // ~0.5 character width
+    // Using 1.5 character widths to be more conservative
+    const safetyMargin = fontSize * 1.5;
     const effectiveWidth = width - safetyMargin;
+
+    // Words that should not be left alone at end of line (French articles, prepositions, etc.)
+    const noBreakAfter = new Set([
+      "*", "-", "•", ":", ";", // Bullets and punctuation
+      "à", "a", "au", "aux", "de", "des", "du", "d'", // French prepositions
+      "le", "la", "les", "l'", "un", "une", // French articles
+      "et", "ou", "en", "y", "ne", "n'", // French conjunctions/particles
+      "the", "a", "an", "to", "of", "in", "on", "at", "by", // English articles/prepositions
+    ]);
+
+    // Check if a word should stay with the next word
+    const shouldKeepWithNext = (word: string): boolean => {
+      const lower = word.toLowerCase();
+      // Single characters (except numbers)
+      if (word.length === 1 && !/\d/.test(word)) return true;
+      // Known no-break words
+      if (noBreakAfter.has(lower)) return true;
+      // Ends with apostrophe (like "d'", "l'", "n'")
+      if (word.endsWith("'") || word.endsWith("'")) return true;
+      return false;
+    };
 
     const paragraphs = text.split(/\r?\n/);
     const lines: string[] = [];
@@ -324,9 +348,20 @@ export function LowerThirdDisplay({
       }
       const words = paragraph.split(/\s+/).filter(Boolean);
       let current = "";
-      words.forEach((word) => {
+      let i = 0;
+
+      while (i < words.length) {
+        let word = words[i];
+
+        // If this word should stay with the next, combine them
+        while (i < words.length - 1 && shouldKeepWithNext(words[i])) {
+          word = word + " " + words[i + 1];
+          i++;
+        }
+
         const candidate = current ? `${current} ${word}` : word;
         const candidateWidth = ctx.measureText(sanitized(candidate)).width;
+
         if (candidateWidth > effectiveWidth && current) {
           lines.push(current);
           maxLen = Math.max(maxLen, current.length);
@@ -334,7 +369,9 @@ export function LowerThirdDisplay({
         } else {
           current = candidate;
         }
-      });
+        i++;
+      }
+
       if (current) {
         lines.push(current);
         maxLen = Math.max(maxLen, current.length);
@@ -346,6 +383,7 @@ export function LowerThirdDisplay({
 
   // Calculate target width from theme config (in vw)
   // Uses BROADCAST_WIDTH (1920px) for consistent text wrapping
+  // Divides by layout.scale since the content is scaled up - we need to wrap at narrower width
   const targetWidth = useMemo(() => {
     if (!isTextMode) return 0;
 
@@ -360,8 +398,11 @@ export function LowerThirdDisplay({
     const textContainerPadding = 40; // Total horizontal padding in .bar
     const imageSpace = imageUrl ? 156 : 0; // Image width + gap if present
 
-    return widthInPixels - textContainerPadding - imageSpace;
-  }, [isTextMode, freeTextMaxWidth, imageUrl, propViewportWidth]);
+    // Divide by scale since the content will be scaled up
+    // This ensures the final scaled width fits within the target
+    const scale = isPreview ? 1 : layout.scale;
+    return (widthInPixels - textContainerPadding - imageSpace) / scale;
+  }, [isTextMode, freeTextMaxWidth, imageUrl, propViewportWidth, isPreview, layout.scale]);
 
   useLayoutEffect(() => {
     if (!isTextMode) return;
