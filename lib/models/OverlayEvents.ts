@@ -675,48 +675,36 @@ export type TypedOverlayEvent =
   | PosterEvent
   | ChatHighlightEvent;
 
+// Event type sets for type guards - more maintainable than chained comparisons
+const LOWER_THIRD_EVENT_TYPES = new Set(["show", "hide", "update"]);
+const COUNTDOWN_EVENT_TYPES = new Set(["set", "start", "pause", "reset", "update", "add-time", "tick"]);
+const POSTER_EVENT_TYPES = new Set(["show", "hide", "next", "previous", "play", "pause", "seek", "mute", "unmute"]);
+const CHAT_HIGHLIGHT_EVENT_TYPES = new Set(["show", "hide"]);
+
 /**
  * Type guard to check if an event is a lower third event.
  */
 export function isLowerThirdEvent(event: { type: string }): event is LowerThirdEvent {
-  return event.type === "show" || event.type === "hide" || event.type === "update";
+  return LOWER_THIRD_EVENT_TYPES.has(event.type);
 }
 
 /**
  * Type guard to check if an event is a countdown event.
  */
 export function isCountdownEvent(event: { type: string }): event is CountdownEvent {
-  return (
-    event.type === "set" ||
-    event.type === "start" ||
-    event.type === "pause" ||
-    event.type === "reset" ||
-    event.type === "update" ||
-    event.type === "add-time" ||
-    event.type === "tick"
-  );
+  return COUNTDOWN_EVENT_TYPES.has(event.type);
 }
 
 /**
  * Type guard to check if an event is a poster event.
  */
 export function isPosterEvent(event: { type: string }): event is PosterEvent {
-  return (
-    event.type === "show" ||
-    event.type === "hide" ||
-    event.type === "next" ||
-    event.type === "previous" ||
-    event.type === "play" ||
-    event.type === "pause" ||
-    event.type === "seek" ||
-    event.type === "mute" ||
-    event.type === "unmute"
-  );
+  return POSTER_EVENT_TYPES.has(event.type);
 }
 
 /**
  * Type guard to check if an event is a chat highlight event.
  */
 export function isChatHighlightEvent(event: { type: string }): event is ChatHighlightEvent {
-  return event.type === "show" || event.type === "hide";
+  return CHAT_HIGHLIGHT_EVENT_TYPES.has(event.type);
 }
