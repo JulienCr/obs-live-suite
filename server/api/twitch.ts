@@ -180,4 +180,29 @@ router.post("/refresh", async (req, res) => {
   }
 });
 
+/**
+ * POST /api/twitch/auth/reload
+ * Reload OAuth tokens from database
+ * Call this after OAuth callback in Next.js to sync backend with new tokens
+ */
+router.post("/auth/reload", async (req, res) => {
+  try {
+    const service = TwitchService.getInstance();
+    await service.reloadOAuth();
+
+    const authStatus = service.getAuthStatus();
+
+    res.json({
+      success: true,
+      message: "OAuth tokens reloaded from database",
+      data: {
+        isAuthenticated: authStatus.state === "authorized",
+        user: authStatus.user?.login,
+      },
+    });
+  } catch (error) {
+    expressError(res, error, "Failed to reload OAuth tokens", { context: "[TwitchAPI]" });
+  }
+});
+
 export default router;

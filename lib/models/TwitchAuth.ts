@@ -65,7 +65,7 @@ export type TwitchAuthState = z.infer<typeof TwitchAuthState>;
  * Valid state transitions for the auth state machine
  */
 export const VALID_AUTH_TRANSITIONS: Record<TwitchAuthState, TwitchAuthState[]> = {
-  disconnected: ["authorizing"],
+  disconnected: ["authorizing", "authorized"],  // authorized: for restoring from stored tokens
   authorizing: ["authorized", "error", "disconnected"],
   authorized: ["refreshing", "disconnected", "error"],
   refreshing: ["authorized", "error"],

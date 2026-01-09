@@ -68,6 +68,14 @@ export class TwitchService {
     return TwitchService.instance;
   }
 
+  /**
+   * Ensure OAuth initialization is complete.
+   * Call this before starting polling to ensure stored tokens are loaded.
+   */
+  async ensureInitialized(): Promise<void> {
+    await this.oauthManager.ensureInitialized();
+  }
+
   // ==========================================================================
   // POLLING
   // ==========================================================================
@@ -449,5 +457,23 @@ export class TwitchService {
    */
   getOAuthManager(): TwitchOAuthManager {
     return this.oauthManager;
+  }
+
+  /**
+   * Reload OAuth tokens from database
+   * Call this when tokens may have been updated by another process (e.g., Next.js OAuth callback)
+   */
+  async reloadOAuth(): Promise<void> {
+    await this.oauthManager.reloadFromDatabase();
+
+    // Clear cached data
+    this.broadcasterId = null;
+    this.lastStreamInfo = null;
+    this.lastPollTime = null;
+
+    // Restart polling if we're now authenticated
+    if (this.oauthManager.isAuthenticated() && !this.isPolling) {
+      this.startPolling();
+    }
   }
 }

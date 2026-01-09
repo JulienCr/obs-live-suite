@@ -284,6 +284,8 @@ class BackendServer {
       try {
         const settingsService = SettingsService.getInstance();
         if (settingsService.isTwitchEnabled()) {
+          // Wait for OAuth initialization to complete before checking availability
+          await this.twitchService.ensureInitialized();
           this.twitchService.startPolling();
           this.logger.info("✓ Twitch polling started");
         } else {

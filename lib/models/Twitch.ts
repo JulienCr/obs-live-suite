@@ -109,6 +109,24 @@ export type TwitchProviderStatus = z.infer<typeof TwitchProviderStatusSchema>;
 // ============================================================================
 
 /**
+ * Cached Twitch user info (stored alongside tokens to avoid API calls on reload)
+ */
+export const TwitchUserInfoSchema = z.object({
+  /** Twitch user ID (broadcaster_id for API calls) */
+  id: z.string(),
+  /** Twitch login name (lowercase) */
+  login: z.string(),
+  /** Twitch display name */
+  displayName: z.string(),
+  /** User email (if scope includes user:read:email) */
+  email: z.string().optional(),
+  /** Profile image URL */
+  profileImageUrl: z.string().optional(),
+});
+
+export type TwitchUserInfo = z.infer<typeof TwitchUserInfoSchema>;
+
+/**
  * OAuth token data stored in settings
  */
 export const TwitchOAuthTokensSchema = z.object({
@@ -116,6 +134,8 @@ export const TwitchOAuthTokensSchema = z.object({
   refreshToken: z.string(),
   expiresAt: z.number(), // Unix timestamp in milliseconds
   scope: z.array(z.string()).optional(),
+  /** Cached user info to avoid API calls on backend reload */
+  user: TwitchUserInfoSchema.optional(),
 });
 
 export type TwitchOAuthTokens = z.infer<typeof TwitchOAuthTokensSchema>;

@@ -9,6 +9,7 @@
  */
 
 import { Logger } from "../../utils/Logger";
+import { DatabaseService } from "../DatabaseService";
 import { SettingsService } from "../SettingsService";
 import { WebSocketHub } from "../WebSocketHub";
 import { generateCodeVerifier, generateCodeChallenge, generateState } from "../../utils/pkce";
@@ -59,6 +60,8 @@ export class TwitchOAuthManager {
   // OAuth state is now stored in database via SettingsService
   private refreshTimer: NodeJS.Timeout | null = null;
   private refreshInProgress = false;
+  private initializationPromise: Promise<void> | null = null;
+  private initialized = false;
 
   private constructor() {
     this.logger = new Logger("TwitchOAuthManager");
@@ -66,8 +69,20 @@ export class TwitchOAuthManager {
     this.wsHub = WebSocketHub.getInstance();
     this.status = { ...DEFAULT_AUTH_STATUS };
 
-    // Load existing tokens on startup
-    this.initializeFromStoredTokens();
+    // Start initialization (don't await in constructor)
+    this.initializationPromise = this.initializeFromStoredTokens();
+  }
+
+  /**
+   * Ensure initialization from stored tokens is complete.
+   * Call this before relying on isAuthenticated() at startup.
+   */
+  async ensureInitialized(): Promise<void> {
+    if (this.initialized) return;
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+    }
+    this.initialized = true;
   }
 
   /**
@@ -92,6 +107,12 @@ export class TwitchOAuthManager {
       const tokens = this.settingsService.getTwitchOAuthTokens();
       const settings = this.settingsService.getTwitchSettings();
 
+      this.logger.debug("initializeFromStoredTokens", {
+        hasTokens: !!tokens,
+        hasClientId: !!settings.clientId,
+        hasCachedUser: !!tokens?.user,
+      });
+
       if (!tokens || !settings.clientId) {
         this.logger.info("No stored Twitch tokens found");
         return;
@@ -105,27 +126,42 @@ export class TwitchOAuthManager {
         return;
       }
 
-      // Validate the token with Twitch
-      const validation = await this.validateToken(tokens.accessToken);
-      if (!validation) {
-        this.logger.warn("Stored token validation failed, attempting refresh");
-        await this.refreshToken();
-        return;
-      }
+      // Use cached user if available
+      let userInfo = tokens.user;
 
-      // Fetch user info
-      const userInfo = await this.fetchUserInfo(tokens.accessToken, settings.clientId);
+      // If no cached user, validate token and fetch from API
+      if (!userInfo) {
+        this.logger.debug("No cached user, fetching from Twitch API");
+        const validation = await this.validateToken(tokens.accessToken);
+        if (!validation) {
+          this.logger.warn("Stored token validation failed, attempting refresh");
+          await this.refreshToken();
+          return;
+        }
+
+        const fetchedUser = await this.fetchUserInfo(tokens.accessToken, settings.clientId);
+        if (fetchedUser) {
+          userInfo = {
+            id: fetchedUser.id,
+            login: fetchedUser.login,
+            displayName: fetchedUser.display_name,
+            email: fetchedUser.email,
+            profileImageUrl: fetchedUser.profile_image_url,
+          };
+          // Cache the user info for future reloads
+          this.settingsService.saveTwitchOAuthTokens({
+            ...tokens,
+            user: userInfo,
+          });
+        }
+      } else {
+        this.logger.debug("Using cached user info", { login: userInfo.login });
+      }
 
       // Update status to authorized
       this.updateStatus({
         state: "authorized",
-        user: userInfo ? {
-          id: userInfo.id,
-          login: userInfo.login,
-          displayName: userInfo.display_name,
-          email: userInfo.email,
-          profileImageUrl: userInfo.profile_image_url,
-        } : null,
+        user: userInfo || null,
         expiresAt: tokens.expiresAt,
         scopes: tokens.scope || null,
         error: null,
@@ -141,7 +177,16 @@ export class TwitchOAuthManager {
       });
     } catch (error) {
       this.logger.error("Failed to initialize from stored tokens", error);
-      // Don't set error state, just stay disconnected
+      // Set error state instead of silently failing
+      this.updateStatus({
+        state: "error",
+        error: {
+          type: "api_error",
+          message: error instanceof Error ? error.message : "Failed to initialize from stored tokens",
+          timestamp: Date.now(),
+          recoverable: true,
+        },
+      });
     }
   }
 
@@ -309,16 +354,23 @@ export class TwitchOAuthManager {
       // Calculate expiry timestamp
       const expiresAt = Date.now() + tokens.expires_in * 1000;
 
-      // Save tokens
+      // Fetch user info BEFORE saving tokens so we can include it in the save
+      const userInfo = await this.fetchUserInfo(tokens.access_token, settings.clientId);
+
+      // Save tokens with user info
       this.settingsService.saveTwitchOAuthTokens({
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiresAt,
         scope: tokens.scope,
+        user: userInfo ? {
+          id: userInfo.id,
+          login: userInfo.login,
+          displayName: userInfo.display_name,
+          email: userInfo.email,
+          profileImageUrl: userInfo.profile_image_url,
+        } : undefined,
       });
-
-      // Fetch user info
-      const userInfo = await this.fetchUserInfo(tokens.access_token, settings.clientId);
 
       // Update status to authorized
       this.updateStatus({
@@ -487,12 +539,16 @@ export class TwitchOAuthManager {
       // Calculate new expiry
       const expiresAt = Date.now() + newTokens.expires_in * 1000;
 
-      // Save new tokens
+      // Get existing tokens to preserve user info
+      const existingTokens = this.settingsService.getTwitchOAuthTokens();
+
+      // Save new tokens, preserving cached user info
       this.settingsService.saveTwitchOAuthTokens({
         accessToken: newTokens.access_token,
         refreshToken: newTokens.refresh_token,
         expiresAt,
         scope: newTokens.scope,
+        user: existingTokens?.user,  // Preserve cached user info
       });
 
       // Update status
@@ -684,6 +740,35 @@ export class TwitchOAuthManager {
     this.broadcastError(error);
 
     return new Error(message);
+  }
+
+  /**
+   * Reload tokens from database
+   * Call this when tokens may have been updated by another process (e.g., Next.js OAuth callback)
+   */
+  async reloadFromDatabase(): Promise<void> {
+    this.logger.info("Reloading tokens from database");
+
+    // Force WAL checkpoint to see changes from other processes (Next.js)
+    const db = DatabaseService.getInstance();
+    db.checkpoint();
+    this.logger.debug("WAL checkpoint completed");
+
+    // Stop existing refresh timer
+    this.stopRefreshTimer();
+
+    // Reset state
+    this.initialized = false;
+    this.initializationPromise = null;
+
+    // Reinitialize from stored tokens
+    await this.initializeFromStoredTokens();
+    this.initialized = true;
+
+    this.logger.info("Tokens reloaded from database", {
+      isAuthenticated: this.isAuthenticated(),
+      user: this.status.user?.login,
+    });
   }
 
   /**

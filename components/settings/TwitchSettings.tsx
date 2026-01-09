@@ -17,7 +17,7 @@ import {
   ExternalLink,
   LogOut,
   User,
-  Clock,
+  RefreshCw,
   Shield,
 } from "lucide-react";
 import { apiGet, apiPost, apiDelete, isClientFetchError } from "@/lib/utils/ClientFetch";
@@ -320,11 +320,14 @@ export function TwitchSettings() {
                 </div>
               </div>
 
-              {/* Token expiry */}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="w-4 h-4" />
-                <span>
-                  {t("tokenExpires")}: {formatExpiryTime(authStatus.expiresAt)}
+              {/* Token auto-refresh status */}
+              <div className="flex items-center gap-2 text-sm">
+                <RefreshCw className="w-4 h-4 text-green-500" />
+                <span className="text-green-600 dark:text-green-400 font-medium">
+                  {t("autoRefreshActive")}
+                </span>
+                <span className="text-muted-foreground">
+                  • {t("tokenExpires")} {formatExpiryTime(authStatus.expiresAt)}
                 </span>
               </div>
 

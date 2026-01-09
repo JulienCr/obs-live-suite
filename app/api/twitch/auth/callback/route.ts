@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { TwitchOAuthManager } from "@/lib/services/twitch/TwitchOAuthManager";
 import { TwitchOAuthCallbackSchema } from "@/lib/models/TwitchAuth";
 import { routing } from "@/i18n/routing";
+import { BACKEND_URL } from "@/lib/config/urls";
 
 const LOG_CONTEXT = "[TwitchAuth:Callback]";
 
@@ -52,6 +53,19 @@ export async function GET(request: NextRequest) {
     await oauthManager.handleCallback(code, state);
 
     console.log(`${LOG_CONTEXT} OAuth callback successful`);
+
+    // Notify backend to reload tokens from database
+    // This ensures the backend Express process picks up the new tokens
+    try {
+      await fetch(`${BACKEND_URL}/api/twitch/auth/reload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      console.log(`${LOG_CONTEXT} Backend notified to reload tokens`);
+    } catch (backendError) {
+      // Don't fail the callback if backend notification fails
+      console.warn(`${LOG_CONTEXT} Failed to notify backend:`, backendError);
+    }
 
     // Redirect to settings page with success indicator
     return redirectWithSuccess(request);
