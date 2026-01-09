@@ -613,7 +613,7 @@ export class TwitchOAuthManager {
    */
   private async fetchUserInfo(accessToken: string, clientId: string): Promise<TwitchAPIUserInfo | null> {
     try {
-      const response = await fetch("https://api.twitch.tv/helix/users", {
+      const response = await fetch(`${TWITCH.API_BASE}/users`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Client-Id": clientId,

@@ -412,6 +412,12 @@ export const GITHUB = {
  */
 export const TWITCH = {
   /**
+   * Base URL for Twitch Helix API.
+   * @see lib/services/twitch/TwitchAPIClient.ts
+   */
+  API_BASE: "https://api.twitch.tv/helix",
+
+  /**
    * Default polling interval in milliseconds for stream stats (30 seconds).
    * Twitch updates viewer counts approximately every 30 seconds.
    * @see lib/services/TwitchService.ts

@@ -31,7 +31,6 @@ export interface TwitchAPIResponse<T> {
 // TWITCH API CLIENT
 // ============================================================================
 
-const TWITCH_API_BASE = "https://api.twitch.tv/helix";
 
 export class TwitchAPIClient {
   private logger: Logger;
@@ -174,7 +173,7 @@ export class TwitchAPIClient {
    * Build URL with query parameters
    */
   private buildUrl(endpoint: string, params?: Record<string, string>): string {
-    const url = new URL(endpoint.startsWith("/") ? endpoint.slice(1) : endpoint, TWITCH_API_BASE + "/");
+    const url = new URL(endpoint.startsWith("/") ? endpoint.slice(1) : endpoint, TWITCH.API_BASE + "/");
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
