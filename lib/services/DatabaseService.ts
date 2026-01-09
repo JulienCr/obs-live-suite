@@ -648,6 +648,14 @@ export class DatabaseService {
     return this.db;
   }
 
+  /**
+   * Force a WAL checkpoint to ensure all changes are visible
+   * Call this before reading data that may have been written by another process
+   */
+  checkpoint(): void {
+    this.db.pragma("wal_checkpoint(PASSIVE)");
+  }
+
   // ==================== GUESTS ====================
 
   /**

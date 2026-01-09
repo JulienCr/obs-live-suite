@@ -24,6 +24,7 @@ import { PresenceStatusPanel } from "./panels/PresenceStatusPanel";
 import { RegieInternalChatPanel } from "./panels/RegieInternalChatPanel";
 import { RegieInternalChatViewPanel } from "./panels/RegieInternalChatViewPanel";
 import { RegiePublicChatPanel } from "./panels/RegiePublicChatPanel";
+import { TwitchPanel } from "./panels/TwitchPanel";
 import { DockviewContext, usePanelPositions } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { PanelTab } from "./PanelTab";
@@ -48,6 +49,7 @@ const components = {
   regieInternalChat: RegieInternalChatPanel,
   regieInternalChatView: RegieInternalChatViewPanel,
   regiePublicChat: RegiePublicChatPanel,
+  twitch: TwitchPanel,
 };
 
 const tabComponents = {

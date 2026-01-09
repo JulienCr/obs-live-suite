@@ -11,7 +11,8 @@
       "presenceStatus": "Statut de présence",
       "regieInternalChat": "Chat interne régie",
       "regieInternalChatView": "Vue chat interne",
-      "regiePublicChat": "Chat public régie"
+      "regiePublicChat": "Chat public régie",
+      "twitch": "Twitch"
     },
     "header": {
       "connected": "Connecté",
@@ -38,6 +39,7 @@
       "showPosterPanel": "Afficher le panneau Affiche",
       "showMacrosPanel": "Afficher le panneau Macros",
       "showEventLogPanel": "Afficher le panneau Journal d'événements",
+      "showTwitchPanel": "Afficher le panneau Twitch",
       "resetLayout": "Réinitialiser la disposition"
     },
     "eventLog": {
@@ -164,6 +166,36 @@
       "selectGuest": "Sélectionner un invité",
       "showLowerThirdTooltip": "Afficher le synthé de {name} (Raccourci : {shortcut})"
     },
+    "twitch": {
+      "title": "Twitch",
+      "edit": "Modifier",
+      "cancelEdit": "Annuler la modification",
+      "titlePlaceholder": "Entrez le titre du stream...",
+      "updateSuccess": "Stream mis à jour",
+      "updateSuccessDesc": "Le titre et la catégorie ont été modifiés",
+      "updateError": "Erreur de mise à jour",
+      "unsavedChanges": "Vous avez des modifications non sauvegardées",
+      "stats": {
+        "live": "EN DIRECT",
+        "offline": "Hors ligne",
+        "viewers": "Spectateurs",
+        "uptime": "Durée",
+        "streamTitle": "Titre du stream",
+        "category": "Catégorie",
+        "noTitle": "Aucun titre",
+        "noCategory": "Aucune catégorie",
+        "noData": "Données Twitch non disponibles",
+        "checkProvider": "Vérifiez que Streamer.bot est connecté",
+        "pollingActive": "Actualisation toutes les {interval}s",
+        "pollingInactive": "Actualisation en pause"
+      },
+      "categoryPicker": {
+        "placeholder": "Sélectionner une catégorie...",
+        "searchPlaceholder": "Rechercher une catégorie...",
+        "noResults": "Aucune catégorie trouvée",
+        "typeToSearch": "Tapez au moins 2 caractères pour rechercher"
+      }
+    },
     "widgets": {
       "title": "Widgets du tableau de bord",
       "lockedDescription": "Le tableau de bord est verrouillé. Cliquez sur déverrouiller pour personnaliser.",
@@ -218,6 +250,7 @@
       "guests": "Invités",
       "rooms": "Salles",
       "obs": "OBS",
+      "twitch": "Twitch",
       "streamDeck": "Stream Deck",
       "pluginsUpdates": "Plugins et mises à jour",
       "general": "Général",
@@ -404,6 +437,48 @@
     "backend": {
       "title": "Backend",
       "description": "Configurer le serveur backend"
+    },
+    "twitch": {
+      "title": "Intégration Twitch",
+      "description": "Connecter votre compte Twitch pour gérer le stream et le chat",
+      "connectionStatus": "Statut de connexion",
+      "connected": "Connecté",
+      "notConnected": "Non connecté",
+      "notConnectedDesc": "Connectez votre compte Twitch pour activer les fonctionnalités de gestion du stream.",
+      "connectToTwitch": "Se connecter à Twitch",
+      "connecting": "Connexion en cours...",
+      "disconnect": "Déconnecter",
+      "disconnecting": "Déconnexion...",
+      "disconnected": "Déconnecté de Twitch",
+      "disconnectConfirm": "Êtes-vous sûr de vouloir déconnecter votre compte Twitch ?",
+      "connectionSuccess": "Connexion à Twitch réussie !",
+      "credentials": "Identifiants de l'application",
+      "credentialsDesc": "Créez une application sur le portail développeur Twitch pour obtenir ces identifiants.",
+      "clientId": "Client ID",
+      "clientIdPlaceholder": "Entrez votre Client ID Twitch",
+      "clientIdRequired": "Le Client ID est requis",
+      "clientSecret": "Client Secret",
+      "clientSecretPlaceholder": "Entrez votre Client Secret Twitch",
+      "clientSecretRequired": "Le Client Secret est requis",
+      "showSecret": "Afficher le secret",
+      "secretAlreadySet": "Le secret est déjà configuré. Laissez vide pour conserver l'actuel.",
+      "credentialsSaved": "Identifiants enregistrés avec succès",
+      "clearCredentials": "Effacer les identifiants",
+      "clearConfirm": "Êtes-vous sûr de vouloir effacer tous les paramètres Twitch ?",
+      "settingsCleared": "Paramètres Twitch effacés",
+      "enterCredentialsFirst": "Veuillez d'abord configurer les identifiants ci-dessous.",
+      "tokenExpires": "Renouvellement auto dans",
+      "autoRefreshActive": "Renouvellement automatique actif",
+      "expired": "Expiré",
+      "grantedScopes": "Permissions accordées",
+      "setupGuide": "Guide de configuration :",
+      "setupStep1": "Allez sur dev.twitch.tv/console et connectez-vous",
+      "setupStep2": "Cliquez sur « Enregistrer votre application »",
+      "setupStep3": "Entrez un nom et définissez l'URL de redirection OAuth : http://localhost:3000/api/twitch/auth/callback",
+      "setupStep4": "Sélectionnez « Confidential » comme type de client",
+      "setupStep5": "Copiez le Client ID et le Client Secret ici",
+      "requiredScopes": "Scopes requis :",
+      "openTwitchConsole": "Ouvrir la console développeur Twitch"
     }
   },
   "assets": {
@@ -860,7 +935,8 @@
     "next": "Suivant",
     "previous": "Précédent",
     "yes": "Oui",
-    "no": "Non"
+    "no": "Non",
+    "retry": "Réessayer"
   },
   "regieChat": {
     "cueTypes": {

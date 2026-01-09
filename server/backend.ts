@@ -21,6 +21,7 @@ import { OBSStateManager } from "../lib/adapters/obs/OBSStateManager";
 import { DatabaseService } from "../lib/services/DatabaseService";
 import { RoomService } from "../lib/services/RoomService";
 import { SettingsService } from "../lib/services/SettingsService";
+import { TwitchService } from "../lib/services/TwitchService";
 import { Logger } from "../lib/utils/Logger";
 import { PathManager } from "../lib/config/PathManager";
 import { AppConfig } from "../lib/config/AppConfig";
@@ -30,6 +31,7 @@ import roomsRouter from "./api/rooms";
 import cueRouter from "./api/cue";
 import streamerbotChatRouter from "./api/streamerbot-chat";
 import overlaysRouter from "./api/overlays";
+import twitchRouter from "./api/twitch";
 import { APP_PORT, BACKEND_PORT, WS_PORT } from "../lib/config/urls";
 import { createServerWithFallback } from "../lib/utils/CertificateManager";
 import { expressError } from "../lib/utils/apiError";
@@ -44,6 +46,7 @@ class BackendServer {
   private channelManager: ChannelManager;
   private obsManager: OBSConnectionManager;
   private streamerbotGateway: StreamerbotGateway;
+  private twitchService: TwitchService;
   private app: express.Application;
   private httpServer: any | null = null;
   private httpPort: number;
@@ -59,6 +62,7 @@ class BackendServer {
     this.channelManager = ChannelManager.getInstance();
     this.obsManager = OBSConnectionManager.getInstance();
     this.streamerbotGateway = StreamerbotGateway.getInstance();
+    this.twitchService = TwitchService.getInstance();
     this.app = express();
 
     // Use port from centralized config
@@ -132,6 +136,9 @@ class BackendServer {
 
     // Streamerbot Chat Gateway API
     this.app.use('/api/streamerbot-chat', streamerbotChatRouter);
+
+    // Twitch Integration API
+    this.app.use('/api/twitch', twitchRouter);
 
     // Overlay control routes (consolidated in server/api/overlays.ts)
     this.app.use('/api/overlays', overlaysRouter);
@@ -273,7 +280,22 @@ class BackendServer {
         this.logger.warn("Streamerbot gateway connection failed (will retry)", error);
       }
 
-      // 6. Start HTTP/HTTPS API server using centralized certificate manager
+      // 6. Start Twitch integration polling
+      try {
+        const settingsService = SettingsService.getInstance();
+        if (settingsService.isTwitchEnabled()) {
+          // Wait for OAuth initialization to complete before checking availability
+          await this.twitchService.ensureInitialized();
+          this.twitchService.startPolling();
+          this.logger.info("✓ Twitch polling started");
+        } else {
+          this.logger.info("Twitch integration disabled");
+        }
+      } catch (error) {
+        this.logger.warn("Twitch polling failed to start", error);
+      }
+
+      // 7. Start HTTP/HTTPS API server using centralized certificate manager
       await new Promise<void>((resolve) => {
         const { server, isHttps } = createServerWithFallback(this.app);
         this.httpServer = server;
@@ -313,6 +335,9 @@ class BackendServer {
         });
         this.httpServer = null;
       }
+
+      // Stop Twitch polling
+      this.twitchService.stopPolling();
 
       this.wsHub.stop();
       await this.obsManager.disconnect();

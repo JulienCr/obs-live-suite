@@ -2,6 +2,7 @@ import { DatabaseService } from "./DatabaseService";
 import { Logger } from "../utils/Logger";
 import { StreamerbotConnectionSettings, DEFAULT_STREAMERBOT_CONNECTION } from "../models/StreamerbotChat";
 import { AppConfig } from "../config/AppConfig";
+import { TwitchSettings, TwitchOAuthTokens, DEFAULT_TWITCH_SETTINGS } from "../models/Twitch";
 
 /**
  * OBS settings interface
@@ -293,6 +294,164 @@ export class SettingsService {
       this.db.setSetting("chatMessage.guest.enabled", settings.guestChatMessageEnabled.toString());
     }
     this.logger.info("Chat message settings saved to database");
+  }
+
+  // =========================================================================
+  // TWITCH SETTINGS
+  // =========================================================================
+
+  /**
+   * Get Twitch integration settings
+   */
+  getTwitchSettings(): TwitchSettings {
+    const enabled = this.db.getSetting("twitch.enabled");
+    const pollIntervalMs = this.db.getSetting("twitch.pollIntervalMs");
+    const preferredProvider = this.db.getSetting("twitch.preferredProvider");
+    const clientId = this.db.getSetting("twitch.clientId");
+    const oauthJson = this.db.getSetting("twitch.oauth");
+
+    let oauth: TwitchOAuthTokens | null = null;
+    if (oauthJson) {
+      try {
+        oauth = JSON.parse(oauthJson);
+      } catch {
+        this.logger.warn("Failed to parse Twitch OAuth tokens");
+      }
+    }
+
+    return {
+      enabled: enabled !== null ? enabled === "true" : DEFAULT_TWITCH_SETTINGS.enabled,
+      pollIntervalMs: pollIntervalMs
+        ? parseInt(pollIntervalMs, 10)
+        : DEFAULT_TWITCH_SETTINGS.pollIntervalMs,
+      preferredProvider: (preferredProvider as TwitchSettings["preferredProvider"]) ||
+        DEFAULT_TWITCH_SETTINGS.preferredProvider,
+      clientId: clientId || undefined,
+      oauth,
+    };
+  }
+
+  /**
+   * Save Twitch integration settings to database
+   */
+  saveTwitchSettings(settings: Partial<TwitchSettings>): void {
+    if (settings.enabled !== undefined) {
+      this.db.setSetting("twitch.enabled", settings.enabled.toString());
+    }
+    if (settings.pollIntervalMs !== undefined) {
+      this.db.setSetting("twitch.pollIntervalMs", settings.pollIntervalMs.toString());
+    }
+    if (settings.preferredProvider !== undefined) {
+      this.db.setSetting("twitch.preferredProvider", settings.preferredProvider);
+    }
+    if (settings.clientId !== undefined) {
+      if (settings.clientId) {
+        this.db.setSetting("twitch.clientId", settings.clientId);
+      } else {
+        this.db.deleteSetting("twitch.clientId");
+      }
+    }
+    this.logger.info("Twitch settings saved to database");
+  }
+
+  /**
+   * Save Twitch OAuth tokens
+   */
+  saveTwitchOAuthTokens(tokens: TwitchOAuthTokens | null): void {
+    if (tokens) {
+      this.db.setSetting("twitch.oauth", JSON.stringify(tokens));
+    } else {
+      this.db.deleteSetting("twitch.oauth");
+    }
+    this.logger.info("Twitch OAuth tokens saved");
+  }
+
+  /**
+   * Get Twitch OAuth tokens
+   */
+  getTwitchOAuthTokens(): TwitchOAuthTokens | null {
+    const oauthJson = this.db.getSetting("twitch.oauth");
+    if (!oauthJson) return null;
+
+    try {
+      return JSON.parse(oauthJson);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Check if Twitch integration is enabled
+   */
+  isTwitchEnabled(): boolean {
+    const enabled = this.db.getSetting("twitch.enabled");
+    return enabled === null ? DEFAULT_TWITCH_SETTINGS.enabled : enabled === "true";
+  }
+
+  /**
+   * Clear all Twitch settings
+   */
+  clearTwitchSettings(): void {
+    this.db.deleteSetting("twitch.enabled");
+    this.db.deleteSetting("twitch.pollIntervalMs");
+    this.db.deleteSetting("twitch.preferredProvider");
+    this.db.deleteSetting("twitch.clientId");
+    this.db.deleteSetting("twitch.clientSecret");
+    this.db.deleteSetting("twitch.oauth");
+    this.logger.info("Twitch settings cleared from database");
+  }
+
+  /**
+   * Save Twitch Client Secret
+   */
+  saveTwitchClientSecret(secret: string | null): void {
+    if (secret) {
+      this.db.setSetting("twitch.clientSecret", secret);
+    } else {
+      this.db.deleteSetting("twitch.clientSecret");
+    }
+    this.logger.info("Twitch client secret saved");
+  }
+
+  /**
+   * Get Twitch Client Secret
+   */
+  getTwitchClientSecret(): string | null {
+    return this.db.getSetting("twitch.clientSecret");
+  }
+
+  /**
+   * Check if Twitch credentials are fully configured
+   */
+  hasTwitchCredentials(): boolean {
+    const settings = this.getTwitchSettings();
+    const clientSecret = this.getTwitchClientSecret();
+    return !!(settings.clientId && clientSecret);
+  }
+
+  /**
+   * Save pending OAuth state (for PKCE flow)
+   */
+  saveTwitchOAuthState(state: { state: string; codeVerifier: string; createdAt: number; returnUrl?: string } | null): void {
+    if (state) {
+      this.db.setSetting("twitch.pendingOAuth", JSON.stringify(state));
+    } else {
+      this.db.deleteSetting("twitch.pendingOAuth");
+    }
+  }
+
+  /**
+   * Get pending OAuth state
+   */
+  getTwitchOAuthState(): { state: string; codeVerifier: string; createdAt: number; returnUrl?: string } | null {
+    const json = this.db.getSetting("twitch.pendingOAuth");
+    if (!json) return null;
+
+    try {
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
   }
 }
 
