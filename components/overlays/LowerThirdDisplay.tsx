@@ -285,6 +285,7 @@ export function LowerThirdDisplay({
     width: number,
     scale: number
   ) => {
+    // Strip markdown syntax for accurate width measurement
     const sanitized = (input: string) => input
       .replace(/!\[[^\]]*]\([^)]*\)/g, "")
       .replace(/\[(.*?)\]\([^)]*\)/g, "$1")
@@ -302,7 +303,15 @@ export function LowerThirdDisplay({
     if (!ctx) {
       return { lines: text.split(/\r?\n/), maxLineLength: 0 };
     }
-    ctx.font = `${baseFontWeight} ${fontSize}px ${fontFamily}`;
+
+    // Extract first font family (before comma) and remove quotes for canvas
+    const primaryFont = fontFamily.split(",")[0].trim().replace(/["']/g, "");
+    ctx.font = `${baseFontWeight} ${fontSize}px "${primaryFont}"`;
+
+    // Safety margin to account for canvas vs CSS rendering differences
+    // Canvas measureText can be slightly less accurate than actual rendering
+    const safetyMargin = fontSize * 0.5; // ~0.5 character width
+    const effectiveWidth = width - safetyMargin;
 
     const paragraphs = text.split(/\r?\n/);
     const lines: string[] = [];
@@ -318,7 +327,7 @@ export function LowerThirdDisplay({
       words.forEach((word) => {
         const candidate = current ? `${current} ${word}` : word;
         const candidateWidth = ctx.measureText(sanitized(candidate)).width;
-        if (candidateWidth > width && current) {
+        if (candidateWidth > effectiveWidth && current) {
           lines.push(current);
           maxLen = Math.max(maxLen, current.length);
           current = word;
