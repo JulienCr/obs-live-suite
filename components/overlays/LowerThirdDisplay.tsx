@@ -396,12 +396,13 @@ export function LowerThirdDisplay({
     // Account for bar padding (16px left + 20px right = 36px) and text padding
     // The markdown wrapper needs the full bar width minus its internal padding
     const textContainerPadding = 40; // Total horizontal padding in .bar
+    const imageSpace = imageUrl ? 156 : 0; // Image width + gap if present
 
     // Divide by scale since the content will be scaled up
     // This ensures the final scaled width fits within the target
     const scale = isPreview ? 1 : layout.scale;
-    return (widthInPixels - textContainerPadding) / scale;
-  }, [isTextMode, freeTextMaxWidth, propViewportWidth, isPreview, layout.scale]);
+    return (widthInPixels - textContainerPadding - imageSpace) / scale;
+  }, [isTextMode, freeTextMaxWidth, imageUrl, propViewportWidth, isPreview, layout.scale]);
 
   useLayoutEffect(() => {
     if (!isTextMode) return;
