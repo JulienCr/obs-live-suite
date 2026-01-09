@@ -1019,6 +1019,10 @@
       "newMessages": "Nouveaux messages",
       "replyingTo": "Réponse à @{displayName}"
     },
+    "stats": {
+      "viewers": "Viewers",
+      "messages": "Messages"
+    },
     "vdoNinja": {
       "notConfigured": "URL VDO.Ninja non configurée",
       "configureInSettings": "Configurez-la dans les paramètres de la salle",

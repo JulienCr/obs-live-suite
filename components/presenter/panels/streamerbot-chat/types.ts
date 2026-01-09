@@ -20,6 +20,7 @@ export interface StreamerbotChatHeaderProps {
   status: StreamerbotConnectionStatus;
   error?: StreamerbotConnectionError;
   messageCount: number;
+  viewerCount?: number;
   showSearch: boolean;
   onToggleSearch: () => void;
   onClearMessages: () => void;
