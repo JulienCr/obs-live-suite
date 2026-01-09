@@ -15,8 +15,7 @@ export const PANEL_IDS = [
   "regieInternalChat",
   "regieInternalChatView",
   "regiePublicChat",
-  "twitchStats",
-  "twitchControl",
+  "twitch",
 ] as const;
 
 export type PanelId = (typeof PANEL_IDS)[number];
@@ -90,6 +89,5 @@ export const PANEL_DISPLAY_NAMES: Record<PanelId, string> = {
   regieInternalChat: "Regie Internal Chat",
   regieInternalChatView: "Regie Internal Chat View",
   regiePublicChat: "Regie Public Chat",
-  twitchStats: "Twitch Stats",
-  twitchControl: "Twitch Control",
+  twitch: "Twitch",
 };

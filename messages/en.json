@@ -12,8 +12,7 @@
       "regieInternalChat": "Internal Chat",
       "regieInternalChatView": "Internal Chat View",
       "regiePublicChat": "Public Chat",
-      "twitchStats": "Twitch Stats",
-      "twitchControl": "Twitch Control"
+      "twitch": "Twitch"
     },
     "header": {
       "connected": "Connected",
@@ -40,8 +39,7 @@
       "showPosterPanel": "Show Poster Panel",
       "showMacrosPanel": "Show Macros Panel",
       "showEventLogPanel": "Show Event Log Panel",
-      "showTwitchStatsPanel": "Show Twitch Stats Panel",
-      "showTwitchControlPanel": "Show Twitch Control Panel",
+      "showTwitchPanel": "Show Twitch Panel",
       "resetLayout": "Reset Layout to Default"
     },
     "eventLog": {
@@ -169,8 +167,15 @@
       "showLowerThirdTooltip": "Show {name} lower third (Shortcut: {shortcut})"
     },
     "twitch": {
+      "title": "Twitch",
+      "edit": "Edit",
+      "cancelEdit": "Cancel edit",
+      "titlePlaceholder": "Enter stream title...",
+      "updateSuccess": "Stream updated",
+      "updateSuccessDesc": "Title and category have been changed",
+      "updateError": "Update failed",
+      "unsavedChanges": "You have unsaved changes",
       "stats": {
-        "title": "Twitch Stats",
         "live": "LIVE",
         "offline": "Offline",
         "viewers": "Viewers",
@@ -184,21 +189,11 @@
         "pollingActive": "Refreshing every {interval}s",
         "pollingInactive": "Refresh paused"
       },
-      "control": {
-        "title": "Twitch Control",
-        "streamTitle": "Stream Title",
-        "titlePlaceholder": "Enter stream title...",
-        "category": "Category",
-        "categoryPlaceholder": "Search for a category...",
-        "categoryHint": "Category search will be available with Twitch API",
-        "categoryId": "Category ID",
-        "categoryIdPlaceholder": "e.g., 509658",
-        "categoryIdHint": "Manually enter the Twitch category ID",
-        "noData": "Unable to load stream information",
-        "updateSuccess": "Stream updated",
-        "updateSuccessDesc": "Title and category have been changed",
-        "updateError": "Update failed",
-        "unsavedChanges": "You have unsaved changes"
+      "categoryPicker": {
+        "placeholder": "Select a category...",
+        "searchPlaceholder": "Search for a category...",
+        "noResults": "No categories found",
+        "typeToSearch": "Type at least 2 characters to search"
       }
     },
     "widgets": {

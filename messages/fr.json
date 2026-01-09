@@ -12,8 +12,7 @@
       "regieInternalChat": "Chat interne régie",
       "regieInternalChatView": "Vue chat interne",
       "regiePublicChat": "Chat public régie",
-      "twitchStats": "Stats Twitch",
-      "twitchControl": "Contrôle Twitch"
+      "twitch": "Twitch"
     },
     "header": {
       "connected": "Connecté",
@@ -40,8 +39,7 @@
       "showPosterPanel": "Afficher le panneau Affiche",
       "showMacrosPanel": "Afficher le panneau Macros",
       "showEventLogPanel": "Afficher le panneau Journal d'événements",
-      "showTwitchStatsPanel": "Afficher le panneau Stats Twitch",
-      "showTwitchControlPanel": "Afficher le panneau Contrôle Twitch",
+      "showTwitchPanel": "Afficher le panneau Twitch",
       "resetLayout": "Réinitialiser la disposition"
     },
     "eventLog": {
@@ -169,8 +167,15 @@
       "showLowerThirdTooltip": "Afficher le synthé de {name} (Raccourci : {shortcut})"
     },
     "twitch": {
+      "title": "Twitch",
+      "edit": "Modifier",
+      "cancelEdit": "Annuler la modification",
+      "titlePlaceholder": "Entrez le titre du stream...",
+      "updateSuccess": "Stream mis à jour",
+      "updateSuccessDesc": "Le titre et la catégorie ont été modifiés",
+      "updateError": "Erreur de mise à jour",
+      "unsavedChanges": "Vous avez des modifications non sauvegardées",
       "stats": {
-        "title": "Stats Twitch",
         "live": "EN DIRECT",
         "offline": "Hors ligne",
         "viewers": "Spectateurs",
@@ -184,21 +189,11 @@
         "pollingActive": "Actualisation toutes les {interval}s",
         "pollingInactive": "Actualisation en pause"
       },
-      "control": {
-        "title": "Contrôle Twitch",
-        "streamTitle": "Titre du stream",
-        "titlePlaceholder": "Entrez le titre du stream...",
-        "category": "Catégorie",
-        "categoryPlaceholder": "Rechercher une catégorie...",
-        "categoryHint": "La recherche de catégorie sera disponible avec l'API Twitch",
-        "categoryId": "ID de catégorie",
-        "categoryIdPlaceholder": "ex: 509658",
-        "categoryIdHint": "Entrez manuellement l'ID Twitch de la catégorie",
-        "noData": "Impossible de charger les informations du stream",
-        "updateSuccess": "Stream mis à jour",
-        "updateSuccessDesc": "Le titre et la catégorie ont été modifiés",
-        "updateError": "Erreur de mise à jour",
-        "unsavedChanges": "Vous avez des modifications non sauvegardées"
+      "categoryPicker": {
+        "placeholder": "Sélectionner une catégorie...",
+        "searchPlaceholder": "Rechercher une catégorie...",
+        "noResults": "Aucune catégorie trouvée",
+        "typeToSearch": "Tapez au moins 2 caractères pour rechercher"
       }
     },
     "widgets": {
