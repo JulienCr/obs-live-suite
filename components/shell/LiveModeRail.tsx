@@ -15,6 +15,8 @@ import {
   MessageSquare,
   MessagesSquare,
   Inbox,
+  Radio,
+  Pencil,
 } from "lucide-react";
 import { useDockview } from "./DockviewContext";
 
@@ -35,6 +37,8 @@ const PANELS: PanelItem[] = [
   { id: "regieInternalChat", labelKey: "regieInternalChat", icon: MessageSquare, component: "regieInternalChat" },
   { id: "regieInternalChatView", labelKey: "regieInternalChatView", icon: Inbox, component: "regieInternalChatView" },
   { id: "regiePublicChat", labelKey: "regiePublicChat", icon: MessagesSquare, component: "regiePublicChat" },
+  { id: "twitchStats", labelKey: "twitchStats", icon: Radio, component: "twitchStats" },
+  { id: "twitchControl", labelKey: "twitchControl", icon: Pencil, component: "twitchControl" },
 ];
 
 const RAIL_WIDTH_COLLAPSED = 48;

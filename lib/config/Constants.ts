@@ -404,6 +404,47 @@ export const GITHUB = {
 } as const;
 
 // ============================================================================
+// TWITCH INTEGRATION CONSTANTS
+// ============================================================================
+
+/**
+ * Twitch integration polling and timing constants.
+ */
+export const TWITCH = {
+  /**
+   * Default polling interval in milliseconds for stream stats (30 seconds).
+   * Twitch updates viewer counts approximately every 30 seconds.
+   * @see lib/services/TwitchService.ts
+   */
+  POLL_INTERVAL_MS: 30000,
+
+  /**
+   * Minimum polling interval allowed (10 seconds).
+   * Prevents excessive API calls.
+   * @see lib/services/TwitchService.ts
+   */
+  MIN_POLL_INTERVAL_MS: 10000,
+
+  /**
+   * Maximum polling interval allowed (5 minutes).
+   * @see lib/services/TwitchService.ts
+   */
+  MAX_POLL_INTERVAL_MS: 300000,
+
+  /**
+   * Timeout for Twitch API requests in milliseconds.
+   * @see lib/services/TwitchService.ts
+   */
+  API_TIMEOUT_MS: 10000,
+
+  /**
+   * Buffer time before token expiry to trigger refresh (5 minutes).
+   * @see lib/services/TwitchService.ts
+   */
+  TOKEN_REFRESH_BUFFER_MS: 300000,
+} as const;
+
+// ============================================================================
 // TYPE EXPORTS
 // ============================================================================
 

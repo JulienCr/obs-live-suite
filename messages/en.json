@@ -11,7 +11,9 @@
       "presenceStatus": "Presence Status",
       "regieInternalChat": "Internal Chat",
       "regieInternalChatView": "Internal Chat View",
-      "regiePublicChat": "Public Chat"
+      "regiePublicChat": "Public Chat",
+      "twitchStats": "Twitch Stats",
+      "twitchControl": "Twitch Control"
     },
     "header": {
       "connected": "Connected",
@@ -38,6 +40,8 @@
       "showPosterPanel": "Show Poster Panel",
       "showMacrosPanel": "Show Macros Panel",
       "showEventLogPanel": "Show Event Log Panel",
+      "showTwitchStatsPanel": "Show Twitch Stats Panel",
+      "showTwitchControlPanel": "Show Twitch Control Panel",
       "resetLayout": "Reset Layout to Default"
     },
     "eventLog": {
@@ -163,6 +167,39 @@
       "addGuest": "Add Guest",
       "selectGuest": "Select a guest",
       "showLowerThirdTooltip": "Show {name} lower third (Shortcut: {shortcut})"
+    },
+    "twitch": {
+      "stats": {
+        "title": "Twitch Stats",
+        "live": "LIVE",
+        "offline": "Offline",
+        "viewers": "Viewers",
+        "uptime": "Uptime",
+        "streamTitle": "Stream Title",
+        "category": "Category",
+        "noTitle": "No title set",
+        "noCategory": "No category set",
+        "noData": "Twitch data unavailable",
+        "checkProvider": "Check that Streamer.bot is connected",
+        "pollingActive": "Refreshing every {interval}s",
+        "pollingInactive": "Refresh paused"
+      },
+      "control": {
+        "title": "Twitch Control",
+        "streamTitle": "Stream Title",
+        "titlePlaceholder": "Enter stream title...",
+        "category": "Category",
+        "categoryPlaceholder": "Search for a category...",
+        "categoryHint": "Category search will be available with Twitch API",
+        "categoryId": "Category ID",
+        "categoryIdPlaceholder": "e.g., 509658",
+        "categoryIdHint": "Manually enter the Twitch category ID",
+        "noData": "Unable to load stream information",
+        "updateSuccess": "Stream updated",
+        "updateSuccessDesc": "Title and category have been changed",
+        "updateError": "Update failed",
+        "unsavedChanges": "You have unsaved changes"
+      }
     },
     "widgets": {
       "title": "Dashboard Widgets",

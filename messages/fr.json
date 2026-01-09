@@ -11,7 +11,9 @@
       "presenceStatus": "Statut de présence",
       "regieInternalChat": "Chat interne régie",
       "regieInternalChatView": "Vue chat interne",
-      "regiePublicChat": "Chat public régie"
+      "regiePublicChat": "Chat public régie",
+      "twitchStats": "Stats Twitch",
+      "twitchControl": "Contrôle Twitch"
     },
     "header": {
       "connected": "Connecté",
@@ -38,6 +40,8 @@
       "showPosterPanel": "Afficher le panneau Affiche",
       "showMacrosPanel": "Afficher le panneau Macros",
       "showEventLogPanel": "Afficher le panneau Journal d'événements",
+      "showTwitchStatsPanel": "Afficher le panneau Stats Twitch",
+      "showTwitchControlPanel": "Afficher le panneau Contrôle Twitch",
       "resetLayout": "Réinitialiser la disposition"
     },
     "eventLog": {
@@ -163,6 +167,39 @@
       "addGuest": "Ajouter un invité",
       "selectGuest": "Sélectionner un invité",
       "showLowerThirdTooltip": "Afficher le synthé de {name} (Raccourci : {shortcut})"
+    },
+    "twitch": {
+      "stats": {
+        "title": "Stats Twitch",
+        "live": "EN DIRECT",
+        "offline": "Hors ligne",
+        "viewers": "Spectateurs",
+        "uptime": "Durée",
+        "streamTitle": "Titre du stream",
+        "category": "Catégorie",
+        "noTitle": "Aucun titre",
+        "noCategory": "Aucune catégorie",
+        "noData": "Données Twitch non disponibles",
+        "checkProvider": "Vérifiez que Streamer.bot est connecté",
+        "pollingActive": "Actualisation toutes les {interval}s",
+        "pollingInactive": "Actualisation en pause"
+      },
+      "control": {
+        "title": "Contrôle Twitch",
+        "streamTitle": "Titre du stream",
+        "titlePlaceholder": "Entrez le titre du stream...",
+        "category": "Catégorie",
+        "categoryPlaceholder": "Rechercher une catégorie...",
+        "categoryHint": "La recherche de catégorie sera disponible avec l'API Twitch",
+        "categoryId": "ID de catégorie",
+        "categoryIdPlaceholder": "ex: 509658",
+        "categoryIdHint": "Entrez manuellement l'ID Twitch de la catégorie",
+        "noData": "Impossible de charger les informations du stream",
+        "updateSuccess": "Stream mis à jour",
+        "updateSuccessDesc": "Le titre et la catégorie ont été modifiés",
+        "updateError": "Erreur de mise à jour",
+        "unsavedChanges": "Vous avez des modifications non sauvegardées"
+      }
     },
     "widgets": {
       "title": "Widgets du tableau de bord",

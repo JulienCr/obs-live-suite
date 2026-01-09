@@ -143,6 +143,18 @@ export function CommandPalette() {
       keywords: ["panel", "widget", "event", "log", "history", "add"],
       action: () => addPanel("eventLog", "eventLog", "eventLog"),
     },
+    {
+      id: "panel-twitch-stats",
+      label: t("showTwitchStatsPanel"),
+      keywords: ["panel", "widget", "twitch", "stats", "viewers", "broadcast", "stream", "add"],
+      action: () => addPanel("twitchStats", "twitchStats", "twitchStats"),
+    },
+    {
+      id: "panel-twitch-control",
+      label: t("showTwitchControlPanel"),
+      keywords: ["panel", "widget", "twitch", "control", "title", "category", "edit", "add"],
+      action: () => addPanel("twitchControl", "twitchControl", "twitchControl"),
+    },
     // Layout management
     {
       id: "reset-layout",
