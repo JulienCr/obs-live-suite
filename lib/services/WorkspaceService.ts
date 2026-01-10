@@ -15,7 +15,43 @@ export const WORKSPACE_IDS = {
   MINIMAL: "workspace-builtin-minimal",
 } as const;
 
-// User's default workspace layout (Régie)
+// Panel title i18n keys - maps panel IDs to translation keys under "dashboard.panels"
+// These keys are resolved in PanelTab.tsx using useTranslations("dashboard")
+const PANEL_TITLE_KEYS: Record<string, string> = {
+  lowerThird: "panels.lowerThird",
+  countdown: "panels.countdown",
+  guests: "panels.guests",
+  poster: "panels.poster",
+  macros: "panels.macros",
+  eventLog: "panels.eventLog",
+  twitch: "panels.twitch",
+  regieInternalChat: "panels.regieInternalChat",
+  regieInternalChatView: "panels.regieInternalChatView",
+  regiePublicChat: "panels.regiePublicChat",
+};
+
+/**
+ * Creates a panel definition for Dockview layout
+ * Reduces repetition by generating the standard panel structure
+ * The title stores an i18n key that will be resolved by PanelTab
+ */
+function createPanel(panelId: string, title?: string) {
+  return {
+    id: panelId,
+    contentComponent: panelId,
+    tabComponent: "props.defaultTabComponent",
+    title: title ?? PANEL_TITLE_KEYS[panelId] ?? panelId,
+  };
+}
+
+/**
+ * Creates multiple panel definitions from an array of panel IDs
+ */
+function createPanels(panelIds: string[]): Record<string, ReturnType<typeof createPanel>> {
+  return Object.fromEntries(panelIds.map((id) => [id, createPanel(id)]));
+}
+
+// User's default workspace layout (Regie)
 const DEFAULT_WORKSPACE_LAYOUT = JSON.stringify({
   grid: {
     root: {
@@ -67,50 +103,15 @@ const DEFAULT_WORKSPACE_LAYOUT = JSON.stringify({
     height: 1295,
     orientation: "HORIZONTAL",
   },
-  panels: {
-    regieInternalChat: {
-      id: "regieInternalChat",
-      contentComponent: "regieInternalChat",
-      tabComponent: "props.defaultTabComponent",
-      title: "Chat interne régie",
-    },
-    regieInternalChatView: {
-      id: "regieInternalChatView",
-      contentComponent: "regieInternalChatView",
-      tabComponent: "props.defaultTabComponent",
-      title: "Vue chat interne",
-    },
-    guests: {
-      id: "guests",
-      contentComponent: "guests",
-      tabComponent: "props.defaultTabComponent",
-      title: "Invités",
-    },
-    lowerThird: {
-      id: "lowerThird",
-      contentComponent: "lowerThird",
-      tabComponent: "props.defaultTabComponent",
-      title: "Synthés",
-    },
-    poster: {
-      id: "poster",
-      contentComponent: "poster",
-      tabComponent: "props.defaultTabComponent",
-      title: "Affiche",
-    },
-    twitch: {
-      id: "twitch",
-      contentComponent: "twitch",
-      tabComponent: "props.defaultTabComponent",
-      title: "Twitch",
-    },
-    regiePublicChat: {
-      id: "regiePublicChat",
-      contentComponent: "regiePublicChat",
-      tabComponent: "props.defaultTabComponent",
-      title: "Chat public régie",
-    },
-  },
+  panels: createPanels([
+    "regieInternalChat",
+    "regieInternalChatView",
+    "guests",
+    "lowerThird",
+    "poster",
+    "twitch",
+    "regiePublicChat",
+  ]),
   activeGroup: "2",
 });
 
@@ -141,44 +142,7 @@ const LIVE_WORKSPACE_LAYOUT = JSON.stringify({
     height: 1050,
     orientation: "VERTICAL",
   },
-  panels: {
-    lowerThird: {
-      id: "lowerThird",
-      contentComponent: "lowerThird",
-      tabComponent: "props.defaultTabComponent",
-      title: "Synthés",
-    },
-    countdown: {
-      id: "countdown",
-      contentComponent: "countdown",
-      tabComponent: "props.defaultTabComponent",
-      title: "Compte à rebours",
-    },
-    guests: {
-      id: "guests",
-      contentComponent: "guests",
-      tabComponent: "props.defaultTabComponent",
-      title: "Invités",
-    },
-    poster: {
-      id: "poster",
-      contentComponent: "poster",
-      tabComponent: "props.defaultTabComponent",
-      title: "Affiche",
-    },
-    macros: {
-      id: "macros",
-      contentComponent: "macros",
-      tabComponent: "props.defaultTabComponent",
-      title: "Macros",
-    },
-    eventLog: {
-      id: "eventLog",
-      contentComponent: "eventLog",
-      tabComponent: "props.defaultTabComponent",
-      title: "Journal",
-    },
-  },
+  panels: createPanels(["lowerThird", "countdown", "guests", "poster", "macros", "eventLog"]),
   activeGroup: "1",
 });
 
@@ -225,44 +189,7 @@ const PREP_WORKSPACE_LAYOUT = JSON.stringify({
     height: 1050,
     orientation: "VERTICAL",
   },
-  panels: {
-    lowerThird: {
-      id: "lowerThird",
-      contentComponent: "lowerThird",
-      tabComponent: "props.defaultTabComponent",
-      title: "Synthés",
-    },
-    countdown: {
-      id: "countdown",
-      contentComponent: "countdown",
-      tabComponent: "props.defaultTabComponent",
-      title: "Compte à rebours",
-    },
-    guests: {
-      id: "guests",
-      contentComponent: "guests",
-      tabComponent: "props.defaultTabComponent",
-      title: "Invités",
-    },
-    poster: {
-      id: "poster",
-      contentComponent: "poster",
-      tabComponent: "props.defaultTabComponent",
-      title: "Affiche",
-    },
-    macros: {
-      id: "macros",
-      contentComponent: "macros",
-      tabComponent: "props.defaultTabComponent",
-      title: "Macros",
-    },
-    eventLog: {
-      id: "eventLog",
-      contentComponent: "eventLog",
-      tabComponent: "props.defaultTabComponent",
-      title: "Journal",
-    },
-  },
+  panels: createPanels(["lowerThird", "countdown", "guests", "poster", "macros", "eventLog"]),
   activeGroup: "1",
 });
 
@@ -285,20 +212,7 @@ const MINIMAL_WORKSPACE_LAYOUT = JSON.stringify({
     height: 1050,
     orientation: "VERTICAL",
   },
-  panels: {
-    lowerThird: {
-      id: "lowerThird",
-      contentComponent: "lowerThird",
-      tabComponent: "props.defaultTabComponent",
-      title: "Synthés",
-    },
-    macros: {
-      id: "macros",
-      contentComponent: "macros",
-      tabComponent: "props.defaultTabComponent",
-      title: "Macros",
-    },
-  },
+  panels: createPanels(["lowerThird", "macros"]),
   activeGroup: "1",
 });
 

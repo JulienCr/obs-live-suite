@@ -77,6 +77,8 @@
         "isDefault": "Default workspace",
         "setAsDefault": "Set as default",
         "rename": "Rename",
+        "confirmRename": "Confirm rename",
+        "cancelRename": "Cancel rename",
         "delete": "Delete",
         "noUserWorkspaces": "You haven't created any custom workspaces yet.",
         "deleteConfirm": {

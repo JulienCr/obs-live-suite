@@ -77,6 +77,8 @@
         "isDefault": "Espace par défaut",
         "setAsDefault": "Définir par défaut",
         "rename": "Renommer",
+        "confirmRename": "Confirmer le renommage",
+        "cancelRename": "Annuler le renommage",
         "delete": "Supprimer",
         "noUserWorkspaces": "Vous n'avez pas encore créé d'espace de travail personnalisé.",
         "deleteConfirm": {

@@ -9,8 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import type { DbWorkspaceSummary } from "@/lib/models/Database";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,16 +21,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useWorkspaces } from "./WorkspacesContext";
-import {
-  Star,
-  Trash2,
-  Pencil,
-  Check,
-  X,
-  Lock,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
 import { apiPut } from "@/lib/utils/ClientFetch";
+import { WorkspaceListItemFull } from "./WorkspaceListItem";
 
 interface WorkspaceManagerDialogProps {
   open: boolean;
@@ -118,131 +109,32 @@ export function WorkspaceManagerDialog({
     }
   };
 
-  const renderWorkspaceItem = (workspace: typeof workspaces[0]) => {
-    const isEditing = editingId === workspace.id;
-    const isCurrent = currentWorkspaceId === workspace.id;
-
-    return (
-      <div
-        key={workspace.id}
-        className={cn(
-          "flex items-center gap-2 p-3 rounded-lg border transition-colors",
-          isCurrent && "border-primary bg-primary/5",
-          !isCurrent && "border-border hover:bg-accent/50 cursor-pointer"
-        )}
-        onClick={() => !isEditing && !workspace.isBuiltIn && handleWorkspaceClick(workspace.id)}
-      >
-        {/* Default Star */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleSetDefault(workspace.id);
-          }}
-          className="p-1 hover:bg-accent rounded"
-          title={workspace.isDefault ? t("manager.isDefault") : t("manager.setAsDefault")}
-        >
-          <Star
-            className={cn(
-              "w-4 h-4",
-              workspace.isDefault
-                ? "text-yellow-500 fill-yellow-500"
-                : "text-muted-foreground"
-            )}
-          />
-        </button>
-
-        {/* Name */}
-        <div className="flex-1 min-w-0">
-          {isEditing ? (
-            <Input
-              value={editingName}
-              onChange={(e) => setEditingName(e.target.value)}
-              className="h-8"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSaveEdit();
-                if (e.key === "Escape") handleCancelEdit();
-              }}
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="font-medium truncate">{workspace.name}</span>
-              {workspace.isBuiltIn && (
-                <Lock className="w-3 h-3 text-muted-foreground shrink-0" />
-              )}
-            </div>
-          )}
-          {workspace.description && !isEditing && (
-            <p className="text-xs text-muted-foreground truncate">
-              {workspace.description}
-            </p>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0">
-          {isEditing ? (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSaveEdit();
-                }}
-              >
-                <Check className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCancelEdit();
-                }}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </>
-          ) : (
-            <>
-              {!workspace.isBuiltIn && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleStartEdit(workspace.id, workspace.name);
-                    }}
-                    title={t("manager.rename")}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteConfirmId(workspace.id);
-                    }}
-                    title={t("manager.delete")}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    );
+  const translations = {
+    isDefault: t("manager.isDefault"),
+    setAsDefault: t("manager.setAsDefault"),
+    rename: t("manager.rename"),
+    confirmRename: t("manager.confirmRename"),
+    cancelRename: t("manager.cancelRename"),
+    delete: t("manager.delete"),
   };
+
+  const renderWorkspaceItem = (workspace: DbWorkspaceSummary) => (
+    <WorkspaceListItemFull
+      key={workspace.id}
+      workspace={workspace}
+      isCurrent={currentWorkspaceId === workspace.id}
+      isEditing={editingId === workspace.id}
+      editingName={editingName}
+      onEditingNameChange={setEditingName}
+      onStartEdit={() => handleStartEdit(workspace.id, workspace.name)}
+      onSaveEdit={handleSaveEdit}
+      onCancelEdit={handleCancelEdit}
+      onSetDefault={() => handleSetDefault(workspace.id)}
+      onDelete={() => setDeleteConfirmId(workspace.id)}
+      onClick={() => handleWorkspaceClick(workspace.id)}
+      translations={translations}
+    />
+  );
 
   return (
     <>

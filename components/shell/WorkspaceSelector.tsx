@@ -13,16 +13,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   ChevronDown,
-  Check,
   Save,
   RotateCcw,
   Settings2,
   Layout,
-  Star,
 } from "lucide-react";
 import { useWorkspacesSafe } from "./WorkspacesContext";
 import { WorkspaceSaveDialog } from "./WorkspaceSaveDialog";
 import { WorkspaceManagerDialog } from "./WorkspaceManagerDialog";
+import { WorkspaceListItem } from "./WorkspaceListItem";
 
 export function WorkspaceSelector() {
   const t = useTranslations("dashboard.workspaces");
@@ -117,15 +116,11 @@ export function WorkspaceSelector() {
                   className="flex items-center justify-between"
                   disabled={!canApplyLayout}
                 >
-                  <div className="flex items-center gap-2">
-                    {workspace.isDefault && (
-                      <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                    )}
-                    <span>{workspace.name}</span>
-                  </div>
-                  {currentWorkspaceId === workspace.id && !isModified && (
-                    <Check className="w-4 h-4" />
-                  )}
+                  <WorkspaceListItem
+                    workspace={workspace}
+                    isCurrent={currentWorkspaceId === workspace.id}
+                    isModified={isModified}
+                  />
                 </DropdownMenuItem>
               ))}
             </>
@@ -145,15 +140,11 @@ export function WorkspaceSelector() {
                   className="flex items-center justify-between"
                   disabled={!canApplyLayout}
                 >
-                  <div className="flex items-center gap-2">
-                    {workspace.isDefault && (
-                      <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                    )}
-                    <span>{workspace.name}</span>
-                  </div>
-                  {currentWorkspaceId === workspace.id && !isModified && (
-                    <Check className="w-4 h-4" />
-                  )}
+                  <WorkspaceListItem
+                    workspace={workspace}
+                    isCurrent={currentWorkspaceId === workspace.id}
+                    isModified={isModified}
+                  />
                 </DropdownMenuItem>
               ))}
             </>
