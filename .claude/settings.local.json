@@ -98,7 +98,8 @@
       "Bash(echo:*)",
       "Bash(tr:*)",
       "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -20 \"\"{}\"\"')",
-      "Bash(pnpm lint:*)"
+      "Bash(pnpm lint:*)",
+      "Skill(commit-commands:commit)"
     ],
     "deny": [],
     "ask": [
