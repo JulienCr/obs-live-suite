@@ -99,6 +99,49 @@ The server will automatically:
 
 6. Open browser at `http://localhost:3000`
 
+## Development Commands
+
+### Core Commands
+```bash
+pnpm dev              # Start frontend + backend (watch mode)
+pnpm dev:frontend     # Start only Next.js dev server
+pnpm dev:backend      # Start only backend server
+pnpm build            # Build for production
+pnpm start            # Start production server
+```
+
+### Testing
+```bash
+pnpm test             # Run unit tests (Jest)
+pnpm test:watch       # Run tests in watch mode
+pnpm test:coverage    # Generate coverage report
+pnpm test:functional  # Run functional overlay tests
+pnpm test:functional:ui  # Run dashboard UI tests
+pnpm test:all         # Run all tests
+```
+
+### Code Quality
+```bash
+pnpm lint             # Run ESLint
+pnpm type-check       # TypeScript validation
+```
+
+### PM2 Production
+```bash
+pnpm pm2:start        # Start with PM2
+pnpm pm2:stop         # Stop PM2 processes
+pnpm pm2:restart      # Restart PM2
+pnpm pm2:logs         # View logs
+pnpm pm2:status       # Check status
+```
+
+### Utilities
+```bash
+pnpm streamdeck:ids   # List Stream Deck action IDs
+pnpm backup:appdata   # Backup application data
+pnpm setup:https      # Generate HTTPS certificates
+```
+
 ## OBS Browser Sources
 
 Add these as Browser Sources in OBS (1920x1080, check "Shutdown source when not visible"):
@@ -194,9 +237,9 @@ Configure webhook to POST to `http://localhost:3002/api/quiz-bot/chat` with:
 ## Stream Deck Integration
 
 ### Native Plugin (Recommended)
-- Location: `streamdeck-plugin/` directory
-- Quick Start: `streamdeck-plugin/QUICKSTART.md`
-- Full Documentation: `streamdeck-plugin/README.md`
+- Location: `streamdeck-plugin/obslive-suite/`
+- Setup Guide: [Stream Deck Setup](./docs/STREAM-DECK-SETUP.md)
+- Plugin Documentation: [Stream Deck Plugin](./docs/STREAM-DECK-PLUGIN.md)
 
 ### HTTP API (Alternative)
 Use Stream Deck's "Website" action with endpoints at `http://localhost:3002/api/`
