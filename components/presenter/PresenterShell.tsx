@@ -86,6 +86,7 @@ export function PresenterShell() {
                   badges: payload.badges,
                 },
                 duration: 10,
+                from: "presenter",
               },
             }
           : { action: "hide" }

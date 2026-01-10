@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { MessageSquare } from "lucide-react";
 import { useStreamerbotClient } from "../../hooks/useStreamerbotClient";
@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import type { TwitchEvent } from "@/lib/models/Twitch";
+import { useChatHighlightSync } from "@/hooks/useChatHighlightSync";
 
 /**
  * Streamer.bot Chat Panel - Main orchestrator component
@@ -46,6 +47,9 @@ export function StreamerbotChatPanel({
   useWebSocketChannel<TwitchEvent>("twitch", handleTwitchEvent, {
     logPrefix: "StreamerbotChatPanel",
   });
+
+  // Sync with shared overlay state (handles external show/hide from EventLog)
+  useChatHighlightSync(currentlyDisplayedId, setCurrentlyDisplayedId);
 
   // Chat settings from localStorage
   const {
@@ -112,6 +116,7 @@ export function StreamerbotChatPanel({
                 parts: message.parts,
                 metadata: message.metadata,
                 duration: 10,
+                from: "presenter",
               },
             }
           : { action: "hide" }

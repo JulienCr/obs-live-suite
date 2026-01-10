@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { PanelColorMenu } from "../PanelColorMenu";
 import { LowerThirdPreviewDialog } from "./LowerThirdPreviewDialog";
 import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { useOverlayHideSync } from "@/hooks/useSyncWithOverlayState";
 
 interface WikipediaPreview {
   title: string;
@@ -44,6 +45,9 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
   const [showWikipediaOptions, setShowWikipediaOptions] = useState(false);
   const [lowerThirdDuration, setLowerThirdDuration] = useState(8); // Default, will be updated from settings
   const [showPreview, setShowPreview] = useState(false);
+
+  // Sync local state with shared overlay state (handles external hide from EventLog)
+  useOverlayHideSync("lowerThird", isVisible, () => setIsVisible(false));
 
   // Fetch overlay settings on mount
   useEffect(() => {

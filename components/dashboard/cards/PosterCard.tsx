@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils/cn";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
+import { useSyncWithOverlayState } from "@/hooks/useSyncWithOverlayState";
 
 interface Poster {
   id: string;
@@ -150,6 +151,32 @@ export function PosterContent({ className }: PosterContentProps) {
     fetchPosters();
     fetchDefaultDisplayMode();
   }, []);
+
+  // Sync local state with WebSocket overlay state using the shared hook
+  useSyncWithOverlayState({
+    overlayType: "poster",
+    localActive: activePoster !== null,
+    onExternalHide: () => {
+      setActivePoster(null);
+      setDisplayMode(null);
+      setActiveSide(null);
+      setActiveType(null);
+      setShowControls(false);
+    },
+    onExternalShow: (state) => {
+      if (state.active && "posterId" in state && state.posterId && state.posterId !== activePoster) {
+        const poster = posters.find((p) => p.id === state.posterId);
+        if (poster) {
+          setActivePoster(state.posterId);
+          const mode = "displayMode" in state ? state.displayMode : null;
+          setDisplayMode(mode || null);
+          setActiveSide(mode === "bigpicture" ? null : (mode || null));
+          setActiveType(poster.type);
+          setShowControls(poster.type === "video" || poster.type === "youtube");
+        }
+      }
+    },
+  });
 
   // WebSocket connection for playback state
   useEffect(() => {

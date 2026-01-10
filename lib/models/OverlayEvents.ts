@@ -1,6 +1,14 @@
 import { z } from "zod";
 
 /**
+ * Event source - where the event originated
+ */
+export enum EventSource {
+  REGIE = "regie",
+  PRESENTER = "presenter",
+}
+
+/**
  * Overlay channel names
  */
 export enum OverlayChannel {
@@ -118,6 +126,7 @@ export const lowerThirdShowPayloadSchema = z.object({
   avatarImage: z.string().optional(),
   logoHasPadding: z.boolean().default(false),
   guestId: z.string().optional(), // Guest ID for tracking in dashboard
+  from: z.nativeEnum(EventSource).default(EventSource.REGIE),
   animationConfig: lowerThirdAnimationConfigSchema,
   theme: z.object({
     colors: z.object({
@@ -188,6 +197,7 @@ export const posterShowPayloadSchema = z.object({
   transition: z.enum(["fade", "slide", "cut", "blur"]).default("fade"),
   duration: z.number().int().positive().optional(),
   side: z.enum(["left", "right"]).optional(),
+  from: z.nativeEnum(EventSource).default(EventSource.REGIE),
   theme: z.object({
     layout: z.object({
       x: z.number(),
@@ -242,6 +252,7 @@ export const chatHighlightShowPayloadSchema = z.object({
   }).optional(),
   duration: z.number().int().positive().default(10),
   side: z.enum(["left", "right", "center"]).default("center"),
+  from: z.nativeEnum(EventSource).default(EventSource.REGIE),
   theme: z.object({
     colors: z.object({
       primary: z.string(),
