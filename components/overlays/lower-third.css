@@ -35,6 +35,8 @@
 .lowerthird--text {
   max-width: var(--lt-free-text-max-width);
   min-width: var(--lt-free-text-max-width);
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 /* ===== CIRCLE / AVATAR ===== */
@@ -145,13 +147,23 @@
   gap: 6px;
 }
 
+/* Image au-dessus de la barre (hors du container .bar) */
 .lowerthird-media {
-  width: 140px;
-  height: 90px;
+  width: 200px;
+  height: 125px;
   border-radius: 12px;
   overflow: hidden;
   flex-shrink: 0;
   background: rgba(0, 0, 0, 0.2);
+  margin-bottom: 8px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.lowerthird-media.show {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .lowerthird-media img {
@@ -288,4 +300,9 @@
 .lowerthird.animate-out .avatar {
   animation: lt-avatar-out var(--lt-exit-avatar-duration) ease var(--lt-exit-avatar-delay) forwards;
   transform-origin: center;
+}
+
+/* Image: fades out with text */
+.lowerthird.animate-out .lowerthird-media {
+  animation: lt-text-out var(--lt-exit-text-duration) ease forwards;
 }

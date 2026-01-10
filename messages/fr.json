@@ -77,6 +77,9 @@
       "viewOriginalExtract": "Voir l'extrait Wikipedia original",
       "quickAddImage": "Ajouter une image",
       "selectedImage": "Image sélectionnée",
+      "preview": "Aperçu",
+      "previewTitle": "Aperçu du lower third",
+      "previewNote": "Aperçu à l'échelle. Le rendu final sera en 1920×1080.",
       "toasts": {
         "searchMinChars": "Veuillez entrer au moins 2 caractères pour rechercher",
         "loadingWikipediaPage": "Chargement de la page Wikipedia...",

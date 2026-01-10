@@ -77,6 +77,9 @@
       "viewOriginalExtract": "View original Wikipedia extract",
       "quickAddImage": "Quick Add Image",
       "selectedImage": "Selected image",
+      "preview": "Preview",
+      "previewTitle": "Lower Third Preview",
+      "previewNote": "Scaled preview. Final render will be 1920×1080.",
       "toasts": {
         "searchMinChars": "Please enter at least 2 characters to search",
         "loadingWikipediaPage": "Loading Wikipedia page...",

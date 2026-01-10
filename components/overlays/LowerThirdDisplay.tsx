@@ -7,7 +7,11 @@ import remarkBreaks from "remark-breaks";
 import { LowerThirdAnimationConfig } from "@/lib/models/OverlayEvents";
 import { DEFAULT_LOGO_IMAGE } from "@/lib/config/lowerThirdDefaults";
 import { ColorScheme, FontConfig, LayoutConfig, LowerThirdAnimationTheme } from "@/lib/models/Theme";
+import { waitForFont } from "@/lib/utils/fontLoader";
 import "./lower-third.css";
+
+// Standard broadcast width for consistent text wrapping calculations
+const BROADCAST_WIDTH = 1920;
 
 export interface LowerThirdDisplayProps {
   title?: string;
@@ -30,6 +34,7 @@ export interface LowerThirdDisplayProps {
   animationConfig?: LowerThirdAnimationConfig;
   animating?: boolean;
   isPreview?: boolean;
+  viewportWidth?: number; // For preview viewport simulation
 }
 
 /**
@@ -52,6 +57,7 @@ export function LowerThirdDisplay({
   animationConfig,
   animating = true,
   isPreview = false,
+  viewportWidth: propViewportWidth,
 }: LowerThirdDisplayProps) {
   const [logoVisible, setLogoVisible] = useState(false);
   const [flipped, setFlipped] = useState(false);
@@ -62,6 +68,7 @@ export function LowerThirdDisplay({
   const markdownRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [wrapWidth, setWrapWidth] = useState(0);
+  const [fontReady, setFontReady] = useState(false);
 
   // Merge config with priority: animationConfig prop > theme.lowerThirdAnimation > defaults
   const themeAnimation = theme?.lowerThirdAnimation;
@@ -170,11 +177,26 @@ export function LowerThirdDisplay({
   const centeredBottomOffset = 80;
 
   // Wrapper style with scale - separate from animated content
-  const wrapperStyle = useMemo<React.CSSProperties>(() => ({
-    position: 'fixed' as const,
-    ...(isPreview ? {
-      position: 'relative' as const,
-    } : {
+  const wrapperStyle = useMemo<React.CSSProperties>(() => {
+    if (isPreview) {
+      // Preview mode: use absolute positioning, NO layout.scale (preview container handles scaling)
+      return {
+        position: 'absolute' as const,
+        ...(side === "center" ? {
+          left: "50%",
+          bottom: `${centeredBottomOffset}px`,
+          transform: "translateX(-50%)",
+          transformOrigin: "bottom center",
+        } : {
+          left: `${layout.x}px`,
+          bottom: `${1080 - layout.y}px`,
+          // No transform scale in preview - the preview container scales everything
+        }),
+      };
+    }
+    // Live overlay mode: use fixed positioning with layout scale
+    return {
+      position: 'fixed' as const,
       ...(side === "center" ? {
         left: "50%",
         bottom: `${centeredBottomOffset}px`,
@@ -186,11 +208,16 @@ export function LowerThirdDisplay({
         transform: `scale(${layout.scale})`,
         transformOrigin: "bottom left",
       }),
-    }),
-  }), [isPreview, side, layout.scale, layout.x, layout.y, centeredBottomOffset]);
+    };
+  }, [isPreview, side, layout.scale, layout.x, layout.y, centeredBottomOffset]);
+
+  // Calculate CSS max-width in pixels based on broadcast width for consistency
+  // Divide by layout.scale so the final scaled width matches the target
+  // e.g., for center (90vw = 1728px) with scale 1.6: 1728/1.6 = 1080px base → 1080*1.6 = 1728px final
+  const freeTextMaxWidthPx = (BROADCAST_WIDTH * freeTextMaxWidth) / 100 / layout.scale;
 
   // Container style - no transform here, just CSS variables
-  const containerStyle = useMemo<React.CSSProperties>(() => ({
+  const containerStyle = useMemo(() => ({
     '--lt-timing-logo-fade': `${config.timing.logoFadeDuration}ms`,
     '--lt-timing-logo-scale': `${config.timing.logoScaleDuration}ms`,
     '--lt-timing-flip': `${config.timing.flipDuration}ms`,
@@ -202,14 +229,14 @@ export function LowerThirdDisplay({
     '--lt-color-border-avatar': config.styles.avatarBorderColor,
     '--lt-bar-border-radius': `${config.styles.barBorderRadius}px`,
     '--lt-bar-min-width': `${config.styles.barMinWidth}px`,
-    '--lt-free-text-max-width': `${freeTextMaxWidth}vw`,
+    '--lt-free-text-max-width': `${freeTextMaxWidthPx}px`,
     '--lt-avatar-border-width': `${config.styles.avatarBorderWidth}px`,
-  }), [
+  }) as React.CSSProperties, [
     config.timing.logoFadeDuration, config.timing.logoScaleDuration,
     config.timing.flipDuration, config.timing.barExpandDuration,
     config.timing.textFadeDuration, config.styles.avatarBorderColor,
     config.styles.barBorderRadius, config.styles.barMinWidth,
-    titleColor, subtitleColor, backgroundColor, freeTextMaxWidth,
+    titleColor, subtitleColor, backgroundColor, freeTextMaxWidthPx,
     config.styles.avatarBorderWidth
   ]);
 
@@ -231,6 +258,20 @@ export function LowerThirdDisplay({
   const baseFontSize = theme?.font.size || 32;
   const baseFontWeight = theme?.font.weight || 700;
   const fontFamily = theme?.font.family || "sans-serif";
+
+  // Wait for custom font to load before calculating text wrapping
+  useEffect(() => {
+    const checkFont = async () => {
+      if (!fontFamily || fontFamily === 'sans-serif') {
+        setFontReady(true);
+        return;
+      }
+      await waitForFont(fontFamily);
+      setFontReady(true);
+    };
+    checkFont();
+  }, [fontFamily]);
+
   const computeLineScale = (lineCount: number, maxLen: number) => {
     let scale = 1;
     if (lineCount >= 3) scale = 0.9;
@@ -246,6 +287,7 @@ export function LowerThirdDisplay({
     width: number,
     scale: number
   ) => {
+    // Strip markdown syntax for accurate width measurement
     const sanitized = (input: string) => input
       .replace(/!\[[^\]]*]\([^)]*\)/g, "")
       .replace(/\[(.*?)\]\([^)]*\)/g, "$1")
@@ -263,7 +305,37 @@ export function LowerThirdDisplay({
     if (!ctx) {
       return { lines: text.split(/\r?\n/), maxLineLength: 0 };
     }
-    ctx.font = `${baseFontWeight} ${fontSize}px ${fontFamily}`;
+
+    // Extract first font family (before comma) and remove quotes for canvas
+    const primaryFont = fontFamily.split(",")[0].trim().replace(/["']/g, "");
+    ctx.font = `${baseFontWeight} ${fontSize}px "${primaryFont}"`;
+
+    // Safety margin to account for canvas vs CSS rendering differences
+    // Canvas measureText can be slightly less accurate than actual rendering
+    // Using 1.5 character widths to be more conservative
+    const safetyMargin = fontSize * 1.5;
+    const effectiveWidth = width - safetyMargin;
+
+    // Words that should not be left alone at end of line (French articles, prepositions, etc.)
+    const noBreakAfter = new Set([
+      "*", "-", "•", ":", ";", // Bullets and punctuation
+      "à", "a", "au", "aux", "de", "des", "du", "d'", // French prepositions
+      "le", "la", "les", "l'", "un", "une", // French articles
+      "et", "ou", "en", "y", "ne", "n'", // French conjunctions/particles
+      "the", "a", "an", "to", "of", "in", "on", "at", "by", // English articles/prepositions
+    ]);
+
+    // Check if a word should stay with the next word
+    const shouldKeepWithNext = (word: string): boolean => {
+      const lower = word.toLowerCase();
+      // Single characters (except numbers)
+      if (word.length === 1 && !/\d/.test(word)) return true;
+      // Known no-break words
+      if (noBreakAfter.has(lower)) return true;
+      // Ends with apostrophe (like "d'", "l'", "n'")
+      if (word.endsWith("'") || word.endsWith("'")) return true;
+      return false;
+    };
 
     const paragraphs = text.split(/\r?\n/);
     const lines: string[] = [];
@@ -276,17 +348,30 @@ export function LowerThirdDisplay({
       }
       const words = paragraph.split(/\s+/).filter(Boolean);
       let current = "";
-      words.forEach((word) => {
+      let i = 0;
+
+      while (i < words.length) {
+        let word = words[i];
+
+        // If this word should stay with the next, combine them
+        while (i < words.length - 1 && shouldKeepWithNext(words[i])) {
+          word = word + " " + words[i + 1];
+          i++;
+        }
+
         const candidate = current ? `${current} ${word}` : word;
         const candidateWidth = ctx.measureText(sanitized(candidate)).width;
-        if (candidateWidth > width && current) {
+
+        if (candidateWidth > effectiveWidth && current) {
           lines.push(current);
           maxLen = Math.max(maxLen, current.length);
           current = word;
         } else {
           current = candidate;
         }
-      });
+        i++;
+      }
+
       if (current) {
         lines.push(current);
         maxLen = Math.max(maxLen, current.length);
@@ -297,43 +382,37 @@ export function LowerThirdDisplay({
   };
 
   // Calculate target width from theme config (in vw)
+  // Uses BROADCAST_WIDTH (1920px) for consistent text wrapping
+  // Divides by layout.scale since the content is scaled up - we need to wrap at narrower width
   const targetWidth = useMemo(() => {
     if (!isTextMode) return 0;
-    
+
     const vwValue = freeTextMaxWidth; // Already calculated: 90 for center, 65 for left/right
     // Convert vw to pixels: 1vw = viewport width / 100
-    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
+    // Use provided viewport width, or default to broadcast standard (1920px)
+    const viewportWidth = propViewportWidth ?? BROADCAST_WIDTH;
     const widthInPixels = (viewportWidth * vwValue) / 100;
-    
+
     // Account for bar padding (16px left + 20px right = 36px) and text padding
     // The markdown wrapper needs the full bar width minus its internal padding
     const textContainerPadding = 40; // Total horizontal padding in .bar
-    const imageSpace = imageUrl ? 156 : 0; // Image width + gap if present
-    
-    return widthInPixels - textContainerPadding - imageSpace;
-  }, [isTextMode, freeTextMaxWidth, imageUrl]);
+
+    // Divide by scale since the content will be scaled up
+    // This ensures the final scaled width fits within the target
+    const scale = isPreview ? 1 : layout.scale;
+    return (widthInPixels - textContainerPadding) / scale;
+  }, [isTextMode, freeTextMaxWidth, propViewportWidth, isPreview, layout.scale]);
 
   useLayoutEffect(() => {
     if (!isTextMode) return;
-    
+
     // Use calculated target width immediately
+    // No need for resize listener since we use fixed BROADCAST_WIDTH
     setWrapWidth(targetWidth);
-    
-    // Still observe for window resize
-    const handleResize = () => {
-      const viewportWidth = window.innerWidth;
-      const widthInPixels = (viewportWidth * freeTextMaxWidth) / 100;
-      const textContainerPadding = 40;
-      const imageSpace = imageUrl ? 156 : 0;
-      setWrapWidth(widthInPixels - textContainerPadding - imageSpace);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [isTextMode, freeTextMaxWidth, targetWidth, imageUrl]);
+  }, [isTextMode, targetWidth]);
 
   const { wrappedLines, lineScale } = useMemo(() => {
-    if (!isTextMode || !wrapWidth) {
+    if (!isTextMode || !wrapWidth || !fontReady) {
       return { wrappedLines: [], lineScale: 1 };
     }
 
@@ -347,7 +426,7 @@ export function LowerThirdDisplay({
     }
 
     return { wrappedLines: secondPass.lines, lineScale: scale };
-  }, [isTextMode, markdownSource, wrapWidth, baseFontSize, baseFontWeight, fontFamily]);
+  }, [isTextMode, markdownSource, wrapWidth, baseFontSize, baseFontWeight, fontFamily, fontReady]);
 
   const markdownStyle: React.CSSProperties = {
     fontFamily,
@@ -381,12 +460,13 @@ export function LowerThirdDisplay({
         </div>
       )}
 
+      {isTextMode && imageUrl && (
+        <div className={`lowerthird-media ${barVisible ? "show" : ""}`}>
+          <img src={imageUrl} alt={imageAlt || "Lower third image"} />
+        </div>
+      )}
+
       <div className={`bar ${barVisible ? "show" : ""}`}>
-        {isTextMode && imageUrl && (
-          <div className="lowerthird-media">
-            <img src={imageUrl} alt={imageAlt || "Lower third image"} />
-          </div>
-        )}
         <div className={`text ${textVisible ? "show" : ""}`}>
           {isTextMode ? (
             <div className="lowerthird-markdown" ref={markdownRef} style={markdownStyle}>
