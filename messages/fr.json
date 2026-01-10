@@ -40,7 +40,59 @@
       "showMacrosPanel": "Afficher le panneau Macros",
       "showEventLogPanel": "Afficher le panneau Journal d'événements",
       "showTwitchPanel": "Afficher le panneau Twitch",
-      "resetLayout": "Réinitialiser la disposition"
+      "resetLayout": "Réinitialiser la disposition",
+      "resetWorkspace": "Réinitialiser l'espace de travail",
+      "saveWorkspace": "Sauvegarder l'espace de travail",
+      "manageWorkspaces": "Gérer les espaces de travail",
+      "switchToWorkspace": "Basculer vers : {name}"
+    },
+    "workspaces": {
+      "title": "Espaces de travail",
+      "noWorkspace": "Aucun espace",
+      "custom": "Personnalisé",
+      "loading": "Chargement...",
+      "builtIn": "Prédéfinis",
+      "myWorkspaces": "Mes espaces",
+      "save": "Sauvegarder",
+      "reset": "Réinitialiser",
+      "manage": "Gérer",
+      "saveDialog": {
+        "title": "Sauvegarder l'espace de travail",
+        "description": "Sauvegardez votre disposition actuelle pour la réutiliser plus tard.",
+        "createNew": "Nouveau",
+        "overwrite": "Écraser",
+        "name": "Nom",
+        "namePlaceholder": "Mon espace de travail",
+        "descriptionLabel": "Description (optionnelle)",
+        "descriptionPlaceholder": "Description de cet espace de travail...",
+        "makeDefault": "Définir comme espace par défaut",
+        "selectWorkspace": "Espace à écraser",
+        "selectPlaceholder": "Sélectionnez un espace de travail...",
+        "cancel": "Annuler",
+        "save": "Sauvegarder"
+      },
+      "manager": {
+        "title": "Gérer les espaces de travail",
+        "description": "Renommez, supprimez ou définissez un espace par défaut.",
+        "isDefault": "Espace par défaut",
+        "setAsDefault": "Définir par défaut",
+        "rename": "Renommer",
+        "confirmRename": "Confirmer le renommage",
+        "cancelRename": "Annuler le renommage",
+        "delete": "Supprimer",
+        "noUserWorkspaces": "Vous n'avez pas encore créé d'espace de travail personnalisé.",
+        "deleteConfirm": {
+          "title": "Supprimer l'espace de travail ?",
+          "description": "L'espace de travail \"{name}\" sera définitivement supprimé.",
+          "cancel": "Annuler",
+          "confirm": "Supprimer"
+        }
+      },
+      "errors": {
+        "nameRequired": "Le nom est requis",
+        "selectWorkspace": "Veuillez sélectionner un espace de travail",
+        "saveFailed": "Échec de la sauvegarde"
+      }
     },
     "eventLog": {
       "title": "Journal d'événements",

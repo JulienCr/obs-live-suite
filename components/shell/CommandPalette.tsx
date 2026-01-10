@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Omnibar, type ItemRenderer } from "@blueprintjs/select";
 import { MenuItem } from "@blueprintjs/core";
 import { useDockview } from "./DockviewContext";
+import { useWorkspacesSafe } from "./WorkspacesContext";
+import { WorkspaceSaveDialog } from "./WorkspaceSaveDialog";
+import { WorkspaceManagerDialog } from "./WorkspaceManagerDialog";
 
 interface Command {
   id: string;
@@ -15,13 +18,9 @@ interface Command {
 
 const TypedOmnibar = Omnibar.ofType<Command>();
 
-const renderCommand: ItemRenderer<Command> = (
-  command,
-  { handleClick, handleFocus, modifiers }
-) => {
-  if (!modifiers.matchesPredicate) {
-    return null;
-  }
+const renderCommand: ItemRenderer<Command> = (command, { handleClick, handleFocus, modifiers }) => {
+  if (!modifiers.matchesPredicate) return null;
+
   return (
     <MenuItem
       key={command.id}
@@ -33,43 +32,38 @@ const renderCommand: ItemRenderer<Command> = (
   );
 };
 
-const filterCommand = (query: string, command: Command) => {
+function filterCommand(query: string, command: Command): boolean {
   const lowerQuery = query.toLowerCase();
   return (
     command.label.toLowerCase().includes(lowerQuery) ||
     command.keywords?.some((kw) => kw.toLowerCase().includes(lowerQuery)) ||
     false
   );
-};
+}
 
-export function CommandPalette() {
+export function CommandPalette(): React.ReactNode {
   const [isOpen, setIsOpen] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [managerDialogOpen, setManagerDialogOpen] = useState(false);
   const { api } = useDockview();
   const t = useTranslations("dashboard.commandPalette");
   const tPanels = useTranslations("dashboard.panels");
 
-  // Function to add panel if not already open
-  const addPanel = (id: string, component: string, titleKey: string) => {
+  const workspacesContext = useWorkspacesSafe();
+
+  function addPanel(id: string, component: string, titleKey: string): void {
     if (!api) return;
 
-    // Check if panel already exists
     const existingPanel = api.getPanel(id);
     if (existingPanel) {
-      // Focus existing panel
       existingPanel.api.setActive();
       return;
     }
 
-    // Add new panel
-    api.addPanel({
-      id,
-      component,
-      title: tPanels(titleKey),
-    });
-  };
+    api.addPanel({ id, component, title: tPanels(titleKey) });
+  }
 
   const COMMANDS: Command[] = [
-    // Navigation
     {
       id: "nav-dashboard",
       label: t("goToDashboard"),
@@ -106,7 +100,6 @@ export function CommandPalette() {
       keywords: ["navigate", "quiz", "host", "control"],
       action: () => (window.location.href = "/quiz/host"),
     },
-    // Panel management
     {
       id: "panel-lower-third",
       label: t("showLowerThirdPanel"),
@@ -149,7 +142,6 @@ export function CommandPalette() {
       keywords: ["panel", "widget", "twitch", "stats", "viewers", "broadcast", "stream", "control", "title", "category", "edit", "add"],
       action: () => addPanel("twitch", "twitch", "twitch"),
     },
-    // Layout management
     {
       id: "reset-layout",
       label: t("resetLayout"),
@@ -163,39 +155,76 @@ export function CommandPalette() {
     },
   ];
 
+  const workspaceCommands: Command[] = useMemo(() => {
+    if (!workspacesContext) return [];
+
+    const commands: Command[] = [
+      {
+        id: "workspace-reset",
+        label: t("resetWorkspace"),
+        keywords: ["workspace", "reset", "default", "restore"],
+        action: () => workspacesContext.resetToDefault().catch(console.error),
+      },
+      {
+        id: "workspace-save",
+        label: t("saveWorkspace"),
+        keywords: ["workspace", "save", "layout", "create"],
+        action: () => setSaveDialogOpen(true),
+      },
+      {
+        id: "workspace-manage",
+        label: t("manageWorkspaces"),
+        keywords: ["workspace", "manage", "edit", "delete", "rename"],
+        action: () => setManagerDialogOpen(true),
+      },
+    ];
+
+    for (const workspace of workspacesContext.workspaces) {
+      commands.push({
+        id: `workspace-switch-${workspace.id}`,
+        label: t("switchToWorkspace", { name: workspace.name }),
+        keywords: ["workspace", "switch", "change", workspace.name.toLowerCase()],
+        action: () => workspacesContext.applyWorkspace(workspace.id).catch(console.error),
+      });
+    }
+
+    return commands;
+  }, [workspacesContext, t]);
+
+  const allCommands = [...COMMANDS, ...workspaceCommands];
+
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      // Cmd+P or Ctrl+P
-      if ((e.metaKey || e.ctrlKey) && e.key === "p") {
+    function handler(e: KeyboardEvent): void {
+      const hasModifier = e.metaKey || e.ctrlKey;
+      if (hasModifier && e.key.toLowerCase() === "p") {
         e.preventDefault();
         setIsOpen((prev) => !prev);
       }
-      // Cmd+Shift+P or Ctrl+Shift+P (alternative)
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "P") {
-        e.preventDefault();
-        setIsOpen((prev) => !prev);
-      }
-    };
+    }
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const handleItemSelect = (command: Command) => {
+  function handleItemSelect(command: Command): void {
     setIsOpen(false);
     command.action();
-  };
+  }
 
   return (
-    <TypedOmnibar
-      isOpen={isOpen}
-      items={COMMANDS}
-      itemRenderer={renderCommand}
-      itemPredicate={filterCommand}
-      onItemSelect={handleItemSelect}
-      onClose={() => setIsOpen(false)}
-      resetOnSelect
-      inputProps={{ placeholder: t("placeholder") }}
-    />
+    <>
+      <TypedOmnibar
+        isOpen={isOpen}
+        items={allCommands}
+        itemRenderer={renderCommand}
+        itemPredicate={filterCommand}
+        onItemSelect={handleItemSelect}
+        onClose={() => setIsOpen(false)}
+        resetOnSelect
+        inputProps={{ placeholder: t("placeholder") }}
+      />
+      <WorkspaceSaveDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} />
+      <WorkspaceManagerDialog open={managerDialogOpen} onOpenChange={setManagerDialogOpen} />
+    </>
   );
 }

@@ -4,6 +4,7 @@ import { OBSStateManager } from "../adapters/obs/OBSStateManager";
 import { DatabaseService } from "../services/DatabaseService";
 import { ThemeService } from "../services/ThemeService";
 import { RoomService } from "../services/RoomService";
+import { WorkspaceService } from "../services/WorkspaceService";
 import { Logger } from "../utils/Logger";
 import { PathManager } from "../config/PathManager";
 
@@ -59,6 +60,11 @@ export class ServerInit {
       const roomService = RoomService.getInstance();
       await roomService.initializeDefaultRoom();
       this.logger.info("✓ Default room initialized");
+
+      // Initialize built-in workspaces
+      const workspaceService = WorkspaceService.getInstance();
+      workspaceService.initializeBuiltInWorkspaces();
+      this.logger.info("✓ Built-in workspaces initialized");
 
       // Initialize WebSocket Hub
       const wsHub = WebSocketHub.getInstance();

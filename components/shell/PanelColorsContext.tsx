@@ -17,12 +17,20 @@ interface PanelColorsContextValue {
 
 const PanelColorsContext = createContext<PanelColorsContextValue | null>(null);
 
-export function usePanelColors() {
+export function usePanelColors(): PanelColorsContextValue {
   const context = useContext(PanelColorsContext);
   if (!context) {
     throw new Error("usePanelColors must be used within a PanelColorsProvider");
   }
   return context;
+}
+
+/**
+ * Safe version of usePanelColors that returns null if not within a provider.
+ * Use this in components that may be rendered outside the PanelColorsProvider.
+ */
+export function usePanelColorsSafe(): PanelColorsContextValue | null {
+  return useContext(PanelColorsContext);
 }
 
 interface PanelColorsProviderProps {
