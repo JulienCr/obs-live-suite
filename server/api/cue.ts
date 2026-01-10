@@ -1,5 +1,8 @@
 /**
  * Backend API - Cue Messaging for Presenter Dashboard
+ *
+ * Uses a simplified single-channel presenter system (no roomId).
+ * All cue messages are broadcast to the single "presenter" channel.
  */
 import { Router } from "express";
 import { DatabaseService } from "../../lib/services/DatabaseService";
@@ -15,26 +18,24 @@ const db = DatabaseService.getInstance();
 const channelManager = ChannelManager.getInstance();
 const wsHub = WebSocketHub.getInstance();
 
-// Set up the room join callback to send replay
-wsHub.setOnRoomJoinCallback((roomId, clientId) => {
-  const messages = db.getMessagesByRoom(roomId, 50);
-  const pinnedMessages = db.getPinnedMessages(roomId);
-  wsHub.sendReplay(clientId, roomId, messages, pinnedMessages);
+// Set up the presenter join callback to send replay
+wsHub.setOnPresenterJoinCallback((clientId, _role) => {
+  const messages = db.getRecentMessages(50);
+  const pinnedMessages = db.getPinnedMessages();
+  wsHub.sendReplay(clientId, messages, pinnedMessages);
 });
 
 /**
  * POST /api/cue/send
- * Send a cue message to a room
+ * Send a cue message to the presenter channel
  */
 router.post("/send", async (req, res) => {
   try {
     const input = createCueMessageSchema.parse(req.body);
     const id = randomUUID();
-    const now = Date.now();
 
     const message = db.createMessage({
       id,
-      roomId: input.roomId,
       type: input.type,
       fromRole: input.from,
       severity: input.severity || null,
@@ -51,11 +52,11 @@ router.post("/send", async (req, res) => {
       resolvedBy: null,
     });
 
-    // Publish to room
-    await channelManager.publishToRoom(input.roomId, RoomEventType.MESSAGE, message);
+    // Publish to presenter channel
+    await channelManager.publishToPresenter(RoomEventType.MESSAGE, message);
 
     // Clean up old messages (keep last 100)
-    db.deleteOldMessages(input.roomId, 100);
+    db.deleteOldMessages(100);
 
     res.status(201).json({ message });
   } catch (error) {
@@ -64,22 +65,16 @@ router.post("/send", async (req, res) => {
 });
 
 /**
- * GET /api/cue/:roomId/messages
- * Get messages for a room with cursor pagination
+ * GET /api/cue/messages
+ * Get messages with cursor pagination
  */
-router.get("/:roomId/messages", (req, res) => {
+router.get("/messages", (req, res) => {
   try {
-    const { roomId } = req.params;
     const limit = parseInt(req.query.limit as string) || 50;
     const cursor = req.query.cursor ? parseInt(req.query.cursor as string) : undefined;
 
-    const room = db.getRoomById(roomId);
-    if (!room) {
-      return res.status(404).json({ error: "Room not found" });
-    }
-
-    const messages = db.getMessagesByRoom(roomId, limit, cursor);
-    const pinnedMessages = db.getPinnedMessages(roomId);
+    const messages = db.getRecentMessages(limit, cursor);
+    const pinnedMessages = db.getPinnedMessages();
 
     res.json({ messages, pinnedMessages });
   } catch (error) {
@@ -159,7 +154,7 @@ router.post("/:messageId/action", async (req, res) => {
     // Get updated message and broadcast
     if (action === CueAction.CLEAR) {
       // Message was deleted - broadcast deletion event
-      await channelManager.publishToRoom(message.roomId, RoomEventType.ACTION, {
+      await channelManager.publishToPresenter(RoomEventType.ACTION, {
         messageId,
         action,
         clientId,
@@ -168,7 +163,7 @@ router.post("/:messageId/action", async (req, res) => {
       res.json({ deleted: true });
     } else {
       const updated = db.getMessageById(messageId);
-      await channelManager.publishToRoom(message.roomId, RoomEventType.ACTION, {
+      await channelManager.publishToPresenter(RoomEventType.ACTION, {
         messageId,
         action,
         clientId,
@@ -187,23 +182,16 @@ router.post("/:messageId/action", async (req, res) => {
  */
 router.post("/promote-question", async (req, res) => {
   try {
-    const { roomId, author, text, messageUrl, platform = "twitch" } = req.body;
+    const { author, text, messageUrl, platform = "twitch" } = req.body;
 
-    if (!roomId || !author || !text) {
-      return res.status(400).json({ error: "Missing required fields: roomId, author, text" });
-    }
-
-    const room = db.getRoomById(roomId);
-    if (!room) {
-      return res.status(404).json({ error: "Room not found" });
+    if (!author || !text) {
+      return res.status(400).json({ error: "Missing required fields: author, text" });
     }
 
     const id = randomUUID();
-    const now = Date.now();
 
     const message = db.createMessage({
       id,
-      roomId,
       type: CueType.QUESTION,
       fromRole: CueFrom.SYSTEM,
       severity: null,
@@ -225,8 +213,8 @@ router.post("/promote-question", async (req, res) => {
       resolvedBy: null,
     });
 
-    // Publish to room
-    await channelManager.publishToRoom(roomId, RoomEventType.MESSAGE, message);
+    // Publish to presenter channel
+    await channelManager.publishToPresenter(RoomEventType.MESSAGE, message);
 
     res.status(201).json({ message });
   } catch (error) {
@@ -263,23 +251,16 @@ router.post("/:messageId/seen", async (req, res) => {
 });
 
 /**
- * DELETE /api/cue/:roomId/clear
- * Clear all messages from a room
+ * DELETE /api/cue/clear
+ * Clear all cue messages
  */
-router.delete("/:roomId/clear", async (req, res) => {
+router.delete("/clear", async (req, res) => {
   try {
-    const { roomId } = req.params;
+    // Clear all messages
+    db.clearAllMessages();
 
-    const room = db.getRoomById(roomId);
-    if (!room) {
-      return res.status(404).json({ error: "Room not found" });
-    }
-
-    // Clear all messages from the room
-    db.clearRoomMessages(roomId);
-
-    // Broadcast clear event to all clients in the room
-    await channelManager.publishToRoom(roomId, RoomEventType.MESSAGE, {
+    // Broadcast clear event to all clients in the presenter channel
+    await channelManager.publishToPresenter(RoomEventType.MESSAGE, {
       type: "clear",
       timestamp: Date.now(),
     });

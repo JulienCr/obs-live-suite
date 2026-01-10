@@ -48,9 +48,9 @@ export function GuestCard({
       <div className="flex flex-col items-center space-y-2">
         <div
           className="w-16 h-16 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden ring-2 ring-offset-2 ring-offset-background"
-          style={{ 
+          style={{
             backgroundColor: guest.accentColor,
-            ringColor: guest.accentColor + "40"
+            ["--tw-ring-color" as string]: guest.accentColor + "40"
           }}
         >
           {guest.avatarUrl ? (

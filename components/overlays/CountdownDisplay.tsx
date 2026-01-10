@@ -53,7 +53,7 @@ export function CountdownDisplay({
   };
 
   // Apply theme styles with layout positioning
-  const layout = theme?.layout || position || { x: 960, y: 540, scale: 1 };
+  const layout = theme?.layout || (position ? { ...position, scale: 1 } : { x: 960, y: 540, scale: 1 });
   const finalScale = size?.scale || layout.scale || 1;
   
   // Determine font settings

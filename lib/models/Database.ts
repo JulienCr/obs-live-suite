@@ -184,7 +184,6 @@ export interface DbRoom {
 
 export interface DbCueMessage {
   id: string;
-  roomId: string;
   type: string;
   fromRole: string;
   severity: string | null;
@@ -257,7 +256,7 @@ export type DbCueMessageInput = Omit<DbCueMessage, 'createdAt' | 'updatedAt'> & 
   updatedAt?: number;
 };
 
-export type DbCueMessageUpdate = Partial<Omit<DbCueMessage, 'id' | 'roomId' | 'createdAt'>> & {
+export type DbCueMessageUpdate = Partial<Omit<DbCueMessage, 'id' | 'createdAt'>> & {
   updatedAt?: number;
 };
 

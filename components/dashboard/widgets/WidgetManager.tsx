@@ -59,7 +59,7 @@ export function WidgetManager() {
   const handleResizeWidget = (id: string, size: string) => {
     setWidgets((current) =>
       updateWidgetInLayout(current, id, {
-        size: size as typeof Widget.prototype.size,
+        size: size as Widget["size"],
       })
     );
   };
@@ -67,7 +67,7 @@ export function WidgetManager() {
   const handleChangeHeight = (id: string, height: string) => {
     setWidgets((current) =>
       updateWidgetInLayout(current, id, {
-        height: height as typeof Widget.prototype.height,
+        height: height as Widget["height"],
       })
     );
   };

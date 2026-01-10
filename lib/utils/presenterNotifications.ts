@@ -1,5 +1,4 @@
 import { CueType, CueFrom, CueSeverity } from "@/lib/models/Cue";
-import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { BACKEND_URL } from "@/lib/config/urls";
 
 /**
@@ -309,16 +308,15 @@ export async function sendPresenterNotification(
 
   // Only include links if array has content and URLs are valid
   if (options.links && options.links.length > 0) {
-    const normalizedLinks = options.links
-      .map(link => {
-        const normalizedUrl = normalizeUrl(link.url);
-        if (normalizedUrl) {
-          return { url: normalizedUrl, title: link.title };
-        }
+    const normalizedLinks: Array<{ url: string; title?: string }> = [];
+    for (const link of options.links) {
+      const normalizedUrl = normalizeUrl(link.url);
+      if (normalizedUrl) {
+        normalizedLinks.push({ url: normalizedUrl, title: link.title });
+      } else {
         console.warn('[Notification] Invalid link URL, skipping:', link.url);
-        return null;
-      })
-      .filter((link): link is { url: string; title?: string } => link !== null);
+      }
+    }
 
     if (normalizedLinks.length > 0) {
       contextPayload.links = normalizedLinks;
@@ -336,7 +334,6 @@ export async function sendPresenterNotification(
   }
 
   const payload: {
-    roomId: string;
     type: CueType;
     from: CueFrom;
     severity: CueSeverity;
@@ -346,7 +343,6 @@ export async function sendPresenterNotification(
     actions: never[];
     contextPayload: typeof contextPayload;
   } = {
-    roomId: DEFAULT_ROOM_ID,
     type: CueType.CONTEXT,
     from: CueFrom.SYSTEM,
     severity: options.severity || CueSeverity.INFO,

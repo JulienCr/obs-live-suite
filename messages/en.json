@@ -321,6 +321,8 @@
       "profiles": "Profiles",
       "guests": "Guests",
       "rooms": "Rooms",
+      "presenterChannel": "Presenter Channel",
+      "streamerbot": "Streamer.bot",
       "obs": "OBS",
       "twitch": "Twitch",
       "streamDeck": "Stream Deck",
@@ -397,6 +399,25 @@
       "configPriority": "Configuration Priority:",
       "configPriorityDesc": "Settings saved here take priority over .env file. Use \"Clear & Use .env\" to revert to environment variables."
     },
+    "streamerbot": {
+      "title": "Streamer.bot Connection",
+      "description": "Configure connection to Streamer.bot WebSocket server for chat integration",
+      "loading": "Loading settings...",
+      "connected": "Connected",
+      "connecting": "Connecting...",
+      "disconnected": "Disconnected",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "saving": "Saving...",
+      "saveSettings": "Save Settings",
+      "saveSuccess": "Settings saved successfully!",
+      "saveFailed": "Failed to save settings",
+      "setupGuide": "Setup Guide",
+      "setupStep1": "Open Streamer.bot and go to Servers/Clients -> WebSocket Server",
+      "setupStep2": "Enable the WebSocket Server and note the Host, Port, and Endpoint",
+      "setupStep3": "If authentication is enabled, copy the password",
+      "setupStep4": "Enter the connection details above and test the connection"
+    },
     "rooms": {
       "title": "Presenter Rooms",
       "description": "Configure presenter rooms with VDO.Ninja return video and Twitch chat integration",
@@ -443,6 +464,27 @@
       "failedToCreate": "Failed to create room",
       "failedToUpdate": "Failed to update room",
       "failedToDelete": "Failed to delete room"
+    },
+    "presenterChannel": {
+      "title": "Presenter Channel Settings",
+      "description": "Configure the presenter channel with VDO.Ninja return video and quick reply options",
+      "loading": "Loading settings...",
+      "saving": "Saving...",
+      "saveSettings": "Save Settings",
+      "settingsSaved": "Settings saved successfully!",
+      "saveFailed": "Failed to save settings",
+      "failedToLoad": "Failed to load settings",
+      "vdoNinjaUrl": "VDO.Ninja Return Video URL",
+      "vdoNinjaUrlPlaceholder": "https://vdo.ninja/?view=...",
+      "vdoNinjaUrlHelp": "Optional. Embedded iframe URL for return video feed to the presenter.",
+      "quickReplies": "Quick Replies",
+      "quickRepliesPlaceholder": "Add quick reply button",
+      "quickRepliesHelp": "Quick reply buttons shown to the presenter (max {max}).",
+      "maxRepliesReached": "Maximum of {max} quick replies reached.",
+      "allowCustomMessages": "Allow Custom Messages",
+      "allowCustomMessagesHelp": "When enabled, presenters can type and send custom reply messages to control room.",
+      "allowPresenterChat": "Allow Presenter to Send Chat Messages",
+      "allowPresenterChatHelp": "When enabled, presenters can send messages to Twitch/YouTube chat via Streamer.bot."
     },
     "paths": {
       "title": "Paths Configuration",
@@ -1053,6 +1095,12 @@
     "actions": {
       "clear": "Clear",
       "clearHistory": "Clear history",
+      "clearHistoryConfirm": {
+        "title": "Clear Message History?",
+        "description": "This will permanently delete all cue messages. This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Clear All"
+      },
       "ok": "OK",
       "take": "Take",
       "skip": "Skip",
@@ -1069,7 +1117,6 @@
       "presenter": "Presenter",
       "controlRoom": "Control Room",
       "system": "System",
-      "room": "Room: {roomId}",
       "highlight": "Highlight"
     },
     "quickReplies": {

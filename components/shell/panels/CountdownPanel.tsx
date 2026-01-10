@@ -29,7 +29,7 @@ export function CountdownPanel(props: IDockviewPanelProps) {
   const [fontWeight, setFontWeight] = useState(900);
   const [shadow, setShadow] = useState(true);
 
-  const updateTimeoutRef = useRef<NodeJS.Timeout>();
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync local state with shared overlay state (handles external stop/reset)
   useOverlayHideSync("countdown", isRunning, () => setIsRunning(false));
@@ -401,7 +401,7 @@ export function CountdownPanel(props: IDockviewPanelProps) {
                 <Checkbox
                   id="shadow"
                   checked={shadow}
-                  onCheckedChange={setShadow}
+                  onCheckedChange={(checked) => setShadow(checked === true)}
                 />
                 <Label htmlFor="shadow">Text Shadow</Label>
               </div>

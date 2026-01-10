@@ -5,9 +5,9 @@ import { randomUUID } from "crypto";
 import { WEBSOCKET } from "../config/Constants";
 
 /**
- * Room channel prefix for dynamic room channels
+ * Hardcoded presenter channel name
  */
-const ROOM_CHANNEL_PREFIX = "room:";
+const PRESENTER_CHANNEL = "presenter";
 
 /**
  * ChannelManager provides pub/sub functionality for overlay channels
@@ -134,60 +134,42 @@ export class ChannelManager {
     this.logger.debug("Cleared all pending acks");
   }
 
-  // ==================== ROOM METHODS ====================
+  // ==================== PRESENTER METHODS ====================
 
   /**
-   * Get room channel name from room ID
+   * Get the presenter channel name
    */
-  getRoomChannel(roomId: string): string {
-    return `${ROOM_CHANNEL_PREFIX}${roomId}`;
+  getPresenterChannel(): string {
+    return PRESENTER_CHANNEL;
   }
 
   /**
-   * Check if a channel is a room channel
+   * Publish event to the presenter channel
    */
-  isRoomChannel(channel: string): boolean {
-    return channel.startsWith(ROOM_CHANNEL_PREFIX);
-  }
-
-  /**
-   * Extract room ID from room channel name
-   */
-  getRoomIdFromChannel(channel: string): string | null {
-    if (!this.isRoomChannel(channel)) return null;
-    return channel.slice(ROOM_CHANNEL_PREFIX.length);
-  }
-
-  /**
-   * Publish event to a room
-   */
-  async publishToRoom(roomId: string, type: RoomEventType, payload?: unknown): Promise<void> {
-    const channel = this.getRoomChannel(roomId);
+  async publishToPresenter(type: RoomEventType, payload?: unknown): Promise<void> {
+    const channel = PRESENTER_CHANNEL;
     const event: RoomEvent = {
-      roomId,
       type,
       payload,
       timestamp: Date.now(),
       id: randomUUID(),
     };
-
-    this.logger.debug(`Publishing to room ${roomId}: ${type}`);
+    this.logger.debug(`Publishing to presenter: ${type}`);
     this.wsHub.broadcast(channel, event);
   }
 
   /**
-   * Get number of subscribers for a room
+   * Get number of subscribers for the presenter channel
    */
-  getRoomSubscribers(roomId: string): number {
-    const channel = this.getRoomChannel(roomId);
-    return this.wsHub.getChannelSubscribers(channel);
+  getPresenterSubscribers(): number {
+    return this.wsHub.getChannelSubscribers(PRESENTER_CHANNEL);
   }
 
   /**
-   * Check if room has subscribers
+   * Check if presenter channel has subscribers
    */
-  roomHasSubscribers(roomId: string): boolean {
-    return this.getRoomSubscribers(roomId) > 0;
+  presenterHasSubscribers(): boolean {
+    return this.getPresenterSubscribers() > 0;
   }
 }
 

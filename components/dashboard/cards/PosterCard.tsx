@@ -19,7 +19,7 @@ interface Poster {
   fileUrl: string;
   type: string;
   source?: string;
-  isEnabled: boolean;
+  isEnabled?: boolean;
 }
 
 interface PosterCardProps {

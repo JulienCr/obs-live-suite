@@ -300,7 +300,6 @@ export type AckEvent = z.infer<typeof ackEventSchema>;
  * Room event schema for presenter dashboard
  */
 export const roomEventSchema = z.object({
-  roomId: z.string().uuid(),
   type: z.nativeEnum(RoomEventType),
   payload: z.unknown().optional(),
   timestamp: z.number().default(() => Date.now()),
@@ -310,10 +309,9 @@ export const roomEventSchema = z.object({
 export type RoomEvent = z.infer<typeof roomEventSchema>;
 
 /**
- * Room presence schema
+ * Presenter presence event schema
  */
-export const roomPresenceEventSchema = z.object({
-  roomId: z.string().uuid(),
+export const presenterPresenceEventSchema = z.object({
   clientId: z.string().uuid(),
   role: z.enum(["presenter", "control", "producer"]),
   isOnline: z.boolean(),
@@ -321,16 +319,15 @@ export const roomPresenceEventSchema = z.object({
   lastActivity: z.number().optional(),
 });
 
-export type RoomPresenceEvent = z.infer<typeof roomPresenceEventSchema>;
+export type PresenterPresenceEvent = z.infer<typeof presenterPresenceEventSchema>;
 
 /**
  * Room message replay schema
  */
 export const roomReplayEventSchema = z.object({
-  roomId: z.string().uuid(),
   messages: z.array(z.unknown()),
   pinnedMessages: z.array(z.unknown()),
-  presence: z.array(roomPresenceEventSchema),
+  presence: z.array(presenterPresenceEventSchema),
 });
 
 export type RoomReplayEvent = z.infer<typeof roomReplayEventSchema>;

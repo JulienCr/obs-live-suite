@@ -129,7 +129,6 @@ export type QuestionPayload = z.infer<typeof questionPayloadSchema>;
  */
 export const cueMessageSchema = z.object({
   id: z.string().uuid(),
-  roomId: z.string().uuid(),
   type: z.nativeEnum(CueType),
   from: z.nativeEnum(CueFrom),
   severity: z.nativeEnum(CueSeverity).optional(),
@@ -232,10 +231,6 @@ export class CueMessageModel {
 
   getId(): string {
     return this.data.id;
-  }
-
-  getRoomId(): string {
-    return this.data.roomId;
   }
 
   getType(): CueType {

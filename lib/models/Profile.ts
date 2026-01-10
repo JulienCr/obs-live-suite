@@ -95,7 +95,7 @@ export class ProfileModel {
   /**
    * Get description
    */
-  getDescription(): string | undefined {
+  getDescription(): string | null {
     return this.data.description;
   }
 

@@ -3,21 +3,23 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import type { CueMessage, CueAction } from "@/lib/models/Cue";
-import type { RoomPresence } from "@/lib/models/Room";
+import type { PresenterPresence } from "@/lib/models/PresenterChannel";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
 
 interface UsePresenterWebSocketReturn {
   connected: boolean;
   messages: CueMessage[];
   pinnedMessages: CueMessage[];
-  presence: RoomPresence[];
+  presence: PresenterPresence[];
   sendAction: (messageId: string, action: CueAction) => void;
   sendReply: (text: string) => void;
   clearHistory: () => Promise<void>;
 }
 
+/**
+ * Hook for presenter WebSocket connection using simplified single-channel system
+ */
 export function usePresenterWebSocket(
-  roomId: string,
   role: "presenter" | "control" | "producer"
 ): UsePresenterWebSocketReturn {
   const wsRef = useRef<WebSocket | null>(null);
@@ -27,7 +29,7 @@ export function usePresenterWebSocket(
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState<CueMessage[]>([]);
   const [pinnedMessages, setPinnedMessages] = useState<CueMessage[]>([]);
-  const [presence, setPresence] = useState<RoomPresence[]>([]);
+  const [presence, setPresence] = useState<PresenterPresence[]>([]);
   const [seenMessageIds] = useState<Set<string>>(new Set());
 
   // Generate client ID
@@ -41,17 +43,16 @@ export function usePresenterWebSocket(
       return;
     }
 
-    const wsUrl = getWebSocketUrl(3003);
+    const wsUrl = getWebSocketUrl();
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       setConnected(true);
       console.log("[Presenter WS] Connected");
 
-      // Join room
+      // Join presenter channel
       ws.send(JSON.stringify({
-        type: "join-room",
-        roomId,
+        type: "join-presenter",
         role,
         clientId: clientIdRef.current,
       }));
@@ -88,20 +89,20 @@ export function usePresenterWebSocket(
             break;
 
           default:
-            // Room event (check if it's a room channel message)
-            if (data.channel?.startsWith("room:")) {
-              const roomData = data.data;
+            // Presenter channel event (check if it's a presenter channel message)
+            if (data.channel === "presenter") {
+              const presenterData = data.data;
 
-              if (roomData.type === "message") {
+              if (presenterData.type === "message") {
                 // Check if it's a clear event
-                if (roomData.payload?.type === "clear") {
+                if (presenterData.payload?.type === "clear") {
                   // Clear all messages
                   setMessages([]);
                   setPinnedMessages([]);
                   seenMessageIds.clear();
                 } else {
                   // Normal message
-                  const message = roomData.payload as CueMessage;
+                  const message = presenterData.payload as CueMessage;
                   if (!seenMessageIds.has(message.id)) {
                     seenMessageIds.add(message.id);
                     setMessages(prev => [message, ...prev]);
@@ -110,9 +111,9 @@ export function usePresenterWebSocket(
                     }
                   }
                 }
-              } else if (roomData.type === "action") {
+              } else if (presenterData.type === "action") {
                 // Action on message (update state)
-                const { messageId, message: updatedMessage, deleted } = roomData.payload;
+                const { messageId, message: updatedMessage, deleted } = presenterData.payload;
 
                 if (deleted) {
                   // Message was deleted - remove from lists
@@ -137,8 +138,8 @@ export function usePresenterWebSocket(
                     setPinnedMessages(prev => prev.filter(m => m.id !== messageId));
                   }
                 }
-              } else if (roomData.type === "presence") {
-                setPresence(roomData.presence || []);
+              } else if (presenterData.type === "presence") {
+                setPresence(presenterData.presence || []);
               }
             }
         }
@@ -165,7 +166,7 @@ export function usePresenterWebSocket(
     };
 
     wsRef.current = ws;
-  }, [roomId, role, seenMessageIds]);
+  }, [role, seenMessageIds]);
 
   // Setup WebSocket connection
   useEffect(() => {
@@ -209,7 +210,6 @@ export function usePresenterWebSocket(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          roomId,
           type: "reply",
           from: role,
           body: text,
@@ -222,12 +222,12 @@ export function usePresenterWebSocket(
     } catch (error) {
       console.error("[Presenter] Failed to send reply:", error);
     }
-  }, [roomId, role]);
+  }, [role]);
 
   // Clear message history
   const clearHistory = useCallback(async () => {
     try {
-      const response = await fetch(`/api/presenter/rooms/${roomId}/clear`, {
+      const response = await fetch("/api/presenter/cue/clear", {
         method: "DELETE",
       });
 
@@ -237,7 +237,7 @@ export function usePresenterWebSocket(
     } catch (error) {
       console.error("[Presenter] Failed to clear history:", error);
     }
-  }, [roomId]);
+  }, []);
 
   return {
     connected,

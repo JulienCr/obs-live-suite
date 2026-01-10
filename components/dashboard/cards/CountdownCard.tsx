@@ -40,7 +40,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
   const [shadow, setShadow] = useState(true);
 
   // Throttling for updates
-  const updateTimeoutRef = useRef<NodeJS.Timeout>();
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Position presets for 1920x1080 resolution (arranged logically: top row, middle row, bottom row)
   const positionPresets = [
@@ -432,7 +432,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
                 <Checkbox
                   id="shadow"
                   checked={shadow}
-                  onCheckedChange={setShadow}
+                  onCheckedChange={(checked) => setShadow(checked === true)}
                 />
                 <Label htmlFor="shadow">{t("shadow")}</Label>
               </div>

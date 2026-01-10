@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CueType, CueSeverity, CueFrom } from "@/lib/models/Cue";
-import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { apiPost } from "@/lib/utils/ClientFetch";
 
 const cueTypeOptions = [
@@ -41,7 +40,6 @@ function CueComposerContent() {
     setSending(true);
     try {
       const payload: Record<string, unknown> = {
-        roomId: DEFAULT_ROOM_ID,
         type: cueType,
         from: CueFrom.CONTROL,
         title: title.trim() || undefined,

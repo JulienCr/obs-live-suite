@@ -13,8 +13,17 @@ import { Wifi, WifiOff, Users, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 import { Button } from "@/components/ui/button";
-import type { Room } from "@/lib/models/Room";
-import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import type { PresenterChannelSettings } from "@/lib/models/PresenterChannel";
 import { useToast } from "@/hooks/use-toast";
 import { usePwaStandalone } from "@/hooks/use-pwa-standalone";
 import type { CueMessage } from "@/lib/models/Cue";
@@ -22,10 +31,9 @@ import type { CueMessage } from "@/lib/models/Cue";
 export function PresenterShell() {
   const t = useTranslations("presenter");
   const searchParams = useSearchParams();
-  const roomId = searchParams.get("room") || DEFAULT_ROOM_ID;
   const role = (searchParams.get("role") as "presenter" | "control" | "producer") || "presenter";
 
-  const [roomConfig, setRoomConfig] = useState<Room | null>(null);
+  const [presenterSettings, setPresenterSettings] = useState<PresenterChannelSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Default quick replies with translations
@@ -44,7 +52,7 @@ export function PresenterShell() {
     sendAction,
     sendReply,
     clearHistory,
-  } = usePresenterWebSocket(roomId, role);
+  } = usePresenterWebSocket(role);
 
   const overlayState = useOverlayState();
   const { toast } = useToast();
@@ -52,9 +60,11 @@ export function PresenterShell() {
 
   const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
   const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const handleClearHistory = async () => {
     await clearHistory();
+    setShowClearConfirm(false);
   };
 
   // Show/hide in overlay handler - toggle display of chat highlight overlay
@@ -119,26 +129,23 @@ export function PresenterShell() {
     }
   }, [showingInOverlayId, currentlyDisplayedId, toast, t]);
 
-  // Fetch room configuration
+  // Fetch presenter channel settings
   useEffect(() => {
-    async function fetchRoom() {
+    async function fetchSettings() {
       try {
-        const data = await apiGet<{ room: Room }>(`/api/presenter/rooms/${roomId}`);
-        setRoomConfig(data.room);
+        const data = await apiGet<PresenterChannelSettings>("/api/presenter/settings");
+        setPresenterSettings(data);
       } catch (error) {
-        // 404 is expected for non-existent rooms, only log unexpected errors
-        if (!isClientFetchError(error) || error.status !== 404) {
-          console.error("Failed to fetch room:", error);
-        }
+        console.error("Failed to fetch presenter settings:", error);
       } finally {
         setLoading(false);
       }
     }
-    fetchRoom();
-  }, [roomId]);
+    fetchSettings();
+  }, []);
 
-  const quickReplies = roomConfig?.quickReplies || DEFAULT_QUICK_REPLIES;
-  const vdoNinjaUrl = roomConfig?.vdoNinjaUrl;
+  const quickReplies = presenterSettings?.quickReplies || DEFAULT_QUICK_REPLIES;
+  const vdoNinjaUrl = presenterSettings?.vdoNinjaUrl;
 
   const presenterOnline = presence.some(p => p.role === "presenter" && p.isOnline);
   const controlOnline = presence.some(p => p.role === "control" && p.isOnline);
@@ -160,7 +167,7 @@ export function PresenterShell() {
       <div className="flex-shrink-0 h-10 border-b flex items-center justify-between px-4 bg-card">
         <div className="flex items-center gap-4">
           <span className="text-sm font-medium">
-            {roomConfig?.name || `Room: ${roomId}`}
+            {t("title")}
           </span>
           <span className="text-xs text-muted-foreground">
             ({role})
@@ -171,9 +178,10 @@ export function PresenterShell() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleClearHistory}
+            onClick={() => setShowClearConfirm(true)}
             className="h-7 text-xs"
             title={t("actions.clearHistory")}
+            disabled={messages.length === 0 && pinnedMessages.length === 0}
           >
             <Trash2 className="h-3 w-3 mr-1" />
             {t("actions.clear")}
@@ -234,7 +242,7 @@ export function PresenterShell() {
             <QuickReplyPanel
               quickReplies={quickReplies}
               onSend={sendReply}
-              canSendCustomMessages={roomConfig?.canSendCustomMessages ?? true}
+              canSendCustomMessages={presenterSettings?.canSendCustomMessages ?? true}
             />
           </div>
         </div>
@@ -242,12 +250,33 @@ export function PresenterShell() {
         {/* Right Pane - Streamer.bot Chat */}
         <div className="h-1/2 md:h-full md:w-1/2 lg:w-1/3 border-t md:border-t-0 md:border-l min-h-0">
           <StreamerbotChatPanel
-            connectionSettings={roomConfig?.streamerbotConnection}
-            roomId={roomId}
-            allowSendMessage={roomConfig?.allowPresenterToSendMessage}
+            allowSendMessage={presenterSettings?.allowPresenterToSendMessage}
+            showClearButton={false}
           />
         </div>
       </div>
+
+      {/* Clear History Confirmation Dialog */}
+      <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("actions.clearHistoryConfirm.title")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("actions.clearHistoryConfirm.description")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {t("actions.clearHistoryConfirm.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearHistory}>
+              {t("actions.clearHistoryConfirm.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -74,7 +74,7 @@ export function QuizMysteryImage({
 
   // Log reveal progress
   useEffect(() => {
-    if (revealedSquares > 0 && totalSquares > 0) {
+    if (revealedSquares > 0 && totalSquares && totalSquares > 0) {
       console.log(`Mystery reveal: ${revealedSquares}/${totalSquares} squares revealed`);
     }
   }, [revealedSquares, totalSquares]);

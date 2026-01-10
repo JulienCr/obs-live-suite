@@ -3,7 +3,6 @@
  */
 
 import type {
-  StreamerbotConnectionSettings,
   ChatMessage,
   ChatUIPreferences,
   StreamerbotConnectionError,
@@ -11,9 +10,14 @@ import type {
 import { StreamerbotConnectionStatus } from "@/lib/models/StreamerbotChat";
 
 export interface StreamerbotChatPanelProps {
-  connectionSettings?: StreamerbotConnectionSettings;
-  roomId: string;
+  /**
+   * Whether the presenter is allowed to send messages via Streamerbot
+   */
   allowSendMessage?: boolean;
+  /**
+   * Whether to show the clear messages button (default: true)
+   */
+  showClearButton?: boolean;
 }
 
 export interface StreamerbotChatHeaderProps {
@@ -26,6 +30,10 @@ export interface StreamerbotChatHeaderProps {
   onClearMessages: () => void;
   onConnect: () => void;
   onDisconnect: () => void;
+  /**
+   * Whether to show the clear messages button (default: true)
+   */
+  showClearButton?: boolean;
 }
 
 export interface StreamerbotChatToolbarProps {

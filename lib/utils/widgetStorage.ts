@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { Widget, WidgetSize } from "@/lib/models/Widget";
+import { Widget, WidgetSize, WidgetHeight } from "@/lib/models/Widget";
 
 const STORAGE_KEY = "obs-live-suite-widget-layout";
 const STORAGE_VERSION = 1;
@@ -21,6 +21,7 @@ export function getDefaultLayout(): Widget[] {
       id: uuidv4(),
       type: "guests",
       size: WidgetSize.SMALL,
+      height: WidgetHeight.AUTO,
       order: 0,
       isVisible: true,
       createdAt: now,
@@ -30,6 +31,7 @@ export function getDefaultLayout(): Widget[] {
       id: uuidv4(),
       type: "countdown",
       size: WidgetSize.MEDIUM,
+      height: WidgetHeight.AUTO,
       order: 1,
       isVisible: true,
       createdAt: now,
@@ -39,6 +41,7 @@ export function getDefaultLayout(): Widget[] {
       id: uuidv4(),
       type: "poster",
       size: WidgetSize.SMALL,
+      height: WidgetHeight.AUTO,
       order: 2,
       isVisible: true,
       createdAt: now,
@@ -134,7 +137,8 @@ export function addWidget(
   const newWidget: Widget = {
     id: uuidv4(),
     type,
-    size: size as typeof WidgetSize.SMALL | typeof WidgetSize.MEDIUM | typeof WidgetSize.LARGE,
+    size: size as Widget["size"],
+    height: WidgetHeight.AUTO,
     order: maxOrder + 1,
     isVisible: true,
     settings,
