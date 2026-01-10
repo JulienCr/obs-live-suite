@@ -40,7 +40,57 @@
       "showMacrosPanel": "Show Macros Panel",
       "showEventLogPanel": "Show Event Log Panel",
       "showTwitchPanel": "Show Twitch Panel",
-      "resetLayout": "Reset Layout to Default"
+      "resetLayout": "Reset Layout to Default",
+      "resetWorkspace": "Reset to Default Workspace",
+      "saveWorkspace": "Save Current Layout as Workspace",
+      "manageWorkspaces": "Manage Workspaces",
+      "switchToWorkspace": "Switch to: {name}"
+    },
+    "workspaces": {
+      "title": "Workspaces",
+      "noWorkspace": "No Workspace",
+      "custom": "Custom",
+      "loading": "Loading...",
+      "builtIn": "Built-in",
+      "myWorkspaces": "My Workspaces",
+      "save": "Save",
+      "reset": "Reset",
+      "manage": "Manage",
+      "saveDialog": {
+        "title": "Save Workspace",
+        "description": "Save your current layout to reuse it later.",
+        "createNew": "Create New",
+        "overwrite": "Overwrite",
+        "name": "Name",
+        "namePlaceholder": "My Workspace",
+        "descriptionLabel": "Description (optional)",
+        "descriptionPlaceholder": "Describe this workspace...",
+        "makeDefault": "Set as default workspace",
+        "selectWorkspace": "Workspace to overwrite",
+        "selectPlaceholder": "Select a workspace...",
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "manager": {
+        "title": "Manage Workspaces",
+        "description": "Rename, delete, or set a default workspace.",
+        "isDefault": "Default workspace",
+        "setAsDefault": "Set as default",
+        "rename": "Rename",
+        "delete": "Delete",
+        "noUserWorkspaces": "You haven't created any custom workspaces yet.",
+        "deleteConfirm": {
+          "title": "Delete Workspace?",
+          "description": "The workspace \"{name}\" will be permanently deleted.",
+          "cancel": "Cancel",
+          "confirm": "Delete"
+        }
+      },
+      "errors": {
+        "nameRequired": "Name is required",
+        "selectWorkspace": "Please select a workspace",
+        "saveFailed": "Failed to save"
+      }
     },
     "eventLog": {
       "title": "Event Log",

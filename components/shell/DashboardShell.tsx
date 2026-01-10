@@ -27,11 +27,12 @@ import { RegiePublicChatPanel } from "./panels/RegiePublicChatPanel";
 import { TwitchPanel } from "./panels/TwitchPanel";
 import { DockviewContext, usePanelPositions } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
+import { WorkspacesProvider, useWorkspaces } from "./WorkspacesContext";
 import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { LiveModeRail } from "./LiveModeRail";
 import { useAppMode } from "./AppModeContext";
-import { PanelColorsProvider } from "./PanelColorsContext";
+import { PanelColorsProvider, usePanelColors } from "./PanelColorsContext";
 import { PanelColorStyles } from "./PanelColorStyles";
 
 const LAYOUT_KEY = "obs-live-suite-dockview-layout";
@@ -64,6 +65,10 @@ export function DashboardShell() {
   const apiRef = useRef<DockviewReadyEvent["api"] | null>(null);
   const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);
   const { savePositionBeforeClose, getSavedPosition } = usePanelPositions(api);
+  const [workspaceCallbacks, setWorkspaceCallbacks] = useState<{
+    resetToDefault: () => void;
+    openSaveDialog: () => void;
+  } | undefined>(undefined);
 
   // Handle hydration
   useEffect(() => {
@@ -222,8 +227,30 @@ export function DashboardShell() {
     }
   }, [applyLivePreset, applyPrepPreset, applyMinimalPreset]);
 
-  // Enable keyboard shortcuts for layout presets
-  useKeyboardShortcuts(applyPreset, api);
+  // Enable keyboard shortcuts for layout presets and workspaces
+  useKeyboardShortcuts(applyPreset, api, true, workspaceCallbacks);
+
+  // Callback for WorkspacesProvider to apply a workspace layout
+  const applyLayout = useCallback((layoutJson: string, panelColors: Record<string, string>) => {
+    if (!apiRef.current) return;
+    try {
+      apiRef.current.fromJSON(JSON.parse(layoutJson));
+      localStorage.setItem(LAYOUT_KEY, layoutJson);
+    } catch (err) {
+      console.error("Failed to apply workspace layout:", err);
+    }
+  }, []);
+
+  // Get current layout as JSON
+  const getLayoutJson = useCallback(() => {
+    if (!apiRef.current) return null;
+    try {
+      return JSON.stringify(apiRef.current.toJSON());
+    } catch (err) {
+      console.error("Failed to get layout JSON:", err);
+      return null;
+    }
+  }, []);
 
   const onReady = useCallback((event: DockviewReadyEvent) => {
     apiRef.current = event.api;
@@ -312,23 +339,62 @@ export function DashboardShell() {
 
   return (
     <PanelColorsProvider>
-      <LayoutPresetsProvider applyPreset={applyPreset}>
-        <DockviewContext.Provider value={{ api, savePositionBeforeClose, getSavedPosition }}>
-          <PanelColorStyles />
-          <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--header-height))", width: "100%", display: "flex" }}>
-            {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
-            <div style={{ flex: 1 }}>
-              <DockviewReact
-                components={components}
-                tabComponents={tabComponents}
-                defaultTabComponent={PanelTab}
-                onReady={onReady}
-                theme={!mounted || theme === "dark" ? themeDark : themeLight}
-              />
+        <WorkspacesInitializer getLayoutJson={getLayoutJson} applyLayout={applyLayout} onCallbacksReady={setWorkspaceCallbacks} />
+        <LayoutPresetsProvider applyPreset={applyPreset}>
+          <DockviewContext.Provider value={{ api, savePositionBeforeClose, getSavedPosition }}>
+            <PanelColorStyles />
+            <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--header-height))", width: "100%", display: "flex" }}>
+              {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
+              <div style={{ flex: 1 }}>
+                <DockviewReact
+                  components={components}
+                  tabComponents={tabComponents}
+                  defaultTabComponent={PanelTab}
+                  onReady={onReady}
+                  theme={!mounted || theme === "dark" ? themeDark : themeLight}
+                />
+              </div>
             </div>
-          </div>
-        </DockviewContext.Provider>
-      </LayoutPresetsProvider>
+          </DockviewContext.Provider>
+        </LayoutPresetsProvider>
     </PanelColorsProvider>
   );
+}
+
+// Helper component to connect workspace context with layout getter/applier and expose callbacks
+function WorkspacesInitializer({
+  getLayoutJson,
+  applyLayout,
+  onCallbacksReady,
+}: {
+  getLayoutJson: () => string | null;
+  applyLayout: (layoutJson: string, panelColors: Record<string, string>) => void;
+  onCallbacksReady: (callbacks: { resetToDefault: () => void; openSaveDialog: () => void }) => void;
+}) {
+  const { setLayoutJsonGetter, setLayoutApplier, resetToDefault } = useWorkspaces();
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+
+  useEffect(() => {
+    setLayoutJsonGetter(getLayoutJson);
+    setLayoutApplier(applyLayout);
+  }, [getLayoutJson, applyLayout, setLayoutJsonGetter, setLayoutApplier]);
+
+  // Expose callbacks for keyboard shortcuts
+  useEffect(() => {
+    onCallbacksReady({
+      resetToDefault: () => {
+        resetToDefault().catch(console.error);
+      },
+      openSaveDialog: () => {
+        setSaveDialogOpen(true);
+      },
+    });
+  }, [resetToDefault, onCallbacksReady]);
+
+  // Import the dialog component dynamically to avoid issues
+  const WorkspaceSaveDialogLazy = require("./WorkspaceSaveDialog").WorkspaceSaveDialog;
+
+  return saveDialogOpen ? (
+    <WorkspaceSaveDialogLazy open={saveDialogOpen} onOpenChange={setSaveDialogOpen} />
+  ) : null;
 }

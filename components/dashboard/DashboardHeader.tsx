@@ -14,6 +14,7 @@ import { Radio, Maximize, Loader2, ChevronDown, Check } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAppMode } from "@/components/shell/AppModeContext";
 import { HeaderOverflowMenu } from "./HeaderOverflowMenu";
+import { WorkspaceSelector } from "@/components/shell/WorkspaceSelector";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 
 interface OBSStatus {
@@ -201,8 +202,11 @@ export function DashboardHeader() {
             )}
           </div>
 
-          {/* Right: Profile + Controls */}
+          {/* Right: Profile + Workspace + Controls */}
           <div className="flex items-center gap-2">
+            {/* Workspace Selector */}
+            <WorkspaceSelector />
+
             {/* Active Profile Selector */}
             {profiles.length > 0 && (
               <DropdownMenu>

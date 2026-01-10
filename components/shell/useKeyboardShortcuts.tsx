@@ -5,10 +5,16 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAppMode } from "./AppModeContext";
 import type { DockviewApi } from "dockview-react";
 
+interface WorkspaceCallbacks {
+  resetToDefault?: () => void;
+  openSaveDialog?: () => void;
+}
+
 export function useKeyboardShortcuts(
   applyPreset?: (preset: "live" | "prep" | "minimal") => void,
   dockviewApi?: DockviewApi | null,
-  enabled: boolean = true
+  enabled: boolean = true,
+  workspaceCallbacks?: WorkspaceCallbacks
 ) {
   const router = useRouter();
   const pathname = usePathname();
@@ -167,6 +173,20 @@ export function useKeyboardShortcuts(
         return;
       }
 
+      // Cmd/Ctrl + Shift + R - Reset to default workspace
+      if (cmdOrCtrl && e.shiftKey && (e.key === "R" || e.key === "r")) {
+        e.preventDefault();
+        workspaceCallbacks?.resetToDefault?.();
+        return;
+      }
+
+      // Cmd/Ctrl + Shift + S - Save current layout as workspace
+      if (cmdOrCtrl && e.shiftKey && (e.key === "S" || e.key === "s")) {
+        e.preventDefault();
+        workspaceCallbacks?.openSaveDialog?.();
+        return;
+      }
+
       // Layout presets - only in LIVE mode on dashboard
       const isOnDashboard = pathname === "/" || pathname === "/dashboard";
       if (mode === "LIVE" && isOnDashboard && applyPreset) {
@@ -195,5 +215,5 @@ export function useKeyboardShortcuts(
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [mode, setMode, isOnAir, pathname, router, applyPreset, isFullscreenMode, setIsFullscreenMode, dockviewApi, enabled]);
+  }, [mode, setMode, isOnAir, pathname, router, applyPreset, isFullscreenMode, setIsFullscreenMode, dockviewApi, enabled, workspaceCallbacks]);
 }

@@ -6,6 +6,8 @@ import { useAppMode } from "./AppModeContext";
 import { DashboardHeader } from "../dashboard/DashboardHeader";
 import { AdminSidebar } from "../dashboard/AdminSidebar";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
+import { WorkspacesProvider } from "./WorkspacesContext";
+import { PanelColorsProvider } from "./PanelColorsContext";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -48,14 +50,18 @@ export function AppShell({ children }: AppShellProps) {
   const showSidebar = mode === "ADMIN" && !isFullscreenMode;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {!isFullscreenMode && <DashboardHeader />}
-      <div className="flex flex-1 overflow-hidden">
-        {showSidebar && <AdminSidebar />}
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
-      </div>
-    </div>
+    <PanelColorsProvider>
+      <WorkspacesProvider>
+        <div className="min-h-screen flex flex-col">
+          {!isFullscreenMode && <DashboardHeader />}
+          <div className="flex flex-1 overflow-hidden">
+            {showSidebar && <AdminSidebar />}
+            <main className="flex-1 overflow-auto">
+              {children}
+            </main>
+          </div>
+        </div>
+      </WorkspacesProvider>
+    </PanelColorsProvider>
   );
 }

@@ -30,6 +30,8 @@ import {
   DbStreamerbotChatMessageInput,
   DbPanelColor,
   DbPanelColorUpdate,
+  DbWorkspace,
+  DbWorkspaceSummary,
 } from "../models/Database";
 import { GuestRepository } from "@/lib/repositories/GuestRepository";
 import { PosterRepository } from "@/lib/repositories/PosterRepository";
@@ -619,6 +621,19 @@ export class DatabaseService {
         updatedAt TEXT NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS workspaces (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        layoutJson TEXT NOT NULL,
+        panelColors TEXT NOT NULL DEFAULT '{}',
+        isDefault INTEGER NOT NULL DEFAULT 0,
+        isBuiltIn INTEGER NOT NULL DEFAULT 0,
+        sortOrder INTEGER NOT NULL DEFAULT 0,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      );
+
       CREATE INDEX IF NOT EXISTS idx_guests_displayName ON guests(displayName);
       CREATE INDEX IF NOT EXISTS idx_posters_profileIds ON posters(profileIds);
       CREATE INDEX IF NOT EXISTS idx_profiles_isActive ON profiles(isActive);
@@ -633,6 +648,8 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_cue_messages_pinned ON cue_messages(pinned);
       CREATE INDEX IF NOT EXISTS idx_streamerbot_chat_timestamp ON streamerbot_chat_messages(timestamp DESC);
       CREATE INDEX IF NOT EXISTS idx_panel_colors_panelId ON panel_colors(panelId);
+      CREATE INDEX IF NOT EXISTS idx_workspaces_name ON workspaces(name);
+      CREATE INDEX IF NOT EXISTS idx_workspaces_isDefault ON workspaces(isDefault);
     `);
 
     this.logger.info("Database tables initialized");

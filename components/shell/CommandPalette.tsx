@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Omnibar, type ItemRenderer } from "@blueprintjs/select";
 import { MenuItem } from "@blueprintjs/core";
 import { useDockview } from "./DockviewContext";
+import { useWorkspacesSafe } from "./WorkspacesContext";
+import { WorkspaceSaveDialog } from "./WorkspaceSaveDialog";
+import { WorkspaceManagerDialog } from "./WorkspaceManagerDialog";
 
 interface Command {
   id: string;
@@ -44,9 +47,14 @@ const filterCommand = (query: string, command: Command) => {
 
 export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [managerDialogOpen, setManagerDialogOpen] = useState(false);
   const { api } = useDockview();
   const t = useTranslations("dashboard.commandPalette");
   const tPanels = useTranslations("dashboard.panels");
+
+  // Use workspaces context (returns null if not available)
+  const workspacesContext = useWorkspacesSafe();
 
   // Function to add panel if not already open
   const addPanel = (id: string, component: string, titleKey: string) => {
@@ -163,6 +171,54 @@ export function CommandPalette() {
     },
   ];
 
+  // Add workspace commands if context is available
+  const workspaceCommands: Command[] = useMemo(() => {
+    if (!workspacesContext) return [];
+
+    const commands: Command[] = [
+      {
+        id: "workspace-reset",
+        label: t("resetWorkspace"),
+        keywords: ["workspace", "reset", "default", "restore"],
+        action: () => {
+          workspacesContext?.resetToDefault().catch(console.error);
+        },
+      },
+      {
+        id: "workspace-save",
+        label: t("saveWorkspace"),
+        keywords: ["workspace", "save", "layout", "create"],
+        action: () => {
+          setSaveDialogOpen(true);
+        },
+      },
+      {
+        id: "workspace-manage",
+        label: t("manageWorkspaces"),
+        keywords: ["workspace", "manage", "edit", "delete", "rename"],
+        action: () => {
+          setManagerDialogOpen(true);
+        },
+      },
+    ];
+
+    // Add switch commands for each workspace
+    workspacesContext.workspaces.forEach((workspace) => {
+      commands.push({
+        id: `workspace-switch-${workspace.id}`,
+        label: t("switchToWorkspace", { name: workspace.name }),
+        keywords: ["workspace", "switch", "change", workspace.name.toLowerCase()],
+        action: () => {
+          workspacesContext?.applyWorkspace(workspace.id).catch(console.error);
+        },
+      });
+    });
+
+    return commands;
+  }, [workspacesContext, t]);
+
+  const ALL_COMMANDS = [...COMMANDS, ...workspaceCommands];
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // Cmd+P or Ctrl+P
@@ -187,15 +243,19 @@ export function CommandPalette() {
   };
 
   return (
-    <TypedOmnibar
-      isOpen={isOpen}
-      items={COMMANDS}
-      itemRenderer={renderCommand}
-      itemPredicate={filterCommand}
-      onItemSelect={handleItemSelect}
-      onClose={() => setIsOpen(false)}
-      resetOnSelect
-      inputProps={{ placeholder: t("placeholder") }}
-    />
+    <>
+      <TypedOmnibar
+        isOpen={isOpen}
+        items={ALL_COMMANDS}
+        itemRenderer={renderCommand}
+        itemPredicate={filterCommand}
+        onItemSelect={handleItemSelect}
+        onClose={() => setIsOpen(false)}
+        resetOnSelect
+        inputProps={{ placeholder: t("placeholder") }}
+      />
+      <WorkspaceSaveDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} />
+      <WorkspaceManagerDialog open={managerDialogOpen} onOpenChange={setManagerDialogOpen} />
+    </>
   );
 }

@@ -297,3 +297,36 @@ export type DbPanelColorInput = Omit<DbPanelColor, 'createdAt' | 'updatedAt'> & 
 export type DbPanelColorUpdate = Partial<Omit<DbPanelColor, 'id' | 'panelId' | 'createdAt'>> & {
   updatedAt?: Date;
 };
+
+// Workspaces (dashboard layout configurations)
+export interface DbWorkspace {
+  id: string;
+  name: string;
+  description: string | null;
+  layoutJson: string; // Dockview toJSON() serialized layout
+  panelColors: Record<string, string>; // { panelId: colorScheme }
+  isDefault: boolean;
+  isBuiltIn: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type DbWorkspaceInput = Omit<DbWorkspace, 'createdAt' | 'updatedAt'> & {
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+export type DbWorkspaceUpdate = Partial<Omit<DbWorkspace, 'id' | 'createdAt' | 'isBuiltIn'>> & {
+  updatedAt?: Date;
+};
+
+// Summary type for dropdowns (without heavy layoutJson)
+export interface DbWorkspaceSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  isDefault: boolean;
+  isBuiltIn: boolean;
+  sortOrder: number;
+}
