@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils/cn";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
+import { useOverlayActiveState } from "@/hooks/useOverlayActiveState";
 
 interface Poster {
   id: string;
@@ -67,6 +68,7 @@ interface PosterContentProps {
 export function PosterContent({ className }: PosterContentProps) {
   const t = useTranslations("dashboard.poster");
   const tCommon = useTranslations("common");
+  const overlayState = useOverlayActiveState();
   const [activePoster, setActivePoster] = useState<string | null>(null);
   const [displayMode, setDisplayMode] = useState<DisplayMode | null>(null);
   const [activeSide, setActiveSide] = useState<"left" | "right" | null>(null); // kept for backwards compatibility
@@ -150,6 +152,46 @@ export function PosterContent({ className }: PosterContentProps) {
     fetchPosters();
     fetchDefaultDisplayMode();
   }, []);
+
+  // Sync local state with WebSocket overlay state
+  // When an external hide event is received (e.g., from EventLog), clear local active state
+  useEffect(() => {
+    if (!overlayState.poster.active && activePoster !== null) {
+      // Overlay was hidden externally, sync local state
+      setActivePoster(null);
+      setDisplayMode(null);
+      setActiveSide(null);
+      setActiveType(null);
+      setShowControls(false);
+    }
+  }, [overlayState.poster.active, activePoster]);
+
+  // Sync local state when a poster is shown externally (e.g., from EventLog replay)
+  useEffect(() => {
+    if (overlayState.poster.active && overlayState.poster.posterId) {
+      const externalPosterId = overlayState.poster.posterId;
+      const externalDisplayMode = overlayState.poster.displayMode;
+
+      // Only sync if the active poster is different from what we have locally
+      if (activePoster !== externalPosterId) {
+        // Find the poster in our list
+        const poster = posters.find(p => p.id === externalPosterId);
+        if (poster) {
+          setActivePoster(externalPosterId);
+          setDisplayMode(externalDisplayMode || null);
+          setActiveSide(externalDisplayMode === "bigpicture" ? null : (externalDisplayMode || null));
+          setActiveType(poster.type);
+
+          // Show controls if video or youtube
+          if (poster.type === "video" || poster.type === "youtube") {
+            setShowControls(true);
+          } else {
+            setShowControls(false);
+          }
+        }
+      }
+    }
+  }, [overlayState.poster.active, overlayState.poster.posterId, overlayState.poster.displayMode, posters, activePoster]);
 
   // WebSocket connection for playback state
   useEffect(() => {

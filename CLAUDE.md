@@ -8,6 +8,14 @@ OBS Live Suite is a Next.js application for managing live show overlays with rea
 - **Frontend**: Next.js 15+ (App Router) on port 3000
 - **Backend**: Express server on port 3002 with WebSocket hub on port 3003
 
+## Development Rules
+When possible, and as much as feasible, ditstribute tasks between paralles agents. Figure out which agent is best suited for each task, and assign accordingly. 
+
+Always follow there rules :
+- Before writing any code, be sure you can't reuse existing code from the project. PRIORITIZE DRY (Don't Repeat Yourself) principles.
+- In the same vein, reuse shared components, services, utilities, and constant definitions whenever possible.
+- Write constants and configuration values in a single place, and reference them throughout the codebase (lib/AppConfig.ts, lib/Constants.ts, etc).
+
 ## Development Commands
 
 ### Start Development (Most Common)

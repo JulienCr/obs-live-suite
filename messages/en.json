@@ -96,7 +96,24 @@
     },
     "eventLog": {
       "title": "Event Log",
-      "noEvents": "No events yet"
+      "noEvents": "No events yet",
+      "clearAll": "Clear All",
+      "stop": "Stop",
+      "replay": "Replay",
+      "fromPresenter": "Presenter",
+      "filters": {
+        "all": "All",
+        "guests": "Guests",
+        "posters": "Posters",
+        "chat": "Chat",
+        "custom": "Custom"
+      },
+      "sides": {
+        "left": "L",
+        "right": "R",
+        "center": "C",
+        "big": "Big"
+      }
     },
     "macros": {
       "title": "Macros",

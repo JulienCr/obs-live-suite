@@ -96,7 +96,24 @@
     },
     "eventLog": {
       "title": "Journal d'événements",
-      "noEvents": "Aucun événement"
+      "noEvents": "Aucun événement",
+      "clearAll": "Tout effacer",
+      "stop": "Stop",
+      "replay": "Rejouer",
+      "fromPresenter": "Présentateur",
+      "filters": {
+        "all": "Tous",
+        "guests": "Invités",
+        "posters": "Affiches",
+        "chat": "Chat",
+        "custom": "Perso"
+      },
+      "sides": {
+        "left": "G",
+        "right": "D",
+        "center": "C",
+        "big": "Grand"
+      }
     },
     "macros": {
       "title": "Macros",

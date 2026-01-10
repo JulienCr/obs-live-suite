@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { PanelColorMenu } from "../PanelColorMenu";
 import { LowerThirdPreviewDialog } from "./LowerThirdPreviewDialog";
 import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { useOverlayActiveState } from "@/hooks/useOverlayActiveState";
 
 interface WikipediaPreview {
   title: string;
@@ -29,6 +30,7 @@ interface WikipediaSearchOption {
  */
 export function LowerThirdPanel(props: IDockviewPanelProps) {
   const t = useTranslations("dashboard.lowerThird");
+  const overlayState = useOverlayActiveState();
   const [mode, setMode] = useState<"guest" | "text">("guest");
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -59,6 +61,15 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
     };
     fetchSettings();
   }, []);
+
+  // Sync local state with WebSocket overlay state
+  // When an external hide event is received (e.g., from EventLog), clear local active state
+  useEffect(() => {
+    if (!overlayState.lowerThird.active && isVisible) {
+      // Overlay was hidden externally, sync local state
+      setIsVisible(false);
+    }
+  }, [overlayState.lowerThird.active, isVisible]);
 
   const handleShow = async () => {
     try {
