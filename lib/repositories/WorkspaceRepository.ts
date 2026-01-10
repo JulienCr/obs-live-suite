@@ -9,6 +9,28 @@ import type {
 } from "@/lib/models/Database";
 
 /**
+ * Raw workspace row from SQLite (before type transformation)
+ */
+type DbWorkspaceRow = Omit<
+  DbWorkspace,
+  "panelColors" | "isDefault" | "isBuiltIn" | "createdAt" | "updatedAt"
+> & {
+  panelColors: string;
+  isDefault: number;
+  isBuiltIn: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Raw workspace summary row from SQLite
+ */
+type DbWorkspaceSummaryRow = Omit<DbWorkspaceSummary, "isDefault" | "isBuiltIn"> & {
+  isDefault: number;
+  isBuiltIn: number;
+};
+
+/**
  * WorkspaceRepository handles all workspace-related database operations
  */
 export class WorkspaceRepository {
@@ -19,9 +41,6 @@ export class WorkspaceRepository {
     this.logger = new Logger("WorkspaceRepository");
   }
 
-  /**
-   * Get singleton instance
-   */
   static getInstance(): WorkspaceRepository {
     if (!WorkspaceRepository.instance) {
       WorkspaceRepository.instance = new WorkspaceRepository();
@@ -29,25 +48,11 @@ export class WorkspaceRepository {
     return WorkspaceRepository.instance;
   }
 
-  /**
-   * Get the database instance
-   */
   private get db() {
     return DatabaseService.getInstance().getDb();
   }
 
-  /**
-   * Transform a database row to a DbWorkspace object
-   */
-  private transformRow(
-    row: Omit<DbWorkspace, "panelColors" | "isDefault" | "isBuiltIn" | "createdAt" | "updatedAt"> & {
-      panelColors: string;
-      isDefault: number;
-      isBuiltIn: number;
-      createdAt: string;
-      updatedAt: string;
-    }
-  ): DbWorkspace {
+  private transformRow(row: DbWorkspaceRow): DbWorkspace {
     return {
       ...row,
       panelColors: safeJsonParse<Record<string, string>>(row.panelColors, {}),
@@ -58,36 +63,17 @@ export class WorkspaceRepository {
     };
   }
 
-  /**
-   * Get all workspaces
-   */
   getAll(): DbWorkspace[] {
     const stmt = this.db.prepare("SELECT * FROM workspaces ORDER BY sortOrder ASC, name ASC");
-    const rows = stmt.all() as Array<
-      Omit<DbWorkspace, "panelColors" | "isDefault" | "isBuiltIn" | "createdAt" | "updatedAt"> & {
-        panelColors: string;
-        isDefault: number;
-        isBuiltIn: number;
-        createdAt: string;
-        updatedAt: string;
-      }
-    >;
+    const rows = stmt.all() as DbWorkspaceRow[];
     return rows.map((row) => this.transformRow(row));
   }
 
-  /**
-   * Get all workspace summaries (without layoutJson for performance)
-   */
   getAllSummaries(): DbWorkspaceSummary[] {
     const stmt = this.db.prepare(
       "SELECT id, name, description, isDefault, isBuiltIn, sortOrder FROM workspaces ORDER BY sortOrder ASC, name ASC"
     );
-    const rows = stmt.all() as Array<
-      Omit<DbWorkspaceSummary, "isDefault" | "isBuiltIn"> & {
-        isDefault: number;
-        isBuiltIn: number;
-      }
-    >;
+    const rows = stmt.all() as DbWorkspaceSummaryRow[];
     return rows.map((row) => ({
       ...row,
       isDefault: Boolean(row.isDefault),
@@ -95,58 +81,25 @@ export class WorkspaceRepository {
     }));
   }
 
-  /**
-   * Get workspace by ID
-   */
   getById(id: string): DbWorkspace | null {
     const stmt = this.db.prepare("SELECT * FROM workspaces WHERE id = ?");
-    const row = stmt.get(id) as
-      | (Omit<DbWorkspace, "panelColors" | "isDefault" | "isBuiltIn" | "createdAt" | "updatedAt"> & {
-          panelColors: string;
-          isDefault: number;
-          isBuiltIn: number;
-          createdAt: string;
-          updatedAt: string;
-        })
-      | undefined;
+    const row = stmt.get(id) as DbWorkspaceRow | undefined;
     if (!row) return null;
     return this.transformRow(row);
   }
 
-  /**
-   * Get the default workspace
-   */
   getDefault(): DbWorkspace | null {
     const stmt = this.db.prepare("SELECT * FROM workspaces WHERE isDefault = 1 LIMIT 1");
-    const row = stmt.get() as
-      | (Omit<DbWorkspace, "panelColors" | "isDefault" | "isBuiltIn" | "createdAt" | "updatedAt"> & {
-          panelColors: string;
-          isDefault: number;
-          isBuiltIn: number;
-          createdAt: string;
-          updatedAt: string;
-        })
-      | undefined;
+    const row = stmt.get() as DbWorkspaceRow | undefined;
     if (!row) return null;
     return this.transformRow(row);
   }
 
-  /**
-   * Get built-in workspaces
-   */
   getBuiltIn(): DbWorkspace[] {
     const stmt = this.db.prepare(
       "SELECT * FROM workspaces WHERE isBuiltIn = 1 ORDER BY sortOrder ASC"
     );
-    const rows = stmt.all() as Array<
-      Omit<DbWorkspace, "panelColors" | "isDefault" | "isBuiltIn" | "createdAt" | "updatedAt"> & {
-        panelColors: string;
-        isDefault: number;
-        isBuiltIn: number;
-        createdAt: string;
-        updatedAt: string;
-      }
-    >;
+    const rows = stmt.all() as DbWorkspaceRow[];
     return rows.map((row) => this.transformRow(row));
   }
 

@@ -18,13 +18,9 @@ interface Command {
 
 const TypedOmnibar = Omnibar.ofType<Command>();
 
-const renderCommand: ItemRenderer<Command> = (
-  command,
-  { handleClick, handleFocus, modifiers }
-) => {
-  if (!modifiers.matchesPredicate) {
-    return null;
-  }
+const renderCommand: ItemRenderer<Command> = (command, { handleClick, handleFocus, modifiers }) => {
+  if (!modifiers.matchesPredicate) return null;
+
   return (
     <MenuItem
       key={command.id}
@@ -36,16 +32,16 @@ const renderCommand: ItemRenderer<Command> = (
   );
 };
 
-const filterCommand = (query: string, command: Command) => {
+function filterCommand(query: string, command: Command): boolean {
   const lowerQuery = query.toLowerCase();
   return (
     command.label.toLowerCase().includes(lowerQuery) ||
     command.keywords?.some((kw) => kw.toLowerCase().includes(lowerQuery)) ||
     false
   );
-};
+}
 
-export function CommandPalette() {
+export function CommandPalette(): React.ReactNode {
   const [isOpen, setIsOpen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [managerDialogOpen, setManagerDialogOpen] = useState(false);
@@ -53,31 +49,21 @@ export function CommandPalette() {
   const t = useTranslations("dashboard.commandPalette");
   const tPanels = useTranslations("dashboard.panels");
 
-  // Use workspaces context (returns null if not available)
   const workspacesContext = useWorkspacesSafe();
 
-  // Function to add panel if not already open
-  const addPanel = (id: string, component: string, titleKey: string) => {
+  function addPanel(id: string, component: string, titleKey: string): void {
     if (!api) return;
 
-    // Check if panel already exists
     const existingPanel = api.getPanel(id);
     if (existingPanel) {
-      // Focus existing panel
       existingPanel.api.setActive();
       return;
     }
 
-    // Add new panel
-    api.addPanel({
-      id,
-      component,
-      title: tPanels(titleKey),
-    });
-  };
+    api.addPanel({ id, component, title: tPanels(titleKey) });
+  }
 
   const COMMANDS: Command[] = [
-    // Navigation
     {
       id: "nav-dashboard",
       label: t("goToDashboard"),
@@ -114,7 +100,6 @@ export function CommandPalette() {
       keywords: ["navigate", "quiz", "host", "control"],
       action: () => (window.location.href = "/quiz/host"),
     },
-    // Panel management
     {
       id: "panel-lower-third",
       label: t("showLowerThirdPanel"),
@@ -157,7 +142,6 @@ export function CommandPalette() {
       keywords: ["panel", "widget", "twitch", "stats", "viewers", "broadcast", "stream", "control", "title", "category", "edit", "add"],
       action: () => addPanel("twitch", "twitch", "twitch"),
     },
-    // Layout management
     {
       id: "reset-layout",
       label: t("resetLayout"),
@@ -171,7 +155,6 @@ export function CommandPalette() {
     },
   ];
 
-  // Add workspace commands if context is available
   const workspaceCommands: Command[] = useMemo(() => {
     if (!workspacesContext) return [];
 
@@ -180,73 +163,59 @@ export function CommandPalette() {
         id: "workspace-reset",
         label: t("resetWorkspace"),
         keywords: ["workspace", "reset", "default", "restore"],
-        action: () => {
-          workspacesContext?.resetToDefault().catch(console.error);
-        },
+        action: () => workspacesContext.resetToDefault().catch(console.error),
       },
       {
         id: "workspace-save",
         label: t("saveWorkspace"),
         keywords: ["workspace", "save", "layout", "create"],
-        action: () => {
-          setSaveDialogOpen(true);
-        },
+        action: () => setSaveDialogOpen(true),
       },
       {
         id: "workspace-manage",
         label: t("manageWorkspaces"),
         keywords: ["workspace", "manage", "edit", "delete", "rename"],
-        action: () => {
-          setManagerDialogOpen(true);
-        },
+        action: () => setManagerDialogOpen(true),
       },
     ];
 
-    // Add switch commands for each workspace
-    workspacesContext.workspaces.forEach((workspace) => {
+    for (const workspace of workspacesContext.workspaces) {
       commands.push({
         id: `workspace-switch-${workspace.id}`,
         label: t("switchToWorkspace", { name: workspace.name }),
         keywords: ["workspace", "switch", "change", workspace.name.toLowerCase()],
-        action: () => {
-          workspacesContext?.applyWorkspace(workspace.id).catch(console.error);
-        },
+        action: () => workspacesContext.applyWorkspace(workspace.id).catch(console.error),
       });
-    });
+    }
 
     return commands;
   }, [workspacesContext, t]);
 
-  const ALL_COMMANDS = [...COMMANDS, ...workspaceCommands];
+  const allCommands = [...COMMANDS, ...workspaceCommands];
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      // Cmd+P or Ctrl+P
-      if ((e.metaKey || e.ctrlKey) && e.key === "p") {
+    function handler(e: KeyboardEvent): void {
+      const hasModifier = e.metaKey || e.ctrlKey;
+      if (hasModifier && e.key.toLowerCase() === "p") {
         e.preventDefault();
         setIsOpen((prev) => !prev);
       }
-      // Cmd+Shift+P or Ctrl+Shift+P (alternative)
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "P") {
-        e.preventDefault();
-        setIsOpen((prev) => !prev);
-      }
-    };
+    }
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const handleItemSelect = (command: Command) => {
+  function handleItemSelect(command: Command): void {
     setIsOpen(false);
     command.action();
-  };
+  }
 
   return (
     <>
       <TypedOmnibar
         isOpen={isOpen}
-        items={ALL_COMMANDS}
+        items={allCommands}
         itemRenderer={renderCommand}
         itemPredicate={filterCommand}
         onItemSelect={handleItemSelect}

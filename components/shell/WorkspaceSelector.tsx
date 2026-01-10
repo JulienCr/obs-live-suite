@@ -50,11 +50,13 @@ export function WorkspaceSelector() {
   const builtInWorkspaces = workspaces.filter((w) => w.isBuiltIn);
   const userWorkspaces = workspaces.filter((w) => !w.isBuiltIn);
 
-  const displayName = currentWorkspace
-    ? `${currentWorkspace.name}${isModified ? " *" : ""}`
-    : isModified
-    ? t("custom")
-    : t("noWorkspace");
+  function getDisplayName(): string {
+    if (currentWorkspace) {
+      return isModified ? `${currentWorkspace.name} *` : currentWorkspace.name;
+    }
+    return isModified ? t("custom") : t("noWorkspace");
+  }
+  const displayName = getDisplayName();
 
   const handleWorkspaceSelect = async (id: string) => {
     if (!canApplyLayout) return;

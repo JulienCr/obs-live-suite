@@ -11,7 +11,7 @@ import {
 } from "react";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/utils/ClientFetch";
 import type { DbWorkspaceSummary, DbWorkspace } from "@/lib/models/Database";
-import { usePanelColors } from "./PanelColorsContext";
+import { usePanelColorsSafe } from "./PanelColorsContext";
 
 const LAYOUT_KEY = "obs-live-suite-dockview-layout";
 const CURRENT_WORKSPACE_KEY = "obs-live-suite-current-workspace";
@@ -87,15 +87,12 @@ export function WorkspacesProvider({ children }: WorkspacesProviderProps) {
   const [isReady, setIsReady] = useState(false);
 
   const layoutJsonGetterRef = useRef<(() => string | null) | null>(null);
-  const layoutApplierRef = useRef<((layoutJson: string, panelColors: Record<string, string>) => void) | null>(null);
+  const layoutApplierRef = useRef<
+    ((layoutJson: string, panelColors: Record<string, string>) => void) | null
+  >(null);
 
-  // Try to get panel colors context - may not be available
-  let panelColorsContext: { colors: Record<string, { scheme: string }>; setScheme: (panelId: any, scheme: any) => Promise<void> } | null = null;
-  try {
-    panelColorsContext = usePanelColors();
-  } catch {
-    // Panel colors context not available
-  }
+  // Panel colors context - may not be available outside dashboard
+  const panelColorsContext = usePanelColorsSafe();
   const panelColors = panelColorsContext?.colors ?? {};
   const setScheme = panelColorsContext?.setScheme;
 
@@ -155,18 +152,28 @@ export function WorkspacesProvider({ children }: WorkspacesProviderProps) {
     [setScheme]
   );
 
+  // Helper to convert panel colors context format to simple record
+  const getPanelColorsRecord = useCallback((): Record<string, string> => {
+    const record: Record<string, string> = {};
+    for (const [panelId, entry] of Object.entries(panelColors)) {
+      record[panelId] = entry.scheme;
+    }
+    return record;
+  }, [panelColors]);
+
+  // Helper to get current layout or throw
+  const requireLayoutJson = useCallback((): string => {
+    const layoutJson = layoutJsonGetterRef.current?.();
+    if (!layoutJson) {
+      throw new Error("No layout available to save");
+    }
+    return layoutJson;
+  }, []);
+
   const saveCurrentAsWorkspace = useCallback(
     async (name: string, description?: string): Promise<DbWorkspace> => {
-      const layoutJson = layoutJsonGetterRef.current?.();
-      if (!layoutJson) {
-        throw new Error("No layout available to save");
-      }
-
-      // Get current panel colors as a simple record
-      const panelColorsRecord: Record<string, string> = {};
-      for (const [panelId, entry] of Object.entries(panelColors)) {
-        panelColorsRecord[panelId] = entry.scheme;
-      }
+      const layoutJson = requireLayoutJson();
+      const panelColorsRecord = getPanelColorsRecord();
 
       const data = await apiPost<{ workspace: DbWorkspace }>("/api/workspaces", {
         name,
@@ -175,46 +182,32 @@ export function WorkspacesProvider({ children }: WorkspacesProviderProps) {
         panelColors: panelColorsRecord,
       });
 
-      // Update state
       setCurrentWorkspaceId(data.workspace.id);
       setIsModified(false);
       localStorage.setItem(CURRENT_WORKSPACE_KEY, data.workspace.id);
-
-      // Refresh workspace list
       await refreshWorkspaces();
 
       return data.workspace;
     },
-    [panelColors, refreshWorkspaces]
+    [requireLayoutJson, getPanelColorsRecord, refreshWorkspaces]
   );
 
   const saveToExistingWorkspace = useCallback(
     async (id: string) => {
-      const layoutJson = layoutJsonGetterRef.current?.();
-      if (!layoutJson) {
-        throw new Error("No layout available to save");
-      }
-
-      // Get current panel colors as a simple record
-      const panelColorsRecord: Record<string, string> = {};
-      for (const [panelId, entry] of Object.entries(panelColors)) {
-        panelColorsRecord[panelId] = entry.scheme;
-      }
+      const layoutJson = requireLayoutJson();
+      const panelColorsRecord = getPanelColorsRecord();
 
       await apiPut(`/api/workspaces/${id}`, {
         layoutJson,
         panelColors: panelColorsRecord,
       });
 
-      // Update state
       setCurrentWorkspaceId(id);
       setIsModified(false);
       localStorage.setItem(CURRENT_WORKSPACE_KEY, id);
-
-      // Refresh workspace list
       await refreshWorkspaces();
     },
-    [panelColors, refreshWorkspaces]
+    [requireLayoutJson, getPanelColorsRecord, refreshWorkspaces]
   );
 
   const resetToDefault = useCallback(async () => {

@@ -29,15 +29,10 @@ interface WorkspaceSaveDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function WorkspaceSaveDialog({ open, onOpenChange }: WorkspaceSaveDialogProps) {
+export function WorkspaceSaveDialog({ open, onOpenChange }: WorkspaceSaveDialogProps): React.ReactNode {
   const t = useTranslations("dashboard.workspaces");
-  const {
-    workspaces,
-    currentWorkspaceId,
-    saveCurrentAsWorkspace,
-    saveToExistingWorkspace,
-    setAsDefault,
-  } = useWorkspaces();
+  const { workspaces, saveCurrentAsWorkspace, saveToExistingWorkspace, setAsDefault } =
+    useWorkspaces();
 
   const [mode, setMode] = useState<"new" | "overwrite">("new");
   const [name, setName] = useState("");
@@ -47,19 +42,18 @@ export function WorkspaceSaveDialog({ open, onOpenChange }: WorkspaceSaveDialogP
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter to only user workspaces for overwrite
   const userWorkspaces = workspaces.filter((w) => !w.isBuiltIn);
 
-  const resetForm = () => {
+  function resetForm(): void {
     setMode("new");
     setName("");
     setDescription("");
     setSelectedWorkspaceId("");
     setMakeDefault(false);
     setError(null);
-  };
+  }
 
-  const handleSave = async () => {
+  async function handleSave(): Promise<void> {
     setError(null);
     setIsSaving(true);
 
@@ -93,14 +87,14 @@ export function WorkspaceSaveDialog({ open, onOpenChange }: WorkspaceSaveDialogP
     } finally {
       setIsSaving(false);
     }
-  };
+  }
 
-  const handleOpenChange = (newOpen: boolean) => {
+  function handleOpenChange(newOpen: boolean): void {
     if (!newOpen) {
       resetForm();
     }
     onOpenChange(newOpen);
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -111,7 +105,6 @@ export function WorkspaceSaveDialog({ open, onOpenChange }: WorkspaceSaveDialogP
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Save Mode Selection */}
           <div className="flex gap-4">
             <Button
               variant={mode === "new" ? "default" : "outline"}
@@ -134,19 +127,17 @@ export function WorkspaceSaveDialog({ open, onOpenChange }: WorkspaceSaveDialogP
 
           {mode === "new" ? (
             <>
-              {/* Name Input */}
               <div className="grid gap-2">
                 <Label htmlFor="workspace-name">{t("saveDialog.name")}</Label>
                 <Input
                   id="workspace-name"
                   value={name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder={t("saveDialog.namePlaceholder")}
                   maxLength={50}
                 />
               </div>
 
-              {/* Description Input */}
               <div className="grid gap-2">
                 <Label htmlFor="workspace-description">
                   {t("saveDialog.descriptionLabel")}
@@ -154,13 +145,12 @@ export function WorkspaceSaveDialog({ open, onOpenChange }: WorkspaceSaveDialogP
                 <Input
                   id="workspace-description"
                   value={description}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder={t("saveDialog.descriptionPlaceholder")}
                   maxLength={200}
                 />
               </div>
 
-              {/* Make Default Checkbox */}
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="make-default"
@@ -173,33 +163,24 @@ export function WorkspaceSaveDialog({ open, onOpenChange }: WorkspaceSaveDialogP
               </div>
             </>
           ) : (
-            <>
-              {/* Workspace Selection for Overwrite */}
-              <div className="grid gap-2">
-                <Label>{t("saveDialog.selectWorkspace")}</Label>
-                <Select
-                  value={selectedWorkspaceId}
-                  onValueChange={setSelectedWorkspaceId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("saveDialog.selectPlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {userWorkspaces.map((workspace) => (
-                      <SelectItem key={workspace.id} value={workspace.id}>
-                        {workspace.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
+            <div className="grid gap-2">
+              <Label>{t("saveDialog.selectWorkspace")}</Label>
+              <Select value={selectedWorkspaceId} onValueChange={setSelectedWorkspaceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("saveDialog.selectPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {userWorkspaces.map((workspace) => (
+                    <SelectItem key={workspace.id} value={workspace.id}>
+                      {workspace.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
 
-          {/* Error Display */}
-          {error && (
-            <div className="text-sm text-destructive">{error}</div>
-          )}
+          {error && <div className="text-sm text-destructive">{error}</div>}
         </div>
 
         <DialogFooter>
