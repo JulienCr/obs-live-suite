@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useMultiChannelWebSocket } from "./useMultiChannelWebSocket";
+import { useTimeoutMap } from "./useTimeoutMap";
+import { OVERLAY_STATE_CHANNELS } from "@/lib/config/overlayChannels";
 
 /**
  * Overlay channel types that can be tracked
@@ -37,14 +39,6 @@ export interface OverlayActiveState {
   };
 }
 
-const OVERLAY_CHANNELS: OverlayChannel[] = [
-  "lower",
-  "poster",
-  "poster-bigpicture",
-  "countdown",
-  "chat-highlight",
-];
-
 const INITIAL_STATE: OverlayActiveState = {
   lowerThird: { active: false },
   poster: { active: false },
@@ -77,30 +71,8 @@ const INITIAL_STATE: OverlayActiveState = {
  * ```
  */
 export function useOverlayActiveState(): OverlayActiveState {
-  const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const { set: setAutoHideTimeout, clear: clearTimeoutFor } = useTimeoutMap();
   const [state, setState] = useState<OverlayActiveState>(INITIAL_STATE);
-
-  // Clear a specific timeout
-  const clearTimeoutFor = useCallback((key: string) => {
-    const timeout = timeoutsRef.current.get(key);
-    if (timeout) {
-      clearTimeout(timeout);
-      timeoutsRef.current.delete(key);
-    }
-  }, []);
-
-  // Set a timeout for auto-hide
-  const setAutoHideTimeout = useCallback(
-    (key: string, durationSeconds: number, onHide: () => void) => {
-      clearTimeoutFor(key);
-      const timeout = setTimeout(() => {
-        onHide();
-        timeoutsRef.current.delete(key);
-      }, durationSeconds * 1000);
-      timeoutsRef.current.set(key, timeout);
-    },
-    [clearTimeoutFor]
-  );
 
   // Handle incoming WebSocket messages
   const handleMessage = useCallback(
@@ -123,9 +95,11 @@ export function useOverlayActiveState(): OverlayActiveState {
               },
             }));
             if (payload?.duration) {
-              setAutoHideTimeout("lowerThird", payload.duration as number, () => {
-                setState((prev) => ({ ...prev, lowerThird: { active: false } }));
-              });
+              setAutoHideTimeout(
+                "lowerThird",
+                () => setState((prev) => ({ ...prev, lowerThird: { active: false } })),
+                (payload.duration as number) * 1000
+              );
             }
           } else if (type === "hide") {
             setState((prev) => ({ ...prev, lowerThird: { active: false } }));
@@ -148,9 +122,11 @@ export function useOverlayActiveState(): OverlayActiveState {
               },
             }));
             if (payload?.duration) {
-              setAutoHideTimeout("poster", payload.duration as number, () => {
-                setState((prev) => ({ ...prev, poster: { active: false } }));
-              });
+              setAutoHideTimeout(
+                "poster",
+                () => setState((prev) => ({ ...prev, poster: { active: false } })),
+                (payload.duration as number) * 1000
+              );
             }
           } else if (type === "hide") {
             setState((prev) => ({ ...prev, poster: { active: false } }));
@@ -178,9 +154,11 @@ export function useOverlayActiveState(): OverlayActiveState {
               },
             }));
             if (payload?.duration) {
-              setAutoHideTimeout("chatHighlight", payload.duration as number, () => {
-                setState((prev) => ({ ...prev, chatHighlight: { active: false } }));
-              });
+              setAutoHideTimeout(
+                "chatHighlight",
+                () => setState((prev) => ({ ...prev, chatHighlight: { active: false } })),
+                (payload.duration as number) * 1000
+              );
             }
           } else if (type === "hide") {
             setState((prev) => ({ ...prev, chatHighlight: { active: false } }));
@@ -192,19 +170,10 @@ export function useOverlayActiveState(): OverlayActiveState {
   );
 
   useMultiChannelWebSocket({
-    channels: OVERLAY_CHANNELS,
+    channels: OVERLAY_STATE_CHANNELS,
     onMessage: handleMessage,
     logPrefix: "OverlayActiveState",
   });
-
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    const timeouts = timeoutsRef.current;
-    return () => {
-      timeouts.forEach((timeout) => clearTimeout(timeout));
-      timeouts.clear();
-    };
-  }, []);
 
   return state;
 }

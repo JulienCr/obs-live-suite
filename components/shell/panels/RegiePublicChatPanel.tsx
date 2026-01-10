@@ -16,7 +16,7 @@ import { CueType, CueFrom, CueAction } from "@/lib/models/Cue";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { useToast } from "@/hooks/use-toast";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
-import { useSyncWithOverlayState } from "@/hooks/useSyncWithOverlayState";
+import { useChatHighlightSync } from "@/hooks/useChatHighlightSync";
 
 /**
  * Regie Public Chat Panel - Streamerbot chat with highlight functionality
@@ -32,16 +32,7 @@ function RegiePublicChatContent() {
   const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
 
   // Sync with shared overlay state (handles external show/hide from EventLog)
-  useSyncWithOverlayState({
-    overlayType: "chatHighlight",
-    localActive: currentlyDisplayedId !== null,
-    onExternalHide: () => setCurrentlyDisplayedId(null),
-    onExternalShow: (state) => {
-      if (state.active && "messageId" in state && state.messageId) {
-        setCurrentlyDisplayedId(state.messageId);
-      }
-    },
-  });
+  useChatHighlightSync(currentlyDisplayedId, setCurrentlyDisplayedId);
 
   // Fetch connection settings from default room
   useEffect(() => {

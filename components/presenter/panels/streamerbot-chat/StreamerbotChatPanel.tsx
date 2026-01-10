@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import type { TwitchEvent } from "@/lib/models/Twitch";
-import { useSyncWithOverlayState } from "@/hooks/useSyncWithOverlayState";
+import { useChatHighlightSync } from "@/hooks/useChatHighlightSync";
 
 /**
  * Streamer.bot Chat Panel - Main orchestrator component
@@ -49,16 +49,7 @@ export function StreamerbotChatPanel({
   });
 
   // Sync with shared overlay state (handles external show/hide from EventLog)
-  useSyncWithOverlayState({
-    overlayType: "chatHighlight",
-    localActive: currentlyDisplayedId !== null,
-    onExternalHide: () => setCurrentlyDisplayedId(null),
-    onExternalShow: (state) => {
-      if (state.active && "messageId" in state && state.messageId) {
-        setCurrentlyDisplayedId(state.messageId);
-      }
-    },
-  });
+  useChatHighlightSync(currentlyDisplayedId, setCurrentlyDisplayedId);
 
   // Chat settings from localStorage
   const {

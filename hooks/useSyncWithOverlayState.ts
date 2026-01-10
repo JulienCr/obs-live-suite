@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useOverlayActiveState, OverlayActiveState } from "./useOverlayActiveState";
 
 /**
@@ -69,6 +69,7 @@ export function useSyncWithOverlayState({
 }: UseSyncWithOverlayStateOptions): OverlayActiveState[OverlayType] {
   const overlayState = useOverlayActiveState();
   const currentState = overlayState[overlayType];
+  const prevActiveRef = useRef(currentState.active);
 
   // Sync when overlay is hidden externally
   useEffect(() => {
@@ -78,8 +79,14 @@ export function useSyncWithOverlayState({
   }, [currentState.active, localActive, onExternalHide]);
 
   // Sync when overlay is shown externally (optional)
+  // Only trigger on actual activation, not continued active state
   useEffect(() => {
-    if (currentState.active && onExternalShow) {
+    const wasActive = prevActiveRef.current;
+    const isActive = currentState.active;
+    prevActiveRef.current = isActive;
+
+    // Only trigger on actual activation, not continued active state
+    if (isActive && !wasActive && onExternalShow) {
       onExternalShow(currentState);
     }
   }, [currentState, onExternalShow]);

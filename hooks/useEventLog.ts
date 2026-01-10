@@ -1,14 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   EventLogEntry,
   EventLogType,
   EventLogFilter,
   StoredEventLog,
 } from "@/lib/models/EventLog";
-import { EventSource } from "@/lib/models/OverlayEvents";
+import { EventSource, OverlayChannel } from "@/lib/models/OverlayEvents";
+import {
+  EVENT_LOG_CHANNELS,
+  OVERLAY_CHANNEL_ENDPOINTS,
+} from "@/lib/config/overlayChannels";
 import { useMultiChannelWebSocket } from "./useMultiChannelWebSocket";
+import { useTimeoutMap } from "./useTimeoutMap";
+import { apiPost } from "@/lib/utils/ClientFetch";
 
 // Re-export EventSource for consumers that need it alongside EventLog types
 export { EventSource };
@@ -16,15 +22,6 @@ export { EventSource };
 const STORAGE_KEY = "obs-live-suite-event-log";
 const STORAGE_VERSION = 1;
 const MAX_EVENTS = 100;
-
-const EVENT_LOG_CHANNELS = ["lower", "poster", "poster-bigpicture", "chat-highlight"];
-
-const CHANNEL_ENDPOINTS: Record<string, string> = {
-  lower: "/api/overlays/lower",
-  poster: "/api/overlays/poster",
-  "poster-bigpicture": "/api/overlays/poster-bigpicture",
-  "chat-highlight": "/api/overlays/chat-highlight",
-};
 
 interface UseEventLogReturn {
   events: EventLogEntry[];
@@ -169,7 +166,7 @@ export function useEventLog(): UseEventLogReturn {
   const [events, setEvents] = useState<EventLogEntry[]>([]);
   const [filter, setFilter] = useState<EventLogFilter>("all");
   const [isLoaded, setIsLoaded] = useState(false);
-  const hideTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const { set: setHideTimeout, clear: clearHideTimeout, clearAll: clearAllTimeouts } = useTimeoutMap();
   const replayingEventRef = useRef<ReplayTracking | null>(null);
 
   // Load from localStorage on mount
@@ -190,38 +187,23 @@ export function useEventLog(): UseEventLogReturn {
     }
   }, [events, isLoaded]);
 
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    const timeouts = hideTimeoutsRef.current;
-    return () => {
-      timeouts.forEach((t) => clearTimeout(t));
-      timeouts.clear();
-    };
-  }, []);
+  const setupHideTimeout = useCallback(
+    (entry: EventLogEntry) => {
+      if (!entry.hideAt) return;
 
-  // Timeout management
-  const clearHideTimeout = useCallback((eventId: string) => {
-    const timeout = hideTimeoutsRef.current.get(eventId);
-    if (timeout) {
-      clearTimeout(timeout);
-      hideTimeoutsRef.current.delete(eventId);
-    }
-  }, []);
+      const delay = entry.hideAt - Date.now();
+      if (delay <= 0) return;
 
-  const setupHideTimeout = useCallback((entry: EventLogEntry) => {
-    if (!entry.hideAt) return;
-
-    const delay = entry.hideAt - Date.now();
-    if (delay <= 0) return;
-
-    const timeout = setTimeout(() => {
-      setEvents((prev) =>
-        prev.map((e) => (e.id === entry.id ? { ...e, isActive: false } : e))
+      setHideTimeout(
+        entry.id,
+        () => setEvents((prev) =>
+          prev.map((e) => (e.id === entry.id ? { ...e, isActive: false } : e))
+        ),
+        delay
       );
-      hideTimeoutsRef.current.delete(entry.id);
-    }, delay);
-    hideTimeoutsRef.current.set(entry.id, timeout);
-  }, []);
+    },
+    [setHideTimeout]
+  );
 
   // Event management
   const addEvent = useCallback(
@@ -259,17 +241,17 @@ export function useEventLog(): UseEventLogReturn {
       if (newHideAt) {
         const delay = newHideAt - Date.now();
         if (delay > 0) {
-          const timeout = setTimeout(() => {
-            setEvents((prev) =>
+          setHideTimeout(
+            eventId,
+            () => setEvents((prev) =>
               prev.map((e) => (e.id === eventId ? { ...e, isActive: false } : e))
-            );
-            hideTimeoutsRef.current.delete(eventId);
-          }, delay);
-          hideTimeoutsRef.current.set(eventId, timeout);
+            ),
+            delay
+          );
         }
       }
     },
-    [clearHideTimeout]
+    [clearHideTimeout, setHideTimeout]
   );
 
   const markChannelInactive = useCallback((channel: string) => {
@@ -352,10 +334,9 @@ export function useEventLog(): UseEventLogReturn {
 
   // Public methods
   const clearAll = useCallback(() => {
-    hideTimeoutsRef.current.forEach((t) => clearTimeout(t));
-    hideTimeoutsRef.current.clear();
+    clearAllTimeouts();
     setEvents([]);
-  }, []);
+  }, [clearAllTimeouts]);
 
   const removeEvent = useCallback(
     (id: string) => {
@@ -366,20 +347,18 @@ export function useEventLog(): UseEventLogReturn {
   );
 
   const stopOverlay = useCallback(async (entry: EventLogEntry) => {
-    const endpoint = CHANNEL_ENDPOINTS[entry.originalChannel] || CHANNEL_ENDPOINTS.lower;
+    const channelKey = entry.originalChannel as OverlayChannel;
+    const endpoint = OVERLAY_CHANNEL_ENDPOINTS[channelKey] || OVERLAY_CHANNEL_ENDPOINTS[OverlayChannel.LOWER];
     try {
-      await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "hide" }),
-      });
+      await apiPost(endpoint, { action: "hide" });
     } catch (error) {
       console.error("[EventLog] Failed to stop overlay:", error);
     }
   }, []);
 
   const replayOverlay = useCallback(async (entry: EventLogEntry) => {
-    const endpoint = CHANNEL_ENDPOINTS[entry.originalChannel] || CHANNEL_ENDPOINTS.lower;
+    const channelKey = entry.originalChannel as OverlayChannel;
+    const endpoint = OVERLAY_CHANNEL_ENDPOINTS[channelKey] || OVERLAY_CHANNEL_ENDPOINTS[OverlayChannel.LOWER];
 
     // Mark for replay tracking
     replayingEventRef.current = {
@@ -389,13 +368,9 @@ export function useEventLog(): UseEventLogReturn {
     };
 
     try {
-      await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "show",
-          payload: entry.originalPayload,
-        }),
+      await apiPost(endpoint, {
+        action: "show",
+        payload: entry.originalPayload,
       });
     } catch (error) {
       console.error("[EventLog] Failed to replay overlay:", error);
