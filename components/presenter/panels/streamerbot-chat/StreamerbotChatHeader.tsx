@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Wifi, WifiOff, Search, Trash2, Loader2, Eye, MessageSquare } from "lucide-react";
@@ -49,6 +50,21 @@ function getStatusText(
 }
 
 /**
+ * Get status icon component
+ */
+function getStatusIcon(status: StreamerbotConnectionStatus): React.ReactNode {
+  switch (status) {
+    case StreamerbotConnectionStatus.CONNECTED:
+      return <Wifi className="h-4 w-4" />;
+    case StreamerbotConnectionStatus.CONNECTING:
+    case StreamerbotConnectionStatus.AUTHENTICATING:
+      return <Loader2 className="h-4 w-4 animate-spin" />;
+    default:
+      return <WifiOff className="h-4 w-4" />;
+  }
+}
+
+/**
  * Header component with connection status and controls
  */
 export function StreamerbotChatHeader({
@@ -71,14 +87,7 @@ export function StreamerbotChatHeader({
       <div className="flex items-center gap-2">
         {/* Connection status */}
         <div className={cn("flex items-center gap-1.5", statusColor)}>
-          {status === StreamerbotConnectionStatus.CONNECTED ? (
-            <Wifi className="h-4 w-4" />
-          ) : status === StreamerbotConnectionStatus.CONNECTING ||
-            status === StreamerbotConnectionStatus.AUTHENTICATING ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <WifiOff className="h-4 w-4" />
-          )}
+          {getStatusIcon(status)}
           <span className="text-xs">{statusText}</span>
         </div>
 
