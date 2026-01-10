@@ -17,13 +17,12 @@ import {
   Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { useEventLog } from "@/hooks/useEventLog";
+import { useEventLog, EventSource } from "@/hooks/useEventLog";
 import {
   EventLogType,
   EventLogFilter,
   EventLogEntry,
 } from "@/lib/models/EventLog";
-import { EventSource } from "@/lib/models/OverlayEvents";
 
 function FilterButtons({
   filter,

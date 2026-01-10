@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import type { TwitchEvent } from "@/lib/models/Twitch";
-import { useOverlayActiveState } from "@/hooks/useOverlayActiveState";
+import { useSyncWithOverlayState } from "@/hooks/useSyncWithOverlayState";
 
 /**
  * Streamer.bot Chat Panel - Main orchestrator component
@@ -48,20 +48,17 @@ export function StreamerbotChatPanel({
     logPrefix: "StreamerbotChatPanel",
   });
 
-  // Track overlay active state from WebSocket events (for external triggers like EventLog replay)
-  const overlayState = useOverlayActiveState();
-
-  // Sync currentlyDisplayedId with external overlay state changes (e.g., EventLog replay)
-  useEffect(() => {
-    const { active, messageId } = overlayState.chatHighlight;
-    if (active && messageId) {
-      // External show event - update our local state to match
-      setCurrentlyDisplayedId(messageId);
-    } else if (!active) {
-      // External hide event - clear our local state
-      setCurrentlyDisplayedId(null);
-    }
-  }, [overlayState.chatHighlight]);
+  // Sync with shared overlay state (handles external show/hide from EventLog)
+  useSyncWithOverlayState({
+    overlayType: "chatHighlight",
+    localActive: currentlyDisplayedId !== null,
+    onExternalHide: () => setCurrentlyDisplayedId(null),
+    onExternalShow: (state) => {
+      if (state.active && "messageId" in state && state.messageId) {
+        setCurrentlyDisplayedId(state.messageId);
+      }
+    },
+  });
 
   // Chat settings from localStorage
   const {

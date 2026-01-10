@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EventSource } from "./OverlayEvents";
 
 /**
  * Event types tracked in the log
@@ -8,14 +9,6 @@ export enum EventLogType {
   CUSTOM_TEXT = "custom",
   POSTER = "poster",
   CHAT_HIGHLIGHT = "chat",
-}
-
-/**
- * Event source - where the event originated
- */
-export enum EventSource {
-  REGIE = "regie",
-  PRESENTER = "presenter",
 }
 
 /**

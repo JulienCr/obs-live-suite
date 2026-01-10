@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { getWebSocketUrl } from "@/lib/utils/websocket";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   EventLogEntry,
   EventLogType,
@@ -9,10 +8,23 @@ import {
   StoredEventLog,
 } from "@/lib/models/EventLog";
 import { EventSource } from "@/lib/models/OverlayEvents";
+import { useMultiChannelWebSocket } from "./useMultiChannelWebSocket";
+
+// Re-export EventSource for consumers that need it alongside EventLog types
+export { EventSource };
 
 const STORAGE_KEY = "obs-live-suite-event-log";
 const STORAGE_VERSION = 1;
 const MAX_EVENTS = 100;
+
+const EVENT_LOG_CHANNELS = ["lower", "poster", "poster-bigpicture", "chat-highlight"];
+
+const CHANNEL_ENDPOINTS: Record<string, string> = {
+  lower: "/api/overlays/lower",
+  poster: "/api/overlays/poster",
+  "poster-bigpicture": "/api/overlays/poster-bigpicture",
+  "chat-highlight": "/api/overlays/chat-highlight",
+};
 
 interface UseEventLogReturn {
   events: EventLogEntry[];
@@ -26,6 +38,19 @@ interface UseEventLogReturn {
   isConnected: boolean;
 }
 
+interface ReplayTracking {
+  id: string;
+  channel: string;
+  timestamp: number;
+}
+
+interface WebSocketEventData {
+  type?: string;
+  id?: string;
+  payload?: Record<string, unknown>;
+}
+
+// Storage helpers
 function loadFromStorage(): EventLogEntry[] {
   if (typeof window === "undefined") return [];
   try {
@@ -53,45 +78,105 @@ function saveToStorage(events: EventLogEntry[]): void {
   }
 }
 
+// Helper functions
 function truncateMessage(message: string, maxLen: number): string {
   if (message.length <= maxLen) return message;
   return message.substring(0, maxLen - 3) + "...";
 }
 
-function getEndpointForChannel(channel: string): string {
-  switch (channel) {
-    case "lower":
-      return "/api/overlays/lower";
-    case "poster":
-      return "/api/overlays/poster";
-    case "poster-bigpicture":
-      return "/api/overlays/poster-bigpicture";
-    case "chat-highlight":
-      return "/api/overlays/chat-highlight";
-    default:
-      return "/api/overlays/lower";
-  }
+function calculateHideAt(durationSeconds: number | undefined): number | undefined {
+  return durationSeconds ? Date.now() + durationSeconds * 1000 : undefined;
+}
+
+// Event entry builders for each channel type
+function buildLowerThirdEntry(
+  data: WebSocketEventData,
+  payload: Record<string, unknown>
+): EventLogEntry {
+  const contentType = payload.contentType as string | undefined;
+  const isGuest = contentType === "guest";
+
+  return {
+    id: data.id || crypto.randomUUID(),
+    type: isGuest ? EventLogType.GUEST : EventLogType.CUSTOM_TEXT,
+    timestamp: Date.now(),
+    from: (payload.from as EventSource) || EventSource.REGIE,
+    isActive: true,
+    hideAt: calculateHideAt(payload.duration as number | undefined),
+    display: {
+      title: isGuest
+        ? (payload.title as string) || "Unknown Guest"
+        : (payload.title as string) ||
+          (payload.body as string)?.substring(0, 50) ||
+          "Custom Text",
+      subtitle: isGuest ? (payload.subtitle as string) : undefined,
+      channel: "lower",
+      side: payload.side as string | undefined,
+    },
+    originalPayload: payload,
+    originalChannel: "lower",
+  };
+}
+
+function buildPosterEntry(
+  data: WebSocketEventData,
+  payload: Record<string, unknown>,
+  channel: string
+): EventLogEntry {
+  const posterSide = channel === "poster-bigpicture" ? "big" : (payload.side as string);
+
+  return {
+    id: data.id || crypto.randomUUID(),
+    type: EventLogType.POSTER,
+    timestamp: Date.now(),
+    from: (payload.from as EventSource) || EventSource.REGIE,
+    isActive: true,
+    hideAt: calculateHideAt(payload.duration as number | undefined),
+    display: {
+      title: (payload.source as string) || "Poster",
+      subtitle: (payload.type as string) || "image",
+      channel,
+      side: posterSide,
+    },
+    originalPayload: payload,
+    originalChannel: channel,
+  };
+}
+
+function buildChatHighlightEntry(
+  data: WebSocketEventData,
+  payload: Record<string, unknown>
+): EventLogEntry {
+  return {
+    id: data.id || crypto.randomUUID(),
+    type: EventLogType.CHAT_HIGHLIGHT,
+    timestamp: Date.now(),
+    from: (payload.from as EventSource) || EventSource.REGIE,
+    isActive: true,
+    hideAt: calculateHideAt(payload.duration as number | undefined),
+    display: {
+      title: (payload.displayName as string) || (payload.username as string),
+      subtitle: truncateMessage((payload.message as string) || "", 40),
+      channel: "chat-highlight",
+      side: payload.side as string | undefined,
+    },
+    originalPayload: payload,
+    originalChannel: "chat-highlight",
+  };
 }
 
 export function useEventLog(): UseEventLogReturn {
   const [events, setEvents] = useState<EventLogEntry[]>([]);
   const [filter, setFilter] = useState<EventLogFilter>("all");
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
   const hideTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const wsRef = useRef<WebSocket | null>(null);
-  // Track event IDs being replayed to avoid creating duplicates
-  const replayingEventRef = useRef<{
-    id: string;
-    channel: string;
-    timestamp: number;
-  } | null>(null);
+  const replayingEventRef = useRef<ReplayTracking | null>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
     const stored = loadFromStorage();
     if (stored.length > 0) {
-      // Clear any stale active states on load
+      // Clear stale active states on load
       const cleaned = stored.map((e) => ({ ...e, isActive: false }));
       setEvents(cleaned);
     }
@@ -107,28 +192,49 @@ export function useEventLog(): UseEventLogReturn {
 
   // Cleanup timeouts on unmount
   useEffect(() => {
+    const timeouts = hideTimeoutsRef.current;
     return () => {
-      hideTimeoutsRef.current.forEach((t) => clearTimeout(t));
+      timeouts.forEach((t) => clearTimeout(t));
+      timeouts.clear();
     };
   }, []);
 
-  // Add event helper
-  const addEvent = useCallback((entry: EventLogEntry) => {
-    setEvents((prev) => {
-      const filtered = prev.slice(0, MAX_EVENTS - 1);
-      return [entry, ...filtered];
-    });
+  // Timeout management
+  const clearHideTimeout = useCallback((eventId: string) => {
+    const timeout = hideTimeoutsRef.current.get(eventId);
+    if (timeout) {
+      clearTimeout(timeout);
+      hideTimeoutsRef.current.delete(eventId);
+    }
   }, []);
 
-  // Reactivate an existing event (for replay)
+  const setupHideTimeout = useCallback((entry: EventLogEntry) => {
+    if (!entry.hideAt) return;
+
+    const delay = entry.hideAt - Date.now();
+    if (delay <= 0) return;
+
+    const timeout = setTimeout(() => {
+      setEvents((prev) =>
+        prev.map((e) => (e.id === entry.id ? { ...e, isActive: false } : e))
+      );
+      hideTimeoutsRef.current.delete(entry.id);
+    }, delay);
+    hideTimeoutsRef.current.set(entry.id, timeout);
+  }, []);
+
+  // Event management
+  const addEvent = useCallback(
+    (entry: EventLogEntry) => {
+      setEvents((prev) => [entry, ...prev.slice(0, MAX_EVENTS - 1)]);
+      setupHideTimeout(entry);
+    },
+    [setupHideTimeout]
+  );
+
   const reactivateEvent = useCallback(
     (eventId: string, newHideAt: number | undefined) => {
-      // Clear any existing timeout for this event
-      const existingTimeout = hideTimeoutsRef.current.get(eventId);
-      if (existingTimeout) {
-        clearTimeout(existingTimeout);
-        hideTimeoutsRef.current.delete(eventId);
-      }
+      clearHideTimeout(eventId);
 
       setEvents((prev) => {
         const eventIndex = prev.findIndex((e) => e.id === eventId);
@@ -141,17 +247,15 @@ export function useEventLog(): UseEventLogReturn {
           hideAt: newHideAt,
         };
 
-        // Move the reactivated event to the top of the list
-        const newEvents = [
+        // Move to top of list
+        return [
           updatedEvent,
           ...prev.slice(0, eventIndex),
           ...prev.slice(eventIndex + 1),
         ];
-
-        return newEvents;
       });
 
-      // Setup new hide timeout if needed
+      // Setup new hide timeout
       if (newHideAt) {
         const delay = newHideAt - Date.now();
         if (delay > 0) {
@@ -165,22 +269,26 @@ export function useEventLog(): UseEventLogReturn {
         }
       }
     },
-    []
+    [clearHideTimeout]
   );
 
-  // Check if incoming event matches a pending replay
+  const markChannelInactive = useCallback((channel: string) => {
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.display.channel === channel && e.isActive ? { ...e, isActive: false } : e
+      )
+    );
+  }, []);
+
+  // Check for replay and handle reactivation
   const checkAndHandleReplay = useCallback(
     (channel: string, duration: number | undefined): boolean => {
       const replay = replayingEventRef.current;
       if (!replay) return false;
 
-      // Check if this is the replayed event (same channel, within 2 seconds)
-      const isReplay =
-        replay.channel === channel && Date.now() - replay.timestamp < 2000;
-
-      if (isReplay) {
-        const newHideAt = duration ? Date.now() + duration * 1000 : undefined;
-        reactivateEvent(replay.id, newHideAt);
+      // Match replay if same channel and within 2 seconds
+      if (replay.channel === channel && Date.now() - replay.timestamp < 2000) {
+        reactivateEvent(replay.id, calculateHideAt(duration));
         replayingEventRef.current = null;
         return true;
       }
@@ -190,230 +298,57 @@ export function useEventLog(): UseEventLogReturn {
     [reactivateEvent]
   );
 
-  // Setup hide timeout helper
-  const setupHideTimeout = useCallback((entry: EventLogEntry) => {
-    if (entry.hideAt) {
-      const delay = entry.hideAt - Date.now();
-      if (delay > 0) {
-        const timeout = setTimeout(() => {
-          setEvents((prev) =>
-            prev.map((e) => (e.id === entry.id ? { ...e, isActive: false } : e))
-          );
-          hideTimeoutsRef.current.delete(entry.id);
-        }, delay);
-        hideTimeoutsRef.current.set(entry.id, timeout);
+  // WebSocket message handler
+  const handleWebSocketMessage = useCallback(
+    (channel: string, data: unknown) => {
+      const eventData = data as WebSocketEventData;
+      if (!eventData?.type) return;
+
+      const { type, payload } = eventData;
+
+      // Handle hide events
+      if (type === "hide") {
+        markChannelInactive(channel);
+        return;
       }
-    }
-  }, []);
 
-  // Mark channel inactive helper
-  const markChannelInactive = useCallback((channel: string) => {
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.display.channel === channel && e.isActive
-          ? { ...e, isActive: false }
-          : e
-      )
-    );
-  }, []);
+      // Handle show events
+      if (type === "show" && payload) {
+        // Check if this is a replay
+        if (checkAndHandleReplay(channel, payload.duration as number | undefined)) {
+          return;
+        }
 
-  // WebSocket connection
-  useEffect(() => {
-    let reconnectTimeout: NodeJS.Timeout;
-    let isUnmounted = false;
+        // Build and add new event based on channel type
+        let entry: EventLogEntry | null = null;
 
-    const connectWebSocket = () => {
-      if (isUnmounted) return;
+        switch (channel) {
+          case "lower":
+            entry = buildLowerThirdEntry(eventData, payload);
+            break;
+          case "poster":
+          case "poster-bigpicture":
+            entry = buildPosterEntry(eventData, payload, channel);
+            break;
+          case "chat-highlight":
+            entry = buildChatHighlightEntry(eventData, payload);
+            break;
+        }
 
-      try {
-        const ws = new WebSocket(getWebSocketUrl());
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-          setIsConnected(true);
-          // Subscribe to overlay channels
-          ws.send(JSON.stringify({ type: "subscribe", channel: "lower" }));
-          ws.send(JSON.stringify({ type: "subscribe", channel: "poster" }));
-          ws.send(
-            JSON.stringify({ type: "subscribe", channel: "poster-bigpicture" })
-          );
-          ws.send(
-            JSON.stringify({ type: "subscribe", channel: "chat-highlight" })
-          );
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data);
-            const { channel, data } = message;
-
-            if (!data) return;
-
-            // Handle lower third events
-            if (channel === "lower") {
-              if (data.type === "show" && data.payload) {
-                const payload = data.payload;
-
-                // Check if this is a replay - if so, reactivate existing event
-                if (checkAndHandleReplay("lower", payload.duration)) {
-                  return;
-                }
-
-                const contentType = payload.contentType;
-                const type =
-                  contentType === "guest"
-                    ? EventLogType.GUEST
-                    : EventLogType.CUSTOM_TEXT;
-
-                const entry: EventLogEntry = {
-                  id: data.id || crypto.randomUUID(),
-                  type,
-                  timestamp: Date.now(),
-                  from: payload.from || EventSource.REGIE,
-                  isActive: true,
-                  hideAt: payload.duration
-                    ? Date.now() + payload.duration * 1000
-                    : undefined,
-                  display: {
-                    title:
-                      contentType === "guest"
-                        ? payload.title || "Unknown Guest"
-                        : payload.title ||
-                          payload.body?.substring(0, 50) ||
-                          "Custom Text",
-                    subtitle:
-                      contentType === "guest" ? payload.subtitle : undefined,
-                    channel: "lower",
-                    side: payload.side,
-                  },
-                  originalPayload: payload,
-                  originalChannel: "lower",
-                };
-
-                addEvent(entry);
-                setupHideTimeout(entry);
-              } else if (data.type === "hide") {
-                markChannelInactive("lower");
-              }
-            }
-
-            // Handle poster events
-            if (channel === "poster" || channel === "poster-bigpicture") {
-              if (data.type === "show" && data.payload) {
-                const payload = data.payload;
-
-                // Check if this is a replay - if so, reactivate existing event
-                if (checkAndHandleReplay(channel, payload.duration)) {
-                  return;
-                }
-
-                // For poster-bigpicture channel, display as "big", otherwise use payload.side
-                const posterSide =
-                  channel === "poster-bigpicture" ? "big" : payload.side;
-
-                const entry: EventLogEntry = {
-                  id: data.id || crypto.randomUUID(),
-                  type: EventLogType.POSTER,
-                  timestamp: Date.now(),
-                  from: payload.from || EventSource.REGIE,
-                  isActive: true,
-                  hideAt: payload.duration
-                    ? Date.now() + payload.duration * 1000
-                    : undefined,
-                  display: {
-                    title: payload.source || "Poster",
-                    subtitle: payload.type || "image",
-                    channel,
-                    side: posterSide,
-                  },
-                  originalPayload: payload,
-                  originalChannel: channel,
-                };
-
-                addEvent(entry);
-                setupHideTimeout(entry);
-              } else if (data.type === "hide") {
-                markChannelInactive(channel);
-              }
-            }
-
-            // Handle chat highlight events
-            if (channel === "chat-highlight") {
-              if (data.type === "show" && data.payload) {
-                const payload = data.payload;
-
-                // Check if this is a replay - if so, reactivate existing event
-                if (checkAndHandleReplay("chat-highlight", payload.duration)) {
-                  return;
-                }
-
-                const entry: EventLogEntry = {
-                  id: data.id || crypto.randomUUID(),
-                  type: EventLogType.CHAT_HIGHLIGHT,
-                  timestamp: Date.now(),
-                  from: payload.from || EventSource.REGIE,
-                  isActive: true,
-                  hideAt: payload.duration
-                    ? Date.now() + payload.duration * 1000
-                    : undefined,
-                  display: {
-                    title: payload.displayName || payload.username,
-                    subtitle: truncateMessage(payload.message || "", 40),
-                    channel: "chat-highlight",
-                    side: payload.side,
-                  },
-                  originalPayload: payload,
-                  originalChannel: "chat-highlight",
-                };
-
-                addEvent(entry);
-                setupHideTimeout(entry);
-              } else if (data.type === "hide") {
-                markChannelInactive("chat-highlight");
-              }
-            }
-          } catch (error) {
-            console.error("[EventLog] Parse error:", error);
-          }
-        };
-
-        ws.onerror = () => {
-          // Silently handle, will reconnect
-        };
-
-        ws.onclose = () => {
-          wsRef.current = null;
-          setIsConnected(false);
-          if (!isUnmounted) {
-            reconnectTimeout = setTimeout(connectWebSocket, 3000);
-          }
-        };
-      } catch (error) {
-        console.error("[EventLog] Connection error:", error);
-        if (!isUnmounted) {
-          reconnectTimeout = setTimeout(connectWebSocket, 3000);
+        if (entry) {
+          addEvent(entry);
         }
       }
-    };
+    },
+    [addEvent, markChannelInactive, checkAndHandleReplay]
+  );
 
-    // Delay initial connection slightly
-    const initialTimeout = setTimeout(connectWebSocket, 500);
-
-    return () => {
-      isUnmounted = true;
-      clearTimeout(initialTimeout);
-      clearTimeout(reconnectTimeout);
-
-      // Clear overlay state timeouts
-      hideTimeoutsRef.current.forEach((t) => clearTimeout(t));
-      hideTimeoutsRef.current.clear();
-
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, [addEvent, setupHideTimeout, markChannelInactive, checkAndHandleReplay]);
+  // WebSocket connection
+  const { isConnected } = useMultiChannelWebSocket({
+    channels: EVENT_LOG_CHANNELS,
+    onMessage: handleWebSocketMessage,
+    logPrefix: "EventLog",
+  });
 
   // Public methods
   const clearAll = useCallback(() => {
@@ -422,17 +357,16 @@ export function useEventLog(): UseEventLogReturn {
     setEvents([]);
   }, []);
 
-  const removeEvent = useCallback((id: string) => {
-    const timeout = hideTimeoutsRef.current.get(id);
-    if (timeout) {
-      clearTimeout(timeout);
-      hideTimeoutsRef.current.delete(id);
-    }
-    setEvents((prev) => prev.filter((e) => e.id !== id));
-  }, []);
+  const removeEvent = useCallback(
+    (id: string) => {
+      clearHideTimeout(id);
+      setEvents((prev) => prev.filter((e) => e.id !== id));
+    },
+    [clearHideTimeout]
+  );
 
   const stopOverlay = useCallback(async (entry: EventLogEntry) => {
-    const endpoint = getEndpointForChannel(entry.originalChannel);
+    const endpoint = CHANNEL_ENDPOINTS[entry.originalChannel] || CHANNEL_ENDPOINTS.lower;
     try {
       await fetch(endpoint, {
         method: "POST",
@@ -445,9 +379,9 @@ export function useEventLog(): UseEventLogReturn {
   }, []);
 
   const replayOverlay = useCallback(async (entry: EventLogEntry) => {
-    const endpoint = getEndpointForChannel(entry.originalChannel);
+    const endpoint = CHANNEL_ENDPOINTS[entry.originalChannel] || CHANNEL_ENDPOINTS.lower;
 
-    // Mark this event as being replayed so we can reactivate it instead of creating a duplicate
+    // Mark for replay tracking
     replayingEventRef.current = {
       id: entry.id,
       channel: entry.originalChannel,
@@ -465,14 +399,15 @@ export function useEventLog(): UseEventLogReturn {
       });
     } catch (error) {
       console.error("[EventLog] Failed to replay overlay:", error);
-      // Clear the replay tracking on error
       replayingEventRef.current = null;
     }
   }, []);
 
-  // Filtered events
-  const filteredEvents =
-    filter === "all" ? events : events.filter((e) => e.type === filter);
+  // Filtered events (memoized)
+  const filteredEvents = useMemo(
+    () => (filter === "all" ? events : events.filter((e) => e.type === filter)),
+    [events, filter]
+  );
 
   return {
     events,

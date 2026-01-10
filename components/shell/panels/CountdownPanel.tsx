@@ -8,18 +8,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Play, Pause, RotateCcw, Plus, Settings } from "lucide-react";
 import { PanelColorMenu } from "../PanelColorMenu";
 import { apiPost } from "@/lib/utils/ClientFetch";
-import { useOverlayActiveState } from "@/hooks/useOverlayActiveState";
+import { useOverlayHideSync } from "@/hooks/useSyncWithOverlayState";
 
 /**
  * Countdown panel for Dockview - displays countdown controls without Card wrapper
  */
 export function CountdownPanel(props: IDockviewPanelProps) {
-  const overlayState = useOverlayActiveState();
   const [minutes, setMinutes] = useState(5);
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  
+
   const [style, setStyle] = useState<"bold" | "corner" | "banner">("bold");
   const [format, setFormat] = useState<"mm:ss" | "hh:mm:ss" | "seconds">("mm:ss");
   const [position, setPosition] = useState({ x: 960, y: 540 });
@@ -31,6 +30,9 @@ export function CountdownPanel(props: IDockviewPanelProps) {
   const [shadow, setShadow] = useState(true);
 
   const updateTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Sync local state with shared overlay state (handles external stop/reset)
+  useOverlayHideSync("countdown", isRunning, () => setIsRunning(false));
 
   const positionPresets = [
     { name: "Top Left", x: 200, y: 150 },
@@ -61,15 +63,6 @@ export function CountdownPanel(props: IDockviewPanelProps) {
   const handlePositionPreset = (preset: { name: string; x: number; y: number }) => {
     setPosition({ x: preset.x, y: preset.y });
   };
-
-  // Sync local state with WebSocket overlay state
-  // When an external hide/reset/complete event is received, clear local active state
-  useEffect(() => {
-    if (!overlayState.countdown.active && isRunning) {
-      // Countdown was stopped/reset externally, sync local state
-      setIsRunning(false);
-    }
-  }, [overlayState.countdown.active, isRunning]);
 
   useEffect(() => {
     if (isRunning) {

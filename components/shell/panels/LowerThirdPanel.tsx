@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { PanelColorMenu } from "../PanelColorMenu";
 import { LowerThirdPreviewDialog } from "./LowerThirdPreviewDialog";
 import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
-import { useOverlayActiveState } from "@/hooks/useOverlayActiveState";
+import { useOverlayHideSync } from "@/hooks/useSyncWithOverlayState";
 
 interface WikipediaPreview {
   title: string;
@@ -30,7 +30,6 @@ interface WikipediaSearchOption {
  */
 export function LowerThirdPanel(props: IDockviewPanelProps) {
   const t = useTranslations("dashboard.lowerThird");
-  const overlayState = useOverlayActiveState();
   const [mode, setMode] = useState<"guest" | "text">("guest");
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -47,6 +46,9 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
   const [lowerThirdDuration, setLowerThirdDuration] = useState(8); // Default, will be updated from settings
   const [showPreview, setShowPreview] = useState(false);
 
+  // Sync local state with shared overlay state (handles external hide from EventLog)
+  useOverlayHideSync("lowerThird", isVisible, () => setIsVisible(false));
+
   // Fetch overlay settings on mount
   useEffect(() => {
     const fetchSettings = async () => {
@@ -61,15 +63,6 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
     };
     fetchSettings();
   }, []);
-
-  // Sync local state with WebSocket overlay state
-  // When an external hide event is received (e.g., from EventLog), clear local active state
-  useEffect(() => {
-    if (!overlayState.lowerThird.active && isVisible) {
-      // Overlay was hidden externally, sync local state
-      setIsVisible(false);
-    }
-  }, [overlayState.lowerThird.active, isVisible]);
 
   const handleShow = async () => {
     try {

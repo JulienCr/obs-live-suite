@@ -16,7 +16,7 @@ import { CueType, CueFrom, CueAction } from "@/lib/models/Cue";
 import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { useToast } from "@/hooks/use-toast";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
-import { useOverlayActiveState } from "@/hooks/useOverlayActiveState";
+import { useSyncWithOverlayState } from "@/hooks/useSyncWithOverlayState";
 
 /**
  * Regie Public Chat Panel - Streamerbot chat with highlight functionality
@@ -31,20 +31,17 @@ function RegiePublicChatContent() {
   const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
   const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
 
-  // Track overlay active state from WebSocket events (for external triggers like EventLog replay)
-  const overlayState = useOverlayActiveState();
-
-  // Sync currentlyDisplayedId with external overlay state changes (e.g., EventLog replay)
-  useEffect(() => {
-    const { active, messageId } = overlayState.chatHighlight;
-    if (active && messageId) {
-      // External show event - update our local state to match
-      setCurrentlyDisplayedId(messageId);
-    } else if (!active) {
-      // External hide event - clear our local state
-      setCurrentlyDisplayedId(null);
-    }
-  }, [overlayState.chatHighlight]);
+  // Sync with shared overlay state (handles external show/hide from EventLog)
+  useSyncWithOverlayState({
+    overlayType: "chatHighlight",
+    localActive: currentlyDisplayedId !== null,
+    onExternalHide: () => setCurrentlyDisplayedId(null),
+    onExternalShow: (state) => {
+      if (state.active && "messageId" in state && state.messageId) {
+        setCurrentlyDisplayedId(state.messageId);
+      }
+    },
+  });
 
   // Fetch connection settings from default room
   useEffect(() => {
