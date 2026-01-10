@@ -1,9 +1,6 @@
 /**
  * PM2 ecosystem configuration for OBS Live Suite
  */
-const path = require('path');
-const APPDATA_DIR = path.join(__dirname, '.appdata');
-
 module.exports = {
   apps: [
     {
@@ -20,7 +17,6 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3003,
-        APPDATA: APPDATA_DIR,
       },
       error_file: './.pm2/logs/backend-error.log',
       out_file: './.pm2/logs/backend-out.log',
@@ -42,11 +38,9 @@ module.exports = {
       min_uptime: '5s',
       windowsHide: true,
       env: {
-        // Fallback to dev if no build is present
         NODE_ENV: 'production',
         PORT: 3000,
         HOSTNAME: '0.0.0.0',
-        APPDATA: APPDATA_DIR,
       },
       error_file: './.pm2/logs/frontend-error.log',
       out_file: './.pm2/logs/frontend-out.log',

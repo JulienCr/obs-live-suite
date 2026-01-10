@@ -1,23 +1,58 @@
 import { z } from "zod";
 import { platform, homedir } from "os";
 import { join } from "path";
+import { existsSync } from "fs";
 
 /**
- * Get platform-specific default data directory
+ * Determine if we're running in development mode
+ */
+function isDevelopment(): boolean {
+  return process.env.NODE_ENV !== "production";
+}
+
+/**
+ * Get the project root directory
+ * Uses process.cwd() and verifies package.json exists
+ */
+function getProjectRoot(): string | null {
+  const cwd = process.cwd();
+  if (existsSync(join(cwd, "package.json"))) {
+    return cwd;
+  }
+  return null;
+}
+
+/**
+ * Get default data directory based on environment
+ * - Development: .appdata/obs-live-suite in project root
+ * - Production: Platform-specific user data directory
  */
 function getDefaultDataDir(): string {
+  // Dev mode: use .appdata in project root
+  if (isDevelopment()) {
+    const projectRoot = getProjectRoot();
+    if (projectRoot) {
+      return join(projectRoot, ".appdata", "obs-live-suite");
+    }
+  }
+
+  // Prod mode: platform-specific directory
   const currentPlatform = platform();
-  
   switch (currentPlatform) {
     case "win32":
-      // Windows: %APPDATA%\obs-live-suite or %USERPROFILE%\AppData\Roaming\obs-live-suite
-      return join(process.env.APPDATA || join(homedir(), "AppData", "Roaming"), "obs-live-suite");
+      return join(
+        process.env.APPDATA || join(homedir(), "AppData", "Roaming"),
+        "obs-live-suite"
+      );
     case "darwin":
-      // macOS: ~/Library/Application Support/obs-live-suite
-      return join(homedir(), "Library", "Application Support", "obs-live-suite");
+      return join(
+        homedir(),
+        "Library",
+        "Application Support",
+        "obs-live-suite"
+      );
     case "linux":
     default:
-      // Linux: ~/.config/obs-live-suite or ~/.obs-live-suite
       return join(homedir(), ".config", "obs-live-suite");
   }
 }
