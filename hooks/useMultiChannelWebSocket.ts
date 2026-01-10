@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { getWebSocketUrl } from "@/lib/utils/websocket";
+import {
+  useWebSocketChannel,
+  UseWebSocketChannelOptions,
+  UseMultiChannelWebSocketReturn as BaseMultiChannelReturn,
+} from "./useWebSocketChannel";
 
 /**
  * WebSocket message structure from the hub
+ * @deprecated Import from useWebSocketChannel instead
  */
 export interface WebSocketMessage<T = unknown> {
   channel: string;
@@ -28,12 +32,14 @@ export interface UseMultiChannelWebSocketOptions {
   /**
    * Initial delay before connecting (avoids race conditions)
    * @default 500
+   * @deprecated This option is no longer used. The hook now uses a 50ms debounce.
    */
   connectionDelay?: number;
 
   /**
    * Delay before reconnection attempts
    * @default 3000
+   * @deprecated Use initialReconnectDelay instead. The hook now uses exponential backoff.
    */
   reconnectDelay?: number;
 
@@ -67,12 +73,8 @@ export interface UseMultiChannelWebSocketReturn {
 /**
  * Hook for managing WebSocket connections to multiple channels.
  *
- * This hook handles:
- * - WebSocket connection with configurable initial delay
- * - Subscription to multiple channels
- * - Automatic reconnection on disconnect
- * - Message routing by channel
- * - Proper cleanup on unmount
+ * This is a thin wrapper around useWebSocketChannel for backward compatibility.
+ * Consider using useWebSocketChannel directly with an array of channels.
  *
  * @example
  * ```tsx
@@ -87,98 +89,28 @@ export interface UseMultiChannelWebSocketReturn {
  *   return <div>Connected: {isConnected ? "Yes" : "No"}</div>;
  * }
  * ```
+ *
+ * @see useWebSocketChannel - The underlying hook that handles all WebSocket logic
  */
 export function useMultiChannelWebSocket({
   channels,
   onMessage,
-  connectionDelay = 500,
-  reconnectDelay = 3000,
+  reconnectDelay,
   logPrefix = "MultiChannelWS",
 }: UseMultiChannelWebSocketOptions): UseMultiChannelWebSocketReturn {
-  const [isConnected, setIsConnected] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
-  const onMessageRef = useRef(onMessage);
+  // Map old options to new format
+  const options: UseWebSocketChannelOptions = {
+    logPrefix,
+    // Map reconnectDelay to initialReconnectDelay if provided (backward compat)
+    ...(reconnectDelay !== undefined && { initialReconnectDelay: reconnectDelay }),
+  };
 
-  // Keep onMessage ref current to avoid stale closures
-  useEffect(() => {
-    onMessageRef.current = onMessage;
-  }, [onMessage]);
+  const result: BaseMultiChannelReturn = useWebSocketChannel(channels, onMessage, options);
 
-  const send = useCallback((data: unknown): void => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(data));
-    }
-  }, []);
-
-  useEffect(() => {
-    let reconnectTimeout: NodeJS.Timeout;
-    let isUnmounted = false;
-
-    function connectWebSocket(): void {
-      if (isUnmounted) return;
-
-      try {
-        const ws = new WebSocket(getWebSocketUrl());
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-          setIsConnected(true);
-          // Subscribe to all channels
-          channels.forEach((channel) => {
-            ws.send(JSON.stringify({ type: "subscribe", channel }));
-          });
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const message: WebSocketMessage = JSON.parse(event.data);
-            const { channel, data } = message;
-
-            if (data && channels.includes(channel)) {
-              onMessageRef.current(channel, data);
-            }
-          } catch (error) {
-            console.error(`[${logPrefix}] Parse error:`, error);
-          }
-        };
-
-        ws.onerror = () => {
-          // Silently handle, will reconnect
-        };
-
-        ws.onclose = () => {
-          wsRef.current = null;
-          setIsConnected(false);
-          if (!isUnmounted) {
-            reconnectTimeout = setTimeout(connectWebSocket, reconnectDelay);
-          }
-        };
-      } catch (error) {
-        console.error(`[${logPrefix}] Connection error:`, error);
-        if (!isUnmounted) {
-          reconnectTimeout = setTimeout(connectWebSocket, reconnectDelay);
-        }
-      }
-    }
-
-    // Delay initial connection slightly
-    const initialTimeout = setTimeout(connectWebSocket, connectionDelay);
-
-    return () => {
-      isUnmounted = true;
-      clearTimeout(initialTimeout);
-      clearTimeout(reconnectTimeout);
-
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, [channels.join(","), connectionDelay, reconnectDelay, logPrefix]);
-
+  // Return only the fields from the original interface for backward compatibility
   return {
-    isConnected,
-    send,
-    wsRef,
+    isConnected: result.isConnected,
+    send: result.send,
+    wsRef: result.wsRef,
   };
 }

@@ -46,6 +46,157 @@ const INITIAL_STATE: OverlayActiveState = {
   chatHighlight: { active: false },
 };
 
+// ============================================================================
+// Channel Handlers
+// ============================================================================
+
+type TimeoutControls = {
+  set: (key: string, callback: () => void, delay: number) => void;
+  clear: (key: string) => void;
+};
+
+type SetState = React.Dispatch<React.SetStateAction<OverlayActiveState>>;
+
+type ChannelHandler = (
+  channel: string,
+  type: string,
+  payload: Record<string, unknown> | undefined,
+  setState: SetState,
+  timeouts: TimeoutControls
+) => void;
+
+/**
+ * Handles lower third overlay events
+ */
+function handleLowerEvent(
+  _channel: string,
+  type: string,
+  payload: Record<string, unknown> | undefined,
+  setState: SetState,
+  timeouts: TimeoutControls
+): void {
+  timeouts.clear("lowerThird");
+
+  if (type === "show") {
+    setState((prev) => ({
+      ...prev,
+      lowerThird: {
+        active: true,
+        guestId: payload?.guestId as string | undefined,
+        contentType: payload?.contentType as "guest" | "text" | undefined,
+      },
+    }));
+    if (payload?.duration) {
+      timeouts.set(
+        "lowerThird",
+        () => setState((prev) => ({ ...prev, lowerThird: { active: false } })),
+        (payload.duration as number) * 1000
+      );
+    }
+  } else if (type === "hide") {
+    setState((prev) => ({ ...prev, lowerThird: { active: false } }));
+  }
+}
+
+/**
+ * Handles poster overlay events (both regular and bigpicture)
+ */
+function handlePosterEvent(
+  channel: string,
+  type: string,
+  payload: Record<string, unknown> | undefined,
+  setState: SetState,
+  timeouts: TimeoutControls
+): void {
+  timeouts.clear("poster");
+
+  if (type === "show") {
+    setState((prev) => ({
+      ...prev,
+      poster: {
+        active: true,
+        posterId: payload?.posterId as string | undefined,
+        displayMode:
+          channel === "poster-bigpicture"
+            ? "bigpicture"
+            : (payload?.side as "left" | "right" | undefined),
+      },
+    }));
+    if (payload?.duration) {
+      timeouts.set(
+        "poster",
+        () => setState((prev) => ({ ...prev, poster: { active: false } })),
+        (payload.duration as number) * 1000
+      );
+    }
+  } else if (type === "hide") {
+    setState((prev) => ({ ...prev, poster: { active: false } }));
+  }
+}
+
+/**
+ * Handles countdown overlay events
+ */
+function handleCountdownEvent(
+  _channel: string,
+  type: string,
+  _payload: Record<string, unknown> | undefined,
+  setState: SetState,
+  timeouts: TimeoutControls
+): void {
+  timeouts.clear("countdown");
+
+  if (type === "start" || type === "resume") {
+    setState((prev) => ({ ...prev, countdown: { active: true } }));
+  } else if (type === "hide" || type === "reset" || type === "complete") {
+    setState((prev) => ({ ...prev, countdown: { active: false } }));
+  }
+}
+
+/**
+ * Handles chat highlight overlay events
+ */
+function handleChatHighlightEvent(
+  _channel: string,
+  type: string,
+  payload: Record<string, unknown> | undefined,
+  setState: SetState,
+  timeouts: TimeoutControls
+): void {
+  timeouts.clear("chatHighlight");
+
+  if (type === "show") {
+    setState((prev) => ({
+      ...prev,
+      chatHighlight: {
+        active: true,
+        messageId: payload?.messageId as string | undefined,
+        username: (payload?.username || payload?.displayName) as string | undefined,
+      },
+    }));
+    if (payload?.duration) {
+      timeouts.set(
+        "chatHighlight",
+        () => setState((prev) => ({ ...prev, chatHighlight: { active: false } })),
+        (payload.duration as number) * 1000
+      );
+    }
+  } else if (type === "hide") {
+    setState((prev) => ({ ...prev, chatHighlight: { active: false } }));
+  }
+}
+
+/**
+ * Lookup table mapping channel names to their handlers
+ */
+const channelHandlers: Record<string, ChannelHandler> = {
+  lower: handleLowerEvent,
+  poster: handlePosterEvent,
+  "poster-bigpicture": handlePosterEvent,
+  countdown: handleCountdownEvent,
+  "chat-highlight": handleChatHighlightEvent,
+};
+
 /**
  * Shared hook to track overlay active state by subscribing to WebSocket channels.
  * This hook monitors all overlay channels and maintains a synchronized state
@@ -80,93 +231,16 @@ export function useOverlayActiveState(): OverlayActiveState {
       const data = rawData as { type?: string; payload?: Record<string, unknown> } | null;
       if (!data?.type) return;
 
-      const { type, payload } = data;
-
-      switch (channel) {
-        case "lower":
-          clearTimeoutFor("lowerThird");
-          if (type === "show") {
-            setState((prev) => ({
-              ...prev,
-              lowerThird: {
-                active: true,
-                guestId: payload?.guestId as string | undefined,
-                contentType: payload?.contentType as "guest" | "text" | undefined,
-              },
-            }));
-            if (payload?.duration) {
-              setAutoHideTimeout(
-                "lowerThird",
-                () => setState((prev) => ({ ...prev, lowerThird: { active: false } })),
-                (payload.duration as number) * 1000
-              );
-            }
-          } else if (type === "hide") {
-            setState((prev) => ({ ...prev, lowerThird: { active: false } }));
-          }
-          break;
-
-        case "poster":
-        case "poster-bigpicture":
-          clearTimeoutFor("poster");
-          if (type === "show") {
-            setState((prev) => ({
-              ...prev,
-              poster: {
-                active: true,
-                posterId: payload?.posterId as string | undefined,
-                displayMode:
-                  channel === "poster-bigpicture"
-                    ? "bigpicture"
-                    : (payload?.side as "left" | "right" | undefined),
-              },
-            }));
-            if (payload?.duration) {
-              setAutoHideTimeout(
-                "poster",
-                () => setState((prev) => ({ ...prev, poster: { active: false } })),
-                (payload.duration as number) * 1000
-              );
-            }
-          } else if (type === "hide") {
-            setState((prev) => ({ ...prev, poster: { active: false } }));
-          }
-          break;
-
-        case "countdown":
-          clearTimeoutFor("countdown");
-          if (type === "start" || type === "resume") {
-            setState((prev) => ({ ...prev, countdown: { active: true } }));
-          } else if (type === "hide" || type === "reset" || type === "complete") {
-            setState((prev) => ({ ...prev, countdown: { active: false } }));
-          }
-          break;
-
-        case "chat-highlight":
-          clearTimeoutFor("chatHighlight");
-          if (type === "show") {
-            setState((prev) => ({
-              ...prev,
-              chatHighlight: {
-                active: true,
-                messageId: payload?.messageId as string | undefined,
-                username: (payload?.username || payload?.displayName) as string | undefined,
-              },
-            }));
-            if (payload?.duration) {
-              setAutoHideTimeout(
-                "chatHighlight",
-                () => setState((prev) => ({ ...prev, chatHighlight: { active: false } })),
-                (payload.duration as number) * 1000
-              );
-            }
-          } else if (type === "hide") {
-            setState((prev) => ({ ...prev, chatHighlight: { active: false } }));
-          }
-          break;
+      const handler = channelHandlers[channel];
+      if (handler) {
+        const timeouts: TimeoutControls = {
+          set: setAutoHideTimeout,
+          clear: clearTimeoutFor,
+        };
+        handler(channel, data.type, data.payload, setState, timeouts);
       }
     },
-    [clearTimeoutFor, setAutoHideTimeout]
+    [setAutoHideTimeout, clearTimeoutFor]
   );
 
   useMultiChannelWebSocket({

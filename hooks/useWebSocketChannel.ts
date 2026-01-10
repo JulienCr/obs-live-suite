@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
 
 /**
@@ -39,13 +39,18 @@ export interface UseWebSocketChannelOptions {
 
   /**
    * Optional logging prefix for debug messages.
-   * @default channel name
+   * @default channel name(s)
    */
   logPrefix?: string;
 }
 
 /**
- * Return type for the useWebSocketChannel hook
+ * Channel configuration - can be a single channel or multiple channels
+ */
+export type ChannelConfig = string | string[];
+
+/**
+ * Return type for the useWebSocketChannel hook (single channel)
  */
 export interface UseWebSocketChannelReturn {
   /**
@@ -78,6 +83,17 @@ export interface UseWebSocketChannelReturn {
 }
 
 /**
+ * Return type for multi-channel variant (sendAck requires channel parameter)
+ */
+export interface UseMultiChannelWebSocketReturn {
+  connectionState: ConnectionState;
+  isConnected: boolean;
+  send: (data: unknown) => void;
+  sendAck: (channel: string, eventId: string, success?: boolean) => void;
+  wsRef: React.RefObject<WebSocket | null>;
+}
+
+/**
  * WebSocket message structure from the hub
  */
 interface WebSocketMessage<T = unknown> {
@@ -90,43 +106,78 @@ interface WebSocketMessage<T = unknown> {
  *
  * This hook handles:
  * - WebSocket connection establishment
- * - Channel subscription on connect
+ * - Channel subscription on connect (single or multiple channels)
  * - Automatic reconnection with exponential backoff
  * - Message parsing with error handling
  * - Connection state tracking
  * - Proper cleanup on unmount
  *
- * @param channel - The channel to subscribe to (e.g., "lower", "countdown", "poster")
- * @param onMessage - Callback function called when a message is received on the channel
- * @param options - Optional configuration options
- * @returns Object containing connection state, send function, and WebSocket ref
- *
- * @example
+ * @example Single channel
  * ```tsx
  * function MyOverlay() {
  *   const { isConnected, sendAck } = useWebSocketChannel<MyPayload>(
  *     "my-channel",
  *     (data) => {
  *       console.log("Received:", data);
- *       // Handle the message...
  *     }
  *   );
+ *   return <div>Connected: {isConnected ? "Yes" : "No"}</div>;
+ * }
+ * ```
  *
+ * @example Multiple channels
+ * ```tsx
+ * function Dashboard() {
+ *   const { isConnected } = useWebSocketChannel(
+ *     ["lower", "poster", "countdown"],
+ *     (channel, data) => {
+ *       console.log(`[${channel}]`, data);
+ *     }
+ *   );
  *   return <div>Connected: {isConnected ? "Yes" : "No"}</div>;
  * }
  * ```
  */
+
+// Overload: Single channel - callback receives data only
 export function useWebSocketChannel<T = unknown>(
   channel: string,
   onMessage: (data: T) => void,
+  options?: UseWebSocketChannelOptions
+): UseWebSocketChannelReturn;
+
+// Overload: Multiple channels - callback receives (channel, data)
+export function useWebSocketChannel<T = unknown>(
+  channels: string[],
+  onMessage: (channel: string, data: T) => void,
+  options?: UseWebSocketChannelOptions
+): UseMultiChannelWebSocketReturn;
+
+// Implementation
+export function useWebSocketChannel<T = unknown>(
+  channelOrChannels: ChannelConfig,
+  onMessage: ((data: T) => void) | ((channel: string, data: T) => void),
   options: UseWebSocketChannelOptions = {}
-): UseWebSocketChannelReturn {
+): UseWebSocketChannelReturn | UseMultiChannelWebSocketReturn {
+  // Normalize to array for internal handling - memoize to avoid recreating on each render
+  const isMultiChannel = Array.isArray(channelOrChannels);
+  const channelsKey = isMultiChannel
+    ? (channelOrChannels as string[]).join(",")
+    : (channelOrChannels as string);
+
+  // Memoize channels array based on the key to ensure stable reference
+  const channels = useMemo(
+    () => (isMultiChannel ? (channelOrChannels as string[]) : [channelOrChannels as string]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [channelsKey]
+  );
+
   const {
     enabled = true,
     initialReconnectDelay = 1000,
     maxReconnectDelay = 30000,
     backoffMultiplier = 2,
-    logPrefix = channel,
+    logPrefix = isMultiChannel ? `MultiChannel[${channelsKey}]` : channelOrChannels as string,
   } = options;
 
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
@@ -151,10 +202,25 @@ export function useWebSocketChannel<T = unknown>(
   }, []);
 
   /**
-   * Send an acknowledgment for a received event
+   * Send an acknowledgment for a received event (single channel version)
    */
-  const sendAck = useCallback(
+  const sendAckSingle = useCallback(
     (eventId: string, success = true) => {
+      send({
+        type: "ack",
+        eventId,
+        channel: channels[0],
+        success,
+      });
+    },
+    [channels, send]
+  );
+
+  /**
+   * Send an acknowledgment for a received event (multi-channel version)
+   */
+  const sendAckMulti = useCallback(
+    (channel: string, eventId: string, success = true) => {
       send({
         type: "ack",
         eventId,
@@ -162,7 +228,7 @@ export function useWebSocketChannel<T = unknown>(
         success,
       });
     },
-    [channel, send]
+    [send]
   );
 
   useEffect(() => {
@@ -183,7 +249,7 @@ export function useWebSocketChannel<T = unknown>(
     }
 
     // Debounce timeout to avoid React Strict Mode double-connect
-    let connectDebounceTimeout: NodeJS.Timeout | undefined;
+    const connectDebounceTimeout: { current: NodeJS.Timeout | undefined } = { current: undefined };
 
     const connect = () => {
       // Don't create new connection if component is unmounting or disabled
@@ -217,13 +283,15 @@ export function useWebSocketChannel<T = unknown>(
         // Reset reconnect delay on successful connection
         reconnectDelayRef.current = initialReconnectDelay;
 
-        // Subscribe to the channel
-        wsRef.current?.send(
-          JSON.stringify({
-            type: "subscribe",
-            channel,
-          })
-        );
+        // Subscribe to all channels
+        channels.forEach((channel) => {
+          wsRef.current?.send(
+            JSON.stringify({
+              type: "subscribe",
+              channel,
+            })
+          );
+        });
       };
 
       wsRef.current.onmessage = (event: MessageEvent) => {
@@ -232,9 +300,18 @@ export function useWebSocketChannel<T = unknown>(
         try {
           const message = JSON.parse(event.data) as WebSocketMessage<T>;
 
-          // Only process messages for our channel
-          if (message.channel === channel) {
-            onMessageRef.current(message.data);
+          // Only process messages for subscribed channels
+          if (channels.includes(message.channel)) {
+            if (isMultiChannel) {
+              // Multi-channel: pass (channel, data) to callback
+              (onMessageRef.current as (channel: string, data: T) => void)(
+                message.channel,
+                message.data
+              );
+            } else {
+              // Single channel: pass data only to callback
+              (onMessageRef.current as (data: T) => void)(message.data);
+            }
           }
         } catch (error) {
           console.error(`[${logPrefix}] Failed to parse message:`, error);
@@ -272,7 +349,7 @@ export function useWebSocketChannel<T = unknown>(
     };
 
     // Debounce connection to handle React Strict Mode double-mount
-    connectDebounceTimeout = setTimeout(() => {
+    connectDebounceTimeout.current = setTimeout(() => {
       if (isMountedRef.current) {
         connect();
       }
@@ -280,7 +357,7 @@ export function useWebSocketChannel<T = unknown>(
 
     return () => {
       isMountedRef.current = false;
-      clearTimeout(connectDebounceTimeout);
+      clearTimeout(connectDebounceTimeout.current);
       clearTimeout(reconnectTimeoutRef.current);
 
       if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
@@ -292,7 +369,9 @@ export function useWebSocketChannel<T = unknown>(
       }
     };
   }, [
-    channel,
+    channels,
+    channelsKey,
+    isMultiChannel,
     enabled,
     initialReconnectDelay,
     maxReconnectDelay,
@@ -300,11 +379,22 @@ export function useWebSocketChannel<T = unknown>(
     logPrefix,
   ]);
 
+  // Return appropriate type based on single vs multi-channel
+  if (isMultiChannel) {
+    return {
+      connectionState,
+      isConnected: connectionState === "connected",
+      send,
+      sendAck: sendAckMulti,
+      wsRef,
+    };
+  }
+
   return {
     connectionState,
     isConnected: connectionState === "connected",
     send,
-    sendAck,
+    sendAck: sendAckSingle,
     wsRef,
   };
 }
