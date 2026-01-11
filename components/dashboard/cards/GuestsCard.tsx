@@ -136,9 +136,9 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
 
   const fetchGuests = async () => {
     try {
-      const data = await apiGet<{ guests: Guest[] }>("/api/assets/guests");
-      // Filter to show only enabled guests
-      const allEnabledGuests = (data.guests || []).filter((g: Guest) => g.isEnabled);
+      const data = await apiGet<{ guests: Guest[] }>("/api/assets/guests?enabled=true");
+      // API returns only enabled guests via server-side filtering
+      const allEnabledGuests = data.guests || [];
       setTotalEnabledGuests(allEnabledGuests.length);
       // Limit to 10 for keyboard shortcuts (1-0)
       setGuests(allEnabledGuests.slice(0, 10));

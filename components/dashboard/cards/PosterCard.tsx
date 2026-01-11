@@ -252,10 +252,9 @@ export function PosterContent({ className }: PosterContentProps) {
 
   const fetchPosters = async () => {
     try {
-      const data = await apiGet<{ posters: Poster[] }>("/api/assets/posters");
-      // Filter to show only enabled posters
-      const enabledPosters = (data.posters || []).filter((p: Poster) => p.isEnabled);
-      setPosters(enabledPosters);
+      // Server-side filtering: only fetch enabled posters
+      const data = await apiGet<{ posters: Poster[] }>("/api/assets/posters?enabled=true");
+      setPosters(data.posters || []);
     } catch (error) {
       console.error("Failed to fetch posters:", error);
     } finally {
