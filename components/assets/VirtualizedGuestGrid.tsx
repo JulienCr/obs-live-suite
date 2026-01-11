@@ -3,16 +3,7 @@
 import { useRef, useEffect, useState, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { GuestCard } from "./GuestCard";
-
-interface Guest {
-  id: string;
-  displayName: string;
-  subtitle?: string;
-  accentColor: string;
-  avatarUrl?: string;
-  isEnabled: boolean;
-  createdAt?: string;
-}
+import type { Guest } from "@/lib/queries";
 
 interface VirtualizedGuestGridProps {
   guests: Guest[];

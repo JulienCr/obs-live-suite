@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { BodyThemeSync } from "@/components/BodyThemeSync";
 import { AppModeProvider } from "@/components/shell/AppModeContext";
 import { AppShell } from "@/components/shell/AppShell";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -32,20 +33,22 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <NextIntlClientProvider messages={messages}>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="dark"
-        enableSystem={false}
-        disableTransitionOnChange
-      >
-        <AppModeProvider>
-          <BodyThemeSync />
-          <AppShell>
-            {children}
-          </AppShell>
-        </AppModeProvider>
-      </ThemeProvider>
-    </NextIntlClientProvider>
+    <QueryProvider>
+      <NextIntlClientProvider messages={messages}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <AppModeProvider>
+            <BodyThemeSync />
+            <AppShell>
+              {children}
+            </AppShell>
+          </AppModeProvider>
+        </ThemeProvider>
+      </NextIntlClientProvider>
+    </QueryProvider>
   );
 }

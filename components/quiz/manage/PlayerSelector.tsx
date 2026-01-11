@@ -1,14 +1,6 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
-import { apiGet } from "@/lib/utils/ClientFetch";
-
-interface Guest {
-  id: string;
-  displayName: string;
-  subtitle?: string;
-  avatarUrl?: string;
-  accentColor?: string;
-}
+import { useState, useMemo } from "react";
+import { useGuests, Guest } from "@/lib/queries";
 
 interface Player {
   id: string;
@@ -23,21 +15,8 @@ interface PlayerSelectorProps {
 }
 
 export function PlayerSelector({ selectedPlayers, onChange }: PlayerSelectorProps) {
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { guests, isLoading: loading } = useGuests();
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    apiGet<{ guests: Guest[] }>("/api/assets/guests")
-      .then(data => {
-        setGuests(data.guests || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load guests:", err);
-        setLoading(false);
-      });
-  }, []);
 
   const togglePlayer = (guest: Guest) => {
     const existing = selectedPlayers.find(p => p.id === guest.id);
@@ -51,7 +30,7 @@ export function PlayerSelector({ selectedPlayers, onChange }: PlayerSelectorProp
       const newPlayer: Player = {
         id: guest.id,
         name: guest.displayName,
-        avatar: guest.avatarUrl,
+        avatar: guest.avatarUrl ?? undefined,
         buzzerId: `buzzer-${selectedPlayers.length + 1}`,
       };
       onChange([...selectedPlayers, newPlayer]);
