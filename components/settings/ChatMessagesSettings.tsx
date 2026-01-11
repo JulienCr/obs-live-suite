@@ -84,7 +84,11 @@ export function ChatMessagesSettings() {
 
   const addMessage = () => {
     if (newTitle.trim() && newMessageText.trim() && messages.length < CHAT_MESSAGES_CONFIG.MAX_MESSAGES) {
-      setMessages([...messages, { title: newTitle.trim(), message: newMessageText.trim() }]);
+      setMessages([...messages, {
+        id: crypto.randomUUID(),
+        title: newTitle.trim(),
+        message: newMessageText.trim()
+      }]);
       setNewTitle("");
       setNewMessageText("");
     }
@@ -103,7 +107,11 @@ export function ChatMessagesSettings() {
   const saveEdit = () => {
     if (editingIndex !== null && editTitle.trim() && editMessage.trim()) {
       const newMessages = [...messages];
-      newMessages[editingIndex] = { title: editTitle.trim(), message: editMessage.trim() };
+      newMessages[editingIndex] = {
+        ...messages[editingIndex],
+        title: editTitle.trim(),
+        message: editMessage.trim()
+      };
       setMessages(newMessages);
     }
     setEditingIndex(null);
@@ -157,7 +165,7 @@ export function ChatMessagesSettings() {
 
             {messages.map((msg, index) => (
               <div
-                key={index}
+                key={msg.id || index}
                 className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg group"
               >
                 {/* Drag handle placeholder */}

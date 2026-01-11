@@ -36,20 +36,22 @@ interface StreamerbotStatusResponse {
 interface MessageEditFormProps {
   title: string;
   message: string;
+  titlePlaceholder: string;
+  messagePlaceholder: string;
   onTitleChange: (value: string) => void;
   onMessageChange: (value: string) => void;
   onSave: () => void;
   onCancel: () => void;
 }
 
-function MessageEditForm({ title, message, onTitleChange, onMessageChange, onSave, onCancel }: MessageEditFormProps) {
+function MessageEditForm({ title, message, titlePlaceholder, messagePlaceholder, onTitleChange, onMessageChange, onSave, onCancel }: MessageEditFormProps) {
   return (
     <div className="flex-1 flex flex-col gap-1">
       <div className="flex gap-1">
         <Input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          placeholder="Title"
+          placeholder={titlePlaceholder}
           className="h-8 text-sm"
         />
         <Button size="icon" variant="ghost" onClick={onSave} className="h-8 w-8">
@@ -62,7 +64,7 @@ function MessageEditForm({ title, message, onTitleChange, onMessageChange, onSav
       <Input
         value={message}
         onChange={(e) => onMessageChange(e.target.value)}
-        placeholder="Message"
+        placeholder={messagePlaceholder}
         className="h-8 text-sm text-muted-foreground"
         onKeyDown={(e) => e.key === "Enter" && onSave()}
       />
@@ -163,8 +165,8 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
   useEffect(() => {
     loadMessages();
     checkConnection();
-    // Poll connection status every 10 seconds
-    const interval = setInterval(checkConnection, 10000);
+    // Poll connection status
+    const interval = setInterval(checkConnection, CHAT_MESSAGES_CONFIG.CONNECTION_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -258,7 +260,11 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
 
   const addMessage = () => {
     if (newTitle.trim() && newMessageText.trim() && messages.length < CHAT_MESSAGES_CONFIG.MAX_MESSAGES) {
-      saveMessages([...messages, { title: newTitle.trim(), message: newMessageText.trim() }]);
+      saveMessages([...messages, {
+        id: crypto.randomUUID(),
+        title: newTitle.trim(),
+        message: newMessageText.trim()
+      }]);
       setNewTitle("");
       setNewMessageText("");
     }
@@ -278,7 +284,11 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
   const saveEdit = () => {
     if (editingIndex !== null && editTitle.trim() && editMessage.trim()) {
       const newMessages = [...messages];
-      newMessages[editingIndex] = { title: editTitle.trim(), message: editMessage.trim() };
+      newMessages[editingIndex] = {
+        ...messages[editingIndex],
+        title: editTitle.trim(),
+        message: editMessage.trim()
+      };
       saveMessages(newMessages);
     }
     setEditingIndex(null);
@@ -310,6 +320,8 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
         <MessageEditForm
           title={editTitle}
           message={editMessage}
+          titlePlaceholder={t("titlePlaceholder")}
+          messagePlaceholder={t("messagePlaceholder")}
           onTitleChange={setEditTitle}
           onMessageChange={setEditMessage}
           onSave={saveEdit}
@@ -376,7 +388,7 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
       {!loading && (
         <div className="space-y-2">
           {messages.map((item, index) => (
-            <div key={index} className="flex items-center gap-2">
+            <div key={item.id || index} className="flex items-center gap-2">
               {renderMessageItem(item, index)}
             </div>
           ))}
@@ -388,7 +400,7 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
                 <Input
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Title"
+                  placeholder={t("titlePlaceholder")}
                   className="h-8 text-sm"
                 />
                 <Button
@@ -404,7 +416,7 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
               <Input
                 value={newMessageText}
                 onChange={(e) => setNewMessageText(e.target.value)}
-                placeholder="Message to send..."
+                placeholder={t("messagePlaceholder")}
                 className="h-8 text-sm text-muted-foreground"
                 onKeyDown={(e) => e.key === "Enter" && addMessage()}
               />

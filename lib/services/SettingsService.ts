@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { DatabaseService } from "./DatabaseService";
 import { Logger } from "../utils/Logger";
 import { StreamerbotConnectionSettings, DEFAULT_STREAMERBOT_CONNECTION } from "../models/StreamerbotChat";
@@ -543,6 +544,7 @@ export class SettingsService {
         // Migration: convert old string[] format to new object format
         if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
           return (data as string[]).map(msg => ({
+            id: randomUUID(),
             title: msg.length > 30 ? msg.slice(0, 30) + '...' : msg,
             message: msg
           }));
