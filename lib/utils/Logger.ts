@@ -1,6 +1,3 @@
-import { existsSync, mkdirSync, appendFileSync } from "fs";
-import { dirname } from "path";
-
 /**
  * Log levels for structured logging
  */
@@ -11,15 +8,41 @@ export enum LogLevel {
   ERROR = "error",
 }
 
+// Detect if we're running in a browser environment
+const isBrowser = typeof window !== "undefined";
+
+// Dynamic fs functions - only available server-side
+let fsExists: ((path: string) => boolean) | null = null;
+let fsMkdir: ((path: string, options?: { recursive?: boolean }) => void) | null = null;
+let fsAppend: ((path: string, data: string, options?: { encoding: string }) => void) | null = null;
+let pathDirname: ((path: string) => string) | null = null;
+
+// Load fs module only on server-side
+if (!isBrowser) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require("fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require("path");
+    fsExists = fs.existsSync;
+    fsMkdir = fs.mkdirSync;
+    fsAppend = fs.appendFileSync;
+    pathDirname = path.dirname;
+  } catch {
+    // fs not available, file logging disabled
+  }
+}
+
 /**
  * Logger utility class for structured logging throughout the application
- * Writes to both console and log files for persistence
+ * Writes to both console and log files for persistence (server-side only)
+ * Falls back to console-only logging in browser environments
  */
 export class Logger {
   private context: string;
   private level: LogLevel;
   private static logFilePath: string | null = null;
-  private static isFileLoggingEnabled = true;
+  private static isFileLoggingEnabled = !isBrowser;
 
   constructor(context: string, level: LogLevel = LogLevel.INFO) {
     this.context = context;
@@ -28,16 +51,21 @@ export class Logger {
 
   /**
    * Set the log file path for all Logger instances
-   * Call this early in your application startup
+   * Call this early in your application startup (server-side only)
    */
   static setLogFilePath(path: string): void {
+    if (isBrowser || !pathDirname || !fsExists || !fsMkdir) {
+      // File logging not available in browser
+      return;
+    }
+
     Logger.logFilePath = path;
-    
+
     // Ensure log directory exists
-    const logDir = dirname(path);
-    if (!existsSync(logDir)) {
+    const logDir = pathDirname(path);
+    if (!fsExists(logDir)) {
       try {
-        mkdirSync(logDir, { recursive: true });
+        fsMkdir(logDir, { recursive: true });
       } catch (err) {
         console.error(`[Logger] Failed to create log directory: ${logDir}`, err);
         Logger.isFileLoggingEnabled = false;
@@ -46,10 +74,10 @@ export class Logger {
   }
 
   /**
-   * Write a log entry to file
+   * Write a log entry to file (server-side only)
    */
   private writeToFile(level: string, message: string, data?: unknown): void {
-    if (!Logger.isFileLoggingEnabled || !Logger.logFilePath) {
+    if (!Logger.isFileLoggingEnabled || !Logger.logFilePath || !fsAppend) {
       return;
     }
 
@@ -57,8 +85,8 @@ export class Logger {
       const timestamp = new Date().toISOString();
       const dataStr = data ? ` | ${JSON.stringify(data)}` : "";
       const logLine = `[${timestamp}] [${level.toUpperCase()}] [${this.context}] ${message}${dataStr}\n`;
-      
-      appendFileSync(Logger.logFilePath, logLine, { encoding: "utf-8" });
+
+      fsAppend(Logger.logFilePath, logLine, { encoding: "utf-8" });
     } catch (err) {
       // Fail silently for file writes to avoid infinite loops
       // Only log to console

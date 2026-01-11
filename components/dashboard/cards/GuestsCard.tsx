@@ -3,10 +3,11 @@
 import { useEffect, useState, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Zap } from "lucide-react";
+import { Users, Zap, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
+import { sendChatMessage } from "@/lib/utils/chatMessaging";
 
 interface Guest {
   id: string;
@@ -14,6 +15,7 @@ interface Guest {
   subtitle?: string;
   accentColor: string;
   avatarUrl?: string;
+  chatMessage?: string | null;
   isEnabled: boolean;
 }
 
@@ -187,6 +189,13 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
     }
   };
 
+  const handleSendMessage = (e: React.MouseEvent, guest: Guest) => {
+    e.stopPropagation();
+    if (guest.chatMessage) {
+      sendChatMessage(guest.chatMessage);
+    }
+  };
+
   return (
     <Card className={cn(className)}>
       <CardHeader>
@@ -254,7 +263,18 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
                     {guest.displayName}
                   </div>
                 </div>
-                
+
+                {/* Message button - only show if guest has chatMessage */}
+                {guest.chatMessage && (
+                  <button
+                    onClick={(e) => handleSendMessage(e, guest)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-6 w-6 flex items-center justify-center hover:bg-primary/20 rounded"
+                    title={t("sendMessageTooltip", { name: guest.displayName })}
+                  >
+                    <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                  </button>
+                )}
+
                 {/* Active indicator with green Zap icon */}
                 {isActive ? (
                   <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 bg-green-500 rounded-full">

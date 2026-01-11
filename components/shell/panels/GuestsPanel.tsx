@@ -1,10 +1,11 @@
 import { type IDockviewPanelProps } from "dockview-react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { Zap } from "lucide-react";
+import { Zap, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
+import { sendChatMessage } from "@/lib/utils/chatMessaging";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import type { LowerThirdEvent } from "@/lib/models/OverlayEvents";
 
@@ -16,6 +17,7 @@ interface Guest {
   subtitle?: string;
   accentColor: string;
   avatarUrl?: string;
+  chatMessage?: string | null;
   isEnabled: boolean;
 }
 
@@ -103,6 +105,13 @@ export function GuestsPanel(_props: IDockviewPanelProps) {
     }
   };
 
+  const handleSendMessage = (e: React.MouseEvent, guest: Guest) => {
+    e.stopPropagation();
+    if (guest.chatMessage) {
+      sendChatMessage(guest.chatMessage);
+    }
+  };
+
   return (
     <BasePanelWrapper config={config}>
       {loading ? (
@@ -155,6 +164,17 @@ export function GuestsPanel(_props: IDockviewPanelProps) {
                     {guest.displayName}
                   </div>
                 </div>
+
+                {/* Message button - only show if guest has chatMessage */}
+                {guest.chatMessage && (
+                  <button
+                    onClick={(e) => handleSendMessage(e, guest)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-6 w-6 flex items-center justify-center hover:bg-primary/20 rounded"
+                    title={t("sendMessageTooltip", { name: guest.displayName })}
+                  >
+                    <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                  </button>
+                )}
 
                 {isActive ? (
                   <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 bg-green-500 rounded-full">

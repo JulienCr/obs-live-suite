@@ -236,7 +236,8 @@
       "noGuests": "Aucun invité",
       "addGuest": "Ajouter un invité",
       "selectGuest": "Sélectionner un invité",
-      "showLowerThirdTooltip": "Afficher le synthé de {name} (Raccourci : {shortcut})"
+      "showLowerThirdTooltip": "Afficher le synthé de {name} (Raccourci : {shortcut})",
+      "sendMessageTooltip": "Envoyer le message chat de {name}"
     },
     "twitch": {
       "title": "Twitch",
