@@ -62,10 +62,21 @@ export class PosterRepository {
 
   /**
    * Get all posters
+   * @param enabled - If true, return only enabled posters. If false, return only disabled posters. If undefined, return all.
    */
-  getAll(): DbPoster[] {
-    const stmt = this.db.getDb().prepare("SELECT * FROM posters ORDER BY createdAt DESC");
-    const rows = stmt.all() as DbPosterRow[];
+  getAll(enabled?: boolean): DbPoster[] {
+    let rows: DbPosterRow[];
+
+    if (enabled === undefined) {
+      const stmt = this.db.getDb().prepare("SELECT * FROM posters ORDER BY createdAt DESC");
+      rows = stmt.all() as DbPosterRow[];
+    } else {
+      const stmt = this.db.getDb().prepare(
+        "SELECT * FROM posters WHERE isEnabled = ? ORDER BY createdAt DESC"
+      );
+      rows = stmt.all(enabled ? 1 : 0) as DbPosterRow[];
+    }
+
     return rows.map((row) => this.transformRow(row));
   }
 
