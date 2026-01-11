@@ -12,7 +12,8 @@
       "regieInternalChat": "Chat interne régie",
       "regieInternalChatView": "Vue chat interne",
       "regiePublicChat": "Chat public régie",
-      "twitch": "Twitch"
+      "twitch": "Twitch",
+      "chatMessages": "Messages Chat"
     },
     "header": {
       "connected": "Connecté",
@@ -303,6 +304,20 @@
       "onAirDialogDescription": "Passer en mode ADMIN vous éloignera de la surface de contrôle en direct. Êtes-vous sûr de vouloir continuer ?",
       "stayInLive": "Rester en mode LIVE",
       "switchToAdminConfirm": "Passer en ADMIN"
+    },
+    "chatMessagesPanel": {
+      "send": "Envoyer",
+      "sending": "Envoi...",
+      "sent": "Envoyé !",
+      "sendFailed": "Échec de l'envoi",
+      "notConnected": "Non connecté à Streamer.bot",
+      "connectFirst": "Connectez-vous à Streamer.bot pour envoyer des messages",
+      "editMode": "Modifier",
+      "doneEditing": "Terminé",
+      "noMessages": "Aucun message configuré",
+      "addFirst": "Ajoutez des messages dans les paramètres ou cliquez sur Modifier",
+      "titlePlaceholder": "Titre",
+      "messagePlaceholder": "Message..."
     }
   },
   "navigation": {
@@ -330,6 +345,7 @@
       "pluginsUpdates": "Plugins et mises à jour",
       "general": "Général",
       "integrationsSettings": "Intégrations",
+      "chatMessages": "Messages Chat",
       "backend": "Backend",
       "paths": "Chemins",
       "backup": "Sauvegarde",
@@ -594,6 +610,22 @@
       "setupStep5": "Copiez le Client ID et le Client Secret ici",
       "requiredScopes": "Scopes requis :",
       "openTwitchConsole": "Ouvrir la console développeur Twitch"
+    },
+    "chatMessages": {
+      "title": "Messages Chat",
+      "description": "Gérer les messages prédéfinis pour le chat Twitch",
+      "messages": "Messages prédéfinis",
+      "messagesHelp": "Messages rapides à envoyer dans le chat. Maximum 20 messages.",
+      "addMessage": "Ajouter",
+      "addNewMessage": "Nouveau message",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "Titre court...",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Entrez le texte du message...",
+      "messagePlaceholderFull": "Message complet à envoyer...",
+      "maxMessagesReached": "Maximum de 20 messages atteint",
+      "empty": "Aucun message configuré",
+      "emptyHint": "Ajoutez des messages prédéfinis pour les envoyer rapidement"
     }
   },
   "assets": {
@@ -1038,6 +1070,8 @@
     "error": "Erreur",
     "loading": "Chargement...",
     "save": "Enregistrer",
+    "saved": "Enregistré",
+    "saving": "Enregistrement...",
     "cancel": "Annuler",
     "close": "Fermer",
     "confirm": "Confirmer",

@@ -23,6 +23,7 @@ const PANEL_TITLE_KEYS = [
   "regieInternalChatView",
   "regiePublicChat",
   "twitch",
+  "chatMessages",
 ] as const;
 
 type PanelTitleKey = (typeof PANEL_TITLE_KEYS)[number];
