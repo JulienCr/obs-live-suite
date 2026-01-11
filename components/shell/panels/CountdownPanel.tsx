@@ -62,10 +62,6 @@ export function CountdownPanel(_props: IDockviewPanelProps) {
     setSeconds(secs);
   };
 
-  const handlePositionPreset = (preset: { name: string; x: number; y: number }) => {
-    setPosition({ x: preset.x, y: preset.y });
-  };
-
   useEffect(() => {
     if (isRunning) {
       if (updateTimeoutRef.current) {
@@ -304,7 +300,7 @@ export function CountdownPanel(_props: IDockviewPanelProps) {
                     key={preset.name}
                     variant={position.x === preset.x && position.y === preset.y ? "default" : "outline"}
                     size="sm"
-                    onClick={() => handlePositionPreset(preset)}
+                    onClick={() => setPosition({ x: preset.x, y: preset.y })}
                     className="text-xs"
                   >
                     {preset.name}

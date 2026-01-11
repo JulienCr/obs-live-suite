@@ -9,7 +9,6 @@ import { useStreamerbotChatSettings } from "@/components/presenter/hooks/useStre
 import { StreamerbotChatHeader } from "@/components/presenter/panels/streamerbot-chat/StreamerbotChatHeader";
 import { StreamerbotChatToolbar, SearchBar } from "@/components/presenter/panels/streamerbot-chat/StreamerbotChatToolbar";
 import { RegiePublicChatMessageList } from "./regie-public-chat/RegiePublicChatMessageList";
-import { StreamerbotConnectionStatus } from "@/lib/models/StreamerbotChat";
 import type { ChatMessage } from "@/lib/models/StreamerbotChat";
 import { CueType, CueFrom, CueAction } from "@/lib/models/Cue";
 import { useToast } from "@/hooks/use-toast";

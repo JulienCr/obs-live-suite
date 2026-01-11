@@ -4,7 +4,6 @@ import { PanelColorMenu } from "@/components/shell/PanelColorMenu";
 import { usePanelColorsSafe } from "@/components/shell/PanelColorsContext";
 import type { BasePanelWrapperProps } from "@/lib/panels/types";
 import type { PanelId } from "@/lib/models/PanelColor";
-import { cn } from "@/lib/utils";
 
 /**
  * Unified wrapper for all panel types.
@@ -45,7 +44,7 @@ export function BasePanelWrapper({
   };
 
   const content = (
-    <div data-panel-id={config.id} style={containerStyle} className={cn(className)}>
+    <div data-panel-id={config.id} style={containerStyle} className={className}>
       {children}
     </div>
   );
