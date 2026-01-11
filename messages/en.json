@@ -236,7 +236,8 @@
       "noGuests": "No guests",
       "addGuest": "Add Guest",
       "selectGuest": "Select a guest",
-      "showLowerThirdTooltip": "Show {name} lower third (Shortcut: {shortcut})"
+      "showLowerThirdTooltip": "Show {name} lower third (Shortcut: {shortcut})",
+      "sendMessageTooltip": "Send {name}'s chat message"
     },
     "twitch": {
       "title": "Twitch",
