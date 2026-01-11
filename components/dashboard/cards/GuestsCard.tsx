@@ -8,16 +8,7 @@ import { cn } from "@/lib/utils/cn";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { sendChatMessage } from "@/lib/utils/chatMessaging";
-
-interface Guest {
-  id: string;
-  displayName: string;
-  subtitle?: string;
-  accentColor: string;
-  avatarUrl?: string;
-  chatMessage?: string | null;
-  isEnabled: boolean;
-}
+import type { Guest } from "@/lib/models/Guest";
 
 interface GuestsCardProps {
   size?: string;

@@ -8,18 +8,9 @@ import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import { sendChatMessage } from "@/lib/utils/chatMessaging";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import type { LowerThirdEvent } from "@/lib/models/OverlayEvents";
+import type { Guest } from "@/lib/models/Guest";
 
 const config: PanelConfig = { id: "guests", context: "dashboard" };
-
-interface Guest {
-  id: string;
-  displayName: string;
-  subtitle?: string;
-  accentColor: string;
-  avatarUrl?: string;
-  chatMessage?: string | null;
-  isEnabled: boolean;
-}
 
 /**
  * Guests panel for Dockview - displays guests without Card wrapper
