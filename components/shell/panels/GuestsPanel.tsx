@@ -66,8 +66,9 @@ export function GuestsPanel(_props: IDockviewPanelProps) {
 
   const fetchGuests = async () => {
     try {
-      const data = await apiGet<{ guests: Guest[] }>("/api/assets/guests");
-      const allEnabledGuests = (data.guests || []).filter((g: Guest) => g.isEnabled);
+      const data = await apiGet<{ guests: Guest[] }>("/api/assets/guests?enabled=true");
+      // API returns only enabled guests via server-side filtering
+      const allEnabledGuests = data.guests || [];
       setGuests(allEnabledGuests.slice(0, 10));
     } catch (error) {
       console.error("Failed to fetch guests:", error);

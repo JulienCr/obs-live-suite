@@ -5,16 +5,22 @@ import {
   ApiResponses,
   withSimpleErrorHandler,
 } from "@/lib/utils/ApiResponses";
+import { parseBooleanQueryParam } from "@/lib/utils/queryParams";
 
 const LOG_CONTEXT = "[PostersAPI]";
 
 /**
  * GET /api/assets/posters
  * List all posters
+ * Query params:
+ *   - enabled: "true" for enabled only, "false" for disabled only, omit for all
  */
-export const GET = withSimpleErrorHandler(async () => {
+export const GET = withSimpleErrorHandler(async (request: Request) => {
+  const url = new URL(request.url);
+  const enabled = parseBooleanQueryParam(url.searchParams.get("enabled"));
+
   const db = DatabaseService.getInstance();
-  const posters = db.getAllPosters();
+  const posters = db.getAllPosters(enabled);
 
   return ApiResponses.ok({ posters });
 }, LOG_CONTEXT);

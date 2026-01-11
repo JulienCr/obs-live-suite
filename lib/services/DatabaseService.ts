@@ -729,9 +729,10 @@ export class DatabaseService {
 
   /**
    * Get all guests
+   * @param enabled - Optional filter: true for enabled only, false for disabled only, undefined for all
    */
-  getAllGuests(): DbGuest[] {
-    return GuestRepository.getInstance().getAll();
+  getAllGuests(enabled?: boolean): DbGuest[] {
+    return GuestRepository.getInstance().getAll(enabled);
   }
 
   /**
@@ -766,9 +767,10 @@ export class DatabaseService {
 
   /**
    * Get all posters
+   * @param enabled - If true, return only enabled posters. If false, return only disabled posters. If undefined, return all.
    */
-  getAllPosters(): DbPoster[] {
-    return PosterRepository.getInstance().getAll();
+  getAllPosters(enabled?: boolean): DbPoster[] {
+    return PosterRepository.getInstance().getAll(enabled);
   }
 
   /**

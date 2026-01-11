@@ -1,20 +1,28 @@
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { guestSchema } from "@/lib/models/Guest";
 import { randomUUID } from "crypto";
-import { ApiResponses } from "@/lib/utils/ApiResponses";
+import {
+  ApiResponses,
+  withSimpleErrorHandler,
+} from "@/lib/utils/ApiResponses";
+import { parseBooleanQueryParam } from "@/lib/utils/queryParams";
+
+const LOG_CONTEXT = "[GuestsAPI]";
+
 /**
  * GET /api/assets/guests
  * List all guests
+ * Query params:
+ *   - enabled: "true" for enabled only, "false" for disabled only, omit for all
  */
-export async function GET() {
-  try {
-    const db = DatabaseService.getInstance();
-    const guests = db.getAllGuests();
-    return ApiResponses.ok({ guests });
-  } catch (error) {
-    return ApiResponses.serverError("Failed to fetch guests");
-  }
-}
+export const GET = withSimpleErrorHandler(async (request: Request) => {
+  const url = new URL(request.url);
+  const enabled = parseBooleanQueryParam(url.searchParams.get("enabled"));
+
+  const db = DatabaseService.getInstance();
+  const guests = db.getAllGuests(enabled);
+  return ApiResponses.ok({ guests });
+}, LOG_CONTEXT);
 /**
  * POST /api/assets/guests
  * Create a new guest

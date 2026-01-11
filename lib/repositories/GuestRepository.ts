@@ -32,16 +32,27 @@ export class GuestRepository {
 
   /**
    * Get all guests
+   * @param enabled - Optional filter: true for enabled only, false for disabled only, undefined for all
    */
-  getAll(): DbGuest[] {
-    const stmt = this.db.prepare("SELECT * FROM guests ORDER BY displayName ASC");
-    const rows = stmt.all() as Array<
-      Omit<DbGuest, "isEnabled" | "createdAt" | "updatedAt"> & {
-        isEnabled: number;
-        createdAt: string;
-        updatedAt: string;
-      }
-    >;
+  getAll(enabled?: boolean): DbGuest[] {
+    type GuestRow = Omit<DbGuest, "isEnabled" | "createdAt" | "updatedAt"> & {
+      isEnabled: number;
+      createdAt: string;
+      updatedAt: string;
+    };
+
+    let rows: GuestRow[];
+
+    if (enabled === undefined) {
+      const stmt = this.db.prepare("SELECT * FROM guests ORDER BY displayName ASC");
+      rows = stmt.all() as GuestRow[];
+    } else {
+      const stmt = this.db.prepare(
+        "SELECT * FROM guests WHERE isEnabled = ? ORDER BY displayName ASC"
+      );
+      rows = stmt.all(enabled ? 1 : 0) as GuestRow[];
+    }
+
     return rows.map((row) => ({
       ...row,
       isEnabled: row.isEnabled === 1,
