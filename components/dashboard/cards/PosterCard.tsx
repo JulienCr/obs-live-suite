@@ -446,7 +446,6 @@ export function PosterContent({ className }: PosterContentProps) {
           ) : (
             <ScrollArea className="h-full w-full">
               <div
-                className="pr-4"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: `repeat(${columnCount}, 1fr)`,

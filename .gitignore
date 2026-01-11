@@ -76,3 +76,5 @@ rootCA.pem
 server/static/vdoninja/*
 !server/static/vdoninja/README.md
 server/static/
+.grepai/
+_local/
