@@ -1,16 +1,17 @@
-import { BACKEND_URL } from "@/lib/config/urls";
+import { getBackendUrl } from "@/lib/utils/websocket";
 import { Logger } from "@/lib/utils/Logger";
 
 const logger = new Logger("ChatMessaging");
 
 /**
  * Send a chat message via the Streamer.bot bridge (fire-and-forget)
+ * Client-safe: uses getBackendUrl() which works in browser context
  *
  * @param message - The message to send
  * @param platform - Target platform (default: 'twitch')
  */
 export function sendChatMessage(message: string, platform: string = "twitch"): void {
-  fetch(`${BACKEND_URL}/api/streamerbot-chat/send`, {
+  fetch(`${getBackendUrl()}/api/streamerbot-chat/send`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

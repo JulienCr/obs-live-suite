@@ -1,12 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Clock,
   Trash2,
   StopCircle,
   RefreshCw,
@@ -203,12 +200,11 @@ export function EventLog() {
   } = useEventLog();
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <div className="flex flex-col h-full">
+      {/* Header with filters and clear button */}
+      <div className="flex-shrink-0 space-y-2 pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <Clock className="w-4 h-4" />
-            {t("title")}
+          <div className="flex items-center gap-2">
             {/* Connection indicator */}
             <div
               className={cn(
@@ -216,7 +212,8 @@ export function EventLog() {
                 isConnected ? "bg-green-500" : "bg-red-500"
               )}
             />
-          </CardTitle>
+            <FilterButtons filter={filter} onFilterChange={setFilter} />
+          </div>
           <Button
             variant="ghost"
             size="sm"
@@ -228,30 +225,28 @@ export function EventLog() {
             {t("clearAll")}
           </Button>
         </div>
-        {/* Filter buttons */}
-        <FilterButtons filter={filter} onFilterChange={setFilter} />
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[250px]">
-          {filteredEvents.length > 0 ? (
-            <div className="space-y-2 pr-2">
-              {filteredEvents.map((entry) => (
-                <EventRow
-                  key={entry.id}
-                  entry={entry}
-                  onStop={() => stopOverlay(entry)}
-                  onReplay={() => replayOverlay(entry)}
-                  onRemove={() => removeEvent(entry.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground text-center py-8">
-              {t("noEvents")}
-            </div>
-          )}
-        </ScrollArea>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Scrollable event list */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {filteredEvents.length > 0 ? (
+          <div className="space-y-2 pr-2">
+            {filteredEvents.map((entry) => (
+              <EventRow
+                key={entry.id}
+                entry={entry}
+                onStop={() => stopOverlay(entry)}
+                onReplay={() => replayOverlay(entry)}
+                onRemove={() => removeEvent(entry.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground text-center py-8">
+            {t("noEvents")}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
