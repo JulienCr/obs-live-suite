@@ -6,6 +6,14 @@ import { TwitchSettings, TwitchOAuthTokens, DEFAULT_TWITCH_SETTINGS } from "../m
 import { PresenterChannelSettings, DEFAULT_QUICK_REPLIES } from "../models/PresenterChannel";
 
 /**
+ * Predefined chat message with title and content
+ */
+export interface ChatPredefinedMessage {
+  title: string;
+  message: string;
+}
+
+/**
  * OBS settings interface
  */
 export interface OBSSettings {
@@ -525,6 +533,41 @@ export class SettingsService {
     this.db.deleteSetting("presenter.channel.canSendCustomMessages");
     this.db.deleteSetting("presenter.channel.allowPresenterToSendMessage");
     this.logger.info("Presenter channel settings cleared from database");
+  }
+
+  // =========================================================================
+  // CHAT PREDEFINED MESSAGES
+  // =========================================================================
+
+  /**
+   * Get predefined chat messages
+   */
+  getChatPredefinedMessages(): ChatPredefinedMessage[] {
+    const messagesJson = this.db.getSetting("chat.predefinedMessages");
+    if (messagesJson) {
+      try {
+        const data = JSON.parse(messagesJson);
+        // Migration: convert old string[] format to new object format
+        if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
+          return (data as string[]).map(msg => ({
+            title: msg.length > 30 ? msg.slice(0, 30) + '...' : msg,
+            message: msg
+          }));
+        }
+        return data as ChatPredefinedMessage[];
+      } catch {
+        this.logger.warn("Failed to parse chat predefined messages");
+      }
+    }
+    return [];
+  }
+
+  /**
+   * Save predefined chat messages
+   */
+  saveChatPredefinedMessages(messages: ChatPredefinedMessage[]): void {
+    this.db.setSetting("chat.predefinedMessages", JSON.stringify(messages));
+    this.logger.info("Chat predefined messages saved to database");
   }
 }
 

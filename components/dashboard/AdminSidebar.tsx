@@ -49,6 +49,7 @@ const navigationSections: NavSection[] = [
     labelKey: "presenter",
     items: [
       { labelKey: "presenterChannel", href: "/settings/presenter", icon: MessageSquare },
+      { labelKey: "chatMessages", href: "/settings/chat-messages", icon: MessageSquare },
     ],
   },
   {
