@@ -1,9 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
-import { ArrowDown, MessageSquare, Star, Monitor, Loader2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ArrowDown, MessageSquare, Star, Monitor, Loader2, MoreVertical, Trash2, Clock, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   getMessageHighlights,
@@ -14,7 +22,7 @@ import { ChatBadge } from "@/components/presenter/chat/ChatBadge";
 import { ChatMessageContent } from "@/components/presenter/chat/ChatMessageContent";
 import { ChatEventMessage } from "@/components/presenter/chat/ChatEventMessage";
 import { PlatformIcon } from "@/components/presenter/chat/PlatformIcon";
-import type { RegiePublicChatMessageListProps, ChatMessage } from "./types";
+import type { RegiePublicChatMessageListProps, ChatMessage, ModerationAction } from "./types";
 import { StreamerbotConnectionStatus } from "./types";
 
 /**
@@ -40,6 +48,8 @@ function ChatMessageRow({
   isShowingInOverlay,
   isCurrentlyDisplayed,
   measureRef,
+  onModerate,
+  isModerating,
 }: {
   message: ChatMessage;
   preferences: RegiePublicChatMessageListProps["preferences"];
@@ -50,7 +60,10 @@ function ChatMessageRow({
   isShowingInOverlay: boolean;
   isCurrentlyDisplayed: boolean;
   measureRef: (node: HTMLDivElement | null) => void;
+  onModerate?: (action: ModerationAction, duration?: number) => void;
+  isModerating?: boolean;
 }) {
+  const t = useTranslations("presenter");
   // Event messages (follow, sub, raid, etc.)
   if (message.eventType !== "message") {
     return (
@@ -195,6 +208,79 @@ function ChatMessageRow({
               <Star className="h-3 w-3" />
             )}
           </Button>
+
+          {/* Moderation dropdown (Twitch only) */}
+          {onModerate && message.platform === "twitch" && message.metadata?.twitchUserId && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity",
+                    isModerating && "opacity-100"
+                  )}
+                  disabled={isModerating}
+                >
+                  {isModerating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <MoreVertical className="h-3 w-3" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onModerate("delete");
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t("chat.moderation.delete")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onModerate("timeout", 60);
+                  }}
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  {t("chat.moderation.timeout1m")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onModerate("timeout", 600);
+                  }}
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  {t("chat.moderation.timeout10m")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onModerate("timeout", 3600);
+                  }}
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  {t("chat.moderation.timeout1h")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onModerate("ban");
+                  }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Ban className="h-4 w-4 mr-2" />
+                  {t("chat.moderation.ban")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
     </div>
@@ -216,6 +302,8 @@ export function RegiePublicChatMessageList({
   onShowInOverlay,
   showingInOverlayId,
   currentlyDisplayedId,
+  onModerate,
+  moderateLoadingId,
 }: RegiePublicChatMessageListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -300,6 +388,8 @@ export function RegiePublicChatMessageList({
                   isShowingInOverlay={showingInOverlayId === message.id}
                   isCurrentlyDisplayed={currentlyDisplayedId === message.id}
                   measureRef={rowVirtualizer.measureElement}
+                  onModerate={onModerate ? (action, duration) => onModerate(message, action, duration) : undefined}
+                  isModerating={moderateLoadingId === message.id}
                 />
               );
             })}

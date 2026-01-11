@@ -1171,7 +1171,14 @@
       "searchPlaceholder": "Rechercher des messages...",
       "sendPlaceholder": "Envoyer un message au chat...",
       "newMessages": "Nouveaux messages",
-      "replyingTo": "Réponse à @{displayName}"
+      "replyingTo": "Réponse à @{displayName}",
+      "moderation": {
+        "delete": "Supprimer le message",
+        "timeout1m": "Timeout 1 min",
+        "timeout10m": "Timeout 10 min",
+        "timeout1h": "Timeout 1 heure",
+        "ban": "Bannir"
+      }
     },
     "stats": {
       "viewers": "Viewers",
@@ -1228,6 +1235,17 @@
       "presenterOffline": "Présentateur hors ligne",
       "controlOnline": "Régie en ligne",
       "controlOffline": "Régie hors ligne"
+    },
+    "moderation": {
+      "deleteMessage": "Supprimer le message",
+      "timeout1min": "Timeout 1 minute",
+      "timeout10min": "Timeout 10 minutes",
+      "timeout1hour": "Timeout 1 heure",
+      "banUser": "Bannir",
+      "messageDeleted": "Message supprimé",
+      "userTimedOut": "Utilisateur mis en timeout",
+      "userBanned": "Utilisateur banni",
+      "failed": "Échec de l'action de modération"
     }
   }
 }

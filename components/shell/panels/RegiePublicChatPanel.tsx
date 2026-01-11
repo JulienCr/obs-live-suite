@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { type IDockviewPanelProps } from "dockview-react";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { useStreamerbotClient } from "@/components/presenter/hooks/useStreamerbotClient";
@@ -10,6 +11,7 @@ import { StreamerbotChatHeader } from "@/components/presenter/panels/streamerbot
 import { StreamerbotChatToolbar, SearchBar } from "@/components/presenter/panels/streamerbot-chat/StreamerbotChatToolbar";
 import { RegiePublicChatMessageList } from "./regie-public-chat/RegiePublicChatMessageList";
 import type { ChatMessage } from "@/lib/models/StreamerbotChat";
+import type { ModerationAction } from "./regie-public-chat/types";
 import { CueType, CueFrom, CueAction } from "@/lib/models/Cue";
 import { useToast } from "@/hooks/use-toast";
 import { apiPost } from "@/lib/utils/ClientFetch";
@@ -19,12 +21,14 @@ import { useChatHighlightSync } from "@/hooks/useChatHighlightSync";
  * Regie Public Chat Panel - Streamerbot chat with highlight functionality
  */
 function RegiePublicChatContent() {
+  const t = useTranslations("presenter");
   const { toast } = useToast();
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const [highlightingMessageId, setHighlightingMessageId] = useState<string | null>(null);
   const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
   const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
+  const [moderateLoadingId, setModerateLoadingId] = useState<string | null>(null);
 
   // Sync with shared overlay state (handles external show/hide from EventLog)
   useChatHighlightSync(currentlyDisplayedId, setCurrentlyDisplayedId);
@@ -158,6 +162,59 @@ function RegiePublicChatContent() {
     }
   }, [showingInOverlayId, currentlyDisplayedId, toast]);
 
+  // Moderation handler for delete/timeout/ban actions
+  const handleModerate = useCallback(
+    async (
+      message: ChatMessage,
+      action: ModerationAction,
+      duration?: number
+    ) => {
+      if (moderateLoadingId) return;
+
+      setModerateLoadingId(message.id);
+
+      try {
+        const baseUrl = "/api/twitch/moderation";
+
+        if (action === "delete") {
+          const msgId = message.metadata?.twitchMsgId;
+          if (!msgId) throw new Error("Missing Twitch message ID");
+          await fetch(`${baseUrl}/message?messageId=${msgId}`, {
+            method: "DELETE",
+          });
+          toast({ title: t("moderation.messageDeleted") });
+        } else if (action === "timeout") {
+          const userId = message.metadata?.twitchUserId;
+          if (!userId) throw new Error("Missing Twitch user ID");
+          await fetch(`${baseUrl}/timeout`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, duration: duration || 600 }),
+          });
+          toast({ title: t("moderation.userTimedOut") });
+        } else if (action === "ban") {
+          const userId = message.metadata?.twitchUserId;
+          if (!userId) throw new Error("Missing Twitch user ID");
+          await fetch(`${baseUrl}/ban`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId }),
+          });
+          toast({ title: t("moderation.userBanned") });
+        }
+      } catch (error) {
+        toast({
+          title: t("moderation.failed"),
+          description: error instanceof Error ? error.message : String(error),
+          variant: "destructive",
+        });
+      } finally {
+        setModerateLoadingId(null);
+      }
+    },
+    [moderateLoadingId, toast, t]
+  );
+
   return (
     <div className="h-full flex flex-col bg-background relative">
       {/* Header with status and controls */}
@@ -196,6 +253,8 @@ function RegiePublicChatContent() {
         onShowInOverlay={handleShowInOverlay}
         showingInOverlayId={showingInOverlayId}
         currentlyDisplayedId={currentlyDisplayedId}
+        onModerate={handleModerate}
+        moderateLoadingId={moderateLoadingId}
       />
     </div>
   );

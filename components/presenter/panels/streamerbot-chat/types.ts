@@ -41,6 +41,8 @@ export interface StreamerbotChatToolbarProps {
   onUpdatePreferences: (updates: Partial<ChatUIPreferences>) => void;
 }
 
+export type ModerationAction = "delete" | "timeout" | "ban";
+
 export interface StreamerbotChatMessageListProps {
   messages: ChatMessage[];
   preferences: ChatUIPreferences;
@@ -51,6 +53,12 @@ export interface StreamerbotChatMessageListProps {
   onShowInOverlay?: (message: ChatMessage) => Promise<void>;
   showingInOverlayId?: string | null;
   currentlyDisplayedId?: string | null;
+  onModerate?: (
+    message: ChatMessage,
+    action: ModerationAction,
+    duration?: number
+  ) => Promise<void>;
+  moderateLoadingId?: string | null;
 }
 
 export interface SearchBarProps {

@@ -285,6 +285,108 @@ export class TwitchAPIClient {
   isReady(): boolean {
     return this.oauthManager.isAuthenticated();
   }
+
+  // ==========================================================================
+  // MODERATION METHODS
+  // ==========================================================================
+
+  /**
+   * Delete a chat message
+   */
+  async deleteMessage(
+    broadcasterId: string,
+    moderatorId: string,
+    messageId: string
+  ): Promise<boolean> {
+    this.logger.info(`[Moderation] Attempting to delete message`, {
+      broadcasterId,
+      moderatorId,
+      messageId,
+      messageIdLength: messageId.length,
+    });
+
+    try {
+      const url = this.buildUrl("moderation/chat", {
+        broadcaster_id: broadcasterId,
+        moderator_id: moderatorId,
+        message_id: messageId,
+      });
+
+      this.logger.debug(`[Moderation] DELETE URL: ${url}`);
+
+      const response = await this.request("DELETE", url);
+
+      this.logger.info(`[Moderation] Delete message SUCCESS`, {
+        messageId,
+        responseStatus: response ? "ok" : "empty",
+      });
+
+      return true;
+    } catch (error) {
+      this.logger.error(`[Moderation] Failed to delete message`, {
+        messageId,
+        error: error instanceof Error ? error.message : String(error),
+        errorDetails: error,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Timeout a user (temporary ban)
+   */
+  async timeoutUser(
+    broadcasterId: string,
+    moderatorId: string,
+    userId: string,
+    durationSeconds: number,
+    reason?: string
+  ): Promise<boolean> {
+    try {
+      const url = this.buildUrl("moderation/bans", {
+        broadcaster_id: broadcasterId,
+        moderator_id: moderatorId,
+      });
+      await this.request("POST", url, {
+        data: {
+          user_id: userId,
+          duration: durationSeconds,
+          reason,
+        },
+      });
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to timeout user", error);
+      return false;
+    }
+  }
+
+  /**
+   * Ban a user permanently
+   */
+  async banUser(
+    broadcasterId: string,
+    moderatorId: string,
+    userId: string,
+    reason?: string
+  ): Promise<boolean> {
+    try {
+      const url = this.buildUrl("moderation/bans", {
+        broadcaster_id: broadcasterId,
+        moderator_id: moderatorId,
+      });
+      await this.request("POST", url, {
+        data: {
+          user_id: userId,
+          reason,
+        },
+      });
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to ban user", error);
+      return false;
+    }
+  }
 }
 
 // ============================================================================

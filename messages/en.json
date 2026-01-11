@@ -1170,7 +1170,14 @@
       "searchPlaceholder": "Search messages...",
       "sendPlaceholder": "Send a message to chat...",
       "newMessages": "New messages",
-      "replyingTo": "Replying to @{displayName}"
+      "replyingTo": "Replying to @{displayName}",
+      "moderation": {
+        "delete": "Delete message",
+        "timeout1m": "Timeout 1 min",
+        "timeout10m": "Timeout 10 min",
+        "timeout1h": "Timeout 1 hour",
+        "ban": "Ban"
+      }
     },
     "stats": {
       "viewers": "Viewers",
@@ -1227,6 +1234,17 @@
       "presenterOffline": "Presenter offline",
       "controlOnline": "Control room online",
       "controlOffline": "Control room offline"
+    },
+    "moderation": {
+      "deleteMessage": "Delete message",
+      "timeout1min": "Timeout 1 minute",
+      "timeout10min": "Timeout 10 minutes",
+      "timeout1hour": "Timeout 1 hour",
+      "banUser": "Ban user",
+      "messageDeleted": "Message deleted",
+      "userTimedOut": "User timed out",
+      "userBanned": "User banned",
+      "failed": "Moderation action failed"
     }
   }
 }

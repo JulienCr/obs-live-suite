@@ -466,4 +466,54 @@ export class TwitchService {
       this.startPolling();
     }
   }
+
+  // ==========================================================================
+  // MODERATION
+  // ==========================================================================
+
+  /**
+   * Delete a chat message
+   */
+  async deleteMessage(messageId: string): Promise<boolean> {
+    if (!this.isAvailable()) {
+      throw new Error("Twitch API not available");
+    }
+
+    const broadcasterId = await this.ensureBroadcasterId();
+    return this.apiClient.deleteMessage(broadcasterId, broadcasterId, messageId);
+  }
+
+  /**
+   * Timeout a user (temporary ban)
+   */
+  async timeoutUser(
+    userId: string,
+    durationSeconds: number,
+    reason?: string
+  ): Promise<boolean> {
+    if (!this.isAvailable()) {
+      throw new Error("Twitch API not available");
+    }
+
+    const broadcasterId = await this.ensureBroadcasterId();
+    return this.apiClient.timeoutUser(
+      broadcasterId,
+      broadcasterId,
+      userId,
+      durationSeconds,
+      reason
+    );
+  }
+
+  /**
+   * Ban a user permanently
+   */
+  async banUser(userId: string, reason?: string): Promise<boolean> {
+    if (!this.isAvailable()) {
+      throw new Error("Twitch API not available");
+    }
+
+    const broadcasterId = await this.ensureBroadcasterId();
+    return this.apiClient.banUser(broadcasterId, broadcasterId, userId, reason);
+  }
 }
