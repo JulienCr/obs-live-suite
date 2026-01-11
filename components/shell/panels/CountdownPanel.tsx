@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Play, Pause, RotateCcw, Plus, Settings } from "lucide-react";
-import { PanelColorMenu } from "../PanelColorMenu";
+import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { apiPost } from "@/lib/utils/ClientFetch";
 import { useOverlayHideSync } from "@/hooks/useSyncWithOverlayState";
+
+const config: PanelConfig = { id: "countdown", context: "dashboard" };
 
 /**
  * Countdown panel for Dockview - displays countdown controls without Card wrapper
@@ -167,9 +169,8 @@ export function CountdownPanel(props: IDockviewPanelProps) {
   };
 
   return (
-    <PanelColorMenu panelId="countdown">
-      <div data-panel-id="countdown" style={{ padding: "1rem", height: "100%", overflow: "auto" }}>
-        <div className="space-y-4">
+    <BasePanelWrapper config={config}>
+      <div className="space-y-4">
           <div className="grid grid-cols-4 gap-2">
           {presets.map((preset) => (
             <Button
@@ -408,8 +409,7 @@ export function CountdownPanel(props: IDockviewPanelProps) {
             </div>
           </div>
         )}
-        </div>
       </div>
-    </PanelColorMenu>
+    </BasePanelWrapper>
   );
 }
