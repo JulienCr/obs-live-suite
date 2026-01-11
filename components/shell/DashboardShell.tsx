@@ -342,7 +342,7 @@ export function DashboardShell() {
             <PanelColorStyles />
             <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--header-height))", width: "100%", display: "flex" }}>
               {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
                 <DockviewReact
                   components={components}
                   tabComponents={tabComponents}
