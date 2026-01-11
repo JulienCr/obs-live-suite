@@ -5,8 +5,10 @@ import { Zap } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
-import { PanelColorMenu } from "../PanelColorMenu";
+import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import type { LowerThirdEvent } from "@/lib/models/OverlayEvents";
+
+const config: PanelConfig = { id: "guests", context: "dashboard" };
 
 interface Guest {
   id: string;
@@ -20,7 +22,7 @@ interface Guest {
 /**
  * Guests panel for Dockview - displays guests without Card wrapper
  */
-export function GuestsPanel(props: IDockviewPanelProps) {
+export function GuestsPanel(_props: IDockviewPanelProps) {
   const t = useTranslations("dashboard.guests");
   const tCommon = useTranslations("common");
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -102,9 +104,8 @@ export function GuestsPanel(props: IDockviewPanelProps) {
   };
 
   return (
-    <PanelColorMenu panelId="guests">
-      <div data-panel-id="guests" style={{ padding: "1rem", height: "100%", overflow: "auto" }}>
-        {loading ? (
+    <BasePanelWrapper config={config}>
+      {loading ? (
         <div className="text-sm text-muted-foreground">{tCommon("loading")}</div>
       ) : guests.length === 0 ? (
         <div className="text-sm text-muted-foreground text-center py-4">
@@ -168,8 +169,7 @@ export function GuestsPanel(props: IDockviewPanelProps) {
             );
           })}
         </div>
-        )}
-      </div>
-    </PanelColorMenu>
+      )}
+    </BasePanelWrapper>
   );
 }

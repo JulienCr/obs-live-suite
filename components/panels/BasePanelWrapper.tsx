@@ -1,0 +1,59 @@
+"use client";
+
+import { PanelColorMenu } from "@/components/shell/PanelColorMenu";
+import { usePanelColorsSafe } from "@/components/shell/PanelColorsContext";
+import type { BasePanelWrapperProps } from "@/lib/panels/types";
+import type { PanelId } from "@/lib/models/PanelColor";
+
+/**
+ * Unified wrapper for all panel types.
+ *
+ * Features:
+ * - Conditional PanelColorMenu wrapping (dashboard context only)
+ * - Consistent data-panel-id attribute for styling
+ * - Configurable padding and scrolling
+ * - Works in both Dockview and standalone contexts
+ */
+export function BasePanelWrapper({
+  config,
+  children,
+  padding,
+  className,
+  style,
+}: BasePanelWrapperProps): React.ReactElement {
+  const panelColors = usePanelColorsSafe();
+
+  // Determine if color menu should be enabled
+  const showColorMenu =
+    config.context === "dashboard" &&
+    config.colorMenuEnabled !== false &&
+    panelColors !== null;
+
+  // Calculate padding: prop > config > context default
+  const computedPadding =
+    padding ?? config.padding ?? (config.context === "dashboard" ? "1rem" : "0");
+
+  const containerStyle: React.CSSProperties = {
+    padding:
+      typeof computedPadding === "number"
+        ? `${computedPadding}px`
+        : computedPadding,
+    height: "100%",
+    overflow: config.scrollable !== false ? "auto" : "hidden",
+    ...style,
+  };
+
+  const content = (
+    <div data-panel-id={config.id} style={containerStyle} className={className}>
+      {children}
+    </div>
+  );
+
+  if (showColorMenu) {
+    return (
+      <PanelColorMenu panelId={config.id as PanelId}>{content}</PanelColorMenu>
+    );
+  }
+
+  return content;
+}

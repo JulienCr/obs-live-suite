@@ -2,14 +2,13 @@
 
 import { useState, useCallback } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
-import { PanelColorMenu } from "../PanelColorMenu";
+import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { useStreamerbotClient } from "@/components/presenter/hooks/useStreamerbotClient";
 import { useStreamerbotMessages } from "@/components/presenter/hooks/useStreamerbotMessages";
 import { useStreamerbotChatSettings } from "@/components/presenter/hooks/useStreamerbotChatSettings";
 import { StreamerbotChatHeader } from "@/components/presenter/panels/streamerbot-chat/StreamerbotChatHeader";
 import { StreamerbotChatToolbar, SearchBar } from "@/components/presenter/panels/streamerbot-chat/StreamerbotChatToolbar";
 import { RegiePublicChatMessageList } from "./regie-public-chat/RegiePublicChatMessageList";
-import { StreamerbotConnectionStatus } from "@/lib/models/StreamerbotChat";
 import type { ChatMessage } from "@/lib/models/StreamerbotChat";
 import { CueType, CueFrom, CueAction } from "@/lib/models/Cue";
 import { useToast } from "@/hooks/use-toast";
@@ -202,12 +201,12 @@ function RegiePublicChatContent() {
   );
 }
 
-export function RegiePublicChatPanel(props: IDockviewPanelProps) {
+const config: PanelConfig = { id: "regiePublicChat", context: "dashboard", padding: 0, scrollable: false };
+
+export function RegiePublicChatPanel(_props: IDockviewPanelProps) {
   return (
-    <PanelColorMenu panelId="regiePublicChat">
-      <div data-panel-id="regiePublicChat" style={{ height: "100%", overflow: "hidden" }}>
-        <RegiePublicChatContent />
-      </div>
-    </PanelColorMenu>
+    <BasePanelWrapper config={config}>
+      <RegiePublicChatContent />
+    </BasePanelWrapper>
   );
 }

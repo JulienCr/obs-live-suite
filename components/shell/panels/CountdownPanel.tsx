@@ -6,14 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Play, Pause, RotateCcw, Plus, Settings } from "lucide-react";
-import { PanelColorMenu } from "../PanelColorMenu";
+import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { apiPost } from "@/lib/utils/ClientFetch";
 import { useOverlayHideSync } from "@/hooks/useSyncWithOverlayState";
+
+const config: PanelConfig = { id: "countdown", context: "dashboard" };
 
 /**
  * Countdown panel for Dockview - displays countdown controls without Card wrapper
  */
-export function CountdownPanel(props: IDockviewPanelProps) {
+export function CountdownPanel(_props: IDockviewPanelProps) {
   const [minutes, setMinutes] = useState(5);
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -58,10 +60,6 @@ export function CountdownPanel(props: IDockviewPanelProps) {
     const secs = totalSeconds % 60;
     setMinutes(mins);
     setSeconds(secs);
-  };
-
-  const handlePositionPreset = (preset: { name: string; x: number; y: number }) => {
-    setPosition({ x: preset.x, y: preset.y });
   };
 
   useEffect(() => {
@@ -167,9 +165,8 @@ export function CountdownPanel(props: IDockviewPanelProps) {
   };
 
   return (
-    <PanelColorMenu panelId="countdown">
-      <div data-panel-id="countdown" style={{ padding: "1rem", height: "100%", overflow: "auto" }}>
-        <div className="space-y-4">
+    <BasePanelWrapper config={config}>
+      <div className="space-y-4">
           <div className="grid grid-cols-4 gap-2">
           {presets.map((preset) => (
             <Button
@@ -303,7 +300,7 @@ export function CountdownPanel(props: IDockviewPanelProps) {
                     key={preset.name}
                     variant={position.x === preset.x && position.y === preset.y ? "default" : "outline"}
                     size="sm"
-                    onClick={() => handlePositionPreset(preset)}
+                    onClick={() => setPosition({ x: preset.x, y: preset.y })}
                     className="text-xs"
                   >
                     {preset.name}
@@ -408,8 +405,7 @@ export function CountdownPanel(props: IDockviewPanelProps) {
             </div>
           </div>
         )}
-        </div>
       </div>
-    </PanelColorMenu>
+    </BasePanelWrapper>
   );
 }

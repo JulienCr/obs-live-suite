@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
 import { Wifi, WifiOff, Users, AlertCircle, ExternalLink, RefreshCw } from "lucide-react";
-import { PanelColorMenu } from "../PanelColorMenu";
+import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { Button } from "@/components/ui/button";
 import { getBackendUrl } from "@/lib/utils/websocket";
 import { apiGet } from "@/lib/utils/ClientFetch";
@@ -115,12 +115,12 @@ function PresenceStatusContent() {
   );
 }
 
-export function PresenceStatusPanel(props: IDockviewPanelProps) {
+const config: PanelConfig = { id: "presenceStatus", context: "dashboard", padding: 0 };
+
+export function PresenceStatusPanel(_props: IDockviewPanelProps) {
   return (
-    <PanelColorMenu panelId="presenceStatus">
-      <div data-panel-id="presenceStatus" style={{ height: "100%", overflow: "auto" }}>
-        <PresenceStatusContent />
-      </div>
-    </PanelColorMenu>
+    <BasePanelWrapper config={config}>
+      <PresenceStatusContent />
+    </BasePanelWrapper>
   );
 }

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Timer, Loader2, ExternalLink, FileText, X, Search, Sparkles } from "lucide-react";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { toast } from "sonner";
-import { PanelColorMenu } from "../PanelColorMenu";
+import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { LowerThirdPreviewDialog } from "./LowerThirdPreviewDialog";
 import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 import { useOverlayHideSync } from "@/hooks/useSyncWithOverlayState";
@@ -25,10 +25,12 @@ interface WikipediaSearchOption {
   pageid?: number;
 }
 
+const config: PanelConfig = { id: "lowerThird", context: "dashboard" };
+
 /**
  * Lower Third panel for Dockview - displays lower third controls without Card wrapper
  */
-export function LowerThirdPanel(props: IDockviewPanelProps) {
+export function LowerThirdPanel(_props: IDockviewPanelProps) {
   const t = useTranslations("dashboard.lowerThird");
   const [mode, setMode] = useState<"guest" | "text">("guest");
   const [title, setTitle] = useState("");
@@ -264,8 +266,7 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
   };
 
   return (
-    <PanelColorMenu panelId="lowerThird">
-      <div data-panel-id="lowerThird" style={{ padding: "1rem", height: "100%", overflow: "auto" }}>
+    <BasePanelWrapper config={config}>
         <div className="space-y-4">
         <div className="flex gap-2">
           <Button
@@ -561,7 +562,6 @@ export function LowerThirdPanel(props: IDockviewPanelProps) {
           imageAlt={imageAlt}
           side={side}
         />
-      </div>
-    </PanelColorMenu>
+    </BasePanelWrapper>
   );
 }
