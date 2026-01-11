@@ -1,6 +1,8 @@
 import { type IDockviewPanelProps } from "dockview-react";
 import { MacrosBar } from "@/components/dashboard/MacrosBar";
-import { PanelColorMenu } from "../PanelColorMenu";
+import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
+
+const config: PanelConfig = { id: "macros", context: "dashboard" };
 
 /**
  * Macros panel for Dockview
@@ -8,10 +10,8 @@ import { PanelColorMenu } from "../PanelColorMenu";
  */
 export function MacrosPanel(props: IDockviewPanelProps) {
   return (
-    <PanelColorMenu panelId="macros">
-      <div data-panel-id="macros" style={{ padding: "1rem", height: "100%", overflow: "auto" }}>
-        <MacrosBar />
-      </div>
-    </PanelColorMenu>
+    <BasePanelWrapper config={config}>
+      <MacrosBar />
+    </BasePanelWrapper>
   );
 }

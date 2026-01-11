@@ -1,6 +1,8 @@
 import { type IDockviewPanelProps } from "dockview-react";
 import { PosterContent } from "@/components/dashboard/cards/PosterCard";
-import { PanelColorMenu } from "../PanelColorMenu";
+import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
+
+const config: PanelConfig = { id: "poster", context: "dashboard" };
 
 /**
  * Poster panel for Dockview
@@ -8,10 +10,8 @@ import { PanelColorMenu } from "../PanelColorMenu";
  */
 export function PosterPanel(props: IDockviewPanelProps) {
   return (
-    <PanelColorMenu panelId="poster">
-      <div data-panel-id="poster" style={{ padding: "1rem", height: "100%", overflow: "auto" }}>
-        <PosterContent />
-      </div>
-    </PanelColorMenu>
+    <BasePanelWrapper config={config}>
+      <PosterContent />
+    </BasePanelWrapper>
   );
 }
