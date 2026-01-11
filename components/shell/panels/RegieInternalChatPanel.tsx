@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { type IDockviewPanelProps } from "dockview-react";
 import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText, Megaphone, Tv, Wrench } from "lucide-react";
-import { PanelColorMenu } from "../PanelColorMenu";
+import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { Button } from "@/components/ui/button";
 import { CueType, CueSeverity, CueFrom } from "@/lib/models/Cue";
 import { cn } from "@/lib/utils";
@@ -215,12 +215,12 @@ function RegieInternalChatContent() {
   );
 }
 
+const config: PanelConfig = { id: "regieInternalChat", context: "dashboard", padding: 0, scrollable: false };
+
 export function RegieInternalChatPanel(props: IDockviewPanelProps) {
   return (
-    <PanelColorMenu panelId="regieInternalChat">
-      <div data-panel-id="regieInternalChat" style={{ height: "100%", overflow: "hidden" }}>
-        <RegieInternalChatContent />
-      </div>
-    </PanelColorMenu>
+    <BasePanelWrapper config={config}>
+      <RegieInternalChatContent />
+    </BasePanelWrapper>
   );
 }

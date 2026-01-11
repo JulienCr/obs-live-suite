@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
 import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText } from "lucide-react";
-import { PanelColorMenu } from "../PanelColorMenu";
+import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -219,12 +219,12 @@ function CueComposerContent() {
   );
 }
 
+const config: PanelConfig = { id: "cueComposer", context: "dashboard", padding: 0 };
+
 export function CueComposerPanel(props: IDockviewPanelProps) {
   return (
-    <PanelColorMenu panelId="cueComposer">
-      <div data-panel-id="cueComposer" style={{ height: "100%", overflow: "auto" }}>
-        <CueComposerContent />
-      </div>
-    </PanelColorMenu>
+    <BasePanelWrapper config={config}>
+      <CueComposerContent />
+    </BasePanelWrapper>
   );
 }
