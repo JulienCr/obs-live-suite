@@ -8,30 +8,27 @@ import { cn } from "@/lib/utils/cn";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { sendChatMessage } from "@/lib/utils/chatMessaging";
-import type { Guest } from "@/lib/models/Guest";
+import { useGuests, type Guest } from "@/lib/queries";
 
 interface GuestsCardProps {
-  size?: string;
   className?: string;
-  settings?: Record<string, unknown>;
 }
 
-/**
- * GuestsCard displays guests with quick lower third buttons
- */
-export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) {
+export function GuestsCard({ className }: GuestsCardProps = {}) {
   const t = useTranslations("dashboard.guests");
   const tCommon = useTranslations("common");
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalEnabledGuests, setTotalEnabledGuests] = useState(0);
+
+  // Use React Query hook for guest data
+  const { guests: allGuests, isLoading: loading } = useGuests({ enabled: true });
+  const guests = allGuests.slice(0, 10); // Limit to 10 for keyboard shortcuts (1-0)
+  const totalEnabledGuests = allGuests.length;
+
   const [activeGuestId, setActiveGuestId] = useState<string | null>(null);
   const [lowerThirdDuration, setLowerThirdDuration] = useState(8); // Default, will be updated from settings
   const wsRef = useRef<WebSocket | null>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    fetchGuests();
     // Fetch overlay settings
     const fetchSettings = async () => {
       try {
@@ -133,21 +130,6 @@ export function GuestsCard({ size, className, settings }: GuestsCardProps = {}) 
       }
     };
   }, []);
-
-  const fetchGuests = async () => {
-    try {
-      const data = await apiGet<{ guests: Guest[] }>("/api/assets/guests?enabled=true");
-      // API returns only enabled guests via server-side filtering
-      const allEnabledGuests = data.guests || [];
-      setTotalEnabledGuests(allEnabledGuests.length);
-      // Limit to 10 for keyboard shortcuts (1-0)
-      setGuests(allEnabledGuests.slice(0, 10));
-    } catch (error) {
-      console.error("Failed to fetch guests:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleQuickLowerThird = async (guest: Guest) => {
     try {
