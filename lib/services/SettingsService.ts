@@ -4,10 +4,7 @@ import { StreamerbotConnectionSettings, DEFAULT_STREAMERBOT_CONNECTION } from ".
 import { AppConfig } from "../config/AppConfig";
 import { TwitchSettings, TwitchOAuthTokens, DEFAULT_TWITCH_SETTINGS } from "../models/Twitch";
 import { PresenterChannelSettings, DEFAULT_QUICK_REPLIES } from "../models/PresenterChannel";
-import { ChatPredefinedMessage } from "../models/ChatMessages";
-
-// Re-export for backward compatibility
-export type { ChatPredefinedMessage } from "../models/ChatMessages";
+import type { ChatPredefinedMessage } from "../models/ChatMessages";
 
 /**
  * OBS settings interface

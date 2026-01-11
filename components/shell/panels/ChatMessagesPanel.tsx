@@ -24,12 +24,110 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import type { StreamerbotConnectionStatus } from "@/lib/models/StreamerbotChat";
-import { ChatPredefinedMessage, CHAT_MESSAGES_CONFIG } from "@/lib/models/ChatMessages";
+import type { ChatPredefinedMessage } from "@/lib/models/ChatMessages";
+import { CHAT_MESSAGES_CONFIG } from "@/lib/models/ChatMessages";
 
 const config: PanelConfig = { id: "chatMessages", context: "dashboard" };
 
 interface StreamerbotStatusResponse {
   status: StreamerbotConnectionStatus;
+}
+
+interface MessageEditFormProps {
+  title: string;
+  message: string;
+  onTitleChange: (value: string) => void;
+  onMessageChange: (value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}
+
+function MessageEditForm({ title, message, onTitleChange, onMessageChange, onSave, onCancel }: MessageEditFormProps) {
+  return (
+    <div className="flex-1 flex flex-col gap-1">
+      <div className="flex gap-1">
+        <Input
+          value={title}
+          onChange={(e) => onTitleChange(e.target.value)}
+          placeholder="Title"
+          className="h-8 text-sm"
+        />
+        <Button size="icon" variant="ghost" onClick={onSave} className="h-8 w-8">
+          <Check className="h-4 w-4" />
+        </Button>
+        <Button size="icon" variant="ghost" onClick={onCancel} className="h-8 w-8">
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      <Input
+        value={message}
+        onChange={(e) => onMessageChange(e.target.value)}
+        placeholder="Message"
+        className="h-8 text-sm text-muted-foreground"
+        onKeyDown={(e) => e.key === "Enter" && onSave()}
+      />
+    </div>
+  );
+}
+
+interface MessageEditButtonProps {
+  item: ChatPredefinedMessage;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function MessageEditButton({ item, onEdit, onDelete }: MessageEditButtonProps) {
+  return (
+    <>
+      <Button
+        variant="outline"
+        className="flex-1 justify-start h-auto py-1.5 px-2 text-sm"
+        onClick={onEdit}
+      >
+        <Pencil className="h-3 w-3 mr-2 flex-shrink-0" />
+        <div className="flex flex-col items-start overflow-hidden">
+          <span className="truncate w-full text-left">{item.title}</span>
+          <span className="truncate w-full text-left text-xs text-muted-foreground">
+            {item.message}
+          </span>
+        </div>
+      </Button>
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={onDelete}
+        className="h-8 w-8 text-destructive hover:text-destructive"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </>
+  );
+}
+
+interface MessageSendButtonProps {
+  item: ChatPredefinedMessage;
+  connected: boolean;
+  isSending: boolean;
+  disabled: boolean;
+  onSend: () => void;
+}
+
+function MessageSendButton({ item, connected, isSending, disabled, onSend }: MessageSendButtonProps) {
+  return (
+    <Button
+      variant="secondary"
+      className={cn("flex-1 justify-between h-auto py-2 px-3 text-sm", !connected && "opacity-50")}
+      onClick={onSend}
+      disabled={disabled}
+    >
+      <span className="truncate text-left">{item.title}</span>
+      {isSending ? (
+        <Loader2 className="h-4 w-4 animate-spin ml-2 flex-shrink-0" />
+      ) : (
+        <Send className="h-4 w-4 ml-2 flex-shrink-0" />
+      )}
+    </Button>
+  );
 }
 
 /**
@@ -194,6 +292,41 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
     setEditMessage("");
   };
 
+  function renderMessageItem(item: ChatPredefinedMessage, index: number) {
+    if (!editMode) {
+      return (
+        <MessageSendButton
+          item={item}
+          connected={connected}
+          isSending={sendingIndex === index}
+          disabled={sendingIndex !== null || !connected}
+          onSend={() => sendMessage(item.message, index)}
+        />
+      );
+    }
+
+    if (editingIndex === index) {
+      return (
+        <MessageEditForm
+          title={editTitle}
+          message={editMessage}
+          onTitleChange={setEditTitle}
+          onMessageChange={setEditMessage}
+          onSave={saveEdit}
+          onCancel={cancelEdit}
+        />
+      );
+    }
+
+    return (
+      <MessageEditButton
+        item={item}
+        onEdit={() => startEditing(index)}
+        onDelete={() => deleteMessage(index)}
+      />
+    );
+  }
+
   return (
     <BasePanelWrapper config={config}>
       {/* Header */}
@@ -244,76 +377,7 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
         <div className="space-y-2">
           {messages.map((item, index) => (
             <div key={index} className="flex items-center gap-2">
-              {editMode ? (
-                // Edit mode view
-                editingIndex === index ? (
-                  <div className="flex-1 flex flex-col gap-1">
-                    <div className="flex gap-1">
-                      <Input
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        placeholder="Title"
-                        className="h-8 text-sm"
-                      />
-                      <Button size="icon" variant="ghost" onClick={saveEdit} className="h-8 w-8">
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={cancelEdit} className="h-8 w-8">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Input
-                      value={editMessage}
-                      onChange={(e) => setEditMessage(e.target.value)}
-                      placeholder="Message"
-                      className="h-8 text-sm text-muted-foreground"
-                      onKeyDown={(e) => e.key === "Enter" && saveEdit()}
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="flex-1 justify-start h-auto py-1.5 px-2 text-sm"
-                      onClick={() => startEditing(index)}
-                    >
-                      <Pencil className="h-3 w-3 mr-2 flex-shrink-0" />
-                      <div className="flex flex-col items-start overflow-hidden">
-                        <span className="truncate w-full text-left">{item.title}</span>
-                        <span className="truncate w-full text-left text-xs text-muted-foreground">
-                          {item.message}
-                        </span>
-                      </div>
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => deleteMessage(index)}
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </>
-                )
-              ) : (
-                // Normal view - send buttons
-                <Button
-                  variant="secondary"
-                  className={cn(
-                    "flex-1 justify-between h-auto py-2 px-3 text-sm",
-                    !connected && "opacity-50"
-                  )}
-                  onClick={() => sendMessage(item.message, index)}
-                  disabled={sendingIndex !== null || !connected}
-                >
-                  <span className="truncate text-left">{item.title}</span>
-                  {sendingIndex === index ? (
-                    <Loader2 className="h-4 w-4 animate-spin ml-2 flex-shrink-0" />
-                  ) : (
-                    <Send className="h-4 w-4 ml-2 flex-shrink-0" />
-                  )}
-                </Button>
-              )}
+              {renderMessageItem(item, index)}
             </div>
           ))}
 
