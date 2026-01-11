@@ -3,6 +3,7 @@ import { Logger } from "../utils/Logger";
 import { StreamerbotConnectionSettings, DEFAULT_STREAMERBOT_CONNECTION } from "../models/StreamerbotChat";
 import { AppConfig } from "../config/AppConfig";
 import { TwitchSettings, TwitchOAuthTokens, DEFAULT_TWITCH_SETTINGS } from "../models/Twitch";
+import { PresenterChannelSettings, DEFAULT_QUICK_REPLIES } from "../models/PresenterChannel";
 
 /**
  * OBS settings interface
@@ -452,6 +453,78 @@ export class SettingsService {
     } catch {
       return null;
     }
+  }
+
+  // =========================================================================
+  // PRESENTER CHANNEL SETTINGS
+  // =========================================================================
+
+  /**
+   * Get presenter channel settings
+   */
+  getPresenterChannelSettings(): PresenterChannelSettings {
+    const vdoNinjaUrl = this.db.getSetting("presenter.channel.vdoNinjaUrl");
+    const quickRepliesJson = this.db.getSetting("presenter.channel.quickReplies");
+    const canSendCustomMessages = this.db.getSetting("presenter.channel.canSendCustomMessages");
+    const allowPresenterToSendMessage = this.db.getSetting("presenter.channel.allowPresenterToSendMessage");
+
+    let quickReplies: string[] = DEFAULT_QUICK_REPLIES;
+    if (quickRepliesJson) {
+      try {
+        quickReplies = JSON.parse(quickRepliesJson);
+      } catch {
+        this.logger.warn("Failed to parse presenter channel quick replies");
+      }
+    }
+
+    return {
+      vdoNinjaUrl: vdoNinjaUrl || undefined,
+      quickReplies,
+      canSendCustomMessages: canSendCustomMessages !== null
+        ? canSendCustomMessages === "true"
+        : true,
+      allowPresenterToSendMessage: allowPresenterToSendMessage !== null
+        ? allowPresenterToSendMessage === "true"
+        : true,
+    };
+  }
+
+  /**
+   * Save presenter channel settings to database
+   */
+  savePresenterChannelSettings(settings: Partial<PresenterChannelSettings>): void {
+    if (settings.vdoNinjaUrl !== undefined) {
+      if (settings.vdoNinjaUrl) {
+        this.db.setSetting("presenter.channel.vdoNinjaUrl", settings.vdoNinjaUrl);
+      } else {
+        this.db.deleteSetting("presenter.channel.vdoNinjaUrl");
+      }
+    }
+
+    if (settings.quickReplies !== undefined) {
+      this.db.setSetting("presenter.channel.quickReplies", JSON.stringify(settings.quickReplies));
+    }
+
+    if (settings.canSendCustomMessages !== undefined) {
+      this.db.setSetting("presenter.channel.canSendCustomMessages", settings.canSendCustomMessages.toString());
+    }
+
+    if (settings.allowPresenterToSendMessage !== undefined) {
+      this.db.setSetting("presenter.channel.allowPresenterToSendMessage", settings.allowPresenterToSendMessage.toString());
+    }
+
+    this.logger.info("Presenter channel settings saved to database");
+  }
+
+  /**
+   * Clear presenter channel settings from database
+   */
+  clearPresenterChannelSettings(): void {
+    this.db.deleteSetting("presenter.channel.vdoNinjaUrl");
+    this.db.deleteSetting("presenter.channel.quickReplies");
+    this.db.deleteSetting("presenter.channel.canSendCustomMessages");
+    this.db.deleteSetting("presenter.channel.allowPresenterToSendMessage");
+    this.logger.info("Presenter channel settings cleared from database");
   }
 }
 

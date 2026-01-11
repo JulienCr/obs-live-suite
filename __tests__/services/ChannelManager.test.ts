@@ -420,62 +420,24 @@ describe('ChannelManager', () => {
     });
   });
 
-  describe('Room Channel Methods', () => {
-    it('getRoomChannel should return correctly formatted channel name', () => {
+  describe('Presenter Channel Methods', () => {
+    it('getPresenterChannel should return correct channel name', () => {
       const channelManager = ChannelManager.getInstance();
-      const roomId = 'test-room-id';
 
-      const channel = channelManager.getRoomChannel(roomId);
+      const channel = channelManager.getPresenterChannel();
 
-      expect(channel).toBe('room:test-room-id');
+      expect(channel).toBe('presenter');
     });
 
-    it('isRoomChannel should return true for room channels', () => {
+    it('publishToPresenter should broadcast to presenter channel', async () => {
       const channelManager = ChannelManager.getInstance();
-
-      expect(channelManager.isRoomChannel('room:test-id')).toBe(true);
-      expect(channelManager.isRoomChannel('room:123')).toBe(true);
-      expect(channelManager.isRoomChannel('room:')).toBe(true);
-    });
-
-    it('isRoomChannel should return false for non-room channels', () => {
-      const channelManager = ChannelManager.getInstance();
-
-      expect(channelManager.isRoomChannel('lower')).toBe(false);
-      expect(channelManager.isRoomChannel('countdown')).toBe(false);
-      expect(channelManager.isRoomChannel('rooms:')).toBe(false);
-      expect(channelManager.isRoomChannel('')).toBe(false);
-    });
-
-    it('getRoomIdFromChannel should extract room ID from channel name', () => {
-      const channelManager = ChannelManager.getInstance();
-
-      expect(channelManager.getRoomIdFromChannel('room:test-room-id')).toBe('test-room-id');
-      expect(channelManager.getRoomIdFromChannel('room:123')).toBe('123');
-      expect(channelManager.getRoomIdFromChannel('room:')).toBe('');
-    });
-
-    it('getRoomIdFromChannel should return null for non-room channels', () => {
-      const channelManager = ChannelManager.getInstance();
-
-      expect(channelManager.getRoomIdFromChannel('lower')).toBeNull();
-      expect(channelManager.getRoomIdFromChannel('countdown')).toBeNull();
-      expect(channelManager.getRoomIdFromChannel('')).toBeNull();
-    });
-  });
-
-  describe('publishToRoom', () => {
-    it('should broadcast to correct room channel', async () => {
-      const channelManager = ChannelManager.getInstance();
-      const roomId = 'test-room-123';
       const payload = { message: 'Hello' };
 
-      await channelManager.publishToRoom(roomId, RoomEventType.MESSAGE, payload);
+      await channelManager.publishToPresenter(RoomEventType.MESSAGE, payload);
 
       expect(mockBroadcast).toHaveBeenCalledWith(
-        'room:test-room-123',
+        'presenter',
         expect.objectContaining({
-          roomId,
           type: RoomEventType.MESSAGE,
           payload,
           id: mockUUID,
@@ -484,67 +446,28 @@ describe('ChannelManager', () => {
       );
     });
 
-    it('should include room ID in event', async () => {
-      const channelManager = ChannelManager.getInstance();
-      const roomId = 'my-room';
-
-      await channelManager.publishToRoom(roomId, RoomEventType.JOIN, {});
-
-      const publishedEvent = mockBroadcast.mock.calls[0][1];
-      expect(publishedEvent.roomId).toBe(roomId);
-    });
-
-    it('should include timestamp and UUID', async () => {
-      const channelManager = ChannelManager.getInstance();
-      const beforeTime = Date.now();
-
-      await channelManager.publishToRoom('room-1', RoomEventType.PRESENCE, {});
-
-      const afterTime = Date.now();
-      const publishedEvent = mockBroadcast.mock.calls[0][1];
-
-      expect(publishedEvent.id).toBe(mockUUID);
-      expect(publishedEvent.timestamp).toBeGreaterThanOrEqual(beforeTime);
-      expect(publishedEvent.timestamp).toBeLessThanOrEqual(afterTime);
-    });
-
-    it('should handle undefined payload', async () => {
-      const channelManager = ChannelManager.getInstance();
-
-      await channelManager.publishToRoom('room-1', RoomEventType.LEAVE, undefined);
-
-      expect(mockBroadcast).toHaveBeenCalledWith(
-        'room:room-1',
-        expect.objectContaining({
-          payload: undefined,
-        })
-      );
-    });
-  });
-
-  describe('Room Subscriber Methods', () => {
-    it('getRoomSubscribers should query correct channel', () => {
+    it('getPresenterSubscribers should query presenter channel', () => {
       const channelManager = ChannelManager.getInstance();
       mockGetChannelSubscribers.mockReturnValue(3);
 
-      const count = channelManager.getRoomSubscribers('room-abc');
+      const count = channelManager.getPresenterSubscribers();
 
       expect(count).toBe(3);
-      expect(mockGetChannelSubscribers).toHaveBeenCalledWith('room:room-abc');
+      expect(mockGetChannelSubscribers).toHaveBeenCalledWith('presenter');
     });
 
-    it('roomHasSubscribers should return true when room has subscribers', () => {
+    it('presenterHasSubscribers should return true when presenter channel has subscribers', () => {
       const channelManager = ChannelManager.getInstance();
       mockGetChannelSubscribers.mockReturnValue(2);
 
-      expect(channelManager.roomHasSubscribers('room-1')).toBe(true);
+      expect(channelManager.presenterHasSubscribers()).toBe(true);
     });
 
-    it('roomHasSubscribers should return false when room has no subscribers', () => {
+    it('presenterHasSubscribers should return false when presenter channel has no subscribers', () => {
       const channelManager = ChannelManager.getInstance();
       mockGetChannelSubscribers.mockReturnValue(0);
 
-      expect(channelManager.roomHasSubscribers('room-1')).toBe(false);
+      expect(channelManager.presenterHasSubscribers()).toBe(false);
     });
   });
 
@@ -598,25 +521,6 @@ describe('ChannelManager', () => {
       expect(mockBroadcast).toHaveBeenCalledTimes(10);
     });
 
-    it('should handle special characters in room ID', async () => {
-      const channelManager = ChannelManager.getInstance();
-      const specialRoomId = 'room-with-special-chars_123';
-
-      await channelManager.publishToRoom(specialRoomId, RoomEventType.MESSAGE, {});
-
-      expect(mockBroadcast).toHaveBeenCalledWith(
-        `room:${specialRoomId}`,
-        expect.any(Object)
-      );
-    });
-
-    it('should handle empty string room ID', () => {
-      const channelManager = ChannelManager.getInstance();
-
-      const channel = channelManager.getRoomChannel('');
-
-      expect(channel).toBe('room:');
-    });
   });
 });
 

@@ -250,4 +250,27 @@ export class OllamaSummarizerService {
     }
     return this.provider.getName();
   }
+
+  /**
+   * Get current configuration info
+   */
+  getConfig(): { url: string; model: string; num_ctx: number } {
+    const db = DatabaseService.getInstance();
+    const providerType = db.getSetting("llm_provider") || "ollama";
+
+    if (providerType === "ollama") {
+      return {
+        url: db.getSetting("ollama_url") || "http://localhost:11434",
+        model: db.getSetting("ollama_model") || "qwen2.5:3b",
+        num_ctx: parseInt(db.getSetting("ollama_num_ctx") || "8192", 10),
+      };
+    }
+
+    // For other providers, return placeholder config
+    return {
+      url: providerType,
+      model: db.getSetting(`${providerType}_model`) || "default",
+      num_ctx: 0,
+    };
+  }
 }

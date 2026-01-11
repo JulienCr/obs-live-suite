@@ -2,84 +2,47 @@
 
 import { useState, useEffect } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
-import { Wifi, WifiOff, User, Users, AlertCircle, ExternalLink, RefreshCw } from "lucide-react";
+import { Wifi, WifiOff, Users, AlertCircle, ExternalLink, RefreshCw } from "lucide-react";
 import { PanelColorMenu } from "../PanelColorMenu";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import type { RoomPresence, Room } from "@/lib/models/Room";
-import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { getBackendUrl } from "@/lib/utils/websocket";
 import { apiGet } from "@/lib/utils/ClientFetch";
 
-function formatLastSeen(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-
-  if (diff < 60000) return "Just now";
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-  return new Date(timestamp).toLocaleDateString();
-}
-
 function PresenceStatusContent() {
-  const [room, setRoom] = useState<Room | null>(null);
-  const [presence, setPresence] = useState<RoomPresence[]>([]);
   const [wsConnected, setWsConnected] = useState(false);
+  const [wsClients, setWsClients] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPresence = async () => {
+  const fetchStatus = async () => {
     try {
-      // Fetch room info
-      try {
-        const data = await apiGet<{ room: Room }>(`/api/presenter/rooms/${DEFAULT_ROOM_ID}`);
-        setRoom(data.room);
-      } catch {
-        // Room may not exist yet
-      }
-
-      // Fetch presence from backend
-      try {
-        const presenceData = await apiGet<{ presence?: RoomPresence[] }>(
-          `${getBackendUrl()}/api/rooms/${DEFAULT_ROOM_ID}/presence`
-        );
-        setPresence(presenceData.presence || []);
-      } catch {
-        // Backend may not be available
-      }
-
       // Check WebSocket status
       try {
-        const wsData = await apiGet<{ isRunning: boolean }>(`${getBackendUrl()}/ws/stats`);
+        const wsData = await apiGet<{ isRunning: boolean; clients: number }>(`${getBackendUrl()}/ws/stats`);
         setWsConnected(wsData.isRunning);
+        setWsClients(wsData.clients || 0);
       } catch {
         setWsConnected(false);
+        setWsClients(0);
       }
 
       setError(null);
     } catch (err) {
       setError("Failed to fetch status");
-      console.error("Failed to fetch presence:", err);
+      console.error("Failed to fetch status:", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPresence();
-    const interval = setInterval(fetchPresence, 5000);
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const presenterOnline = presence.find(p => p.role === "presenter" && p.isOnline);
-  const controlOnline = presence.find(p => p.role === "control" && p.isOnline);
-  const producerOnline = presence.find(p => p.role === "producer" && p.isOnline);
-
-  const urgentUnacked = 0; // TODO: Track unacked urgent messages
-
   const openPresenterView = () => {
-    window.open(`/presenter?room=${DEFAULT_ROOM_ID}&role=presenter`, "_blank");
+    window.open("/presenter?role=presenter", "_blank");
   };
 
   if (loading) {
@@ -92,12 +55,12 @@ function PresenceStatusContent() {
 
   return (
     <div className="p-4 space-y-4">
-      {/* Room Info */}
+      {/* Connection Status */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold">Room Status</div>
+          <div className="text-sm font-semibold">Connection Status</div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={fetchPresence}>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={fetchStatus}>
               <RefreshCw className="h-3 w-3" />
             </Button>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={openPresenterView}>
@@ -124,84 +87,14 @@ function PresenceStatusContent() {
             </div>
           </div>
 
-          {/* Room ID */}
+          {/* Connected Clients */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Room</span>
-            <span className="text-sm font-mono">{room?.name || DEFAULT_ROOM_ID}</span>
-          </div>
-
-          {/* Urgent Unacked */}
-          {urgentUnacked > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Urgent Unacked</span>
-              <Badge variant="destructive">{urgentUnacked}</Badge>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Presence */}
-      <div className="space-y-3">
-        <div className="text-sm font-semibold flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          Presence
-        </div>
-        <div className="space-y-2">
-          {/* Presenter */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className={cn(
-                "h-2 w-2 rounded-full",
-                presenterOnline ? "bg-green-500" : "bg-gray-400"
-              )} />
-              <User className="h-4 w-4" />
-              <span className="text-sm">Presenter</span>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {presenterOnline
-                ? formatLastSeen(presenterOnline.lastSeen)
-                : "Offline"
-              }
+            <span className="text-sm text-muted-foreground flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Connected Clients
             </span>
+            <span className="text-sm font-mono">{wsClients}</span>
           </div>
-
-          {/* Control Room */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className={cn(
-                "h-2 w-2 rounded-full",
-                controlOnline ? "bg-blue-500" : "bg-gray-400"
-              )} />
-              <User className="h-4 w-4" />
-              <span className="text-sm">Control Room</span>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {controlOnline
-                ? formatLastSeen(controlOnline.lastSeen)
-                : "Offline"
-              }
-            </span>
-          </div>
-
-          {/* Producer (if online) */}
-          {producerOnline && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-purple-500" />
-                <User className="h-4 w-4" />
-                <span className="text-sm">Producer</span>
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {formatLastSeen(producerOnline.lastSeen)}
-              </span>
-            </div>
-          )}
-
-          {presence.length === 0 && (
-            <div className="text-center text-sm text-muted-foreground py-2">
-              No one connected
-            </div>
-          )}
         </div>
       </div>
 

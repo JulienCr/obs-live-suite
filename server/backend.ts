@@ -19,7 +19,7 @@ import { OBSConnectionManager } from "../lib/adapters/obs/OBSConnectionManager";
 import { StreamerbotGateway } from "../lib/adapters/streamerbot/StreamerbotGateway";
 import { OBSStateManager } from "../lib/adapters/obs/OBSStateManager";
 import { DatabaseService } from "../lib/services/DatabaseService";
-import { RoomService } from "../lib/services/RoomService";
+
 import { SettingsService } from "../lib/services/SettingsService";
 import { TwitchService } from "../lib/services/TwitchService";
 import { Logger } from "../lib/utils/Logger";
@@ -27,7 +27,7 @@ import { PathManager } from "../lib/config/PathManager";
 import { AppConfig } from "../lib/config/AppConfig";
 import quizRouter from "./api/quiz";
 import quizBotRouter from "./api/quiz-bot";
-import roomsRouter from "./api/rooms";
+import presenterSettingsRouter from "./api/presenter-settings";
 import cueRouter from "./api/cue";
 import streamerbotChatRouter from "./api/streamerbot-chat";
 import overlaysRouter from "./api/overlays";
@@ -131,7 +131,7 @@ class BackendServer {
     this.app.use('/api/quiz-bot', quizBotRouter);
 
     // Presenter Dashboard API
-    this.app.use('/api/rooms', roomsRouter);
+    this.app.use('/api/presenter', presenterSettingsRouter);
     this.app.use('/api/cue', cueRouter);
 
     // Streamerbot Chat Gateway API
@@ -247,17 +247,11 @@ class BackendServer {
       // 1. Initialize database
       DatabaseService.getInstance();
       this.logger.info("✓ Database initialized");
-
-      // 2. Initialize default room
-      const roomService = RoomService.getInstance();
-      await roomService.initializeDefaultRoom();
-      this.logger.info("✓ Default room initialized");
-
-      // 3. Start WebSocket Hub
+      // 2. Start WebSocket Hub
       this.wsHub.start();
       this.logger.info("✓ WebSocket hub started");
 
-      // 4. Connect to OBS
+      // 3. Connect to OBS
       try {
         await this.obsManager.connect();
         const stateManager = OBSStateManager.getInstance();
@@ -267,7 +261,7 @@ class BackendServer {
         this.logger.warn("OBS connection failed (will retry)", error);
       }
 
-      // 5. Auto-connect to Streamerbot if enabled
+      // 4. Auto-connect to Streamerbot if enabled
       try {
         const settingsService = SettingsService.getInstance();
         if (settingsService.isStreamerbotAutoConnectEnabled()) {
@@ -280,7 +274,7 @@ class BackendServer {
         this.logger.warn("Streamerbot gateway connection failed (will retry)", error);
       }
 
-      // 6. Start Twitch integration polling
+      // 5. Start Twitch integration polling
       try {
         const settingsService = SettingsService.getInstance();
         if (settingsService.isTwitchEnabled()) {
@@ -295,7 +289,7 @@ class BackendServer {
         this.logger.warn("Twitch polling failed to start", error);
       }
 
-      // 7. Start HTTP/HTTPS API server using centralized certificate manager
+      // 6. Start HTTP/HTTPS API server using centralized certificate manager
       await new Promise<void>((resolve) => {
         const { server, isHttps } = createServerWithFallback(this.app);
         this.httpServer = server;

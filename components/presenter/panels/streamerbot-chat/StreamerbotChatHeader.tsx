@@ -77,6 +77,7 @@ export function StreamerbotChatHeader({
   onClearMessages,
   onConnect,
   onDisconnect,
+  showClearButton = true,
 }: StreamerbotChatHeaderProps) {
   const t = useTranslations("presenter");
   const statusColor = getStatusColor(status);
@@ -113,14 +114,16 @@ export function StreamerbotChatHeader({
         </Button>
 
         {/* Clear messages */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={onClearMessages}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        {showClearButton && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={onClearMessages}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        )}
 
         {/* Connect/Disconnect */}
         {status === StreamerbotConnectionStatus.CONNECTED ? (

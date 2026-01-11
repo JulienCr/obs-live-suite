@@ -20,9 +20,9 @@ import {
   DbTheme,
   DbThemeInput,
   DbThemeUpdate,
-  DbRoom,
-  DbRoomInput,
-  DbRoomUpdate,
+
+
+
   DbCueMessage,
   DbCueMessageInput,
   DbCueMessageUpdate,
@@ -36,7 +36,6 @@ import {
 import { GuestRepository } from "@/lib/repositories/GuestRepository";
 import { PosterRepository } from "@/lib/repositories/PosterRepository";
 import { ProfileRepository } from "@/lib/repositories/ProfileRepository";
-import { RoomRepository } from "@/lib/repositories/RoomRepository";
 import { ThemeRepository } from "@/lib/repositories/ThemeRepository";
 import { CueMessageRepository } from "@/lib/repositories/CueMessageRepository";
 
@@ -379,6 +378,62 @@ export class DatabaseService {
       },
     });
 
+    // Migration 13: Remove roomId from cue_messages table (single-room presenter system)
+    this.runMigration({
+      name: "cue_messages_remove_roomId",
+      table: "cue_messages",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(cue_messages)").all() as Array<{ name: string }>;
+        const hasRoomId = tableInfo.some((col) => col.name === "roomId");
+
+        if (hasRoomId) {
+          this.logger.info("Recreating cue_messages table without roomId column");
+
+          // SQLite doesn't support DROP COLUMN easily, so we recreate the table
+          this.db.exec(`
+            -- Create new table without roomId
+            CREATE TABLE cue_messages_new (
+              id TEXT PRIMARY KEY,
+              type TEXT NOT NULL,
+              fromRole TEXT NOT NULL,
+              severity TEXT,
+              title TEXT,
+              body TEXT,
+              pinned INTEGER NOT NULL DEFAULT 0,
+              actions TEXT NOT NULL DEFAULT '[]',
+              countdownPayload TEXT,
+              contextPayload TEXT,
+              questionPayload TEXT,
+              seenBy TEXT NOT NULL DEFAULT '[]',
+              ackedBy TEXT NOT NULL DEFAULT '[]',
+              resolvedAt INTEGER,
+              resolvedBy TEXT,
+              createdAt INTEGER NOT NULL,
+              updatedAt INTEGER NOT NULL
+            );
+
+            -- Copy data (excluding roomId)
+            INSERT INTO cue_messages_new (id, type, fromRole, severity, title, body, pinned, actions, countdownPayload, contextPayload, questionPayload, seenBy, ackedBy, resolvedAt, resolvedBy, createdAt, updatedAt)
+            SELECT id, type, fromRole, severity, title, body, pinned, actions, countdownPayload, contextPayload, questionPayload, seenBy, ackedBy, resolvedAt, resolvedBy, createdAt, updatedAt
+            FROM cue_messages;
+
+            -- Drop old table and indexes
+            DROP INDEX IF EXISTS idx_cue_messages_roomId;
+            DROP TABLE cue_messages;
+
+            -- Rename new table
+            ALTER TABLE cue_messages_new RENAME TO cue_messages;
+
+            -- Recreate indexes (without roomId index)
+            CREATE INDEX IF NOT EXISTS idx_cue_messages_createdAt ON cue_messages(createdAt);
+            CREATE INDEX IF NOT EXISTS idx_cue_messages_pinned ON cue_messages(pinned);
+          `);
+          return true;
+        }
+        return false;
+      },
+    });
+
     this.logger.info("Database migrations completed");
   }
 
@@ -576,7 +631,6 @@ export class DatabaseService {
 
       CREATE TABLE IF NOT EXISTS cue_messages (
         id TEXT PRIMARY KEY,
-        roomId TEXT NOT NULL,
         type TEXT NOT NULL,
         fromRole TEXT NOT NULL,
         severity TEXT,
@@ -592,8 +646,7 @@ export class DatabaseService {
         resolvedAt INTEGER,
         resolvedBy TEXT,
         createdAt INTEGER NOT NULL,
-        updatedAt INTEGER NOT NULL,
-        FOREIGN KEY (roomId) REFERENCES rooms(id) ON DELETE CASCADE
+        updatedAt INTEGER NOT NULL
       );
 
       CREATE TABLE IF NOT EXISTS streamerbot_chat_messages (
@@ -643,7 +696,6 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_wikipedia_cache_query ON wikipedia_cache(query, lang);
       CREATE INDEX IF NOT EXISTS idx_wikipedia_cache_created_at ON wikipedia_cache(created_at);
       CREATE INDEX IF NOT EXISTS idx_rooms_name ON rooms(name);
-      CREATE INDEX IF NOT EXISTS idx_cue_messages_roomId ON cue_messages(roomId);
       CREATE INDEX IF NOT EXISTS idx_cue_messages_createdAt ON cue_messages(createdAt);
       CREATE INDEX IF NOT EXISTS idx_cue_messages_pinned ON cue_messages(pinned);
       CREATE INDEX IF NOT EXISTS idx_streamerbot_chat_timestamp ON streamerbot_chat_messages(timestamp DESC);
@@ -877,57 +929,20 @@ export class DatabaseService {
     return settings;
   }
 
-  // ==================== ROOMS ====================
-
-  /**
-   * Get all rooms
-   */
-  getAllRooms(): DbRoom[] {
-    return RoomRepository.getInstance().getAll();
-  }
-
-  /**
-   * Get room by ID
-   */
-  getRoomById(id: string): DbRoom | null {
-    return RoomRepository.getInstance().getById(id);
-  }
-
-  /**
-   * Create a new room
-   */
-  createRoom(room: DbRoomInput): void {
-    RoomRepository.getInstance().create(room);
-  }
-
-  /**
-   * Update a room
-   */
-  updateRoom(id: string, updates: DbRoomUpdate): void {
-    RoomRepository.getInstance().update(id, updates);
-  }
-
-  /**
-   * Delete a room
-   */
-  deleteRoom(id: string): void {
-    RoomRepository.getInstance().delete(id);
-  }
-
   // ==================== CUE MESSAGES ====================
 
   /**
-   * Get messages by room ID with optional limit and cursor
+   * Get recent messages with optional limit and cursor
    */
-  getMessagesByRoom(roomId: string, limit: number = 50, cursor?: number): DbCueMessage[] {
-    return CueMessageRepository.getInstance().getByRoom(roomId, limit, cursor);
+  getRecentMessages(limit: number = 50, cursor?: number): DbCueMessage[] {
+    return CueMessageRepository.getInstance().getRecent(limit, cursor);
   }
 
   /**
-   * Get pinned messages by room ID
+   * Get all pinned messages
    */
-  getPinnedMessages(roomId: string): DbCueMessage[] {
-    return CueMessageRepository.getInstance().getPinned(roomId);
+  getPinnedMessages(): DbCueMessage[] {
+    return CueMessageRepository.getInstance().getPinned();
   }
 
   /**
@@ -959,17 +974,17 @@ export class DatabaseService {
   }
 
   /**
-   * Delete old messages from a room, keeping only the most recent N
+   * Delete old messages, keeping only the most recent N
    */
-  deleteOldMessages(roomId: string, keepCount: number = 100): void {
-    CueMessageRepository.getInstance().deleteOld(roomId, keepCount);
+  deleteOldMessages(keepCount: number = 100): void {
+    CueMessageRepository.getInstance().deleteOld(keepCount);
   }
 
   /**
-   * Clear all messages from a room (including pinned)
+   * Clear all cue messages (including pinned)
    */
-  clearRoomMessages(roomId: string): void {
-    CueMessageRepository.getInstance().clearRoom(roomId);
+  clearAllMessages(): void {
+    CueMessageRepository.getInstance().clearAll();
   }
 
   // ==================== STREAMERBOT CHAT MESSAGES ====================

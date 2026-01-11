@@ -321,6 +321,8 @@
       "profiles": "Profils",
       "guests": "Invités",
       "rooms": "Salles",
+      "presenterChannel": "Canal presentateur",
+      "streamerbot": "Streamer.bot",
       "obs": "OBS",
       "twitch": "Twitch",
       "streamDeck": "Stream Deck",
@@ -397,6 +399,25 @@
       "configPriority": "Priorité de configuration :",
       "configPriorityDesc": "Les paramètres enregistrés ici ont priorité sur le fichier .env. Utilisez « Effacer et utiliser .env » pour revenir aux variables d'environnement."
     },
+    "streamerbot": {
+      "title": "Connexion Streamer.bot",
+      "description": "Configurer la connexion au serveur WebSocket Streamer.bot pour l'integration chat",
+      "loading": "Chargement des parametres...",
+      "connected": "Connecte",
+      "connecting": "Connexion en cours...",
+      "disconnected": "Deconnecte",
+      "connect": "Connecter",
+      "disconnect": "Deconnecter",
+      "saving": "Enregistrement...",
+      "saveSettings": "Enregistrer les parametres",
+      "saveSuccess": "Parametres enregistres avec succes !",
+      "saveFailed": "Echec de l'enregistrement des parametres",
+      "setupGuide": "Guide d'installation",
+      "setupStep1": "Ouvrez Streamer.bot et allez dans Servers/Clients -> WebSocket Server",
+      "setupStep2": "Activez le serveur WebSocket et notez l'Hote, le Port et l'Endpoint",
+      "setupStep3": "Si l'authentification est activee, copiez le mot de passe",
+      "setupStep4": "Entrez les details de connexion ci-dessus et testez la connexion"
+    },
     "rooms": {
       "title": "Salles de présentateur",
       "description": "Configurez les salles de présentateur avec retour vidéo VDO.Ninja et intégration chat Twitch",
@@ -443,6 +464,27 @@
       "failedToCreate": "Échec de la création de la salle",
       "failedToUpdate": "Échec de la mise à jour de la salle",
       "failedToDelete": "Échec de la suppression de la salle"
+    },
+    "presenterChannel": {
+      "title": "Paramètres du canal présentateur",
+      "description": "Configurer le canal présentateur avec le retour vidéo VDO.Ninja et les options de réponse rapide",
+      "loading": "Chargement des paramètres...",
+      "saving": "Enregistrement...",
+      "saveSettings": "Enregistrer les paramètres",
+      "settingsSaved": "Paramètres enregistrés avec succès !",
+      "saveFailed": "Échec de l'enregistrement des paramètres",
+      "failedToLoad": "Échec du chargement des paramètres",
+      "vdoNinjaUrl": "URL VDO.Ninja (retour vidéo)",
+      "vdoNinjaUrlPlaceholder": "https://vdo.ninja/?view=...",
+      "vdoNinjaUrlHelp": "Optionnel. URL iframe intégrée pour le retour vidéo vers le présentateur.",
+      "quickReplies": "Réponses rapides",
+      "quickRepliesPlaceholder": "Ajouter un bouton de réponse rapide",
+      "quickRepliesHelp": "Boutons de réponse rapide affichés au présentateur (max {max}).",
+      "maxRepliesReached": "Maximum de {max} réponses rapides atteint.",
+      "allowCustomMessages": "Autoriser les messages personnalisés",
+      "allowCustomMessagesHelp": "Si activé, les présentateurs peuvent taper et envoyer des messages personnalisés à la régie.",
+      "allowPresenterChat": "Autoriser le présentateur à envoyer des messages au chat",
+      "allowPresenterChatHelp": "Si activé, les présentateurs peuvent envoyer des messages au chat Twitch/YouTube via Streamer.bot."
     },
     "paths": {
       "title": "Configuration des chemins",
@@ -1054,6 +1096,12 @@
     "actions": {
       "clear": "Vider",
       "clearHistory": "Vider l'historique",
+      "clearHistoryConfirm": {
+        "title": "Vider l'historique des messages ?",
+        "description": "Cela supprimera définitivement tous les messages de cue. Cette action est irréversible.",
+        "cancel": "Annuler",
+        "confirm": "Tout vider"
+      },
       "ok": "OK",
       "take": "Take",
       "skip": "Skip",
@@ -1070,7 +1118,6 @@
       "presenter": "Présentateur",
       "controlRoom": "Régie",
       "system": "Système",
-      "room": "Salle : {roomId}",
       "highlight": "Highlight"
     },
     "quickReplies": {

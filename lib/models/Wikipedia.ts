@@ -110,6 +110,7 @@ export const wikipediaCacheEntrySchema = z.object({
   source: z.nativeEnum(WikipediaSource),
   created_at: z.number(),
   ttl: z.number().default(604800), // 7 days in seconds
+  raw_extract: z.string().nullable().optional(), // Raw Wikipedia extract
 });
 
 export type WikipediaCacheEntry = z.infer<typeof wikipediaCacheEntrySchema>;

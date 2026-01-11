@@ -43,7 +43,7 @@ interface QuestionStageProps {
   playerChoices: Record<string, string>; // playerId -> option
   viewerVotes: Record<string, number>; // option -> count
   viewerPercentages: Record<string, number>; // option -> percentage
-  correctAnswer?: number | string; // The correct answer for this question
+  correctAnswer?: number | string | { min: number; max: number }; // The correct answer for this question
   questionFinished: boolean;
   selectedWinners?: string[]; // New: array of winner player IDs
 }

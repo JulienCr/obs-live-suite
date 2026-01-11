@@ -7,7 +7,6 @@ import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText, Megaphone
 import { PanelColorMenu } from "../PanelColorMenu";
 import { Button } from "@/components/ui/button";
 import { CueType, CueSeverity, CueFrom } from "@/lib/models/Cue";
-import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { cn } from "@/lib/utils";
 import { apiPost } from "@/lib/utils/ClientFetch";
 
@@ -50,7 +49,6 @@ function RegieInternalChatContent() {
     setSending(true);
     try {
       const payload: Record<string, unknown> = {
-        roomId: DEFAULT_ROOM_ID,
         type: cueType,
         from: CueFrom.CONTROL,
         body: body.trim() || undefined,

@@ -3,7 +3,7 @@ import { OBSConnectionManager } from "../adapters/obs/OBSConnectionManager";
 import { OBSStateManager } from "../adapters/obs/OBSStateManager";
 import { DatabaseService } from "../services/DatabaseService";
 import { ThemeService } from "../services/ThemeService";
-import { RoomService } from "../services/RoomService";
+
 import { WorkspaceService } from "../services/WorkspaceService";
 import { Logger } from "../utils/Logger";
 import { PathManager } from "../config/PathManager";
@@ -56,10 +56,8 @@ export class ServerInit {
       await themeService.initializeDefaultThemes();
       this.logger.info("✓ Default themes initialized");
 
-      // Initialize default room
-      const roomService = RoomService.getInstance();
-      await roomService.initializeDefaultRoom();
-      this.logger.info("✓ Default room initialized");
+      // Note: Room system was removed - presenter now uses a single channel
+      // See ChannelManager for the presenter channel configuration
 
       // Initialize built-in workspaces
       const workspaceService = WorkspaceService.getInstance();

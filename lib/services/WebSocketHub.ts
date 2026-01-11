@@ -4,7 +4,7 @@ import { Server as HTTPSServer } from "https";
 import { AppConfig } from "../config/AppConfig";
 import { Logger } from "../utils/Logger";
 import { randomUUID } from "crypto";
-import { RoomPresence, RoomRole } from "../models/Room";
+import { PresenterPresence, PresenterRole } from "../models/PresenterChannel";
 import { createHttpServerWithFallback } from "../utils/CertificateManager";
 import { WEBSOCKET } from "../config/Constants";
 
@@ -16,8 +16,8 @@ interface WSClient {
   ws: WebSocket;
   channels: Set<string>;
   isAlive: boolean;
-  roomId?: string;
-  role?: RoomRole;
+  isPresenter?: boolean;
+  role?: PresenterRole;
   lastActivity?: number;
 }
 
@@ -29,18 +29,18 @@ export class WebSocketHub {
   private wss: WebSocketServer | null;
   private httpServer: HTTPServer | HTTPSServer | null;
   private clients: Map<string, WSClient>;
-  private roomPresence: Map<string, Map<string, RoomPresence>>;
+  private presenterPresence: Map<string, PresenterPresence>;
   private logger: Logger;
   private config: AppConfig;
   private heartbeatInterval?: NodeJS.Timeout;
   private startAttempted: boolean;
-  private onRoomJoinCallback?: (roomId: string, clientId: string, role: RoomRole) => void;
+  private onPresenterJoinCallback?: (clientId: string, role: PresenterRole) => void;
 
   private constructor() {
     this.wss = null;
     this.httpServer = null;
     this.clients = new Map();
-    this.roomPresence = new Map();
+    this.presenterPresence = new Map();
     this.logger = new Logger("WebSocketHub");
     this.config = AppConfig.getInstance();
     this.startAttempted = false;
@@ -219,16 +219,14 @@ export class WebSocketHub {
           }
           break;
 
-        case "join-room":
-          if (message.roomId && message.role) {
-            this.handleJoinRoom(clientId, message.roomId, message.role);
+        case "join-presenter":
+          if (message.role) {
+            this.handleJoinPresenter(clientId, message.role);
           }
           break;
 
-        case "leave-room":
-          if (message.roomId) {
-            this.handleLeaveRoom(clientId, message.roomId);
-          }
+        case "leave-presenter":
+          this.handleLeavePresenter(clientId);
           break;
 
         case "cue-action":
@@ -328,85 +326,74 @@ export class WebSocketHub {
     return count;
   }
 
-  // ==================== ROOM METHODS ====================
+  // ==================== PRESENTER METHODS ====================
 
   /**
-   * Set callback for room join events (used by backend to send replay)
+   * Set callback for presenter join events (used by backend to send replay)
    */
-  setOnRoomJoinCallback(callback: (roomId: string, clientId: string, role: RoomRole) => void): void {
-    this.onRoomJoinCallback = callback;
+  setOnPresenterJoinCallback(callback: (clientId: string, role: PresenterRole) => void): void {
+    this.onPresenterJoinCallback = callback;
   }
 
   /**
-   * Handle client joining a room
+   * Handle client joining the presenter channel
    */
-  private handleJoinRoom(clientId: string, roomId: string, role: RoomRole): void {
+  private handleJoinPresenter(clientId: string, role: PresenterRole): void {
     const client = this.clients.get(clientId);
     if (!client) return;
 
-    const roomChannel = `room:${roomId}`;
-
-    // Leave previous room if any
-    if (client.roomId && client.roomId !== roomId) {
-      this.handleLeaveRoom(clientId, client.roomId);
+    // Leave presenter channel if already joined (rejoin scenario)
+    if (client.isPresenter) {
+      this.handleLeavePresenter(clientId);
     }
 
     // Update client metadata
-    client.roomId = roomId;
+    client.isPresenter = true;
     client.role = role;
     client.lastActivity = Date.now();
-    client.channels.add(roomChannel);
+    client.channels.add("presenter");
 
     // Update presence
-    this.updatePresence(roomId, clientId, role, true);
+    this.updatePresence(clientId, role, true);
 
-    this.logger.info(`Client ${clientId} joined room ${roomId} as ${role}`);
+    this.logger.info(`Client ${clientId} joined presenter channel as ${role}`);
 
-    // Broadcast presence update to room
-    this.broadcastPresence(roomId);
+    // Broadcast presence update to presenter channel
+    this.broadcastPresence();
 
     // Trigger callback for replay (handled by backend)
-    if (this.onRoomJoinCallback) {
-      this.onRoomJoinCallback(roomId, clientId, role);
+    if (this.onPresenterJoinCallback) {
+      this.onPresenterJoinCallback(clientId, role);
     }
   }
 
   /**
-   * Handle client leaving a room
+   * Handle client leaving the presenter channel
    */
-  private handleLeaveRoom(clientId: string, roomId: string): void {
+  private handleLeavePresenter(clientId: string): void {
     const client = this.clients.get(clientId);
     if (!client) return;
 
-    const roomChannel = `room:${roomId}`;
-
     // Remove from channel
-    client.channels.delete(roomChannel);
-    client.roomId = undefined;
+    client.channels.delete("presenter");
+    client.isPresenter = undefined;
     client.role = undefined;
 
     // Update presence
-    this.updatePresence(roomId, clientId, undefined, false);
+    this.updatePresence(clientId, undefined, false);
 
-    this.logger.info(`Client ${clientId} left room ${roomId}`);
+    this.logger.info(`Client ${clientId} left presenter channel`);
 
-    // Broadcast presence update to room
-    this.broadcastPresence(roomId);
+    // Broadcast presence update to presenter channel
+    this.broadcastPresence();
   }
 
   /**
-   * Update presence for a client in a room
+   * Update presence for a client in the presenter channel
    */
-  private updatePresence(roomId: string, clientId: string, role: RoomRole | undefined, isOnline: boolean): void {
-    if (!this.roomPresence.has(roomId)) {
-      this.roomPresence.set(roomId, new Map());
-    }
-
-    const roomClients = this.roomPresence.get(roomId)!;
-
+  private updatePresence(clientId: string, role: PresenterRole | undefined, isOnline: boolean): void {
     if (isOnline && role) {
-      roomClients.set(clientId, {
-        roomId,
+      this.presenterPresence.set(clientId, {
         clientId,
         role,
         isOnline: true,
@@ -414,7 +401,7 @@ export class WebSocketHub {
         lastActivity: Date.now(),
       });
     } else {
-      roomClients.delete(clientId);
+      this.presenterPresence.delete(clientId);
     }
   }
 
@@ -423,12 +410,9 @@ export class WebSocketHub {
    */
   private updatePresenceActivity(clientId: string): void {
     const client = this.clients.get(clientId);
-    if (!client || !client.roomId) return;
+    if (!client || !client.isPresenter) return;
 
-    const roomClients = this.roomPresence.get(client.roomId);
-    if (!roomClients) return;
-
-    const presence = roomClients.get(clientId);
+    const presence = this.presenterPresence.get(clientId);
     if (presence) {
       presence.lastActivity = Date.now();
       presence.lastSeen = Date.now();
@@ -436,39 +420,33 @@ export class WebSocketHub {
   }
 
   /**
-   * Broadcast presence update to all clients in a room
+   * Broadcast presence update to all clients in the presenter channel
    */
-  broadcastPresence(roomId: string): void {
-    const roomChannel = `room:${roomId}`;
-    const presence = this.getPresence(roomId);
+  broadcastPresence(): void {
+    const presence = this.getPresenterPresence();
 
-    this.broadcast(roomChannel, {
+    this.broadcast("presenter", {
       type: "presence",
-      roomId,
       presence,
       timestamp: Date.now(),
     });
   }
 
   /**
-   * Get presence for a room
+   * Get presence for the presenter channel
    */
-  getPresence(roomId: string): RoomPresence[] {
-    const roomClients = this.roomPresence.get(roomId);
-    if (!roomClients) return [];
-
-    return Array.from(roomClients.values());
+  getPresenterPresence(): PresenterPresence[] {
+    return Array.from(this.presenterPresence.values());
   }
 
   /**
    * Send replay data to a specific client
    */
-  sendReplay(clientId: string, roomId: string, messages: unknown[], pinnedMessages: unknown[]): void {
-    const presence = this.getPresence(roomId);
+  sendReplay(clientId: string, messages: unknown[], pinnedMessages: unknown[]): void {
+    const presence = this.getPresenterPresence();
 
     this.sendToClient(clientId, {
       type: "replay",
-      roomId,
       messages,
       pinnedMessages,
       presence,
@@ -477,12 +455,12 @@ export class WebSocketHub {
   }
 
   /**
-   * Handle client disconnect - clean up room presence
+   * Handle client disconnect - clean up presenter presence
    */
   private handleClientDisconnect(clientId: string): void {
     const client = this.clients.get(clientId);
-    if (client?.roomId) {
-      this.handleLeaveRoom(clientId, client.roomId);
+    if (client?.isPresenter) {
+      this.handleLeavePresenter(clientId);
     }
   }
 }

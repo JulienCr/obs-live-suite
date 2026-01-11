@@ -7,7 +7,6 @@ import { PanelColorMenu } from "../PanelColorMenu";
 import { Button } from "@/components/ui/button";
 import { usePresenterWebSocket } from "@/components/presenter/hooks/usePresenterWebSocket";
 import { CueFeedPanel } from "@/components/presenter/panels/CueFeedPanel";
-import { DEFAULT_ROOM_ID } from "@/lib/models/Room";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { CueMessage } from "@/lib/models/Cue";
@@ -21,7 +20,7 @@ function RegieInternalChatViewContent() {
     pinnedMessages,
     sendAction,
     clearHistory,
-  } = usePresenterWebSocket(DEFAULT_ROOM_ID, "control");
+  } = usePresenterWebSocket("control");
 
   const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
   const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);

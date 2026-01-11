@@ -25,9 +25,8 @@ import { useChatHighlightSync } from "@/hooks/useChatHighlightSync";
  * into a complete chat interface.
  */
 export function StreamerbotChatPanel({
-  connectionSettings,
-  roomId,
   allowSendMessage = false,
+  showClearButton = true,
 }: StreamerbotChatPanelProps) {
   const t = useTranslations("presenter");
   const { toast } = useToast();
@@ -72,7 +71,8 @@ export function StreamerbotChatPanel({
     highlightRules: preferences.highlightRules,
   });
 
-  // Connection management
+  // Connection management - settings are managed by the backend gateway
+  // We pass a truthy object to allow connect() to proceed; actual settings are on the backend
   const {
     status,
     error,
@@ -82,7 +82,7 @@ export function StreamerbotChatPanel({
     sendMessage,
     canSendMessages,
   } = useStreamerbotClient({
-    settings: connectionSettings ?? null,
+    settings: { host: "", port: 0, endpoint: "", scheme: "ws" } as any, // Backend manages actual settings
     onMessage: addMessage,
     onError: (err) => {
       // Only log unexpected errors, not connection refused
@@ -149,19 +149,6 @@ export function StreamerbotChatPanel({
     }
   }, [showingInOverlayId, currentlyDisplayedId, toast, t]);
 
-  // No settings configured - show placeholder
-  if (!connectionSettings) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center bg-muted/50 text-muted-foreground p-4">
-        <MessageSquare className="h-8 w-8 mb-2" />
-        <p className="text-sm font-medium">{t("streamerbot.notConfigured")}</p>
-        <p className="text-xs mt-1 text-center">
-          {t("streamerbot.configureConnection")}
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Header with status and controls */}
@@ -175,6 +162,7 @@ export function StreamerbotChatPanel({
         onClearMessages={clearMessages}
         onConnect={connect}
         onDisconnect={disconnect}
+        showClearButton={showClearButton}
       />
 
       {/* Search bar (conditional) */}

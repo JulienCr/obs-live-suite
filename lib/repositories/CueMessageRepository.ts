@@ -64,14 +64,14 @@ export class CueMessageRepository {
   }
 
   /**
-   * Get messages by room ID with optional limit and cursor
+   * Get recent messages with optional limit and cursor for pagination
    */
-  getByRoom(roomId: string, limit: number = 50, cursor?: number): DbCueMessage[] {
-    let query = "SELECT * FROM cue_messages WHERE roomId = ?";
-    const params: (string | number)[] = [roomId];
+  getRecent(limit: number = 50, cursor?: number): DbCueMessage[] {
+    let query = "SELECT * FROM cue_messages";
+    const params: number[] = [];
 
     if (cursor) {
-      query += " AND createdAt < ?";
+      query += " WHERE createdAt < ?";
       params.push(cursor);
     }
 
@@ -85,11 +85,11 @@ export class CueMessageRepository {
   }
 
   /**
-   * Get pinned messages by room ID
+   * Get all pinned messages
    */
-  getPinned(roomId: string): DbCueMessage[] {
-    const stmt = this.db.prepare("SELECT * FROM cue_messages WHERE roomId = ? AND pinned = 1 ORDER BY createdAt DESC");
-    const rows = stmt.all(roomId) as RawCueMessageRow[];
+  getPinned(): DbCueMessage[] {
+    const stmt = this.db.prepare("SELECT * FROM cue_messages WHERE pinned = 1 ORDER BY createdAt DESC");
+    const rows = stmt.all() as RawCueMessageRow[];
 
     return rows.map((row) => this.parseRow(row));
   }
@@ -112,12 +112,11 @@ export class CueMessageRepository {
   create(message: DbCueMessageInput): DbCueMessage {
     const now = Date.now();
     const stmt = this.db.prepare(`
-      INSERT INTO cue_messages (id, roomId, type, fromRole, severity, title, body, pinned, actions, countdownPayload, contextPayload, questionPayload, seenBy, ackedBy, resolvedAt, resolvedBy, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO cue_messages (id, type, fromRole, severity, title, body, pinned, actions, countdownPayload, contextPayload, questionPayload, seenBy, ackedBy, resolvedAt, resolvedBy, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       message.id,
-      message.roomId,
       message.type,
       message.fromRole,
       message.severity || null,
@@ -200,35 +199,32 @@ export class CueMessageRepository {
   }
 
   /**
-   * Delete old messages from a room, keeping only the most recent N
+   * Delete old messages, keeping only the most recent N
    */
-  deleteOld(roomId: string, keepCount: number = 100): void {
+  deleteOld(keepCount: number = 100): void {
     // Get the cutoff timestamp
     const stmt = this.db.prepare(`
       SELECT createdAt FROM cue_messages
-      WHERE roomId = ? AND pinned = 0
+      WHERE pinned = 0
       ORDER BY createdAt DESC
       LIMIT 1 OFFSET ?
     `);
-    const row = stmt.get(roomId, keepCount - 1) as { createdAt: number } | undefined;
+    const row = stmt.get(keepCount - 1) as { createdAt: number } | undefined;
 
     if (row) {
       const deleteStmt = this.db.prepare(`
         DELETE FROM cue_messages
-        WHERE roomId = ? AND pinned = 0 AND createdAt < ?
+        WHERE pinned = 0 AND createdAt < ?
       `);
-      deleteStmt.run(roomId, row.createdAt);
+      deleteStmt.run(row.createdAt);
     }
   }
 
   /**
-   * Clear all messages from a room (including pinned)
+   * Clear all messages (including pinned)
    */
-  clearRoom(roomId: string): void {
-    const stmt = this.db.prepare(`
-      DELETE FROM cue_messages
-      WHERE roomId = ?
-    `);
-    stmt.run(roomId);
+  clearAll(): void {
+    const stmt = this.db.prepare(`DELETE FROM cue_messages`);
+    stmt.run();
   }
 }

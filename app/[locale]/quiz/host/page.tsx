@@ -69,8 +69,9 @@ export default function QuizHostPage() {
     state.session?.rounds[state.currentRoundIndex];
   const currentQuestion = currentRound?.questions[state.currentQuestionIndex];
   const canGoPrev = state.currentQuestionIndex > 0;
-  const canGoNext =
-    currentRound && state.currentQuestionIndex < currentRound.questions.length - 1;
+  const canGoNext = Boolean(
+    currentRound && state.currentQuestionIndex < currentRound.questions.length - 1
+  );
 
   // Listen for score updates to show toasts
   useEffect(() => {
