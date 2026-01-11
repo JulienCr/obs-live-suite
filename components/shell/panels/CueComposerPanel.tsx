@@ -221,7 +221,7 @@ function CueComposerContent() {
 
 const config: PanelConfig = { id: "cueComposer", context: "dashboard", padding: 0 };
 
-export function CueComposerPanel(props: IDockviewPanelProps) {
+export function CueComposerPanel(_props: IDockviewPanelProps) {
   return (
     <BasePanelWrapper config={config}>
       <CueComposerContent />

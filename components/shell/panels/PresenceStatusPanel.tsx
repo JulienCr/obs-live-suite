@@ -117,7 +117,7 @@ function PresenceStatusContent() {
 
 const config: PanelConfig = { id: "presenceStatus", context: "dashboard", padding: 0 };
 
-export function PresenceStatusPanel(props: IDockviewPanelProps) {
+export function PresenceStatusPanel(_props: IDockviewPanelProps) {
   return (
     <BasePanelWrapper config={config}>
       <PresenceStatusContent />

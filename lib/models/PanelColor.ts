@@ -21,12 +21,6 @@ export const PANEL_IDS = [
 export type PanelId = (typeof PANEL_IDS)[number];
 
 /**
- * Extended panel ID type that allows custom IDs beyond the predefined ones.
- * Use this for new panels that haven't been added to PANEL_IDS yet.
- */
-export type ExtendedPanelId = PanelId | (string & {});
-
-/**
  * Color schemes available for panel customization
  */
 export const COLOR_SCHEMES = [

@@ -8,7 +8,7 @@ const config: PanelConfig = { id: "eventLog", context: "dashboard" };
  * Event Log panel for Dockview
  * Wraps the existing EventLog component
  */
-export function EventLogPanel(props: IDockviewPanelProps) {
+export function EventLogPanel(_props: IDockviewPanelProps) {
   return (
     <BasePanelWrapper config={config}>
       <EventLog />

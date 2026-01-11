@@ -1,5 +1,3 @@
-import type { IDockviewPanelProps } from "dockview-react";
-
 /**
  * Panel context type - determines which wrapper features are enabled
  */
@@ -40,9 +38,6 @@ export interface BasePanelWrapperProps {
 
   /** Panel content */
   children: React.ReactNode;
-
-  /** Dockview props (passed through for dashboard panels) */
-  dockviewProps?: IDockviewPanelProps;
 
   /** Override padding */
   padding?: string | number;

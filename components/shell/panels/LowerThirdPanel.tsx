@@ -30,7 +30,7 @@ const config: PanelConfig = { id: "lowerThird", context: "dashboard" };
 /**
  * Lower Third panel for Dockview - displays lower third controls without Card wrapper
  */
-export function LowerThirdPanel(props: IDockviewPanelProps) {
+export function LowerThirdPanel(_props: IDockviewPanelProps) {
   const t = useTranslations("dashboard.lowerThird");
   const [mode, setMode] = useState<"guest" | "text">("guest");
   const [title, setTitle] = useState("");

@@ -140,7 +140,7 @@ function RegieInternalChatViewContent() {
 
 const config: PanelConfig = { id: "regieInternalChatView", context: "dashboard", padding: 0, scrollable: false };
 
-export function RegieInternalChatViewPanel(props: IDockviewPanelProps) {
+export function RegieInternalChatViewPanel(_props: IDockviewPanelProps) {
   return (
     <BasePanelWrapper config={config}>
       <RegieInternalChatViewContent />

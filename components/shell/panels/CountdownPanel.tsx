@@ -15,7 +15,7 @@ const config: PanelConfig = { id: "countdown", context: "dashboard" };
 /**
  * Countdown panel for Dockview - displays countdown controls without Card wrapper
  */
-export function CountdownPanel(props: IDockviewPanelProps) {
+export function CountdownPanel(_props: IDockviewPanelProps) {
   const [minutes, setMinutes] = useState(5);
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);

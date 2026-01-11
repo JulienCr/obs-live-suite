@@ -22,7 +22,7 @@ interface Guest {
 /**
  * Guests panel for Dockview - displays guests without Card wrapper
  */
-export function GuestsPanel(props: IDockviewPanelProps) {
+export function GuestsPanel(_props: IDockviewPanelProps) {
   const t = useTranslations("dashboard.guests");
   const tCommon = useTranslations("common");
   const [guests, setGuests] = useState<Guest[]>([]);

@@ -204,7 +204,7 @@ function RegiePublicChatContent() {
 
 const config: PanelConfig = { id: "regiePublicChat", context: "dashboard", padding: 0, scrollable: false };
 
-export function RegiePublicChatPanel(props: IDockviewPanelProps) {
+export function RegiePublicChatPanel(_props: IDockviewPanelProps) {
   return (
     <BasePanelWrapper config={config}>
       <RegiePublicChatContent />

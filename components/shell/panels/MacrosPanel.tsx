@@ -8,7 +8,7 @@ const config: PanelConfig = { id: "macros", context: "dashboard" };
  * Macros panel for Dockview
  * Wraps the existing MacrosBar component
  */
-export function MacrosPanel(props: IDockviewPanelProps) {
+export function MacrosPanel(_props: IDockviewPanelProps) {
   return (
     <BasePanelWrapper config={config}>
       <MacrosBar />

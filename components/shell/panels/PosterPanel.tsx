@@ -8,7 +8,7 @@ const config: PanelConfig = { id: "poster", context: "dashboard" };
  * Poster panel for Dockview
  * Uses PosterContent directly without Card wrapper (title is in the tab)
  */
-export function PosterPanel(props: IDockviewPanelProps) {
+export function PosterPanel(_props: IDockviewPanelProps) {
   return (
     <BasePanelWrapper config={config}>
       <PosterContent />
