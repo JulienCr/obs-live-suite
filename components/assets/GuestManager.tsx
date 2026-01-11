@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,27 +12,23 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { AvatarUploader } from "./AvatarUploader";
 import { VirtualizedGuestGrid } from "./VirtualizedGuestGrid";
 import { Plus, User, ChevronDown, ChevronUp, Users } from "lucide-react";
-import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/utils/ClientFetch";
+import { apiPost } from "@/lib/utils/ClientFetch";
+import { useGuests, type Guest } from "@/lib/queries";
 
-interface Guest {
-  id: string;
-  displayName: string;
-  subtitle?: string;
-  accentColor: string;
-  avatarUrl?: string;
-  chatMessage?: string;
-  isEnabled: boolean;
-  createdAt?: string;
-}
-
-/**
- * Guest management component with virtualized grids and search
- */
 export function GuestManager() {
   const t = useTranslations("assets.guests");
   const tCommon = useTranslations("common");
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Use React Query hook for guest data and mutations
+  const {
+    guests,
+    isLoading: loading,
+    toggleEnabled,
+    deleteGuest,
+    createGuest,
+    updateGuest,
+  } = useGuests();
+
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showDisabled, setShowDisabled] = useState(false);
@@ -46,42 +42,20 @@ export function GuestManager() {
     chatMessage: "",
   });
 
-  useEffect(() => {
-    fetchGuests();
-  }, []);
-
-  const fetchGuests = async () => {
-    try {
-      const data = await apiGet<{ guests: Guest[] }>("/api/assets/guests");
-      setGuests(data.guests || []);
-    } catch (error) {
-      console.error("Failed to fetch guests:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    try {
-      if (editingId) {
-        // Update existing guest
-        console.log("[GuestManager] Updating guest with data:", formData);
-        await apiPatch<Guest>(`/api/assets/guests/${editingId}`, formData);
-        fetchGuests();
-        setShowForm(false);
-        setEditingId(null);
-        resetForm();
-      } else {
-        // Create new guest
-        console.log("[GuestManager] Creating new guest with data:", formData);
-        const result = await apiPost<{ guest: Guest }>("/api/assets/guests", formData);
-        console.log("[GuestManager] Guest created successfully:", result);
-        fetchGuests();
-        setShowForm(false);
-        resetForm();
-      }
-    } catch (error) {
-      console.error("Failed to save guest:", error);
+  const handleSubmit = () => {
+    if (editingId) {
+      // Update existing guest
+      console.log("[GuestManager] Updating guest with data:", formData);
+      updateGuest({ id: editingId, ...formData });
+      setShowForm(false);
+      setEditingId(null);
+      resetForm();
+    } else {
+      // Create new guest
+      console.log("[GuestManager] Creating new guest with data:", formData);
+      createGuest(formData);
+      setShowForm(false);
+      resetForm();
     }
   };
 
@@ -113,24 +87,13 @@ export function GuestManager() {
     });
   };
 
-  const handleToggleEnabled = async (guest: Guest) => {
-    try {
-      await apiPatch<Guest>(`/api/assets/guests/${guest.id}`, { isEnabled: !guest.isEnabled });
-      fetchGuests();
-    } catch (error) {
-      console.error("Failed to toggle guest:", error);
-    }
+  const handleToggleEnabled = (guest: Guest) => {
+    toggleEnabled({ id: guest.id, isEnabled: !guest.isEnabled });
   };
 
-  const handleDelete = async (guest: Guest) => {
+  const handleDelete = (guest: Guest) => {
     if (!confirm(`Delete ${guest.displayName}?`)) return;
-
-    try {
-      await apiDelete<{ success: boolean }>(`/api/assets/guests/${guest.id}`);
-      fetchGuests();
-    } catch (error) {
-      console.error("Failed to delete guest:", error);
-    }
+    deleteGuest(guest.id);
   };
 
   const handleQuickLowerThird = async (guest: Guest) => {
@@ -143,15 +106,10 @@ export function GuestManager() {
     }
   };
 
-  const handleEnableFromSearch = async (guestId: string) => {
-    try {
-      await apiPatch<Guest>(`/api/assets/guests/${guestId}`, { isEnabled: true });
-      fetchGuests();
-      setSearchOpen(false);
-      setSearchValue("");
-    } catch (error) {
-      console.error("Failed to enable guest:", error);
-    }
+  const handleEnableFromSearch = (guestId: string) => {
+    toggleEnabled({ id: guestId, isEnabled: true });
+    setSearchOpen(false);
+    setSearchValue("");
   };
 
   // Split guests by enabled status

@@ -15,40 +15,36 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAppMode } from "@/components/shell/AppModeContext";
 import { HeaderOverflowMenu } from "./HeaderOverflowMenu";
 import { WorkspaceSelector } from "@/components/shell/WorkspaceSelector";
-import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
+import { apiPost } from "@/lib/utils/ClientFetch";
+import { useOBSStatus, useProfiles } from "@/lib/queries";
 
-interface OBSStatus {
-  connected: boolean;
-  currentScene: string | null;
-  isStreaming: boolean;
-  isRecording: boolean;
-}
-
-interface Profile {
-  id: string;
-  name: string;
-  isActive: boolean;
-}
-
-interface ProfilesResponse {
-  profiles: Profile[];
-}
-
-/**
- * DashboardHeader displays operational status and global controls
- */
 export function DashboardHeader() {
   const t = useTranslations("dashboard.header");
-  const { mode, isOnAir, setIsOnAir, isFullscreenMode, setIsFullscreenMode } = useAppMode();
-  const [status, setStatus] = useState<OBSStatus>({
-    connected: false,
-    currentScene: null,
-    isStreaming: false,
-    isRecording: false,
-  });
+  const { mode, setIsOnAir, isFullscreenMode, setIsFullscreenMode } = useAppMode();
+
+  // OBS status with polling
+  const {
+    isConnected,
+    isOnAir,
+    currentScene,
+    refetch: refetchOBS,
+  } = useOBSStatus({ refetchInterval: 5000 });
+
+  // Profile management
+  const {
+    profiles,
+    activeProfile,
+    activateProfile,
+    isActivating,
+  } = useProfiles();
+
   const [isConnecting, setIsConnecting] = useState(false);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Sync isOnAir to app mode context
+  useEffect(() => {
+    setIsOnAir(isOnAir);
+  }, [isOnAir, setIsOnAir]);
 
   useEffect(() => {
     // Update clock every second
@@ -59,53 +55,12 @@ export function DashboardHeader() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    // Fetch OBS status from API
-    const fetchStatus = async () => {
-      try {
-        const data = await apiGet<OBSStatus>("/api/obs/status");
-        setStatus({
-          connected: data.connected,
-          currentScene: data.currentScene,
-          isStreaming: data.isStreaming,
-          isRecording: data.isRecording,
-        });
-
-        // Update isOnAir in context
-        const onAir = data.isStreaming || data.isRecording;
-        setIsOnAir(onAir);
-      } catch (error) {
-        console.error("Failed to fetch OBS status:", error);
-      }
-    };
-
-    // Fetch immediately
-    fetchStatus();
-
-    // Poll every 2 seconds
-    const interval = setInterval(fetchStatus, 2000);
-
-    return () => clearInterval(interval);
-  }, [setIsOnAir]);
-
-  useEffect(() => {
-    // Fetch profiles
-    const fetchProfiles = async () => {
-      try {
-        const data = await apiGet<ProfilesResponse>("/api/profiles");
-        setProfiles(data.profiles || []);
-      } catch (error) {
-        console.error("Failed to fetch profiles:", error);
-      }
-    };
-
-    fetchProfiles();
-  }, []);
-
   const handleReconnect = async () => {
     setIsConnecting(true);
     try {
       await apiPost("/api/obs/reconnect");
+      // Refetch OBS status after reconnect attempt
+      setTimeout(() => refetchOBS(), 1000);
     } catch (error) {
       console.error("Failed to reconnect to OBS:", error);
     } finally {
@@ -117,8 +72,6 @@ export function DashboardHeader() {
     setIsFullscreenMode(!isFullscreenMode);
   };
 
-  const activeProfile = profiles.find(p => p.isActive);
-
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("en-US", {
       hour12: false,
@@ -126,17 +79,6 @@ export function DashboardHeader() {
       minute: "2-digit",
       second: "2-digit"
     });
-  };
-
-  const handleActivateProfile = async (profileId: string) => {
-    try {
-      await apiPost(`/api/profiles/${profileId}/activate`);
-      // Refresh profiles list
-      const data = await apiGet<ProfilesResponse>("/api/profiles");
-      setProfiles(data.profiles || []);
-    } catch (error) {
-      console.error("Failed to activate profile:", error);
-    }
   };
 
   return (
@@ -156,14 +98,14 @@ export function DashboardHeader() {
 
           {/* Center-Left: OBS Connection State */}
           <div className="flex items-center gap-3">
-            {status.connected ? (
+            {isConnected ? (
               <>
                 <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1">
                   {t("connected")}
                 </Badge>
-                {status.currentScene && (
+                {currentScene && (
                   <div className="text-xs text-muted-foreground">
-                    {t("scene")}: <span className="font-medium">{status.currentScene}</span>
+                    {t("scene")}: <span className="font-medium">{currentScene}</span>
                   </div>
                 )}
               </>
@@ -215,7 +157,11 @@ export function DashboardHeader() {
                     variant="outline"
                     size="sm"
                     className="h-9 gap-2 text-sm"
+                    disabled={isActivating}
                   >
+                    {isActivating ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : null}
                     {activeProfile ? activeProfile.name : t("noProfile")}
                     <ChevronDown className="w-3 h-3" />
                   </Button>
@@ -224,8 +170,9 @@ export function DashboardHeader() {
                   {profiles.map((profile) => (
                     <DropdownMenuItem
                       key={profile.id}
-                      onClick={() => handleActivateProfile(profile.id)}
+                      onClick={() => activateProfile(profile.id)}
                       className="flex items-center justify-between"
+                      disabled={isActivating}
                     >
                       <span>{profile.name}</span>
                       {profile.isActive && <Check className="w-4 h-4" />}

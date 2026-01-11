@@ -4,16 +4,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Zap, Edit, Power, PowerOff, Trash2 } from "lucide-react";
-
-interface Guest {
-  id: string;
-  displayName: string;
-  subtitle?: string;
-  accentColor: string;
-  avatarUrl?: string;
-  isEnabled: boolean;
-  createdAt?: string;
-}
+import type { Guest } from "@/lib/queries";
 
 interface GuestCardProps {
   guest: Guest;
