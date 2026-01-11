@@ -1,9 +1,11 @@
+import { randomUUID } from "crypto";
 import { DatabaseService } from "./DatabaseService";
 import { Logger } from "../utils/Logger";
 import { StreamerbotConnectionSettings, DEFAULT_STREAMERBOT_CONNECTION } from "../models/StreamerbotChat";
 import { AppConfig } from "../config/AppConfig";
 import { TwitchSettings, TwitchOAuthTokens, DEFAULT_TWITCH_SETTINGS } from "../models/Twitch";
 import { PresenterChannelSettings, DEFAULT_QUICK_REPLIES } from "../models/PresenterChannel";
+import type { ChatPredefinedMessage } from "../models/ChatMessages";
 
 /**
  * OBS settings interface
@@ -525,6 +527,48 @@ export class SettingsService {
     this.db.deleteSetting("presenter.channel.canSendCustomMessages");
     this.db.deleteSetting("presenter.channel.allowPresenterToSendMessage");
     this.logger.info("Presenter channel settings cleared from database");
+  }
+
+  // =========================================================================
+  // CHAT PREDEFINED MESSAGES
+  // =========================================================================
+
+  /**
+   * Get predefined chat messages
+   */
+  getChatPredefinedMessages(): ChatPredefinedMessage[] {
+    const messagesJson = this.db.getSetting("chat.predefinedMessages");
+    if (messagesJson) {
+      try {
+        const data = JSON.parse(messagesJson);
+        // Migration: convert old string[] format to new object format
+        if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
+          const convertedMessages = (data as string[])
+            .filter(msg => typeof msg === 'string' && msg.trim().length > 0)
+            .map(msg => ({
+              id: randomUUID(),
+              title: msg.length > 30 ? msg.slice(0, 30) + '...' : msg,
+              message: msg
+            }));
+          // Persist the migrated format to the database
+          this.saveChatPredefinedMessages(convertedMessages);
+          this.logger.info("Migrated chat predefined messages from string[] to object format");
+          return convertedMessages;
+        }
+        return data as ChatPredefinedMessage[];
+      } catch {
+        this.logger.warn("Failed to parse chat predefined messages");
+      }
+    }
+    return [];
+  }
+
+  /**
+   * Save predefined chat messages
+   */
+  saveChatPredefinedMessages(messages: ChatPredefinedMessage[]): void {
+    this.db.setSetting("chat.predefinedMessages", JSON.stringify(messages));
+    this.logger.info("Chat predefined messages saved to database");
   }
 }
 

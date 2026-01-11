@@ -12,7 +12,8 @@
       "regieInternalChat": "Internal Chat",
       "regieInternalChatView": "Internal Chat View",
       "regiePublicChat": "Public Chat",
-      "twitch": "Twitch"
+      "twitch": "Twitch",
+      "chatMessages": "Chat Messages"
     },
     "header": {
       "connected": "Connected",
@@ -303,6 +304,20 @@
       "onAirDialogDescription": "Switching to ADMIN mode will navigate away from the live control surface. Are you sure you want to continue?",
       "stayInLive": "Stay in LIVE Mode",
       "switchToAdminConfirm": "Switch to ADMIN"
+    },
+    "chatMessagesPanel": {
+      "send": "Send",
+      "sending": "Sending...",
+      "sent": "Sent!",
+      "sendFailed": "Failed to send",
+      "notConnected": "Not connected to Streamer.bot",
+      "connectFirst": "Connect to Streamer.bot to send messages",
+      "editMode": "Edit",
+      "doneEditing": "Done",
+      "noMessages": "No messages configured",
+      "addFirst": "Add messages in settings or click Edit",
+      "titlePlaceholder": "Title",
+      "messagePlaceholder": "Message..."
     }
   },
   "navigation": {
@@ -330,6 +345,7 @@
       "pluginsUpdates": "Plugins & Updates",
       "general": "General",
       "integrationsSettings": "Integrations",
+      "chatMessages": "Chat Messages",
       "backend": "Backend",
       "paths": "Paths",
       "backup": "Backup",
@@ -594,6 +610,22 @@
       "setupStep5": "Copy the Client ID and Client Secret here",
       "requiredScopes": "Required scopes:",
       "openTwitchConsole": "Open Twitch Developer Console"
+    },
+    "chatMessages": {
+      "title": "Chat Messages",
+      "description": "Manage predefined messages for Twitch chat",
+      "messages": "Predefined Messages",
+      "messagesHelp": "Quick messages to send to chat. Maximum 20 messages.",
+      "addMessage": "Add",
+      "addNewMessage": "New message",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Short title...",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Enter message text...",
+      "messagePlaceholderFull": "Full message to send...",
+      "maxMessagesReached": "Maximum of 20 messages reached",
+      "empty": "No messages configured",
+      "emptyHint": "Add predefined messages to quickly send to chat"
     }
   },
   "assets": {
@@ -1038,6 +1070,8 @@
     "error": "Error",
     "loading": "Loading...",
     "save": "Save",
+    "saved": "Saved",
+    "saving": "Saving...",
     "cancel": "Cancel",
     "close": "Close",
     "confirm": "Confirm",

@@ -30,6 +30,7 @@ import quizBotRouter from "./api/quiz-bot";
 import presenterSettingsRouter from "./api/presenter-settings";
 import cueRouter from "./api/cue";
 import streamerbotChatRouter from "./api/streamerbot-chat";
+import chatMessagesRouter from "./api/chat-messages";
 import overlaysRouter from "./api/overlays";
 import twitchRouter from "./api/twitch";
 import { APP_PORT, BACKEND_PORT, WS_PORT } from "../lib/config/urls";
@@ -136,6 +137,9 @@ class BackendServer {
 
     // Streamerbot Chat Gateway API
     this.app.use('/api/streamerbot-chat', streamerbotChatRouter);
+
+    // Chat Messages Settings API
+    this.app.use('/api/chat-messages', chatMessagesRouter);
 
     // Twitch Integration API
     this.app.use('/api/twitch', twitchRouter);
