@@ -9,6 +9,8 @@ import type {
 } from "@/lib/models/StreamerbotChat";
 import { StreamerbotConnectionStatus } from "@/lib/models/StreamerbotChat";
 
+export type ModerationAction = "delete" | "timeout" | "ban";
+
 export interface RegiePublicChatMessageListProps {
   messages: ChatMessage[];
   preferences: ChatUIPreferences;
@@ -21,6 +23,9 @@ export interface RegiePublicChatMessageListProps {
   onShowInOverlay: (message: ChatMessage) => Promise<void>;
   showingInOverlayId: string | null;
   currentlyDisplayedId: string | null;
+  // Moderation
+  onModerate?: (message: ChatMessage, action: ModerationAction, duration?: number) => Promise<void>;
+  moderateLoadingId?: string | null;
 }
 
 // Re-export for convenience

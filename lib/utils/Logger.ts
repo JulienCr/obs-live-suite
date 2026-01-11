@@ -18,12 +18,13 @@ let fsAppend: ((path: string, data: string, options?: { encoding: string }) => v
 let pathDirname: ((path: string) => string) | null = null;
 
 // Load fs module only on server-side
+// Use eval to hide the require from webpack static analysis
 if (!isBrowser) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require("fs");
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path = require("path");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, no-eval
+    const dynamicRequire = eval("require");
+    const fs = dynamicRequire("fs");
+    const path = dynamicRequire("path");
     fsExists = fs.existsSync;
     fsMkdir = fs.mkdirSync;
     fsAppend = fs.appendFileSync;

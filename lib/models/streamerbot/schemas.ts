@@ -107,6 +107,10 @@ export const chatMessageMetadataSchema = z.object({
 
   // For events (raid, cheer, etc.)
   eventData: z.record(z.unknown()).optional(),
+
+  // Twitch moderation IDs
+  twitchMsgId: z.string().optional(),
+  twitchUserId: z.string().optional(),
 });
 
 export type ChatMessageMetadata = z.infer<typeof chatMessageMetadataSchema>;
