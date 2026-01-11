@@ -27,6 +27,8 @@ import type { StreamerbotConnectionStatus } from "@/lib/models/StreamerbotChat";
 import type { ChatPredefinedMessage } from "@/lib/models/ChatMessages";
 import { CHAT_MESSAGES_CONFIG } from "@/lib/models/ChatMessages";
 
+const { MAX_TITLE_LENGTH, MAX_MESSAGE_LENGTH } = CHAT_MESSAGES_CONFIG;
+
 const config: PanelConfig = { id: "chatMessages", context: "dashboard" };
 
 interface StreamerbotStatusResponse {
@@ -50,7 +52,7 @@ function MessageEditForm({ title, message, titlePlaceholder, messagePlaceholder,
       <div className="flex gap-1">
         <Input
           value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
+          onChange={(e) => onTitleChange(e.target.value.slice(0, MAX_TITLE_LENGTH))}
           placeholder={titlePlaceholder}
           className="h-8 text-sm"
         />
@@ -63,7 +65,7 @@ function MessageEditForm({ title, message, titlePlaceholder, messagePlaceholder,
       </div>
       <Input
         value={message}
-        onChange={(e) => onMessageChange(e.target.value)}
+        onChange={(e) => onMessageChange(e.target.value.slice(0, MAX_MESSAGE_LENGTH))}
         placeholder={messagePlaceholder}
         className="h-8 text-sm text-muted-foreground"
         onKeyDown={(e) => e.key === "Enter" && onSave()}
@@ -204,7 +206,9 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
         body: JSON.stringify({ messages: newMessages }),
       });
       if (response.ok) {
-        setMessages(newMessages);
+        const data = await response.json();
+        // Update state with response data to reflect any backend modifications
+        setMessages(data.messages || newMessages);
       } else {
         throw new Error("Failed to save");
       }
@@ -399,7 +403,7 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
               <div className="flex gap-1">
                 <Input
                   value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
+                  onChange={(e) => setNewTitle(e.target.value.slice(0, MAX_TITLE_LENGTH))}
                   placeholder={t("titlePlaceholder")}
                   className="h-8 text-sm"
                 />
@@ -415,7 +419,7 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
               </div>
               <Input
                 value={newMessageText}
-                onChange={(e) => setNewMessageText(e.target.value)}
+                onChange={(e) => setNewMessageText(e.target.value.slice(0, MAX_MESSAGE_LENGTH))}
                 placeholder={t("messagePlaceholder")}
                 className="h-8 text-sm text-muted-foreground"
                 onKeyDown={(e) => e.key === "Enter" && addMessage()}

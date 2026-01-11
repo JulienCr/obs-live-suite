@@ -543,11 +543,17 @@ export class SettingsService {
         const data = JSON.parse(messagesJson);
         // Migration: convert old string[] format to new object format
         if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
-          return (data as string[]).map(msg => ({
-            id: randomUUID(),
-            title: msg.length > 30 ? msg.slice(0, 30) + '...' : msg,
-            message: msg
-          }));
+          const convertedMessages = (data as string[])
+            .filter(msg => typeof msg === 'string' && msg.trim().length > 0)
+            .map(msg => ({
+              id: randomUUID(),
+              title: msg.length > 30 ? msg.slice(0, 30) + '...' : msg,
+              message: msg
+            }));
+          // Persist the migrated format to the database
+          this.saveChatPredefinedMessages(convertedMessages);
+          this.logger.info("Migrated chat predefined messages from string[] to object format");
+          return convertedMessages;
         }
         return data as ChatPredefinedMessage[];
       } catch {

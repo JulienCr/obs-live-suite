@@ -2,6 +2,7 @@
  * Backend API - Chat Messages Settings
  */
 import { Router } from "express";
+import { randomUUID } from "crypto";
 import { SettingsService } from "../../lib/services/SettingsService";
 import { chatPredefinedMessagesArraySchema } from "../../lib/models/ChatMessages";
 import { expressError } from "../../lib/utils/apiError";
@@ -37,6 +38,7 @@ router.put("/settings", async (req, res) => {
     }
 
     const validMessages = result.data.map((m) => ({
+      id: m.id || randomUUID(),
       title: m.title.trim(),
       message: m.message.trim(),
     }));
