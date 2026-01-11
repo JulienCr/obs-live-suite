@@ -56,7 +56,8 @@ export class ServerInit {
       await themeService.initializeDefaultThemes();
       this.logger.info("✓ Default themes initialized");
 
-      // Initialize default room
+      // Note: Room system was removed - presenter now uses a single channel
+      // See ChannelManager for the presenter channel configuration
 
       // Initialize built-in workspaces
       const workspaceService = WorkspaceService.getInstance();
