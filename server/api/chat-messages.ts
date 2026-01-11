@@ -2,12 +2,11 @@
  * Backend API - Chat Messages Settings
  */
 import { Router } from "express";
-import { SettingsService, ChatPredefinedMessage } from "../../lib/services/SettingsService";
+import { SettingsService } from "../../lib/services/SettingsService";
+import { ChatPredefinedMessage, CHAT_MESSAGES_CONFIG } from "../../lib/models/ChatMessages";
 import { expressError } from "../../lib/utils/apiError";
 
 const router = Router();
-
-const MAX_MESSAGES = 20;
 
 /**
  * GET /api/chat-messages/settings
@@ -36,8 +35,8 @@ router.put("/settings", async (req, res) => {
       return res.status(400).json({ error: "Messages must be an array" });
     }
 
-    if (messages.length > MAX_MESSAGES) {
-      return res.status(400).json({ error: `Maximum ${MAX_MESSAGES} messages allowed` });
+    if (messages.length > CHAT_MESSAGES_CONFIG.MAX_MESSAGES) {
+      return res.status(400).json({ error: `Maximum ${CHAT_MESSAGES_CONFIG.MAX_MESSAGES} messages allowed` });
     }
 
     // Validate each message has title and message properties
@@ -54,12 +53,12 @@ router.put("/settings", async (req, res) => {
         return res.status(400).json({ error: "Each message must have a non-empty title and message" });
       }
 
-      if (title.length > 50) {
-        return res.status(400).json({ error: "Title must be 50 characters or less" });
+      if (title.length > CHAT_MESSAGES_CONFIG.MAX_TITLE_LENGTH) {
+        return res.status(400).json({ error: `Title must be ${CHAT_MESSAGES_CONFIG.MAX_TITLE_LENGTH} characters or less` });
       }
 
-      if (message.length > 500) {
-        return res.status(400).json({ error: "Message must be 500 characters or less" });
+      if (message.length > CHAT_MESSAGES_CONFIG.MAX_MESSAGE_LENGTH) {
+        return res.status(400).json({ error: `Message must be ${CHAT_MESSAGES_CONFIG.MAX_MESSAGE_LENGTH} characters or less` });
       }
 
       validMessages.push({ title, message });

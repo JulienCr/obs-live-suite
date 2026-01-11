@@ -18,15 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-
-interface ChatPredefinedMessage {
-  title: string;
-  message: string;
-}
-
-const MAX_MESSAGES = 20;
-const MAX_TITLE_LENGTH = 50;
-const MAX_MESSAGE_LENGTH = 500;
+import { ChatPredefinedMessage, CHAT_MESSAGES_CONFIG } from "@/lib/models/ChatMessages";
 
 export function ChatMessagesSettings() {
   const t = useTranslations("settings.chatMessages");
@@ -91,7 +83,7 @@ export function ChatMessagesSettings() {
   };
 
   const addMessage = () => {
-    if (newTitle.trim() && newMessageText.trim() && messages.length < MAX_MESSAGES) {
+    if (newTitle.trim() && newMessageText.trim() && messages.length < CHAT_MESSAGES_CONFIG.MAX_MESSAGES) {
       setMessages([...messages, { title: newTitle.trim(), message: newMessageText.trim() }]);
       setNewTitle("");
       setNewMessageText("");
@@ -176,7 +168,7 @@ export function ChatMessagesSettings() {
                   <div className="flex-1 space-y-2">
                     <Input
                       value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value.slice(0, MAX_TITLE_LENGTH))}
+                      onChange={(e) => setEditTitle(e.target.value.slice(0, CHAT_MESSAGES_CONFIG.MAX_TITLE_LENGTH))}
                       placeholder={t("titlePlaceholder")}
                       autoFocus
                       onKeyDown={(e) => {
@@ -185,7 +177,7 @@ export function ChatMessagesSettings() {
                     />
                     <textarea
                       value={editMessage}
-                      onChange={(e) => setEditMessage(e.target.value.slice(0, MAX_MESSAGE_LENGTH))}
+                      onChange={(e) => setEditMessage(e.target.value.slice(0, CHAT_MESSAGES_CONFIG.MAX_MESSAGE_LENGTH))}
                       placeholder={t("messagePlaceholder")}
                       className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
                       onKeyDown={(e) => {
@@ -257,17 +249,17 @@ export function ChatMessagesSettings() {
           </div>
 
           {/* Add new message */}
-          {messages.length < MAX_MESSAGES ? (
+          {messages.length < CHAT_MESSAGES_CONFIG.MAX_MESSAGES ? (
             <div className="space-y-3 p-4 border-2 border-dashed rounded-lg">
               <div className="text-sm font-medium">{t("addNewMessage")}</div>
               <Input
                 value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value.slice(0, MAX_TITLE_LENGTH))}
+                onChange={(e) => setNewTitle(e.target.value.slice(0, CHAT_MESSAGES_CONFIG.MAX_TITLE_LENGTH))}
                 placeholder={t("titlePlaceholder")}
               />
               <textarea
                 value={newMessageText}
-                onChange={(e) => setNewMessageText(e.target.value.slice(0, MAX_MESSAGE_LENGTH))}
+                onChange={(e) => setNewMessageText(e.target.value.slice(0, CHAT_MESSAGES_CONFIG.MAX_MESSAGE_LENGTH))}
                 placeholder={t("messagePlaceholder")}
                 className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
               />

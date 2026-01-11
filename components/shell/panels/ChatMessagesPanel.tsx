@@ -24,15 +24,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import type { StreamerbotConnectionStatus } from "@/lib/models/StreamerbotChat";
+import { ChatPredefinedMessage, CHAT_MESSAGES_CONFIG } from "@/lib/models/ChatMessages";
 
 const config: PanelConfig = { id: "chatMessages", context: "dashboard" };
-
-interface ChatPredefinedMessage {
-  title: string;
-  message: string;
-}
-
-const MAX_MESSAGES = 20;
 
 interface StreamerbotStatusResponse {
   status: StreamerbotConnectionStatus;
@@ -165,7 +159,7 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
   };
 
   const addMessage = () => {
-    if (newTitle.trim() && newMessageText.trim() && messages.length < MAX_MESSAGES) {
+    if (newTitle.trim() && newMessageText.trim() && messages.length < CHAT_MESSAGES_CONFIG.MAX_MESSAGES) {
       saveMessages([...messages, { title: newTitle.trim(), message: newMessageText.trim() }]);
       setNewTitle("");
       setNewMessageText("");
@@ -324,7 +318,7 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
           ))}
 
           {/* Add new message input (edit mode only) */}
-          {editMode && messages.length < MAX_MESSAGES && (
+          {editMode && messages.length < CHAT_MESSAGES_CONFIG.MAX_MESSAGES && (
             <div className="flex flex-col gap-1 mt-3">
               <div className="flex gap-1">
                 <Input
