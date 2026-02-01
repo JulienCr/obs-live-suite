@@ -115,6 +115,21 @@ export interface RouteContext<T = Record<string, string>> {
 }
 
 /**
+ * Check if an error is a known validation error that should return 400
+ */
+function isValidationError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message.toLowerCase();
+  return (
+    msg.includes("file too large") ||
+    msg.includes("invalid file type") ||
+    msg.includes("invalid") ||
+    msg.includes("required") ||
+    msg.includes("must be")
+  );
+}
+
+/**
  * Higher-order function that wraps a route handler with automatic error handling.
  * Catches unhandled exceptions and returns a standardized 500 response.
  *
@@ -154,6 +169,13 @@ export function withErrorHandler<T = Record<string, string>>(
       return await handler(request, context);
     } catch (error) {
       const prefix = logContext ? `${logContext} ` : "";
+
+      if (isValidationError(error)) {
+        const message = error instanceof Error ? error.message : "Validation error";
+        console.warn(`${prefix}Validation error:`, message);
+        return ApiResponses.badRequest(message);
+      }
+
       console.error(`${prefix}Unhandled API error:`, error);
       return ApiResponses.serverError();
     }
@@ -172,6 +194,13 @@ export function withSimpleErrorHandler(
       return await handler(request);
     } catch (error) {
       const prefix = logContext ? `${logContext} ` : "";
+
+      if (isValidationError(error)) {
+        const message = error instanceof Error ? error.message : "Validation error";
+        console.warn(`${prefix}Validation error:`, message);
+        return ApiResponses.badRequest(message);
+      }
+
       console.error(`${prefix}Unhandled API error:`, error);
       return ApiResponses.serverError();
     }

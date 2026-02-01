@@ -22,7 +22,7 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
   const result = await uploadFile(file, {
     subfolder: "posters",
     allowedTypes: [...IMAGE_TYPES, ...VIDEO_TYPES],
-    maxSizeMB: 50,
+    maxSizeMB: 1024,
   });
 
   return ApiResponses.ok(result);

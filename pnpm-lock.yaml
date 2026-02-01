@@ -176,6 +176,9 @@ importers:
       stream-browserify:
         specifier: ^3.0.0
         version: 3.0.0
+      styled-jsx:
+        specifier: ^5.1.6
+        version: 5.1.6(@babel/core@7.28.5)(react@19.2.3)
       tailwind-merge:
         specifier: ^2.6.0
         version: 2.6.0

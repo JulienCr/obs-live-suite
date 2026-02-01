@@ -100,7 +100,9 @@
       "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -20 \"\"{}\"\"')",
       "Bash(pnpm lint:*)",
       "Skill(commit-commands:commit)",
-      "Bash(grepai search:*)"
+      "Bash(grepai search:*)",
+      "Bash(pnpm install)",
+      "Bash(node --version:*)"
     ],
     "deny": [],
     "ask": [

@@ -34,9 +34,13 @@
 /* Set max-width constraint on text mode container */
 .lowerthird--text {
   max-width: var(--lt-free-text-max-width);
-  min-width: var(--lt-free-text-max-width);
   flex-direction: column;
   align-items: flex-start;
+}
+
+/* Left position: fixed width for consistent wrapping */
+.lowerthird--left.lowerthird--text {
+  min-width: var(--lt-free-text-max-width);
 }
 
 /* ===== CIRCLE / AVATAR ===== */
@@ -125,6 +129,28 @@
 
 .lowerthird--center .bar {
   transform-origin: center;
+}
+
+/* Right position: bar expands from right */
+.lowerthird--right .bar {
+  transform-origin: right;
+}
+
+/* Right position: text slides in from right */
+.lowerthird--right .text {
+  transform: translateX(10px);
+}
+
+/* Right position: allow container to shrink to content */
+.lowerthird--right.lowerthird--text {
+  width: fit-content;
+  align-items: flex-end;
+}
+
+/* Center position: allow container to shrink to content and center the bar */
+.lowerthird--center.lowerthird--text {
+  width: fit-content;
+  align-items: center;
 }
 
 .bar.show {
@@ -263,6 +289,18 @@
   }
 }
 
+/* Text exit animation for right position */
+@keyframes lt-text-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+
 @keyframes lt-bar-out {
   from {
     transform: scaleX(1);
@@ -294,6 +332,16 @@
 .lowerthird.animate-out .bar {
   transform-origin: left;
   animation: lt-bar-out var(--lt-exit-bar-duration) ease forwards;
+}
+
+/* Right position: exit bar shrinks to right */
+.lowerthird--right.animate-out .bar {
+  transform-origin: right;
+}
+
+/* Right position: exit text slides out to right */
+.lowerthird--right.animate-out .text {
+  animation: lt-text-out-right var(--lt-exit-text-duration) ease forwards;
 }
 
 /* Avatar: shrinks from center with delay (after text/bar) */

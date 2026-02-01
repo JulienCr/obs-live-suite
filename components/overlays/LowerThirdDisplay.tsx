@@ -187,6 +187,10 @@ export function LowerThirdDisplay({
           bottom: `${centeredBottomOffset}px`,
           transform: "translateX(-50%)",
           transformOrigin: "bottom center",
+        } : side === "right" ? {
+          right: `${layout.x}px`,
+          bottom: `${1080 - layout.y}px`,
+          // No transform scale in preview - the preview container scales everything
         } : {
           left: `${layout.x}px`,
           bottom: `${1080 - layout.y}px`,
@@ -202,6 +206,11 @@ export function LowerThirdDisplay({
         bottom: `${centeredBottomOffset}px`,
         transform: `translateX(-50%) scale(${layout.scale})`,
         transformOrigin: "bottom center",
+      } : side === "right" ? {
+        right: `${layout.x}px`,
+        bottom: `${1080 - layout.y}px`,
+        transform: `scale(${layout.scale})`,
+        transformOrigin: "bottom right",
       } : {
         left: `${layout.x}px`,
         bottom: `${1080 - layout.y}px`,

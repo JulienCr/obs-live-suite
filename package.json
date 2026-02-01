@@ -88,6 +88,7 @@
     "semver": "^7.7.3",
     "sonner": "^2.0.7",
     "stream-browserify": "^3.0.0",
+    "styled-jsx": "^5.1.6",
     "tailwind-merge": "^2.6.0",
     "utf-8-validate": "^6.0.6",
     "uuid": "^13.0.0",
