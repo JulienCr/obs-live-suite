@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload, Link2, Loader2 } from "lucide-react";
 
 interface PosterUploaderProps {
-  onUpload: (url: string, type: "image" | "video" | "youtube") => void;
+  onUpload: (url: string, type: "image" | "video" | "youtube", duration?: number) => void;
   onCancel: () => void;
 }
 
@@ -68,7 +68,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
       }
 
       const data = await res.json();
-      onUpload(data.url, data.type);
+      onUpload(data.url, data.type, data.duration);
     } catch (error) {
       alert(error instanceof Error ? error.message : t("uploadFailed"));
     } finally {
