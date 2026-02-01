@@ -230,7 +230,11 @@
       },
       "ariaShowLeft": "Show {title} on left",
       "ariaShowRight": "Show {title} on right",
-      "ariaShowBig": "Show {title} in big picture mode"
+      "ariaShowBig": "Show {title} in big picture mode",
+      "chapters": "Chapters",
+      "chapter": "Chapter",
+      "chapterPrev": "Previous chapter",
+      "chapterNext": "Next chapter"
     },
     "guests": {
       "title": "Guests",
@@ -706,7 +710,47 @@
       "clear": "Clear",
       "deleting": "Deleting...",
       "chatMessage": "Chat Message",
-      "chatMessagePlaceholder": "Message sent to chat when displayed (optional)"
+      "chatMessagePlaceholder": "Message sent to chat when displayed (optional)",
+      "chapters": "Chapters",
+      "createSubVideo": "Create Clip"
+    },
+    "videoEditor": {
+      "chapters": "Chapters",
+      "addChapter": "Add chapter",
+      "editChapter": "Edit chapter",
+      "deleteChapter": "Delete chapter",
+      "chapterTitle": "Chapter title",
+      "chapterTimestamp": "Timestamp",
+      "noChapters": "No chapters",
+      "jumpToChapter": "Jump to chapter",
+      "nextChapter": "Next chapter",
+      "previousChapter": "Previous chapter",
+      "currentChapter": "Current chapter",
+      "subVideos": "Sub-videos",
+      "createSubVideo": "Create sub-video",
+      "editSubVideo": "Edit sub-video",
+      "deleteSubVideo": "Delete sub-video",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "endBehavior": "End behavior",
+      "stop": "Stop",
+      "stopDescription": "Pause at end",
+      "loop": "Loop",
+      "loopDescription": "Repeat clip",
+      "parentVideo": "Parent video",
+      "clipDuration": "Clip duration",
+      "timeline": "Timeline",
+      "selectRange": "Select range",
+      "thumbnail": "Thumbnail",
+      "noThumbnail": "No thumbnail generated",
+      "generateThumbnail": "Generate thumbnail",
+      "thumbnailGenerated": "Thumbnail generated",
+      "confirmDeleteChapter": "Are you sure you want to delete this chapter?",
+      "confirmDeleteSubVideo": "Are you sure you want to delete this sub-video?",
+      "subVideoCreated": "Sub-video created successfully",
+      "chapterAdded": "Chapter added",
+      "chapterUpdated": "Chapter updated",
+      "chapterDeleted": "Chapter deleted"
     },
     "themes": {
       "title": "Themes",
@@ -741,6 +785,38 @@
       "enable": "Enable",
       "disable": "Disable",
       "delete": "Delete"
+    },
+    "chapterEditor": {
+      "title": "Chapters",
+      "addChapter": "Add Chapter",
+      "editChapter": "Edit Chapter",
+      "addChapterDescription": "Add a new chapter with a title and timestamp.",
+      "editChapterDescription": "Edit the chapter title or timestamp.",
+      "noChapters": "No chapters yet. Click \"Add Chapter\" to get started.",
+      "chapterTitle": "Title",
+      "titlePlaceholder": "Enter chapter title",
+      "timestamp": "Timestamp",
+      "seconds": "seconds",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "deleteConfirm": {
+        "title": "Delete Chapter?",
+        "description": "The chapter \"{title}\" will be permanently deleted.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "toasts": {
+        "chapterCreated": "Chapter created successfully",
+        "chapterUpdated": "Chapter updated successfully",
+        "chapterDeleted": "Chapter deleted successfully",
+        "createFailed": "Failed to create chapter",
+        "updateFailed": "Failed to update chapter",
+        "deleteFailed": "Failed to delete chapter",
+        "titleRequired": "Title is required",
+        "invalidTimestamp": "Timestamp must be between 0 and video duration"
+      }
     },
     "posterUpload": {
       "uploadFile": "Upload File",
@@ -1084,7 +1160,8 @@
     "next": "Next",
     "previous": "Previous",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "title": "Title"
   },
   "regieChat": {
     "cueTypes": {
