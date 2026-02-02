@@ -208,6 +208,7 @@ router.post("/score/update", quizHandler(async (req, res) => {
   }
 
   // Broadcast score update so host/overlay refresh without reload
+  let broadcastSuccess = true;
   try {
     const { ChannelManager } = await import("../../lib/services/ChannelManager");
     const { OverlayChannel } = await import("../../lib/models/OverlayEvents");
@@ -218,10 +219,15 @@ router.post("/score/update", quizHandler(async (req, res) => {
       total,
     });
   } catch (e) {
-    console.error("Failed to broadcast score.update", e);
+    console.error("[QuizAPI] Failed to broadcast score.update", e);
+    broadcastSuccess = false;
   }
 
-  res.json({ success: true, total });
+  res.json({
+    success: true,
+    total,
+    warning: broadcastSuccess ? undefined : "Score updated but overlay notification failed",
+  });
 }, "Failed to update score"));
 
 router.post("/timer/add", quizHandler(async (req, res) => {

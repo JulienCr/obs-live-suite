@@ -164,7 +164,41 @@ export class ThemeRepository extends BaseRepository<
    * Update a theme
    */
   update(id: string, updates: DbThemeUpdate): void {
-    this.getLogger().debug("Updating theme", { id, name: updates.name });
+    // Get existing theme to merge with updates (allows partial updates)
+    const existing = this.getById(id);
+    if (!existing) {
+      throw new Error(`Theme with id ${id} not found`);
+    }
+
+    // Merge existing data with updates
+    const merged = {
+      name: updates.name !== undefined ? updates.name : existing.name,
+      colors: updates.colors !== undefined ? updates.colors : existing.colors,
+      lowerThirdTemplate:
+        updates.lowerThirdTemplate !== undefined
+          ? updates.lowerThirdTemplate
+          : existing.lowerThirdTemplate,
+      lowerThirdFont:
+        updates.lowerThirdFont !== undefined ? updates.lowerThirdFont : existing.lowerThirdFont,
+      lowerThirdLayout:
+        updates.lowerThirdLayout !== undefined ? updates.lowerThirdLayout : existing.lowerThirdLayout,
+      lowerThirdAnimation:
+        updates.lowerThirdAnimation !== undefined
+          ? updates.lowerThirdAnimation
+          : existing.lowerThirdAnimation,
+      countdownStyle:
+        updates.countdownStyle !== undefined ? updates.countdownStyle : existing.countdownStyle,
+      countdownFont:
+        updates.countdownFont !== undefined ? updates.countdownFont : existing.countdownFont,
+      countdownLayout:
+        updates.countdownLayout !== undefined ? updates.countdownLayout : existing.countdownLayout,
+      posterLayout:
+        updates.posterLayout !== undefined ? updates.posterLayout : existing.posterLayout,
+      isGlobal: updates.isGlobal !== undefined ? updates.isGlobal : existing.isGlobal,
+      updatedAt: updates.updatedAt || new Date(),
+    };
+
+    this.getLogger().debug("Updating theme", { id, name: merged.name });
 
     const stmt = this.rawDb.prepare(`
       UPDATE themes
@@ -172,18 +206,18 @@ export class ThemeRepository extends BaseRepository<
       WHERE id = ?
     `);
     stmt.run(
-      updates.name,
-      this.prepareValue(updates.colors),
-      updates.lowerThirdTemplate,
-      this.prepareValue(updates.lowerThirdFont),
-      this.prepareValue(updates.lowerThirdLayout || LAYOUT_DEFAULTS.LOWER_THIRD),
-      this.prepareValue(updates.lowerThirdAnimation || this.getDefaultLowerThirdAnimation()),
-      updates.countdownStyle,
-      this.prepareValue(updates.countdownFont),
-      this.prepareValue(updates.countdownLayout || LAYOUT_DEFAULTS.COUNTDOWN),
-      this.prepareValue(updates.posterLayout || LAYOUT_DEFAULTS.POSTER),
-      this.prepareValue(updates.isGlobal),
-      this.prepareValue(updates.updatedAt || new Date()),
+      merged.name,
+      this.prepareValue(merged.colors),
+      merged.lowerThirdTemplate,
+      this.prepareValue(merged.lowerThirdFont),
+      this.prepareValue(merged.lowerThirdLayout || LAYOUT_DEFAULTS.LOWER_THIRD),
+      this.prepareValue(merged.lowerThirdAnimation || this.getDefaultLowerThirdAnimation()),
+      merged.countdownStyle,
+      this.prepareValue(merged.countdownFont),
+      this.prepareValue(merged.countdownLayout || LAYOUT_DEFAULTS.COUNTDOWN),
+      this.prepareValue(merged.posterLayout || LAYOUT_DEFAULTS.POSTER),
+      this.prepareValue(merged.isGlobal),
+      this.prepareValue(merged.updatedAt),
       id
     );
   }

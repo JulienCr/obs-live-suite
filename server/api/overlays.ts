@@ -89,6 +89,7 @@ router.post("/countdown", overlayHandler(async (req, res) => {
 
     case "update":
       console.log("[Backend] Received countdown update:", payload);
+      let countdownEnrichmentFailed = false;
       try {
         const enrichedUpdatePayload = enrichCountdownPayload(payload || {}, db);
         console.log("[Backend] Enriched countdown update with theme:", !!enrichedUpdatePayload.theme);
@@ -96,8 +97,12 @@ router.post("/countdown", overlayHandler(async (req, res) => {
       } catch (enrichError) {
         console.error("[Backend] Error enriching countdown update:", enrichError);
         await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.UPDATE, payload || {});
+        countdownEnrichmentFailed = true;
       }
-      break;
+      return res.json({
+        success: true,
+        warning: countdownEnrichmentFailed ? "Countdown updated but theme enrichment failed" : undefined,
+      });
 
     case "add-time":
       await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.ADD_TIME, payload);
@@ -184,22 +189,30 @@ router.post("/poster-bigpicture", overlayHandler(async (req, res) => {
   const { action, payload } = req.body;
   const obsManager = OBSConnectionManager.getInstance();
 
+  let obsSourceUpdated = true;
+
   switch (action) {
     case "show":
       await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.SHOW, payload);
       if (payload && typeof payload === "object") {
         const sourceText = (payload as { source?: string }).source || "";
-        updatePosterSourceInOBS(obsManager.getOBS(), sourceText).catch((err) => {
+        try {
+          await updatePosterSourceInOBS(obsManager.getOBS(), sourceText);
+        } catch (err) {
           logger.warn("Failed to update source-text in OBS", err);
-        });
+          obsSourceUpdated = false;
+        }
       }
       break;
 
     case "hide":
       await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.HIDE);
-      updatePosterSourceInOBS(obsManager.getOBS(), "").catch((err) => {
+      try {
+        await updatePosterSourceInOBS(obsManager.getOBS(), "");
+      } catch (err) {
         logger.warn("Failed to reset source-text in OBS", err);
-      });
+        obsSourceUpdated = false;
+      }
       break;
 
     case "play":
@@ -238,7 +251,10 @@ router.post("/poster-bigpicture", overlayHandler(async (req, res) => {
       return res.status(400).json({ error: "Invalid action" });
   }
 
-  res.json({ success: true });
+  res.json({
+    success: true,
+    warning: obsSourceUpdated ? undefined : "Overlay updated but OBS source update failed",
+  });
 }, "BigPicture poster operation failed"));
 
 /**

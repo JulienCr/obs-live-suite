@@ -199,8 +199,14 @@ export abstract class ConnectionManager {
       this.reconnectTimer = undefined;
       try {
         await this.connect();
-      } catch {
-        // Error already handled in connect()
+      } catch (error) {
+        // Log that this specific reconnection attempt failed
+        // (connect() handles its own error logging, but we log here for visibility)
+        this.logger.warn(
+          `Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} failed`,
+          error instanceof Error ? error.message : error
+        );
+        // Note: scheduleReconnect() is called from connect() on failure, so we don't need to call it here
       }
     }, delay);
   }

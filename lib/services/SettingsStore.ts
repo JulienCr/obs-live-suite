@@ -83,13 +83,19 @@ const typeCoercers = {
   },
 
   /**
-   * Parse a JSON string to an object/array
+   * Parse a JSON string to an object/array.
+   * Logs a warning if parsing fails to aid debugging data corruption.
    */
-  toJson: <T>(value: string | null): T | undefined => {
+  toJson: <T>(value: string | null, context?: string): T | undefined => {
     if (value === null || value === undefined || value === "") return undefined;
     try {
       return JSON.parse(value) as T;
-    } catch {
+    } catch (error) {
+      console.warn(
+        `[SettingsStore] Failed to parse JSON${context ? ` for "${context}"` : ""}:`,
+        error instanceof Error ? error.message : error,
+        `(value preview: ${value.substring(0, 50)}${value.length > 50 ? "..." : ""})`
+      );
       return undefined;
     }
   },
@@ -229,7 +235,7 @@ export class SettingsStore<T extends ZodRawShape> {
             break;
           case "array":
           case "object":
-            coercedValue = typeCoercers.toJson(dbValue);
+            coercedValue = typeCoercers.toJson(dbValue, `${this.prefix}.${field}`);
             break;
           default:
             coercedValue = dbValue;
@@ -252,7 +258,14 @@ export class SettingsStore<T extends ZodRawShape> {
     try {
       return this.schema.parse(result);
     } catch (error) {
-      this.logger.warn(`Settings validation failed for ${this.prefix}, using defaults`, error);
+      // Extract which fields failed for better debugging
+      const zodError = error as z.ZodError;
+      const failedFields = zodError.errors?.map((e) => e.path.join(".")) || [];
+      this.logger.error(
+        `Settings validation failed for "${this.prefix}". ` +
+        `Failed fields: [${failedFields.join(", ")}]. Using schema defaults.`,
+        { zodErrors: zodError.errors, rawValues: result }
+      );
       // Return schema defaults on validation failure
       return this.schema.parse({});
     }
