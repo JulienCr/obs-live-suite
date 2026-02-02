@@ -103,7 +103,8 @@
       "Bash(grepai search:*)",
       "Bash(pnpm install)",
       "Bash(node --version:*)",
-      "Bash(pnpm test:*)"
+      "Bash(pnpm test:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": [

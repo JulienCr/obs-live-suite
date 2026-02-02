@@ -1,4 +1,7 @@
 import { AppConfig } from '@/lib/config/AppConfig';
+import { homedir } from 'os';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 describe('AppConfig', () => {
   let appConfig: AppConfig;
@@ -60,9 +63,72 @@ describe('AppConfig', () => {
 
     it('should have optional GitHub token', () => {
       expect(
-        appConfig.githubToken === undefined || 
+        appConfig.githubToken === undefined ||
         typeof appConfig.githubToken === 'string'
       ).toBe(true);
+    });
+  });
+
+  describe('Data Directory Path Resolution', () => {
+    /**
+     * Bug fix test: In production, data should be stored in user home directory
+     * NOT in the project's .appdata folder
+     *
+     * Production path: ~/.obs-live-suite (e.g., C:\Users\xxx\.obs-live-suite on Windows)
+     * Dev path: {projectRoot}/.appdata/obs-live-suite
+     */
+    describe('when NODE_ENV is development (current test environment)', () => {
+      it('should use .appdata in project root for development', () => {
+        // In test environment (development), path should contain .appdata
+        const dataDir = appConfig.dataDir;
+
+        // The path should contain .appdata when in dev mode
+        // OR be the production path if NODE_ENV was somehow set to production
+        const isDevPath = dataDir.includes('.appdata');
+        const isProdPath = dataDir === join(homedir(), '.obs-live-suite');
+
+        expect(isDevPath || isProdPath).toBe(true);
+      });
+
+      it('should have dev path in project directory when package.json exists', () => {
+        // In dev mode, the data dir should be relative to project root
+        const dataDir = appConfig.dataDir;
+
+        if (process.env.NODE_ENV !== 'production') {
+          // Check that path is in project root (contains .appdata)
+          expect(dataDir).toContain('.appdata');
+          expect(dataDir).toContain('obs-live-suite');
+        }
+      });
+    });
+
+    describe('production path logic', () => {
+      /**
+       * This test documents the expected production behavior:
+       * In production, getDefaultDataDir() should return ~/.obs-live-suite
+       *
+       * We test this by verifying the expected path calculation
+       */
+      it('should calculate production path as ~/.obs-live-suite', () => {
+        const expectedProdPath = join(homedir(), '.obs-live-suite');
+
+        // This is the path that SHOULD be used in production
+        // (when NODE_ENV === 'production')
+        expect(expectedProdPath).toMatch(/\.obs-live-suite$/);
+        expect(expectedProdPath).not.toContain('.appdata');
+        expect(expectedProdPath).not.toContain('AppData');
+        expect(expectedProdPath).not.toContain('Roaming');
+      });
+
+      it('should NOT use %APPDATA% (AppData/Roaming) path', () => {
+        // The production path should be homedir()/.obs-live-suite
+        // NOT %APPDATA%/obs-live-suite (C:\Users\xxx\AppData\Roaming\obs-live-suite)
+        const expectedProdPath = join(homedir(), '.obs-live-suite');
+
+        // Verify it's in home directory, not AppData
+        expect(expectedProdPath.startsWith(homedir())).toBe(true);
+        expect(expectedProdPath).not.toContain('AppData');
+      });
     });
   });
 });

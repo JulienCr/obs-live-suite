@@ -35,9 +35,11 @@ if (!hasBuild && !hasHttpsCerts) {
 }
 
 const childEnv = { ...process.env };
+// Preserve NODE_ENV from parent (PM2 sets production)
+// Only override to development if explicitly running dev mode (no build AND not already production)
 if (hasBuild) {
   childEnv.NODE_ENV = 'production';
-} else {
+} else if (process.env.NODE_ENV !== 'production') {
   childEnv.NODE_ENV = 'development';
   childEnv.TAILWIND_MODE = 'watch';
 }
