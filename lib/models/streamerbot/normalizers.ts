@@ -32,6 +32,16 @@ export function normalizeTwitchChatMessage(event: TwitchChatMessageEvent): ChatM
   const msg = data.message;
   const user = data.user;
 
+  // Debug logging for moderation IDs
+  console.log(`[Streamerbot] Twitch message received:`, {
+    "msg.msgId": msg.msgId,
+    "msg.userId": msg.userId,
+    "user?.id": user?.id,
+    "data.messageId": data.messageId,
+    username: msg.username,
+    displayName: msg.displayName,
+  });
+
   // Parse message parts from payload (text + emotes)
   const parts: MessagePart[] = msg.parts?.map((part) => {
     if (part.type === "emote") {
@@ -71,6 +81,8 @@ export function normalizeTwitchChatMessage(event: TwitchChatMessageEvent): ChatM
         username: msg.replyParentUserLogin || "",
         displayName: msg.replyParentDisplayName || "",
       } : undefined,
+      twitchMsgId: msg.msgId,
+      twitchUserId: msg.userId || user?.id,
     },
     rawPayload: event,
   };

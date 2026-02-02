@@ -8,6 +8,9 @@
  * - GET /categories - Search for game categories
  * - POST /polling/start - Start polling
  * - POST /polling/stop - Stop polling
+ * - DELETE /moderation/message - Delete a chat message
+ * - POST /moderation/timeout - Timeout a user
+ * - POST /moderation/ban - Ban a user
  */
 
 import { Router } from "express";
@@ -202,6 +205,92 @@ router.post("/auth/reload", async (req, res) => {
     });
   } catch (error) {
     expressError(res, error, "Failed to reload OAuth tokens", { context: "[TwitchAPI]" });
+  }
+});
+
+/**
+ * DELETE /api/twitch/moderation/message
+ * Delete a chat message by ID
+ */
+router.delete("/moderation/message", async (req, res) => {
+  try {
+    const { messageId } = req.query;
+
+    console.log(`[TwitchAPI:Moderation] DELETE /moderation/message called`, {
+      messageId,
+      messageIdType: typeof messageId,
+    });
+
+    if (!messageId || typeof messageId !== "string") {
+      return res.status(400).json({
+        success: false,
+        error: "messageId query parameter is required",
+      });
+    }
+
+    const service = TwitchService.getInstance();
+    const result = await service.deleteMessage(messageId);
+
+    console.log(`[TwitchAPI:Moderation] Delete result:`, { messageId, result });
+
+    res.json({
+      success: result,
+    });
+  } catch (error) {
+    console.error(`[TwitchAPI:Moderation] Delete error:`, error);
+    expressError(res, error, "Failed to delete message", { context: "[TwitchAPI]" });
+  }
+});
+
+/**
+ * POST /api/twitch/moderation/timeout
+ * Timeout a user in chat
+ */
+router.post("/moderation/timeout", async (req, res) => {
+  try {
+    const { userId, duration = 600, reason } = req.body;
+
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({
+        success: false,
+        error: "userId is required in request body",
+      });
+    }
+
+    const service = TwitchService.getInstance();
+    await service.timeoutUser(userId, duration, reason);
+
+    res.json({
+      success: true,
+    });
+  } catch (error) {
+    expressError(res, error, "Failed to timeout user", { context: "[TwitchAPI]" });
+  }
+});
+
+/**
+ * POST /api/twitch/moderation/ban
+ * Ban a user from chat
+ */
+router.post("/moderation/ban", async (req, res) => {
+  try {
+    const { userId, reason } = req.body;
+
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({
+        success: false,
+        error: "userId is required in request body",
+      });
+    }
+
+    const service = TwitchService.getInstance();
+    await service.banUser(userId, reason);
+
+    res.json({
+      success: true,
+    });
+  } catch (error) {
+    expressError(res, error, "Failed to ban user", { context: "[TwitchAPI]" });
   }
 });
 

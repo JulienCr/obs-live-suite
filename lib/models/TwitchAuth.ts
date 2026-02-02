@@ -19,6 +19,8 @@ import { z } from "zod";
  * - chat:edit - Send chat messages
  * - user:write:chat - Send chat messages via API
  * - user:read:chat - Read chat messages via API
+ * - moderator:manage:chat_messages - Delete chat messages (DELETE /helix/moderation/chat)
+ * - moderator:manage:banned_users - Ban/unban users (POST /helix/moderation/bans)
  */
 export const TWITCH_OAUTH_SCOPES = [
   "channel:manage:broadcast",
@@ -27,6 +29,8 @@ export const TWITCH_OAUTH_SCOPES = [
   "chat:edit",
   "user:write:chat",
   "user:read:chat",
+  "moderator:manage:chat_messages",
+  "moderator:manage:banned_users",
 ] as const;
 
 /**

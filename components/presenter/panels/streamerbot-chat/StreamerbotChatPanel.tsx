@@ -35,6 +35,7 @@ export function StreamerbotChatPanel({
   const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
   const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
   const [viewerCount, setViewerCount] = useState<number>(0);
+  const [moderateLoadingId, setModerateLoadingId] = useState<string | null>(null);
 
   // Subscribe to Twitch WebSocket for viewer count updates
   const handleTwitchEvent = useCallback((data: TwitchEvent) => {
@@ -149,6 +150,59 @@ export function StreamerbotChatPanel({
     }
   }, [showingInOverlayId, currentlyDisplayedId, toast, t]);
 
+  // Moderation handler for delete/timeout/ban actions
+  const handleModerate = useCallback(
+    async (
+      message: ChatMessage,
+      action: "delete" | "timeout" | "ban",
+      duration?: number
+    ) => {
+      if (moderateLoadingId) return;
+
+      setModerateLoadingId(message.id);
+
+      try {
+        const baseUrl = "/api/twitch/moderation";
+
+        if (action === "delete") {
+          const msgId = message.metadata?.twitchMsgId;
+          if (!msgId) throw new Error("Missing Twitch message ID");
+          await fetch(`${baseUrl}/message?messageId=${msgId}`, {
+            method: "DELETE",
+          });
+          toast({ title: t("moderation.messageDeleted") });
+        } else if (action === "timeout") {
+          const userId = message.metadata?.twitchUserId;
+          if (!userId) throw new Error("Missing Twitch user ID");
+          await fetch(`${baseUrl}/timeout`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, duration: duration || 600 }),
+          });
+          toast({ title: t("moderation.userTimedOut") });
+        } else if (action === "ban") {
+          const userId = message.metadata?.twitchUserId;
+          if (!userId) throw new Error("Missing Twitch user ID");
+          await fetch(`${baseUrl}/ban`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId }),
+          });
+          toast({ title: t("moderation.userBanned") });
+        }
+      } catch (error) {
+        toast({
+          title: t("moderation.failed"),
+          description: error instanceof Error ? error.message : String(error),
+          variant: "destructive",
+        });
+      } finally {
+        setModerateLoadingId(null);
+      }
+    },
+    [moderateLoadingId, toast, t]
+  );
+
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Header with status and controls */}
@@ -187,6 +241,8 @@ export function StreamerbotChatPanel({
         onShowInOverlay={handleShowInOverlay}
         showingInOverlayId={showingInOverlayId}
         currentlyDisplayedId={currentlyDisplayedId}
+        onModerate={handleModerate}
+        moderateLoadingId={moderateLoadingId}
       />
 
       {/* Message input (when enabled) */}
