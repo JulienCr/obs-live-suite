@@ -15,6 +15,7 @@ Always follow these rules :
 - Before writing any code, be sure you can't reuse existing code from the project. PRIORITIZE DRY (Don't Repeat Yourself) principles.
 - In the same vein, reuse shared components, services, utilities, and constant definitions whenever possible.
 - Write constants and configuration values in a single place, and reference them throughout the codebase (lib/AppConfig.ts, lib/Constants.ts, etc).
+- When fixing a bug: use the `bugkiller` agent which handles the full TDD workflow (write failing test → fix bug → verify test passes).
 
 ## Development Commands
 

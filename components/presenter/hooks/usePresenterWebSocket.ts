@@ -41,12 +41,17 @@ export function usePresenterWebSocket(
 
   // Connect to WebSocket
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
+    // Guard against multiple connections - check for OPEN or CONNECTING state
+    const currentState = wsRef.current?.readyState;
+    if (currentState === WebSocket.OPEN || currentState === WebSocket.CONNECTING) {
       return;
     }
 
     const wsUrl = getWebSocketUrl();
     const ws = new WebSocket(wsUrl);
+
+    // Set ref immediately to prevent race conditions with rapid calls
+    wsRef.current = ws;
 
     ws.onopen = () => {
       setConnected(true);
@@ -166,8 +171,6 @@ export function usePresenterWebSocket(
     ws.onerror = (error) => {
       console.error("[Presenter WS] Error:", error);
     };
-
-    wsRef.current = ws;
   }, [role, seenMessageIds, timeouts]);
 
   // Setup WebSocket connection
