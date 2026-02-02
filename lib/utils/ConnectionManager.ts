@@ -148,6 +148,7 @@ export abstract class ConnectionManager {
     if (this.status === ConnectionStatus.CONNECTED) {
       await this.doDisconnect();
       this.status = ConnectionStatus.DISCONNECTED;
+      this.onDisconnected();
     }
   }
 

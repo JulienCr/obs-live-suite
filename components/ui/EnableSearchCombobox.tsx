@@ -69,6 +69,7 @@ export function EnableSearchCombobox<T>({
       onEnable(getId(item));
     }
     setOpen(false);
+    setSearchValue("");
   };
 
   return (

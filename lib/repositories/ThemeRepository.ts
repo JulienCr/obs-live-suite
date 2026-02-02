@@ -62,19 +62,26 @@ export class ThemeRepository extends BaseRepository<
 
   protected readonly tableName = "themes";
   protected readonly loggerName = "ThemeRepository";
-  protected readonly transformConfig: ColumnTransformConfig = {
-    booleanColumns: ["isGlobal"],
-    dateColumns: ["createdAt", "updatedAt"],
-    jsonColumns: [
-      { column: "colors", defaultValue: DEFAULT_COLORS },
-      { column: "lowerThirdFont", defaultValue: DEFAULT_FONT },
-      { column: "lowerThirdLayout", defaultValue: LAYOUT_DEFAULTS.LOWER_THIRD },
-      { column: "lowerThirdAnimation", defaultValue: this.getDefaultLowerThirdAnimation(), optional: true },
-      { column: "countdownFont", defaultValue: DEFAULT_FONT },
-      { column: "countdownLayout", defaultValue: LAYOUT_DEFAULTS.COUNTDOWN },
-      { column: "posterLayout", defaultValue: LAYOUT_DEFAULTS.POSTER },
-    ],
-  };
+
+  /**
+   * Transform configuration for theme columns.
+   * Uses getter to avoid referencing `this` in field initializer.
+   */
+  protected get transformConfig(): ColumnTransformConfig {
+    return {
+      booleanColumns: ["isGlobal"],
+      dateColumns: ["createdAt", "updatedAt"],
+      jsonColumns: [
+        { column: "colors", defaultValue: DEFAULT_COLORS },
+        { column: "lowerThirdFont", defaultValue: DEFAULT_FONT },
+        { column: "lowerThirdLayout", defaultValue: LAYOUT_DEFAULTS.LOWER_THIRD },
+        { column: "lowerThirdAnimation", defaultValue: this.getDefaultLowerThirdAnimation(), optional: true },
+        { column: "countdownFont", defaultValue: DEFAULT_FONT },
+        { column: "countdownLayout", defaultValue: LAYOUT_DEFAULTS.COUNTDOWN },
+        { column: "posterLayout", defaultValue: LAYOUT_DEFAULTS.POSTER },
+      ],
+    };
+  }
 
   private constructor() {
     super();
