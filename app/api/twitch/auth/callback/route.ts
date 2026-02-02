@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { TwitchOAuthManager } from "@/lib/services/twitch/TwitchOAuthManager";
 import { TwitchOAuthCallbackSchema } from "@/lib/models/TwitchAuth";
 import { routing } from "@/i18n/routing";
-import { BACKEND_URL } from "@/lib/config/urls";
+import { BACKEND_URL, APP_URL } from "@/lib/config/urls";
 
 const LOG_CONTEXT = "[TwitchAuth:Callback]";
 
@@ -93,21 +93,10 @@ function getLocale(request: NextRequest): string {
 
 /**
  * Get the base URL for redirects
+ * Uses APP_URL from centralized config (lib/config/urls.ts)
  */
 function getBaseUrl(): string {
-  // Use NEXT_PUBLIC_APP_URL if set (preferred for custom hostnames like edison)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (appUrl) {
-    // Ensure it has a protocol
-    if (appUrl.startsWith("http://") || appUrl.startsWith("https://")) {
-      return appUrl;
-    }
-    return `https://${appUrl}`;
-  }
-
-  // Default fallback
-  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
-  return `${protocol}://localhost:3000`;
+  return APP_URL;
 }
 
 /**

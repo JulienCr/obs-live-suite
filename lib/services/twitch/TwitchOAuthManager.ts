@@ -14,6 +14,7 @@ import { SettingsService } from "../SettingsService";
 import { WebSocketHub } from "../WebSocketHub";
 import { generateCodeVerifier, generateCodeChallenge, generateState } from "../../utils/pkce";
 import { TWITCH } from "../../config/Constants";
+import { APP_URL } from "../../config/urls";
 import {
   TwitchAuthStatus,
   TwitchAuthError,
@@ -691,20 +692,7 @@ export class TwitchOAuthManager {
    * Get the OAuth redirect URI
    */
   private getRedirectUri(): string {
-    // Use NEXT_PUBLIC_APP_URL if set (should include protocol)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-    if (appUrl) {
-      // If it already has a protocol, use as-is
-      if (appUrl.startsWith("http://") || appUrl.startsWith("https://")) {
-        return `${appUrl}${TWITCH_OAUTH_CALLBACK_PATH}`;
-      }
-      // Otherwise, add https
-      return `https://${appUrl}${TWITCH_OAUTH_CALLBACK_PATH}`;
-    }
-
-    // Default to localhost for development
-    const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
-    return `${protocol}://localhost:3000${TWITCH_OAUTH_CALLBACK_PATH}`;
+    return `${APP_URL}${TWITCH_OAUTH_CALLBACK_PATH}`;
   }
 
   /**

@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { EntityHeader } from "@/components/ui/EntityHeader";
+import { EnableSearchCombobox } from "@/components/ui/EnableSearchCombobox";
 import { AvatarUploader } from "./AvatarUploader";
 import { VirtualizedGuestGrid } from "./VirtualizedGuestGrid";
-import { Plus, User, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { User, ChevronDown, ChevronUp, Users } from "lucide-react";
 import { apiPost } from "@/lib/utils/ClientFetch";
 import { useGuests, type Guest } from "@/lib/queries";
 
@@ -32,8 +32,6 @@ export function GuestManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showDisabled, setShowDisabled] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
   const [formData, setFormData] = useState({
     displayName: "",
     subtitle: "",
@@ -108,27 +106,11 @@ export function GuestManager() {
 
   const handleEnableFromSearch = (guestId: string) => {
     toggleEnabled({ id: guestId, isEnabled: true });
-    setSearchOpen(false);
-    setSearchValue("");
   };
 
   // Split guests by enabled status
   const enabledGuests = guests.filter(g => g.isEnabled);
   const disabledGuests = guests.filter(g => !g.isEnabled);
-
-  // Filter guests for search (show all, prioritize disabled)
-  const filteredGuestsForSearch = guests.filter(guest => {
-    const search = searchValue.toLowerCase();
-    return (
-      guest.displayName.toLowerCase().includes(search) ||
-      (guest.subtitle && guest.subtitle.toLowerCase().includes(search))
-    );
-  }).sort((a, b) => {
-    // Disabled guests first in search results
-    if (!a.isEnabled && b.isEnabled) return -1;
-    if (a.isEnabled && !b.isEnabled) return 1;
-    return 0;
-  });
 
   if (loading) {
     return <div>{tCommon("loading")}</div>;
@@ -137,101 +119,52 @@ export function GuestManager() {
   return (
     <div className="space-y-6">
       {/* Header with Stats and Actions */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <Users className="w-6 h-6" />
-            {t("title")}
-          </h2>
-          <div className="flex items-center gap-3 mt-1">
-            <p className="text-sm text-muted-foreground">
-              {t("activeCount", { count: enabledGuests.length, total: guests.length })}
-            </p>
-          </div>
-        </div>
-        <Button onClick={() => {
+      <EntityHeader
+        icon={Users}
+        title={t("title")}
+        stats={t("activeCount", { count: enabledGuests.length, total: guests.length })}
+        onAdd={() => {
           setEditingId(null);
           resetForm();
           setShowForm(!showForm);
-        }}>
-          <Plus className="w-4 h-4 mr-2" />
-          {t("addGuest")}
-        </Button>
-      </div>
+        }}
+        addLabel={t("addGuest")}
+      />
 
       {/* Search Bar - Enable Disabled Guests */}
-      <div className="space-y-2">
-        <Label htmlFor="guest-search">{t("enableGuest")}</Label>
-        <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={searchOpen}
-              className="w-full justify-between"
+      <EnableSearchCombobox
+        items={guests}
+        onEnable={handleEnableFromSearch}
+        getId={(g) => g.id}
+        getName={(g) => g.displayName}
+        getIsEnabled={(g) => g.isEnabled}
+        label={t("enableGuest")}
+        placeholder={t("searchToEnable")}
+        searchPlaceholder={t("searchByNameSubtitle")}
+        emptyMessage={t("noGuestsFound")}
+        groupHeading={t("title")}
+        renderItem={(guest) => (
+          <>
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold overflow-hidden flex-shrink-0"
+              style={{ backgroundColor: guest.accentColor }}
             >
-              <span className="text-muted-foreground">
-                {t("searchToEnable")}
-              </span>
-              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-full p-0" align="start">
-            <Command shouldFilter={false}>
-              <CommandInput
-                placeholder={t("searchByNameSubtitle")}
-                value={searchValue}
-                onValueChange={setSearchValue}
-              />
-              <CommandList>
-                <CommandEmpty>{t("noGuestsFound")}</CommandEmpty>
-                <CommandGroup heading={t("title")}>
-                  {filteredGuestsForSearch.map((guest) => (
-                    <CommandItem
-                      key={guest.id}
-                      value={guest.displayName}
-                      onSelect={() => {
-                        if (!guest.isEnabled) {
-                          handleEnableFromSearch(guest.id);
-                        } else {
-                          setSearchOpen(false);
-                        }
-                      }}
-                      className="flex items-center gap-3"
-                    >
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold overflow-hidden flex-shrink-0"
-                        style={{ backgroundColor: guest.accentColor }}
-                      >
-                        {guest.avatarUrl ? (
-                          <img
-                            src={guest.avatarUrl}
-                            alt={guest.displayName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          guest.displayName.charAt(0).toUpperCase()
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{guest.displayName}</div>
-                        {guest.subtitle && (
-                          <div className="text-xs text-muted-foreground truncate">
-                            {guest.subtitle}
-                          </div>
-                        )}
-                      </div>
-                      <Badge variant={guest.isEnabled ? "default" : "secondary"} className="text-xs">
-                        {guest.isEnabled ? t("active") : t("disabled")}
-                      </Badge>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      </div>
+              {guest.avatarUrl ? (
+                <img src={guest.avatarUrl} alt={guest.displayName} className="w-full h-full object-cover" />
+              ) : (
+                guest.displayName.charAt(0).toUpperCase()
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium truncate">{guest.displayName}</div>
+              {guest.subtitle && <div className="text-xs text-muted-foreground truncate">{guest.subtitle}</div>}
+            </div>
+            <Badge variant={guest.isEnabled ? "default" : "secondary"} className="text-xs">
+              {guest.isEnabled ? t("active") : t("disabled")}
+            </Badge>
+          </>
+        )}
+      />
 
       {/* Create/Edit Form */}
       {showForm && (

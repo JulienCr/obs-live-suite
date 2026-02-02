@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { CardActionBar } from "@/components/ui/CardActionBar";
 import { Zap, Edit, Power, PowerOff, Trash2 } from "lucide-react";
 import type { Guest } from "@/lib/queries";
 
@@ -90,47 +91,19 @@ export function GuestCard({
         )}
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-3 gap-1">
-          {onEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(guest)}
-              title={t("edit")}
-              className="px-2"
-            >
-              <Edit className="w-3 h-3" />
-            </Button>
-          )}
-
-          {onToggleEnabled && (
-            <Button
-              variant={isEnabled ? "outline" : "default"}
-              size="sm"
-              onClick={() => onToggleEnabled(guest)}
-              title={isEnabled ? t("disable") : t("enable")}
-              className="px-2"
-            >
-              {isEnabled ? (
-                <PowerOff className="w-3 h-3" />
-              ) : (
-                <Power className="w-3 h-3" />
-              )}
-            </Button>
-          )}
-
-          {onDelete && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => onDelete(guest)}
-              title={t("delete")}
-              className="px-2"
-            >
-              <Trash2 className="w-3 h-3" />
-            </Button>
-          )}
-        </div>
+        <CardActionBar
+          actions={[
+            ...(onEdit ? [{ icon: Edit, onClick: () => onEdit(guest), title: t("edit") }] : []),
+            ...(onToggleEnabled ? [{
+              icon: isEnabled ? PowerOff : Power,
+              onClick: () => onToggleEnabled(guest),
+              variant: isEnabled ? "outline" as const : "default" as const,
+              title: isEnabled ? t("disable") : t("enable"),
+            }] : []),
+            ...(onDelete ? [{ icon: Trash2, onClick: () => onDelete(guest), variant: "destructive" as const, title: t("delete") }] : []),
+          ]}
+          className="!opacity-100"
+        />
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Palette, Plus, Edit2, Trash2, Check, X, Eye, Zap, Play, RotateCcw } from "lucide-react";
+import { EntityHeader } from "@/components/ui/EntityHeader";
 import {
   Theme,
   LowerThirdTemplate,
@@ -492,50 +493,44 @@ export function ThemeManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <Palette className="w-6 h-6" />
-            Themes
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Customize colors, fonts, and styles for your overlays
-          </p>
-          {activeProfileThemeId && (
-            <div className="mt-2 flex items-center gap-2">
-              <Badge variant="default" className="text-xs">
-                Active: {themes.find(t => t.id === activeProfileThemeId)?.name || "Unknown"}
-              </Badge>
-              <div className="flex gap-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={testLowerThird}
-                  title="Test Lower Third with current theme"
-                >
-                  <Play className="w-3 h-3 mr-1" />
-                  Test Lower Third
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={testCountdown}
-                  title="Test Countdown with current theme"
-                >
-                  <Play className="w-3 h-3 mr-1" />
-                  Test Countdown
-                </Button>
+      <EntityHeader
+        icon={Palette}
+        title="Themes"
+        stats={
+          <>
+            <span>Customize colors, fonts, and styles for your overlays</span>
+            {activeProfileThemeId && (
+              <div className="mt-2 flex items-center gap-2">
+                <Badge variant="default" className="text-xs">
+                  Active: {themes.find(t => t.id === activeProfileThemeId)?.name || "Unknown"}
+                </Badge>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={testLowerThird}
+                    title="Test Lower Third with current theme"
+                  >
+                    <Play className="w-3 h-3 mr-1" />
+                    Test Lower Third
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={testCountdown}
+                    title="Test Countdown with current theme"
+                  >
+                    <Play className="w-3 h-3 mr-1" />
+                    Test Countdown
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-        {!isEditing && (
-          <Button onClick={handleCreate}>
-            <Plus className="w-4 h-4 mr-2" />
-            New Theme
-          </Button>
-        )}
-      </div>
+            )}
+          </>
+        }
+        onAdd={!isEditing ? handleCreate : undefined}
+        addLabel="New Theme"
+      />
 
       {error && (
         <Alert variant="destructive">
