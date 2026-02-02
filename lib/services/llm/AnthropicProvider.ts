@@ -52,7 +52,7 @@ export class AnthropicProvider implements LLMProvider {
     try {
       // Anthropic doesn't have a simple test endpoint, so we make a minimal request
       const response = await fetchWithTimeout(
-        "`${LLM_URLS.ANTHROPIC_API}/messages`",
+        `${LLM_URLS.ANTHROPIC_API}/messages`,
         {
           method: "POST",
           headers: {
@@ -98,7 +98,7 @@ export class AnthropicProvider implements LLMProvider {
   private async callAnthropic(prompt: string): Promise<string> {
     try {
       const response = await fetchWithTimeout(
-        "`${LLM_URLS.ANTHROPIC_API}/messages`",
+        `${LLM_URLS.ANTHROPIC_API}/messages`,
         {
           method: "POST",
           headers: {

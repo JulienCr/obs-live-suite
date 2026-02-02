@@ -87,15 +87,15 @@ export abstract class ConnectionManager {
   }
 
   /**
-   * Called when connection is closed or lost.
+   * Called when connection is closed.
    * Override to add custom behavior.
    */
   protected onDisconnected(): void {
-    this.logger.warn("Connection closed");
+    this.logger.info("Connection closed");
   }
 
   /**
-   * Called when a connection error occurs.
+   * Called when connection error occurs.
    * Override to add custom behavior.
    */
   protected onError(error: ConnectionError): void {
@@ -129,7 +129,10 @@ export abstract class ConnectionManager {
         message: error instanceof Error ? error.message : "Connection failed",
         originalError: error,
       };
-      this.onError(this.currentError);
+      this.logger.error(
+        `Connection error: ${this.currentError.message}`,
+        this.currentError.originalError
+      );
       this.scheduleReconnect();
       throw error;
     }
@@ -145,7 +148,6 @@ export abstract class ConnectionManager {
     if (this.status === ConnectionStatus.CONNECTED) {
       await this.doDisconnect();
       this.status = ConnectionStatus.DISCONNECTED;
-      this.onDisconnected();
     }
   }
 
@@ -220,11 +222,10 @@ export abstract class ConnectionManager {
   }
 
   /**
-   * Reset reconnection counter.
-   * Call this after a successful connection.
+   * Check if currently connected.
    */
-  protected resetReconnectAttempts(): void {
-    this.reconnectAttempts = 0;
+  isConnected(): boolean {
+    return this.status === ConnectionStatus.CONNECTED;
   }
 
   /**
@@ -239,33 +240,5 @@ export abstract class ConnectionManager {
    */
   getError(): ConnectionError | undefined {
     return this.currentError;
-  }
-
-  /**
-   * Check if currently connected.
-   */
-  isConnected(): boolean {
-    return this.status === ConnectionStatus.CONNECTED;
-  }
-
-  /**
-   * Check if currently connecting.
-   */
-  isConnecting(): boolean {
-    return this.status === ConnectionStatus.CONNECTING;
-  }
-
-  /**
-   * Check if in error state.
-   */
-  hasError(): boolean {
-    return this.status === ConnectionStatus.ERROR;
-  }
-
-  /**
-   * Get the number of reconnection attempts made.
-   */
-  getReconnectAttempts(): number {
-    return this.reconnectAttempts;
   }
 }

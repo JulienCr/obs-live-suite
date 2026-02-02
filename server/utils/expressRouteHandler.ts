@@ -5,7 +5,7 @@
  * to reduce boilerplate in Express route definitions.
  */
 import { Request, Response, NextFunction, RequestHandler } from "express";
-import { expressError, getErrorStatusCode, isZodError } from "../../lib/utils/apiError";
+import { expressError, getErrorStatusCode } from "../../lib/utils/apiError";
 
 /**
  * Options for the async handler wrapper
