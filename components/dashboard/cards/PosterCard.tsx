@@ -6,7 +6,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import { Eye, Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Eye, Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { VideoChapter } from "@/lib/models/Poster";
 import { cn } from "@/lib/utils/cn";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
@@ -20,6 +27,15 @@ interface Poster {
   type: string;
   source?: string;
   isEnabled?: boolean;
+  thumbnailUrl?: string | null;
+  // Sub-video fields
+  startTime?: number | null;
+  endTime?: number | null;
+  endBehavior?: "stop" | "loop" | null;
+  metadata?: {
+    chapters?: VideoChapter[];
+    [key: string]: unknown;
+  };
 }
 
 interface PosterCardProps {
@@ -83,6 +99,8 @@ export function PosterContent({ className }: PosterContentProps) {
     duration: 0,
   });
   const [localSeekTime, setLocalSeekTime] = useState<number | null>(null);
+  const [activeChapters, setActiveChapters] = useState<VideoChapter[]>([]);
+  const [currentChapterIndex, setCurrentChapterIndex] = useState(-1);
   const [aspectRatios, setAspectRatios] = useState<Record<string, AspectRatioClass>>({});
   const [columnCount, setColumnCount] = useState(2);
   const [containerWidth, setContainerWidth] = useState(400);
@@ -339,6 +357,12 @@ export function PosterContent({ className }: PosterContentProps) {
         type: poster.type,
         source: poster.source,
         transition: "fade",
+        // Include chapters if present
+        ...(poster.metadata?.chapters?.length && { chapters: poster.metadata.chapters }),
+        // Include sub-video config if defined
+        ...(poster.startTime != null && { startTime: poster.startTime }),
+        ...(poster.endTime != null && { endTime: poster.endTime }),
+        ...(poster.endBehavior && { endBehavior: poster.endBehavior }),
       };
 
       // Add side only if not bigpicture
@@ -424,6 +448,78 @@ export function PosterContent({ className }: PosterContentProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Update active chapters when poster changes
+  useEffect(() => {
+    if (activePoster) {
+      const poster = posters.find(p => p.id === activePoster);
+      const chapters = poster?.metadata?.chapters || [];
+      setActiveChapters([...chapters].sort((a, b) => a.timestamp - b.timestamp));
+    } else {
+      setActiveChapters([]);
+      setCurrentChapterIndex(-1);
+    }
+  }, [activePoster, posters]);
+
+  // Track current chapter based on playback time
+  useEffect(() => {
+    if (activeChapters.length === 0) {
+      setCurrentChapterIndex(-1);
+      return;
+    }
+
+    const currentTime = playbackState.currentTime;
+    let chapterIndex = -1;
+    for (let i = 0; i < activeChapters.length; i++) {
+      if (activeChapters[i].timestamp <= currentTime) {
+        chapterIndex = i;
+      } else {
+        break;
+      }
+    }
+    setCurrentChapterIndex(chapterIndex);
+  }, [playbackState.currentTime, activeChapters]);
+
+  const handleChapterNext = async () => {
+    if (activeChapters.length === 0) return;
+    const nextIndex = currentChapterIndex + 1;
+    if (nextIndex < activeChapters.length) {
+      const endpoint = displayMode === "bigpicture"
+        ? "/api/overlays/poster-bigpicture"
+        : "/api/overlays/poster";
+      try {
+        await apiPost(endpoint, { action: "chapter-next" });
+      } catch (error) {
+        console.error("Chapter next error:", error);
+      }
+    }
+  };
+
+  const handleChapterPrev = async () => {
+    if (activeChapters.length === 0) return;
+    const endpoint = displayMode === "bigpicture"
+      ? "/api/overlays/poster-bigpicture"
+      : "/api/overlays/poster";
+    try {
+      await apiPost(endpoint, { action: "chapter-previous" });
+    } catch (error) {
+      console.error("Chapter prev error:", error);
+    }
+  };
+
+  const handleChapterJump = async (chapterIndex: number) => {
+    const endpoint = displayMode === "bigpicture"
+      ? "/api/overlays/poster-bigpicture"
+      : "/api/overlays/poster";
+    try {
+      await apiPost(endpoint, {
+        action: "chapter-jump",
+        payload: { chapterIndex }
+      });
+    } catch (error) {
+      console.error("Chapter jump error:", error);
+    }
+  };
+
   return (
     <>
       <div className={cn("space-y-3", className)}>
@@ -488,12 +584,23 @@ export function PosterContent({ className }: PosterContentProps) {
                             </div>
                           </>
                         ) : poster.type === "video" ? (
-                          <video
-                            src={poster.fileUrl}
-                            className="absolute inset-0 w-full h-full object-cover"
-                            muted
-                            onLoadedMetadata={(e) => handleVideoLoad(poster.id, e)}
-                          />
+                          poster.thumbnailUrl ? (
+                            // Clip with thumbnail: display the image
+                            <img
+                              src={poster.thumbnailUrl}
+                              alt={poster.title}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              onLoad={(e) => handleImageLoad(poster.id, e)}
+                            />
+                          ) : (
+                            // Normal video: display the video element
+                            <video
+                              src={poster.fileUrl}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              muted
+                              onLoadedMetadata={(e) => handleVideoLoad(poster.id, e)}
+                            />
+                          )
                         ) : (
                           <img
                             src={poster.fileUrl}
@@ -590,6 +697,61 @@ export function PosterContent({ className }: PosterContentProps) {
             <Button size="sm" onClick={handleMute} variant="outline">
               {playbackState.isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </Button>
+
+            {/* Chapter navigation */}
+            {activeChapters.length > 0 && (
+              <>
+                <div className="h-4 w-px bg-border mx-1" />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleChapterPrev}
+                  disabled={currentChapterIndex <= 0}
+                  title={t("chapterPrev")}
+                >
+                  <SkipBack className="w-4 h-4" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline" className="min-w-[120px] justify-between">
+                      <span className="truncate text-xs">
+                        {currentChapterIndex >= 0
+                          ? activeChapters[currentChapterIndex]?.title || t("chapter")
+                          : t("chapters")}
+                      </span>
+                      <ChevronDown className="w-3 h-3 ml-1 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto">
+                    {activeChapters.map((chapter, idx) => (
+                      <DropdownMenuItem
+                        key={chapter.id}
+                        onClick={() => handleChapterJump(idx)}
+                        className={cn(
+                          "flex justify-between gap-2",
+                          idx === currentChapterIndex && "bg-accent"
+                        )}
+                      >
+                        <span className="truncate">{chapter.title}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {formatTime(chapter.timestamp)}
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleChapterNext}
+                  disabled={currentChapterIndex >= activeChapters.length - 1}
+                  title={t("chapterNext")}
+                >
+                  <SkipForward className="w-4 h-4" />
+                </Button>
+              </>
+            )}
+
             <span className="text-sm ml-auto">
               {formatTime(playbackState.currentTime)} / {formatTime(playbackState.duration)}
             </span>

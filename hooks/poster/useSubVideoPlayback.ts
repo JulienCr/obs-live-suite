@@ -73,20 +73,6 @@ export function useSubVideoPlayback(
     null
   );
 
-  // Seek to startTime when sub-video config is set and active
-  useEffect(() => {
-    if (!subVideoConfig || !isActive) return;
-
-    const { startTime } = subVideoConfig;
-    if (startTime > 0) {
-      // Delay slightly to ensure video is ready
-      const seekTimeout = setTimeout(() => {
-        seekToTime(startTime);
-      }, 100);
-      return () => clearTimeout(seekTimeout);
-    }
-  }, [subVideoConfig, isActive, seekToTime]);
-
   // Monitor playback time for sub-video end behavior
   useEffect(() => {
     if (!subVideoConfig || !subVideoConfig.endTime || !isActive) return;

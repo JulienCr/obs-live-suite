@@ -34,6 +34,10 @@ interface Poster {
   duration?: number | null;
   metadata?: Record<string, unknown>;
   parentPosterId?: string | null;
+  // Sub-video clip fields
+  startTime?: number | null;
+  endTime?: number | null;
+  thumbnailUrl?: string | null;
 }
 
 /**

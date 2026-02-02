@@ -16,6 +16,8 @@ const nextConfig = {
     'https://192.168.1.10:3000',
     'http://edison:3000',
     'https://edison:3000',
+    'http://edison',
+    'https://edison',
     'http://localhost:3000',
     'https://localhost:3000',
   ],
@@ -61,15 +63,12 @@ const nextConfig = {
     // Handle better-sqlite3 native module
     if (isServer) {
       config.externals.push('better-sqlite3');
-      // Prevent webpack from trying to bundle filesystem scanning code
+    } else {
+      // Client-side: Ignore Node.js modules and add polyfills
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
-      };
-    } else {
-      // Client-side: Add crypto polyfill for @streamerbot/client
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
+        path: false,
         crypto: 'crypto-browserify',
         stream: 'stream-browserify',
         buffer: 'buffer',

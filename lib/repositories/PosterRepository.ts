@@ -11,11 +11,12 @@ import { Logger } from "@/lib/utils/Logger";
  * Raw poster row type as stored in SQLite database.
  * JSON fields are stored as strings and booleans as integers.
  */
-type DbPosterRow = Omit<DbPoster, 'tags' | 'profileIds' | 'metadata' | 'isEnabled' | 'createdAt' | 'updatedAt'> & {
+type DbPosterRow = Omit<DbPoster, 'tags' | 'profileIds' | 'metadata' | 'isEnabled' | 'endBehavior' | 'createdAt' | 'updatedAt'> & {
   tags: string;
   profileIds: string;
   metadata: string | null;
   isEnabled: number;
+  endBehavior: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -55,6 +56,7 @@ export class PosterRepository {
       profileIds: safeJsonParse<string[]>(row.profileIds, []),
       metadata: safeJsonParseOptional<Record<string, unknown>>(row.metadata),
       isEnabled: row.isEnabled === 1,
+      endBehavior: row.endBehavior as DbPoster['endBehavior'],
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     };
@@ -96,8 +98,8 @@ export class PosterRepository {
   create(poster: DbPosterInput): void {
     const now = new Date();
     const stmt = this.db.getDb().prepare(`
-      INSERT INTO posters (id, title, description, source, fileUrl, type, duration, tags, profileIds, metadata, chatMessage, isEnabled, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO posters (id, title, description, source, fileUrl, type, duration, tags, profileIds, metadata, chatMessage, isEnabled, parentPosterId, startTime, endTime, thumbnailUrl, endBehavior, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       poster.id,
@@ -112,6 +114,11 @@ export class PosterRepository {
       poster.metadata ? JSON.stringify(poster.metadata) : null,
       poster.chatMessage || null,
       poster.isEnabled ? 1 : 0,
+      poster.parentPosterId || null,
+      poster.startTime ?? null,
+      poster.endTime ?? null,
+      poster.thumbnailUrl || null,
+      poster.endBehavior || null,
       (poster.createdAt || now).toISOString(),
       (poster.updatedAt || now).toISOString()
     );
@@ -140,12 +147,17 @@ export class PosterRepository {
       metadata: updates.metadata !== undefined ? updates.metadata : existing.metadata,
       chatMessage: updates.chatMessage !== undefined ? updates.chatMessage : existing.chatMessage,
       isEnabled: updates.isEnabled !== undefined ? updates.isEnabled : existing.isEnabled,
+      parentPosterId: updates.parentPosterId !== undefined ? updates.parentPosterId : existing.parentPosterId,
+      startTime: updates.startTime !== undefined ? updates.startTime : existing.startTime,
+      endTime: updates.endTime !== undefined ? updates.endTime : existing.endTime,
+      thumbnailUrl: updates.thumbnailUrl !== undefined ? updates.thumbnailUrl : existing.thumbnailUrl,
+      endBehavior: updates.endBehavior !== undefined ? updates.endBehavior : existing.endBehavior,
       updatedAt: updates.updatedAt || new Date(),
     };
 
     const stmt = this.db.getDb().prepare(`
       UPDATE posters
-      SET title = ?, description = ?, source = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, chatMessage = ?, isEnabled = ?, updatedAt = ?
+      SET title = ?, description = ?, source = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, chatMessage = ?, isEnabled = ?, parentPosterId = ?, startTime = ?, endTime = ?, thumbnailUrl = ?, endBehavior = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
@@ -160,6 +172,11 @@ export class PosterRepository {
       merged.metadata ? JSON.stringify(merged.metadata) : null,
       merged.chatMessage || null,
       merged.isEnabled ? 1 : 0,
+      merged.parentPosterId || null,
+      merged.startTime ?? null,
+      merged.endTime ?? null,
+      merged.thumbnailUrl || null,
+      merged.endBehavior || null,
       merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
       id
     );
@@ -171,5 +188,53 @@ export class PosterRepository {
   delete(id: string): void {
     const stmt = this.db.getDb().prepare("DELETE FROM posters WHERE id = ?");
     stmt.run(id);
+  }
+
+  /**
+   * Get all sub-videos for a parent poster
+   * @param parentId - The ID of the parent poster
+   */
+  getSubVideos(parentId: string): DbPoster[] {
+    const stmt = this.db.getDb().prepare(
+      "SELECT * FROM posters WHERE parentPosterId = ? ORDER BY startTime ASC"
+    );
+    const rows = stmt.all(parentId) as DbPosterRow[];
+    return rows.map((row) => this.transformRow(row));
+  }
+
+  /**
+   * Get the parent poster for a sub-video
+   * @param subVideoId - The ID of the sub-video
+   */
+  getParentPoster(subVideoId: string): DbPoster | null {
+    const subVideo = this.getById(subVideoId);
+    if (!subVideo || !subVideo.parentPosterId) {
+      return null;
+    }
+    return this.getById(subVideo.parentPosterId);
+  }
+
+  /**
+   * Check if a poster has sub-videos
+   * @param posterId - The ID of the poster to check
+   */
+  hasSubVideos(posterId: string): boolean {
+    const stmt = this.db.getDb().prepare(
+      "SELECT COUNT(*) as count FROM posters WHERE parentPosterId = ?"
+    );
+    const result = stmt.get(posterId) as { count: number };
+    return result.count > 0;
+  }
+
+  /**
+   * Get count of sub-videos for a parent poster
+   * @param parentId - The ID of the parent poster
+   */
+  getSubVideoCount(parentId: string): number {
+    const stmt = this.db.getDb().prepare(
+      "SELECT COUNT(*) as count FROM posters WHERE parentPosterId = ?"
+    );
+    const result = stmt.get(parentId) as { count: number };
+    return result.count;
   }
 }

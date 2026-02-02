@@ -145,12 +145,15 @@ export function usePosterPlayback(
         // Update local state
         setPlaybackState({ currentTime, duration, isPlaying, isMuted });
 
-        // Send state to backend
-        send({
-          type: "state",
-          channel: channelName,
-          data: { currentTime, duration, isPlaying, isMuted },
-        });
+        // Only send state to backend if video is ready (has duration)
+        // This prevents sending currentTime: 0 before the video loads and seeks to startTime
+        if (duration > 0) {
+          send({
+            type: "state",
+            channel: channelName,
+            data: { currentTime, duration, isPlaying, isMuted },
+          });
+        }
       }
     }, 1000);
 

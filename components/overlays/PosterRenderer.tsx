@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { PosterShowPayload, ChapterJumpPayload } from "@/lib/models/OverlayEvents";
 import { PosterDisplay } from "./PosterDisplay";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
@@ -23,6 +23,8 @@ interface PosterData {
   offsetX?: number; // Horizontal offset from center (960px = center)
   aspectRatio?: number; // width/height ratio
   side: "left" | "right";
+  initialTime?: number; // Initial seek position for sub-video clips
+  showId: string; // Unique ID to force React remount on each show
 }
 
 interface PosterState {
@@ -56,10 +58,13 @@ export function PosterRenderer() {
   const fadeOutTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const crossFadeTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
+  // Memoized send function to prevent effect re-runs
+  const memoizedSend = useCallback((data: unknown) => sendRef.current(data), []);
+
   // Playback hook - provides refs and controls
   const playback = usePosterPlayback({
     channelName: "poster",
-    send: (data) => sendRef.current(data),
+    send: memoizedSend,
     isActive: state.current !== null,
     mediaType: state.current?.type || null,
   });
@@ -144,6 +149,9 @@ export function PosterRenderer() {
           // Store chapters if provided
           chapters.setChapters(data.payload.chapters || []);
 
+          // Capture startTime before async call to avoid race condition with hook state
+          const capturedStartTime = data.payload.startTime;
+
           // Detect aspect ratio asynchronously
           detectAspectRatio(data.payload.fileUrl, mediaType).then((aspectRatio) => {
             const newPoster: PosterData = {
@@ -152,6 +160,8 @@ export function PosterRenderer() {
               offsetX: data.payload!.theme?.layout?.x, // Extract horizontal offset from theme
               aspectRatio,
               side: data.payload!.side || "left",
+              initialTime: capturedStartTime, // Pass directly to avoid race condition with hook state
+              showId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Unique ID to force React remount
             };
 
             setState((prev) => {
@@ -182,6 +192,21 @@ export function PosterRenderer() {
                 side: newPoster.side,
               };
             });
+
+            // Seek to startTime after video loads (robust approach)
+            if (capturedStartTime !== undefined && capturedStartTime > 0) {
+              const seekToStart = () => {
+                const video = playback.videoRef.current;
+                if (video && video.readyState >= 1) {
+                  video.currentTime = capturedStartTime;
+                } else {
+                  // Retry if video not ready yet
+                  setTimeout(seekToStart, 100);
+                }
+              };
+              // Start trying after a short delay to allow video to mount
+              setTimeout(seekToStart, 50);
+            }
 
             if (data.payload!.duration) {
               hideTimeout.current = setTimeout(() => {
@@ -346,9 +371,9 @@ export function PosterRenderer() {
     return null;
   }
 
-  const renderPoster = (posterData: PosterData, className: string) => {
+  const renderPoster = (posterData: PosterData, className: string, isCurrent: boolean) => {
     return (
-      <div key={posterData.fileUrl} className={className}>
+      <div key={posterData.showId} className={className}>
         <PosterDisplay
           fileUrl={posterData.fileUrl}
           type={posterData.type}
@@ -357,6 +382,8 @@ export function PosterRenderer() {
           side={posterData.side}
           videoRef={posterData.type === "video" ? playback.videoRef : undefined}
           youtubeRef={posterData.type === "youtube" ? playback.youtubeRef : undefined}
+          initialTime={isCurrent ? posterData.initialTime : undefined}
+          videoKey={posterData.showId}
         />
       </div>
     );
@@ -365,12 +392,13 @@ export function PosterRenderer() {
   return (
     <div className={`poster-container ${state.hiding ? 'poster-hiding' : ''}`}>
       {/* Previous poster fading out */}
-      {state.previous && renderPoster(state.previous, 'poster-layer poster-crossfade-out')}
-      
+      {state.previous && renderPoster(state.previous, 'poster-layer poster-crossfade-out', false)}
+
       {/* Current poster */}
       {state.current && renderPoster(
-        state.current, 
-        `poster-layer poster-transition-${state.transition} ${state.previous ? 'poster-crossfade-in' : ''}`
+        state.current,
+        `poster-layer poster-transition-${state.transition} ${state.previous ? 'poster-crossfade-in' : ''}`,
+        true
       )}
     </div>
   );

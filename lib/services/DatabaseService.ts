@@ -434,6 +434,58 @@ export class DatabaseService {
       },
     });
 
+    // Migration 14: Add sub-video fields to posters table
+    this.runMigration({
+      name: "posters_subvideo_fields",
+      table: "posters",
+      run: () => {
+        const tableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
+        const hasParentPosterId = tableInfo.some((col) => col.name === "parentPosterId");
+        const hasStartTime = tableInfo.some((col) => col.name === "startTime");
+        const hasEndTime = tableInfo.some((col) => col.name === "endTime");
+        const hasThumbnailUrl = tableInfo.some((col) => col.name === "thumbnailUrl");
+        const hasEndBehavior = tableInfo.some((col) => col.name === "endBehavior");
+        let modified = false;
+
+        if (!hasParentPosterId) {
+          this.logger.info("Adding parentPosterId column to posters table");
+          this.db.exec(`ALTER TABLE posters ADD COLUMN parentPosterId TEXT REFERENCES posters(id);`);
+          modified = true;
+        }
+
+        if (!hasStartTime) {
+          this.logger.info("Adding startTime column to posters table");
+          this.db.exec(`ALTER TABLE posters ADD COLUMN startTime REAL;`);
+          modified = true;
+        }
+
+        if (!hasEndTime) {
+          this.logger.info("Adding endTime column to posters table");
+          this.db.exec(`ALTER TABLE posters ADD COLUMN endTime REAL;`);
+          modified = true;
+        }
+
+        if (!hasThumbnailUrl) {
+          this.logger.info("Adding thumbnailUrl column to posters table");
+          this.db.exec(`ALTER TABLE posters ADD COLUMN thumbnailUrl TEXT;`);
+          modified = true;
+        }
+
+        if (!hasEndBehavior) {
+          this.logger.info("Adding endBehavior column to posters table");
+          this.db.exec(`ALTER TABLE posters ADD COLUMN endBehavior TEXT;`);
+          modified = true;
+        }
+
+        // Create index for sub-video lookups
+        if (modified) {
+          this.db.exec(`CREATE INDEX IF NOT EXISTS idx_posters_parentPosterId ON posters(parentPosterId);`);
+        }
+
+        return modified;
+      },
+    });
+
     this.logger.info("Database migrations completed");
   }
 

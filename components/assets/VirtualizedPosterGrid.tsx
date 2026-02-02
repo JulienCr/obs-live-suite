@@ -12,6 +12,9 @@ interface Poster {
   tags: string[];
   isEnabled?: boolean;
   createdAt?: string;
+  startTime?: number | null; // For sub-video clips
+  endTime?: number | null; // For sub-video clips
+  thumbnailUrl?: string | null; // Custom thumbnail for clips
 }
 
 interface VirtualizedPosterGridProps {
@@ -20,6 +23,8 @@ interface VirtualizedPosterGridProps {
   onEdit?: (poster: Poster) => void;
   onToggleEnabled?: (poster: Poster) => void;
   onDelete?: (poster: Poster) => void;
+  onChapters?: (poster: Poster) => void;
+  onSubVideos?: (poster: Poster) => void;
   selectedIds?: Set<string>;
   onToggleSelection?: (id: string) => void;
   isBulkDeleting?: boolean;
@@ -37,6 +42,8 @@ export function VirtualizedPosterGrid({
   onEdit,
   onToggleEnabled,
   onDelete,
+  onChapters,
+  onSubVideos,
   selectedIds,
   onToggleSelection,
   isBulkDeleting,
@@ -154,6 +161,8 @@ export function VirtualizedPosterGrid({
                     onEdit={onEdit}
                     onToggleEnabled={onToggleEnabled}
                     onDelete={onDelete}
+                    onChapters={onChapters}
+                    onSubVideos={onSubVideos}
                     isSelected={selectedIds?.has(poster.id)}
                     onToggleSelection={onToggleSelection}
                     isBulkDeleting={isBulkDeleting}

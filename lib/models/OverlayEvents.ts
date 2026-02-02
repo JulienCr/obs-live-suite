@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { videoChapterSchema, endBehaviorSchema, VideoChapter } from "./Poster";
 
 /**
  * Event source - where the event originated
@@ -68,6 +69,9 @@ export enum PosterEventType {
   SEEK = "seek",
   MUTE = "mute",
   UNMUTE = "unmute",
+  CHAPTER_NEXT = "chapter-next",
+  CHAPTER_PREVIOUS = "chapter-previous",
+  CHAPTER_JUMP = "chapter-jump",
 }
 
 /**
@@ -206,6 +210,11 @@ export const posterShowPayloadSchema = z.object({
     }),
   }).optional(),
   source: z.string().optional(),
+  // Sub-video / chapter fields
+  startTime: z.number().min(0).optional(),
+  endTime: z.number().min(0).optional(),
+  endBehavior: endBehaviorSchema.optional(),
+  chapters: z.array(videoChapterSchema).optional(),
 });
 
 export type PosterShowPayload = z.infer<typeof posterShowPayloadSchema>;
@@ -218,6 +227,16 @@ export const posterSeekPayloadSchema = z.object({
 });
 
 export type PosterSeekPayload = z.infer<typeof posterSeekPayloadSchema>;
+
+/**
+ * Chapter jump event payload - jump to a specific chapter by index or id
+ */
+export const chapterJumpPayloadSchema = z.union([
+  z.object({ chapterIndex: z.number().int().min(0) }),
+  z.object({ chapterId: z.string().uuid() }),
+]);
+
+export type ChapterJumpPayload = z.infer<typeof chapterJumpPayloadSchema>;
 
 /**
  * Chat highlight message part schema
@@ -623,6 +642,35 @@ export interface PosterUnmuteEvent {
 }
 
 /**
+ * Event to navigate to the next chapter in a video.
+ * Seeks to the next chapter's timestamp based on current playback position.
+ */
+export interface PosterChapterNextEvent {
+  type: "chapter-next";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to navigate to the previous chapter in a video.
+ * Seeks to the previous chapter's timestamp based on current playback position.
+ */
+export interface PosterChapterPreviousEvent {
+  type: "chapter-previous";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to jump to a specific chapter by index or id.
+ */
+export interface PosterChapterJumpEvent {
+  type: "chapter-jump";
+  payload: ChapterJumpPayload;
+  id: string;
+}
+
+/**
  * Discriminated union of all poster events.
  * Use type guards like `event.type === "show"` to narrow the type.
  */
@@ -635,7 +683,10 @@ export type PosterEvent =
   | PosterPauseEvent
   | PosterSeekEvent
   | PosterMuteEvent
-  | PosterUnmuteEvent;
+  | PosterUnmuteEvent
+  | PosterChapterNextEvent
+  | PosterChapterPreviousEvent
+  | PosterChapterJumpEvent;
 
 // -----------------------------------------------------------------------------
 // Chat Highlight Events
@@ -686,7 +737,7 @@ export type TypedOverlayEvent =
 // Event type sets for type guards - more maintainable than chained comparisons
 const LOWER_THIRD_EVENT_TYPES = new Set(["show", "hide", "update"]);
 const COUNTDOWN_EVENT_TYPES = new Set(["set", "start", "pause", "reset", "update", "add-time", "tick"]);
-const POSTER_EVENT_TYPES = new Set(["show", "hide", "next", "previous", "play", "pause", "seek", "mute", "unmute"]);
+const POSTER_EVENT_TYPES = new Set(["show", "hide", "next", "previous", "play", "pause", "seek", "mute", "unmute", "chapter-next", "chapter-previous", "chapter-jump"]);
 const CHAT_HIGHLIGHT_EVENT_TYPES = new Set(["show", "hide"]);
 
 /**
@@ -716,3 +767,6 @@ export function isPosterEvent(event: { type: string }): event is PosterEvent {
 export function isChatHighlightEvent(event: { type: string }): event is ChatHighlightEvent {
   return CHAT_HIGHLIGHT_EVENT_TYPES.has(event.type);
 }
+
+// Re-export VideoChapter for convenience
+export type { VideoChapter };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { VideoChapter, ChapterJumpPayload } from "@/lib/models/OverlayEvents";
 
 /**
@@ -62,6 +62,9 @@ export function useChapterNavigation(
     currentChapterIndex: -1,
   });
 
+  // Ref for synchronous access to chapters (avoids stale closure issues)
+  const chaptersRef = useRef<VideoChapter[]>([]);
+
   /**
    * Find the current chapter index based on playback time.
    * Returns the index of the last chapter whose timestamp is <= currentTime.
@@ -87,15 +90,22 @@ export function useChapterNavigation(
   /**
    * Set chapters array. Chapters will be sorted by timestamp.
    * Initial chapter index is set to 0 if chapters exist.
+   * Updates ref synchronously for immediate access by other callbacks.
    */
   const setChapters = useCallback((chapters: VideoChapter[]) => {
     if (chapters.length === 0) {
+      // Update ref IMMEDIATELY (synchronous) to avoid stale closure
+      chaptersRef.current = [];
       setChapterState({ chapters: [], currentChapterIndex: -1 });
       return;
     }
 
     // Sort chapters by timestamp
     const sortedChapters = [...chapters].sort((a, b) => a.timestamp - b.timestamp);
+
+    // Update ref IMMEDIATELY (synchronous) to avoid stale closure
+    chaptersRef.current = sortedChapters;
+
     setChapterState({
       chapters: sortedChapters,
       currentChapterIndex: 0,
@@ -104,9 +114,11 @@ export function useChapterNavigation(
 
   /**
    * Navigate to the next chapter
+   * Uses ref for chapters to avoid stale closure issues
    */
   const navigateToNextChapter = useCallback(() => {
-    const { chapters, currentChapterIndex } = chapterState;
+    const chapters = chaptersRef.current;
+    const { currentChapterIndex } = chapterState;
     if (chapters.length === 0) return;
 
     const nextIndex = currentChapterIndex + 1;
@@ -115,15 +127,17 @@ export function useChapterNavigation(
       seekToTime(nextChapter.timestamp);
       setChapterState((prev) => ({ ...prev, currentChapterIndex: nextIndex }));
     }
-  }, [chapterState, seekToTime]);
+  }, [chapterState.currentChapterIndex, seekToTime]);
 
   /**
    * Navigate to the previous chapter.
    * If more than 3 seconds into the current chapter, go to start of current chapter.
    * Otherwise, go to the previous chapter.
+   * Uses ref for chapters to avoid stale closure issues
    */
   const navigateToPreviousChapter = useCallback(() => {
-    const { chapters, currentChapterIndex } = chapterState;
+    const chapters = chaptersRef.current;
+    const { currentChapterIndex } = chapterState;
     if (chapters.length === 0) return;
 
     const currentTime = getCurrentTime();
@@ -141,14 +155,17 @@ export function useChapterNavigation(
         setChapterState((prev) => ({ ...prev, currentChapterIndex: prevIndex }));
       }
     }
-  }, [chapterState, getCurrentTime, seekToTime]);
+  }, [chapterState.currentChapterIndex, getCurrentTime, seekToTime]);
 
   /**
    * Jump to a specific chapter by index or id
+   * Uses ref for chapters to avoid stale closure issues when called
+   * immediately after setChapters (before React state update completes)
    */
   const jumpToChapter = useCallback(
     (payload: ChapterJumpPayload) => {
-      const { chapters } = chapterState;
+      // Use ref instead of state to get the current chapters immediately
+      const chapters = chaptersRef.current;
       if (chapters.length === 0) return;
 
       let targetIndex = -1;
@@ -165,7 +182,7 @@ export function useChapterNavigation(
         setChapterState((prev) => ({ ...prev, currentChapterIndex: targetIndex }));
       }
     },
-    [chapterState, seekToTime]
+    [seekToTime]
   );
 
   // Update current chapter index based on playback time every 500ms

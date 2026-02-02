@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { PosterShowPayload, ChapterJumpPayload } from "@/lib/models/OverlayEvents";
 import { PosterDisplay } from "./PosterDisplay";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
@@ -15,6 +15,8 @@ interface PosterData {
   fileUrl: string;
   type: "image" | "video" | "youtube";
   aspectRatio?: number;
+  initialTime?: number; // Initial seek position for sub-video clips
+  showId: string; // Unique ID to force React remount on each show
 }
 
 interface BigPicturePosterState {
@@ -50,10 +52,13 @@ export function BigPicturePosterRenderer() {
   const fadeOutTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const crossFadeTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
+  // Memoized send function to prevent effect re-runs
+  const memoizedSend = useCallback((data: unknown) => sendRef.current(data), []);
+
   // Playback hook - channelName is "poster-bigpicture"
   const playback = usePosterPlayback({
     channelName: "poster-bigpicture",
-    send: (data) => sendRef.current(data),
+    send: memoizedSend,
     isActive: state.current !== null,
     mediaType: state.current?.type || null,
   });
@@ -121,6 +126,8 @@ export function BigPicturePosterRenderer() {
               fileUrl: data.payload!.fileUrl,
               type: mediaType,
               aspectRatio: 1, // Aspect ratio is not used in "center" positioning mode
+              initialTime: data.payload.startTime, // Pass directly to avoid race condition with hook state
+              showId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Unique ID to force React remount
             };
 
             setState((prev) => {
@@ -149,6 +156,22 @@ export function BigPicturePosterRenderer() {
                 transition: data.payload!.transition || "fade",
               };
             });
+
+            // Seek to startTime after video loads (robust approach)
+            if (data.payload.startTime !== undefined && data.payload.startTime > 0) {
+              const targetTime = data.payload.startTime;
+              const seekToStart = () => {
+                const video = playback.videoRef.current;
+                if (video && video.readyState >= 1) {
+                  video.currentTime = targetTime;
+                } else {
+                  // Retry if video not ready yet
+                  setTimeout(seekToStart, 100);
+                }
+              };
+              // Start trying after a short delay to allow video to mount
+              setTimeout(seekToStart, 50);
+            }
 
             if (data.payload!.duration) {
               hideTimeout.current = setTimeout(() => {
@@ -325,9 +348,11 @@ export function BigPicturePosterRenderer() {
     return null;
   }
 
-  const renderPoster = (posterData: PosterData, className: string) => {
+  const renderPoster = (posterData: PosterData, className: string, isCurrent: boolean) => {
+    const passedInitialTime = isCurrent ? posterData.initialTime : undefined;
+
     return (
-      <div key={posterData.fileUrl} className={className}>
+      <div key={posterData.showId} className={className}>
         <PosterDisplay
           fileUrl={posterData.fileUrl}
           type={posterData.type}
@@ -335,6 +360,8 @@ export function BigPicturePosterRenderer() {
           positioning="center"
           videoRef={posterData.type === "video" ? playback.videoRef : undefined}
           youtubeRef={posterData.type === "youtube" ? playback.youtubeRef : undefined}
+          initialTime={passedInitialTime}
+          videoKey={posterData.showId}
         />
       </div>
     );
@@ -346,13 +373,14 @@ export function BigPicturePosterRenderer() {
     >
       {/* Previous poster fading out */}
       {state.previous &&
-        renderPoster(state.previous, "bigpicture-poster-layer bigpicture-poster-crossfade-out")}
+        renderPoster(state.previous, "bigpicture-poster-layer bigpicture-poster-crossfade-out", false)}
 
       {/* Current poster */}
       {state.current &&
         renderPoster(
           state.current,
-          `bigpicture-poster-layer bigpicture-poster-transition-${state.transition} ${state.previous ? "bigpicture-poster-crossfade-in" : ""}`
+          `bigpicture-poster-layer bigpicture-poster-transition-${state.transition} ${state.previous ? "bigpicture-poster-crossfade-in" : ""}`,
+          true
         )}
     </div>
   );
