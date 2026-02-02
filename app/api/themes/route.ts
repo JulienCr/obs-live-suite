@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { ThemeRepository } from "@/lib/repositories/ThemeRepository";
 import { v4 as uuidv4 } from "uuid";
 import { createThemeSchema, ThemeModel } from "@/lib/models/Theme";
 import { ApiResponses } from "@/lib/utils/ApiResponses";
@@ -9,8 +9,8 @@ import { ApiResponses } from "@/lib/utils/ApiResponses";
  */
 export async function GET() {
   try {
-    const db = DatabaseService.getInstance();
-    const themes = db.getAllThemes();
+    const themeRepo = ThemeRepository.getInstance();
+    const themes = themeRepo.getAll();
     return ApiResponses.ok({ themes });
   } catch (error) {
     console.error("[API] Failed to get themes:", error);
@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date(),
     });
 
-    const db = DatabaseService.getInstance();
-    db.createTheme(theme.toJSON());
+    const themeRepo = ThemeRepository.getInstance();
+    themeRepo.create(theme.toJSON());
 
     return ApiResponses.created({ theme: theme.toJSON() });
   } catch (error) {

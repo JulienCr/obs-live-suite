@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { PosterRepository } from "@/lib/repositories/PosterRepository";
 import { SettingsService } from "@/lib/services/SettingsService";
 import { enrichPosterPayload } from "@/lib/utils/themeEnrichment";
 import { sendChatMessageIfEnabled } from "@/lib/utils/chatMessaging";
@@ -14,8 +14,8 @@ const LOG_CONTEXT = "[ActionsAPI:Poster:Show]";
 export const POST = withErrorHandler<{ id: string }>(
   async (_request: Request, context: RouteContext<{ id: string }>) => {
     const { id } = await context.params;
-    const db = DatabaseService.getInstance();
-    const poster = db.getPosterById(id);
+    const posterRepo = PosterRepository.getInstance();
+    const poster = posterRepo.getById(id);
 
     if (!poster) {
       return ApiResponses.notFound(`Poster with ID ${id}`);
@@ -29,7 +29,7 @@ export const POST = withErrorHandler<{ id: string }>(
       transition: 'fade' as const,
     };
 
-    const enrichedPayload = enrichPosterPayload(basePayload, db);
+    const enrichedPayload = enrichPosterPayload(basePayload);
     console.log(`${LOG_CONTEXT} Publishing with theme:`, !!enrichedPayload.theme);
 
     // Proxy to backend using standardized helper

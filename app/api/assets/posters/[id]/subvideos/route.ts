@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { DatabaseService } from "@/lib/services/DatabaseService";
 import { PosterRepository } from "@/lib/repositories/PosterRepository";
 import { SubVideoService } from "@/lib/services/SubVideoService";
 import { endBehaviorSchema } from "@/lib/models/Poster";
@@ -32,8 +31,8 @@ const createSubVideoSchema = z.object({
 export const GET = withErrorHandler<{ id: string }>(
   async (_request: Request, context: RouteContext<{ id: string }>) => {
     const { id } = await context.params;
-    const db = DatabaseService.getInstance();
-    const poster = db.getPosterById(id);
+    const posterRepo = PosterRepository.getInstance();
+    const poster = posterRepo.getById(id);
 
     if (!poster) {
       return ApiResponses.notFound("Poster");
@@ -47,7 +46,6 @@ export const GET = withErrorHandler<{ id: string }>(
     }
 
     // Get all sub-videos for this parent
-    const posterRepo = PosterRepository.getInstance();
     const subVideos = posterRepo.getSubVideos(id);
 
     return ApiResponses.ok({
@@ -84,8 +82,8 @@ export const POST = withErrorHandler<{ id: string }>(
 
     const { title, startTime, endTime, endBehavior, thumbnailUrl } = parseResult.data;
 
-    const db = DatabaseService.getInstance();
-    const parentPoster = db.getPosterById(id);
+    const posterRepo = PosterRepository.getInstance();
+    const parentPoster = posterRepo.getById(id);
 
     if (!parentPoster) {
       return ApiResponses.notFound("Parent poster");

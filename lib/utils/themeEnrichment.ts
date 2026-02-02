@@ -3,9 +3,9 @@
  * Shared logic for enriching overlay payloads with active theme data
  */
 
-import { DatabaseService } from "../services/DatabaseService";
+import { ProfileRepository } from "../repositories/ProfileRepository";
+import { ThemeRepository } from "../repositories/ThemeRepository";
 import { Theme } from "../models/Theme";
-import { DbProfile } from "../models/Database";
 
 export interface LowerThirdThemeData {
   colors: Theme["colors"];
@@ -42,26 +42,27 @@ export interface ChatHighlightThemeData {
 
 /**
  * Get the active theme from the database
- * @param db DatabaseService instance (optional, will create if not provided)
  * @returns Theme object or null if not found
  */
-export function getActiveTheme(db?: DatabaseService): Theme | null {
+export function getActiveTheme(): Theme | null {
   try {
-    const dbInstance = db || DatabaseService.getInstance();
-    const activeProfile = dbInstance.getActiveProfile();
-    
+    const profileRepo = ProfileRepository.getInstance();
+    const themeRepo = ThemeRepository.getInstance();
+
+    const activeProfile = profileRepo.getActive();
+
     if (!activeProfile || !activeProfile.themeId) {
       console.log("[ThemeEnrichment] No active profile or themeId found");
       return null;
     }
-    
-    const theme = dbInstance.getThemeById(activeProfile.themeId) as Theme;
+
+    const theme = themeRepo.getById(activeProfile.themeId) as Theme;
     if (theme) {
       console.log("[ThemeEnrichment] Found theme:", theme.name, "ID:", theme.id);
     } else {
       console.log("[ThemeEnrichment] Theme not found for ID:", activeProfile.themeId);
     }
-    
+
     return theme;
   } catch (error) {
     console.error("[ThemeEnrichment] Failed to get active theme:", error);
@@ -118,16 +119,14 @@ export function getPosterThemeData(theme: Theme | null): PosterThemeData | undef
 /**
  * Enrich a lower third payload with active theme data
  * @param payload Existing payload
- * @param db DatabaseService instance (optional)
  * @returns Enriched payload with theme data
  */
 export function enrichLowerThirdPayload<T extends Record<string, unknown>>(
-  payload: T,
-  db?: DatabaseService
+  payload: T
 ): T & { theme?: LowerThirdThemeData } {
-  const theme = getActiveTheme(db);
+  const theme = getActiveTheme();
   const themeData = getLowerThirdThemeData(theme);
-  
+
   return {
     ...payload,
     theme: themeData,
@@ -137,16 +136,14 @@ export function enrichLowerThirdPayload<T extends Record<string, unknown>>(
 /**
  * Enrich a countdown payload with active theme data
  * @param payload Existing payload
- * @param db DatabaseService instance (optional)
  * @returns Enriched payload with theme data
  */
 export function enrichCountdownPayload<T extends Record<string, unknown>>(
-  payload: T,
-  db?: DatabaseService
+  payload: T
 ): T & { theme?: CountdownThemeData } {
-  const theme = getActiveTheme(db);
+  const theme = getActiveTheme();
   const themeData = getCountdownThemeData(theme);
-  
+
   return {
     ...payload,
     theme: themeData,
@@ -156,14 +153,12 @@ export function enrichCountdownPayload<T extends Record<string, unknown>>(
 /**
  * Enrich a poster payload with active theme data
  * @param payload Existing payload
- * @param db DatabaseService instance (optional)
  * @returns Enriched payload with theme data
  */
 export function enrichPosterPayload<T extends Record<string, unknown>>(
-  payload: T,
-  db?: DatabaseService
+  payload: T
 ): T & { theme?: PosterThemeData } {
-  const theme = getActiveTheme(db);
+  const theme = getActiveTheme();
   const themeData = getPosterThemeData(theme);
 
   return {
@@ -195,14 +190,12 @@ export function getChatHighlightThemeData(theme: Theme | null): ChatHighlightThe
 /**
  * Enrich a chat highlight payload with active theme data
  * @param payload Existing payload
- * @param db DatabaseService instance (optional)
  * @returns Enriched payload with theme data
  */
 export function enrichChatHighlightPayload<T extends Record<string, unknown>>(
-  payload: T,
-  db?: DatabaseService
+  payload: T
 ): T & { theme?: ChatHighlightThemeData } {
-  const theme = getActiveTheme(db);
+  const theme = getActiveTheme();
   const themeData = getChatHighlightThemeData(theme);
 
   return {

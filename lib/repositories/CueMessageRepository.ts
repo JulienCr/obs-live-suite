@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { DatabaseConnector } from "@/lib/services/DatabaseConnector";
 import { Logger } from "@/lib/utils/Logger";
 import { safeJsonParse, safeJsonParseOptional } from "@/lib/utils/safeJsonParse";
 import type { DbCueMessage, DbCueMessageInput, DbCueMessageUpdate } from "@/lib/models/Database";
@@ -44,7 +44,7 @@ export class CueMessageRepository {
    * Get the database instance
    */
   private get db() {
-    return DatabaseService.getInstance().getDb();
+    return DatabaseConnector.getInstance().getDb();
   }
 
   /**

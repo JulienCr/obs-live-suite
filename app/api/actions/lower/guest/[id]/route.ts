@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { GuestRepository } from "@/lib/repositories/GuestRepository";
 import { SettingsService } from "@/lib/services/SettingsService";
 import { BackendClient } from "@/lib/utils/BackendClient";
 import { LowerThirdEventType, OverlayChannel } from "@/lib/models/OverlayEvents";
@@ -16,8 +16,8 @@ const LOG_CONTEXT = "[ActionsAPI:Lower:Guest]";
 export const POST = withErrorHandler<{ id: string }>(
   async (request: Request, context: RouteContext<{ id: string }>) => {
     const { id } = await context.params;
-    const db = DatabaseService.getInstance();
-    const guest = db.getGuestById(id);
+    const guestRepo = GuestRepository.getInstance();
+    const guest = guestRepo.getById(id);
 
     if (!guest) {
       return ApiResponses.notFound(`Guest with ID ${id}`);
@@ -41,7 +41,7 @@ export const POST = withErrorHandler<{ id: string }>(
       guestId: guest.id, // Add guest ID for tracking in dashboard
     };
 
-    const enrichedPayload = enrichLowerThirdPayload(basePayload, db);
+    const enrichedPayload = enrichLowerThirdPayload(basePayload);
     console.log(`${LOG_CONTEXT} Publishing with theme:`, !!enrichedPayload.theme);
 
     await BackendClient.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, enrichedPayload);

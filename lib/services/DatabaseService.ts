@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { PathManager } from "../config/PathManager";
+import { DatabaseConnector } from "./DatabaseConnector";
 import { Logger } from "../utils/Logger";
 import { safeJsonParse, safeJsonParseOptional } from "../utils/safeJsonParse";
 import { DATABASE } from "../config/Constants";
@@ -9,39 +9,20 @@ import {
   CustomMigration,
 } from "./MigrationRunner";
 import {
-  DbGuest,
-  DbGuestInput,
-  DbGuestUpdate,
-  DbPoster,
-  DbPosterInput,
-  DbPosterUpdate,
-  DbProfile,
-  DbProfileInput,
-  DbProfileUpdate,
-  DbTheme,
-  DbThemeInput,
-  DbThemeUpdate,
-
-
-
-  DbCueMessage,
-  DbCueMessageInput,
-  DbCueMessageUpdate,
   DbStreamerbotChatMessage,
   DbStreamerbotChatMessageInput,
   DbPanelColor,
-  DbPanelColorUpdate,
-  DbWorkspace,
-  DbWorkspaceSummary,
 } from "../models/Database";
-import { GuestRepository } from "@/lib/repositories/GuestRepository";
-import { PosterRepository } from "@/lib/repositories/PosterRepository";
-import { ProfileRepository } from "@/lib/repositories/ProfileRepository";
-import { ThemeRepository } from "@/lib/repositories/ThemeRepository";
-import { CueMessageRepository } from "@/lib/repositories/CueMessageRepository";
 
 /**
- * DatabaseService handles SQLite database connections and operations
+ * DatabaseService handles SQLite database table initialization, migrations, and non-entity operations.
+ *
+ * For entity CRUD operations, use the appropriate repository directly:
+ * - GuestRepository for guests
+ * - PosterRepository for posters
+ * - ProfileRepository for profiles
+ * - ThemeRepository for themes
+ * - CueMessageRepository for cue messages
  */
 export class DatabaseService {
   private static instance: DatabaseService;
@@ -50,12 +31,9 @@ export class DatabaseService {
 
   private constructor() {
     this.logger = new Logger("DatabaseService");
-    const pathManager = PathManager.getInstance();
-    const dbPath = pathManager.getDatabasePath();
-
-    this.logger.info(`Initializing database at: ${dbPath}`);
-    this.db = new Database(dbPath);
-    this.db.pragma("journal_mode = WAL");
+    // Get database connection from DatabaseConnector (handles path and WAL mode)
+    this.db = DatabaseConnector.getInstance().getDb();
+    this.logger.info("Initializing database tables and migrations");
     this.initializeTables();
   }
 
@@ -557,170 +535,6 @@ export class DatabaseService {
     this.db.pragma("wal_checkpoint(PASSIVE)");
   }
 
-  // ==================== GUESTS ====================
-
-  /**
-   * Get all guests
-   * @param enabled - Optional filter: true for enabled only, false for disabled only, undefined for all
-   */
-  getAllGuests(enabled?: boolean): DbGuest[] {
-    return GuestRepository.getInstance().getAll(enabled);
-  }
-
-  /**
-   * Get guest by ID
-   */
-  getGuestById(id: string): DbGuest | null {
-    return GuestRepository.getInstance().getById(id);
-  }
-
-  /**
-   * Create a new guest
-   */
-  createGuest(guest: DbGuestInput): void {
-    GuestRepository.getInstance().create(guest);
-  }
-
-  /**
-   * Update a guest
-   */
-  updateGuest(id: string, updates: DbGuestUpdate): void {
-    GuestRepository.getInstance().update(id, updates);
-  }
-
-  /**
-   * Delete a guest
-   */
-  deleteGuest(id: string): void {
-    GuestRepository.getInstance().delete(id);
-  }
-
-  // ==================== POSTERS ====================
-
-  /**
-   * Get all posters
-   * @param enabled - If true, return only enabled posters. If false, return only disabled posters. If undefined, return all.
-   */
-  getAllPosters(enabled?: boolean): DbPoster[] {
-    return PosterRepository.getInstance().getAll(enabled);
-  }
-
-  /**
-   * Get poster by ID
-   */
-  getPosterById(id: string): DbPoster | null {
-    return PosterRepository.getInstance().getById(id);
-  }
-
-  /**
-   * Create a new poster
-   */
-  createPoster(poster: DbPosterInput): void {
-    PosterRepository.getInstance().create(poster);
-  }
-
-  /**
-   * Update a poster
-   */
-  updatePoster(id: string, updates: DbPosterUpdate): void {
-    PosterRepository.getInstance().update(id, updates);
-  }
-
-  /**
-   * Delete a poster
-   */
-  deletePoster(id: string): void {
-    PosterRepository.getInstance().delete(id);
-  }
-
-  // ==================== PROFILES ====================
-
-  /**
-   * Get all profiles
-   */
-  getAllProfiles(): DbProfile[] {
-    return ProfileRepository.getInstance().getAll();
-  }
-
-  /**
-   * Get profile by ID
-   */
-  getProfileById(id: string): DbProfile | null {
-    return ProfileRepository.getInstance().getById(id);
-  }
-
-  /**
-   * Get active profile
-   */
-  getActiveProfile(): DbProfile | null {
-    return ProfileRepository.getInstance().getActive();
-  }
-
-  /**
-   * Create a new profile
-   */
-  createProfile(profile: DbProfileInput): void {
-    ProfileRepository.getInstance().create(profile);
-  }
-
-  /**
-   * Update a profile
-   */
-  updateProfile(id: string, updates: DbProfileUpdate): void {
-    ProfileRepository.getInstance().update(id, updates);
-  }
-
-  /**
-   * Set active profile (deactivates all others)
-   */
-  setActiveProfile(id: string): void {
-    ProfileRepository.getInstance().setActive(id);
-  }
-
-  /**
-   * Delete a profile
-   */
-  deleteProfile(id: string): void {
-    ProfileRepository.getInstance().delete(id);
-  }
-
-  // ==================== THEMES ====================
-
-  /**
-   * Get all themes
-   */
-  getAllThemes(): DbTheme[] {
-    return ThemeRepository.getInstance().getAll();
-  }
-
-  /**
-   * Get theme by ID
-   */
-  getThemeById(id: string): DbTheme | null {
-    return ThemeRepository.getInstance().getById(id);
-  }
-
-  /**
-   * Create a new theme
-   */
-  createTheme(theme: DbThemeInput): void {
-    ThemeRepository.getInstance().create(theme);
-  }
-
-  /**
-   * Update a theme
-   */
-  updateTheme(id: string, updates: DbThemeUpdate): void {
-    ThemeRepository.getInstance().update(id, updates);
-  }
-
-  /**
-   * Delete a theme
-   */
-  deleteTheme(id: string): void {
-    ThemeRepository.getInstance().delete(id);
-  }
-
   // ==================== SETTINGS ====================
 
   /**
@@ -761,64 +575,6 @@ export class DatabaseService {
       settings[row.key] = row.value;
     }
     return settings;
-  }
-
-  // ==================== CUE MESSAGES ====================
-
-  /**
-   * Get recent messages with optional limit and cursor
-   */
-  getRecentMessages(limit: number = 50, cursor?: number): DbCueMessage[] {
-    return CueMessageRepository.getInstance().getRecent(limit, cursor);
-  }
-
-  /**
-   * Get all pinned messages
-   */
-  getPinnedMessages(): DbCueMessage[] {
-    return CueMessageRepository.getInstance().getPinned();
-  }
-
-  /**
-   * Get message by ID
-   */
-  getMessageById(id: string): DbCueMessage | null {
-    return CueMessageRepository.getInstance().getById(id);
-  }
-
-  /**
-   * Create a new cue message
-   */
-  createMessage(message: DbCueMessageInput): DbCueMessage {
-    return CueMessageRepository.getInstance().create(message);
-  }
-
-  /**
-   * Update a cue message
-   */
-  updateMessage(id: string, updates: DbCueMessageUpdate): void {
-    CueMessageRepository.getInstance().update(id, updates);
-  }
-
-  /**
-   * Delete a cue message
-   */
-  deleteMessage(id: string): void {
-    CueMessageRepository.getInstance().delete(id);
-  }
-
-  /**
-   * Delete old messages, keeping only the most recent N
-   */
-  deleteOldMessages(keepCount: number = 100): void {
-    CueMessageRepository.getInstance().deleteOld(keepCount);
-  }
-
-  /**
-   * Clear all cue messages (including pinned)
-   */
-  clearAllMessages(): void {
-    CueMessageRepository.getInstance().clearAll();
   }
 
   // ==================== STREAMERBOT CHAT MESSAGES ====================

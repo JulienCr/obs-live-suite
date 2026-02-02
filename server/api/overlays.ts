@@ -5,7 +5,6 @@
  */
 import { Router } from "express";
 import { ChannelManager } from "../../lib/services/ChannelManager";
-import { DatabaseService } from "../../lib/services/DatabaseService";
 import { SettingsService } from "../../lib/services/SettingsService";
 import { OBSConnectionManager } from "../../lib/adapters/obs/OBSConnectionManager";
 import {
@@ -23,7 +22,6 @@ import { createContextHandler } from "../utils/expressRouteHandler";
 
 const router = Router();
 const channelManager = ChannelManager.getInstance();
-const db = DatabaseService.getInstance();
 const logger = new Logger("OverlaysAPI");
 
 // Create contextualized handler
@@ -40,7 +38,7 @@ router.post("/lower", overlayHandler(async (req, res) => {
     case "show":
       console.log("[Backend] Received lower third show payload:", payload);
       const validated = lowerThirdShowPayloadSchema.parse(payload);
-      const enrichedPayload = enrichLowerThirdPayload(validated, db);
+      const enrichedPayload = enrichLowerThirdPayload(validated);
       console.log("[Backend] Enriched with theme:", !!enrichedPayload.theme);
       await channelManager.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, enrichedPayload);
       break;
@@ -70,7 +68,7 @@ router.post("/countdown", overlayHandler(async (req, res) => {
 
   switch (action) {
     case "set":
-      const enrichedSetPayload = enrichCountdownPayload(payload, db);
+      const enrichedSetPayload = enrichCountdownPayload(payload);
       console.log("[Backend] Enriched countdown with theme:", !!enrichedSetPayload.theme);
       await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.SET, enrichedSetPayload);
       break;
@@ -91,7 +89,7 @@ router.post("/countdown", overlayHandler(async (req, res) => {
       console.log("[Backend] Received countdown update:", payload);
       let countdownEnrichmentFailed = false;
       try {
-        const enrichedUpdatePayload = enrichCountdownPayload(payload || {}, db);
+        const enrichedUpdatePayload = enrichCountdownPayload(payload || {});
         console.log("[Backend] Enriched countdown update with theme:", !!enrichedUpdatePayload.theme);
         await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.UPDATE, enrichedUpdatePayload);
       } catch (enrichError) {
@@ -125,7 +123,7 @@ router.post("/poster", overlayHandler(async (req, res) => {
 
   switch (action) {
     case "show":
-      const enrichedPayload = enrichPosterPayload(payload, db);
+      const enrichedPayload = enrichPosterPayload(payload);
       console.log("[Backend] Enriched poster with theme:", !!enrichedPayload.theme);
       await channelManager.publish(OverlayChannel.POSTER, PosterEventType.SHOW, enrichedPayload);
       break;
@@ -277,7 +275,7 @@ router.post("/chat-highlight", overlayHandler(async (req, res) => {
         finalPayload.duration = overlaySettings.chatHighlightDuration;
       }
 
-      const enrichedPayload = enrichChatHighlightPayload(finalPayload, db);
+      const enrichedPayload = enrichChatHighlightPayload(finalPayload);
       console.log("[Backend] Chat highlight show:", validated.displayName,
         "- duration:", finalPayload.duration,
         "- autoHide:", overlaySettings.chatHighlightAutoHide,

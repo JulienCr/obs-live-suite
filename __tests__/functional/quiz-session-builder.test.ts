@@ -1,12 +1,12 @@
 import { QuizStore } from "../../lib/services/QuizStore";
-import { DatabaseService } from "../../lib/services/DatabaseService";
+import { GuestRepository } from "../../lib/repositories/GuestRepository";
 
 describe("Quiz Session Builder - Functional Test", () => {
   let store: QuizStore;
-  let db: DatabaseService;
+  let guestRepo: GuestRepository;
 
   beforeAll(() => {
-    db = DatabaseService.getInstance();
+    guestRepo = GuestRepository.getInstance();
     store = QuizStore.getInstance();
   });
 
@@ -18,51 +18,55 @@ describe("Quiz Session Builder - Functional Test", () => {
 
   it("should complete a full session builder workflow: create players, questions, and session", () => {
     // Step 1: Create 4 players (guests in the database)
-    db.createGuest({
+    guestRepo.create({
       id: "player-1",
       displayName: "Alice",
       subtitle: "Quiz Master",
       accentColor: "#3b82f6",
       avatarUrl: "/data/uploads/guests/alice.jpg",
+      isEnabled: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    db.createGuest({
+    guestRepo.create({
       id: "player-2",
       displayName: "Bob",
       subtitle: "Trivia Expert",
       accentColor: "#10b981",
       avatarUrl: null,
+      isEnabled: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    db.createGuest({
+    guestRepo.create({
       id: "player-3",
       displayName: "Charlie",
       subtitle: "Knowledge Seeker",
       accentColor: "#f59e0b",
       avatarUrl: "/data/uploads/guests/charlie.jpg",
+      isEnabled: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    db.createGuest({
+    guestRepo.create({
       id: "player-4",
       displayName: "Diana",
       subtitle: "Brain Champion",
       accentColor: "#ef4444",
       avatarUrl: null,
+      isEnabled: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
     // Fetch the created players
-    const player1 = db.getGuestById("player-1");
-    const player2 = db.getGuestById("player-2");
-    const player3 = db.getGuestById("player-3");
-    const player4 = db.getGuestById("player-4");
+    const player1 = guestRepo.getById("player-1");
+    const player2 = guestRepo.getById("player-2");
+    const player3 = guestRepo.getById("player-3");
+    const player4 = guestRepo.getById("player-4");
 
     expect(player1).toBeDefined();
     expect(player2).toBeDefined();
@@ -70,7 +74,7 @@ describe("Quiz Session Builder - Functional Test", () => {
     expect(player4).toBeDefined();
 
     // Verify players were created
-    const allGuests = db.getAllGuests();
+    const allGuests = guestRepo.getAll();
     expect(allGuests.length).toBeGreaterThanOrEqual(4);
     expect(allGuests.find(g => g.id === "player-1")).toBeDefined();
     expect(allGuests.find(g => g.id === "player-2")).toBeDefined();
@@ -325,10 +329,10 @@ describe("Quiz Session Builder - Functional Test", () => {
   afterAll(() => {
     // Cleanup: delete test guests
     try {
-      db.deleteGuest("player-1");
-      db.deleteGuest("player-2");
-      db.deleteGuest("player-3");
-      db.deleteGuest("player-4");
+      guestRepo.delete("player-1");
+      guestRepo.delete("player-2");
+      guestRepo.delete("player-3");
+      guestRepo.delete("player-4");
     } catch (e) {
       // Guests might not exist if test failed early
     }

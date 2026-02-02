@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { DatabaseService } from "./DatabaseService";
+import { ThemeRepository } from "@/lib/repositories/ThemeRepository";
 import { Logger } from "../utils/Logger";
 import {
   Theme,
@@ -14,12 +14,12 @@ import { LAYOUT_DEFAULTS, LOWER_THIRD_ANIMATION } from "../config/Constants";
  */
 export class ThemeService {
   private static instance: ThemeService;
-  private db: DatabaseService;
+  private themeRepo: ThemeRepository;
   private logger: Logger;
   private defaultThemeIds: Map<string, string> = new Map();
 
   private constructor() {
-    this.db = DatabaseService.getInstance();
+    this.themeRepo = ThemeRepository.getInstance();
     this.logger = new Logger("ThemeService");
   }
 
@@ -45,7 +45,7 @@ export class ThemeService {
     for (const theme of defaultThemes) {
       try {
         // Check if theme with this name already exists
-        const existingThemes = this.db.getAllThemes() as Theme[];
+        const existingThemes = this.themeRepo.getAll();
         const exists = existingThemes.find(
           (t) => t.name === theme.name && t.isGlobal
         );
@@ -58,7 +58,7 @@ export class ThemeService {
             updatedAt: new Date(),
           });
 
-          this.db.createTheme(themeModel.toJSON());
+          this.themeRepo.create(themeModel.toJSON());
           this.defaultThemeIds.set(theme.name, themeModel.getId());
           this.logger.info(`✓ Created default theme: ${theme.name}`);
         } else {
@@ -77,7 +77,7 @@ export class ThemeService {
    * Ensure default themes exist (can be called anytime)
    */
   ensureDefaultThemes(): void {
-    const themes = this.db.getAllThemes() as Theme[];
+    const themes = this.themeRepo.getAll();
     if (themes.length === 0) {
       this.logger.warn("No themes found, reinitializing defaults");
       this.initializeDefaultThemes();
@@ -92,7 +92,7 @@ export class ThemeService {
     if (defaultId) return defaultId;
 
     // Fallback: get any theme
-    const themes = this.db.getAllThemes() as Theme[];
+    const themes = this.themeRepo.getAll();
     if (themes.length > 0) {
       return themes[0].id;
     }

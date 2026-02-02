@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { PosterRepository } from "@/lib/repositories/PosterRepository";
 import { SettingsService } from "@/lib/services/SettingsService";
 import { enrichPosterPayload } from "@/lib/utils/themeEnrichment";
 import { sendPresenterNotification } from "@/lib/utils/presenterNotifications";
@@ -47,10 +47,9 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
   // Enrich poster payloads with theme data before proxying to backend
   let enrichedBody = body;
   if (action === 'show' && payload) {
-    const db = DatabaseService.getInstance();
     enrichedBody = {
       ...body,
-      payload: enrichPosterPayload(payload, db),
+      payload: enrichPosterPayload(payload),
     };
   }
 
@@ -72,13 +71,13 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
   if (action === 'show' && payload) {
     try {
       const { posterId, fileUrl, type, source } = payload;
-      const db = DatabaseService.getInstance();
+      const posterRepo = PosterRepository.getInstance();
 
       // Get title and description from database if posterId is provided
       let title = 'Sans titre';
       let description = undefined;
       if (posterId) {
-        const poster = db.getPosterById(posterId);
+        const poster = posterRepo.getById(posterId);
         if (poster) {
           title = poster.title;
           description = poster.description;
@@ -124,7 +123,7 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
 
       // Send chat message if enabled and defined (non-blocking)
       if (posterId) {
-        const poster = db.getPosterById(posterId);
+        const poster = posterRepo.getById(posterId);
         if (poster?.chatMessage) {
           const settingsService = SettingsService.getInstance();
           const chatSettings = settingsService.getChatMessageSettings();

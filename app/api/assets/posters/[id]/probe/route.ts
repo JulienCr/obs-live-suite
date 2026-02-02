@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { PosterRepository } from "@/lib/repositories/PosterRepository";
 import { getVideoDuration, urlToFilePath } from "@/lib/utils/fileUpload";
 import {
   ApiResponses,
@@ -15,8 +15,8 @@ const LOG_CONTEXT = "[PostersAPI:Probe]";
 export const POST = withErrorHandler<{ id: string }>(
   async (_request: Request, context: RouteContext<{ id: string }>) => {
     const { id } = await context.params;
-    const db = DatabaseService.getInstance();
-    const poster = db.getPosterById(id);
+    const posterRepo = PosterRepository.getInstance();
+    const poster = posterRepo.getById(id);
 
     if (!poster) {
       return ApiResponses.notFound("Poster not found");
@@ -43,7 +43,7 @@ export const POST = withErrorHandler<{ id: string }>(
       );
     }
 
-    db.updatePoster(id, { duration });
+    posterRepo.update(id, { duration });
 
     return ApiResponses.ok({ duration });
   },

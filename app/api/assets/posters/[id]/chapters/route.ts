@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { z } from "zod";
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { PosterRepository } from "@/lib/repositories/PosterRepository";
 import { videoChapterSchema, VideoChapter } from "@/lib/models/Poster";
 import {
   ApiResponses,
@@ -25,8 +25,8 @@ const createChapterSchema = z.object({
 export const GET = withErrorHandler<{ id: string }>(
   async (_request: Request, context: RouteContext<{ id: string }>) => {
     const { id } = await context.params;
-    const db = DatabaseService.getInstance();
-    const poster = db.getPosterById(id);
+    const posterRepo = PosterRepository.getInstance();
+    const poster = posterRepo.getById(id);
 
     if (!poster) {
       return ApiResponses.notFound("Poster");
@@ -64,8 +64,8 @@ export const POST = withErrorHandler<{ id: string }>(
       );
     }
 
-    const db = DatabaseService.getInstance();
-    const poster = db.getPosterById(id);
+    const posterRepo = PosterRepository.getInstance();
+    const poster = posterRepo.getById(id);
 
     if (!poster) {
       return ApiResponses.notFound("Poster");
@@ -109,7 +109,7 @@ export const POST = withErrorHandler<{ id: string }>(
       chapters: updatedChapters,
     };
 
-    db.updatePoster(id, {
+    posterRepo.update(id, {
       metadata: updatedMetadata,
       updatedAt: new Date(),
     });

@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { PosterRepository } from "@/lib/repositories/PosterRepository";
 import { updatePosterSchema } from "@/lib/models/Poster";
 import {
   ApiResponses,
@@ -15,8 +15,8 @@ const LOG_CONTEXT = "[PostersAPI]";
 export const GET = withErrorHandler<{ id: string }>(
   async (_request: Request, context: RouteContext<{ id: string }>) => {
     const { id } = await context.params;
-    const db = DatabaseService.getInstance();
-    const poster = db.getPosterById(id);
+    const posterRepo = PosterRepository.getInstance();
+    const poster = posterRepo.getById(id);
 
     if (!poster) {
       return ApiResponses.notFound("Poster");
@@ -49,13 +49,13 @@ export const PATCH = withErrorHandler<{ id: string }>(
     }
 
     const updates = parseResult.data;
-    const db = DatabaseService.getInstance();
-    db.updatePoster(id, {
+    const posterRepo = PosterRepository.getInstance();
+    posterRepo.update(id, {
       ...updates,
       updatedAt: new Date(),
     });
 
-    const poster = db.getPosterById(id);
+    const poster = posterRepo.getById(id);
     return ApiResponses.ok({ poster });
   },
   LOG_CONTEXT
@@ -68,8 +68,8 @@ export const PATCH = withErrorHandler<{ id: string }>(
 export const DELETE = withErrorHandler<{ id: string }>(
   async (_request: Request, context: RouteContext<{ id: string }>) => {
     const { id } = await context.params;
-    const db = DatabaseService.getInstance();
-    db.deletePoster(id);
+    const posterRepo = PosterRepository.getInstance();
+    posterRepo.delete(id);
 
     return ApiResponses.ok({ success: true });
   },

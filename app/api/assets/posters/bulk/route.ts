@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { PosterRepository } from "@/lib/repositories/PosterRepository";
 
 export async function POST(request: Request) {
   try {
@@ -12,13 +12,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const db = DatabaseService.getInstance();
+    const posterRepo = PosterRepository.getInstance();
     let deleted = 0;
     let failed = 0;
 
     for (const id of ids) {
       try {
-        db.deletePoster(id);
+        posterRepo.delete(id);
         deleted++;
       } catch (error) {
         failed++;

@@ -36,9 +36,9 @@ const mockDb = {
   prepare: jest.fn(() => mockStmt),
 };
 
-// Mock DatabaseService
-jest.mock("@/lib/services/DatabaseService", () => ({
-  DatabaseService: {
+// Mock DatabaseConnector
+jest.mock("@/lib/services/DatabaseConnector", () => ({
+  DatabaseConnector: {
     getInstance: jest.fn(() => ({
       getDb: jest.fn(() => mockDb),
     })),
