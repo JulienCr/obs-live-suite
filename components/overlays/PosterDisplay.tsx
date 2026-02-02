@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 
 interface PosterDisplayProps {
   fileUrl: string;
@@ -8,6 +8,8 @@ interface PosterDisplayProps {
   side?: "left" | "right"; // only used when positioning="side"
   videoRef?: React.RefObject<HTMLVideoElement | null>;
   youtubeRef?: React.RefObject<HTMLIFrameElement | null>;
+  initialTime?: number; // Initial seek position for video clips (sub-videos)
+  videoKey?: string; // Unique key to force video element remount
 }
 
 /**
@@ -22,8 +24,54 @@ export function PosterDisplay({
   side = "left",
   videoRef,
   youtubeRef,
+  initialTime,
+  videoKey,
 }: PosterDisplayProps) {
   const isLeftSide = side === "left";
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const effectiveVideoRef = videoRef || localVideoRef;
+  const seekAttemptedRef = useRef(false);
+
+  // Backup seek mechanism: ensure video seeks to initialTime even if onLoadedMetadata doesn't fire
+  useEffect(() => {
+    if (type !== "video" || !initialTime || initialTime <= 0) {
+      return;
+    }
+
+    seekAttemptedRef.current = false;
+
+    const trySeek = () => {
+      const video = effectiveVideoRef.current;
+      if (!video || seekAttemptedRef.current) return;
+
+      // Only seek if video has enough data and we haven't already seeked
+      if (video.readyState >= 1) { // HAVE_METADATA or higher
+        video.currentTime = initialTime;
+        seekAttemptedRef.current = true;
+      }
+    };
+
+    // Try immediately
+    trySeek();
+
+    // Also try after a short delay in case the video isn't ready yet
+    const timeoutId = setTimeout(trySeek, 100);
+    const timeoutId2 = setTimeout(trySeek, 500);
+
+    // And listen for loadedmetadata as backup
+    const video = effectiveVideoRef.current;
+    if (video) {
+      video.addEventListener("loadedmetadata", trySeek);
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(timeoutId2);
+      if (video) {
+        video.removeEventListener("loadedmetadata", trySeek);
+      }
+    };
+  }, [type, initialTime, effectiveVideoRef]);
 
   // YouTube has special positioning
   if (type === "youtube") {
@@ -156,13 +204,26 @@ export function PosterDisplay({
 
   return type === "video" ? (
     <video
-      ref={videoRef}
+      key={videoKey || fileUrl}
+      ref={effectiveVideoRef}
       style={mediaStyle}
       src={fileUrl}
-      autoPlay
       loop
       muted
       aria-label="Poster video"
+      onCanPlay={(e) => {
+        // This fires when the browser can start playing (most reliable for seek)
+        const video = e.currentTarget;
+        if (initialTime && initialTime > 0 && Math.abs(video.currentTime - initialTime) > 1) {
+          video.currentTime = initialTime;
+          // Verify after a short delay and retry if needed
+          setTimeout(() => {
+            if (Math.abs(video.currentTime - initialTime) > 1) {
+              video.currentTime = initialTime;
+            }
+          }, 100);
+        }
+      }}
     />
   ) : (
     // eslint-disable-next-line @next/next/no-img-element

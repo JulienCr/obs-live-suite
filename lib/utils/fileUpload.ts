@@ -2,6 +2,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
 import { randomUUID } from "crypto";
+import { spawn } from "child_process";
 import { PathManager } from "../config/PathManager";
 
 export interface UploadOptions {
@@ -14,6 +15,7 @@ export interface UploadResult {
   url: string;
   filename: string;
   type?: "image" | "video";
+  duration?: number; // Duration in seconds for video files
 }
 
 /**
@@ -62,11 +64,73 @@ export async function uploadFile(
 
   // Return URL relative to data directory
   const relativeUrl = `/data/uploads/${options.subfolder}/${filename}`;
+  const type = file.type.startsWith("image/") ? "image" : "video";
+
+  // Extract video duration if it's a video file
+  if (type === "video") {
+    const duration = await getVideoDuration(filepath);
+    return {
+      url: relativeUrl,
+      filename,
+      type,
+      duration: duration ?? undefined,
+    };
+  }
 
   return {
     url: relativeUrl,
     filename,
-    type: file.type.startsWith("image/") ? "image" : "video",
+    type,
   };
+}
+
+/**
+ * Convert a /data/... URL to an absolute file path
+ * URL: /data/uploads/posters/xxx.mp4 → {dataDir}/uploads/posters/xxx.mp4
+ */
+export function urlToFilePath(url: string): string {
+  const pathManager = PathManager.getInstance();
+  const dataDir = pathManager.getDataDir();
+
+  // Strip /data/ prefix
+  const relativePath = url.replace(/^\/data\//, "");
+  return join(dataDir, relativePath);
+}
+
+/**
+ * Extract video duration using ffprobe
+ * @param filePath - Absolute path to video file
+ * @returns Duration in seconds, or null if extraction fails
+ */
+export async function getVideoDuration(
+  filePath: string
+): Promise<number | null> {
+  return new Promise((resolve) => {
+    const ffprobe = spawn("ffprobe", [
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "default=noprint_wrappers=1:nokey=1",
+      filePath,
+    ]);
+
+    let output = "";
+    ffprobe.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+
+    ffprobe.on("close", (code) => {
+      if (code === 0) {
+        const duration = parseFloat(output.trim());
+        resolve(isNaN(duration) ? null : Math.floor(duration));
+      } else {
+        resolve(null);
+      }
+    });
+
+    ffprobe.on("error", () => resolve(null));
+  });
 }
 

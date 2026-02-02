@@ -14,7 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PosterUploader } from "./PosterUploader";
 import { VirtualizedPosterGrid } from "./VirtualizedPosterGrid";
 import { Plus, Trash2, Upload, ChevronDown, ChevronUp, Image as ImageIcon, Video, Youtube, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/utils/ClientFetch";
+import { ChapterEditor } from "./ChapterEditor";
+import { SubVideoEditor } from "./SubVideoEditor";
+import type { DbPoster } from "@/lib/models/Database";
 
 interface Poster {
   id: string;
@@ -27,6 +31,13 @@ interface Poster {
   chatMessage?: string;
   isEnabled?: boolean;
   createdAt?: string;
+  duration?: number | null;
+  metadata?: Record<string, unknown>;
+  parentPosterId?: string | null;
+  // Sub-video clip fields
+  startTime?: number | null;
+  endTime?: number | null;
+  thumbnailUrl?: string | null;
 }
 
 /**
@@ -59,10 +70,15 @@ export function PosterManager() {
     type: "image" as "image" | "video" | "youtube",
     tags: [] as string[],
     chatMessage: "",
+    duration: null as number | null,
   });
   // Track selected poster IDs for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  // Chapter and Sub-video dialogs
+  const [chapterDialogPoster, setChapterDialogPoster] = useState<Poster | null>(null);
+  const [subVideoDialogPoster, setSubVideoDialogPoster] = useState<Poster | null>(null);
 
   useEffect(() => {
     fetchPosters();
@@ -150,7 +166,11 @@ export function PosterManager() {
     return { enabled, total, byType };
   }, [posters, enabledPosters]);
 
-  const handleUploadComplete = async (url: string, type: "image" | "video" | "youtube") => {
+  const handleUploadComplete = async (
+    url: string,
+    type: "image" | "video" | "youtube",
+    duration?: number
+  ) => {
     let title = "";
     let source = "";
 
@@ -174,7 +194,8 @@ export function PosterManager() {
       fileUrl: url,
       type,
       title: title || formData.title, // Only overwrite if we got a title
-      source: source || formData.source
+      source: source || formData.source,
+      duration: duration ?? null,
     });
     setShowUploader(false);
     setShowImageReplacer(false);
@@ -191,6 +212,7 @@ export function PosterManager() {
       type: poster.type,
       tags: poster.tags,
       chatMessage: poster.chatMessage || "",
+      duration: poster.duration ?? null,
     });
     setShowForm(true);
     setShowUploader(false);
@@ -223,7 +245,7 @@ export function PosterManager() {
     setShowUploader(false);
     setShowImageReplacer(false);
     setShowImageReplacer(false);
-    setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [], chatMessage: "" });
+    setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [], chatMessage: "", duration: null });
   };
 
   const handleToggleEnabled = async (poster: Poster) => {
@@ -264,6 +286,20 @@ export function PosterManager() {
       case "youtube": return <Youtube className="w-3 h-3" />;
       default: return null;
     }
+  };
+
+  // Chapter and Sub-video handlers
+  const handleChapters = (poster: Poster) => {
+    setChapterDialogPoster(poster);
+  };
+
+  const handleSubVideos = (poster: Poster) => {
+    setSubVideoDialogPoster(poster);
+  };
+
+  const handleSubVideoCreated = () => {
+    fetchPosters(); // Refresh the poster list to show the new sub-video
+    setSubVideoDialogPoster(null);
   };
 
   const handleToggleSelection = (id: string) => {
@@ -335,7 +371,7 @@ export function PosterManager() {
             setEditingId(null);
             setShowForm(false);
             setShowImageReplacer(false);
-            setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [], chatMessage: "" });
+            setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [], chatMessage: "", duration: null });
             setShowUploader(true);
           }}
         >
@@ -648,6 +684,8 @@ export function PosterManager() {
             onEdit={handleEdit}
             onToggleEnabled={handleToggleEnabled}
             onDelete={handleDelete}
+            onChapters={handleChapters}
+            onSubVideos={handleSubVideos}
             selectedIds={selectedIds}
             onToggleSelection={handleToggleSelection}
             isBulkDeleting={isBulkDeleting}
@@ -681,6 +719,8 @@ export function PosterManager() {
               onEdit={handleEdit}
               onToggleEnabled={handleToggleEnabled}
               onDelete={handleDelete}
+              onChapters={handleChapters}
+              onSubVideos={handleSubVideos}
               selectedIds={selectedIds}
               onToggleSelection={handleToggleSelection}
               isBulkDeleting={isBulkDeleting}
@@ -725,6 +765,43 @@ export function PosterManager() {
           </Button>
         </div>
       )}
+
+      {/* Chapters Dialog */}
+      <Dialog open={!!chapterDialogPoster} onOpenChange={(open) => !open && setChapterDialogPoster(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("chapters")}</DialogTitle>
+            <DialogDescription>
+              {chapterDialogPoster?.title}
+            </DialogDescription>
+          </DialogHeader>
+          {chapterDialogPoster && (
+            <ChapterEditor
+              posterId={chapterDialogPoster.id}
+              videoDuration={chapterDialogPoster.duration || 600}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Sub-Videos Dialog */}
+      <Dialog open={!!subVideoDialogPoster} onOpenChange={(open) => !open && setSubVideoDialogPoster(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("createSubVideo")}</DialogTitle>
+            <DialogDescription>
+              {subVideoDialogPoster?.title}
+            </DialogDescription>
+          </DialogHeader>
+          {subVideoDialogPoster && (
+            <SubVideoEditor
+              parentPoster={subVideoDialogPoster as unknown as DbPoster}
+              onSubVideoCreated={handleSubVideoCreated}
+              onClose={() => setSubVideoDialogPoster(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -230,7 +230,11 @@
       },
       "ariaShowLeft": "Afficher {title} à gauche",
       "ariaShowRight": "Afficher {title} à droite",
-      "ariaShowBig": "Afficher {title} en mode grande image"
+      "ariaShowBig": "Afficher {title} en mode grande image",
+      "chapters": "Chapitres",
+      "chapter": "Chapitre",
+      "chapterPrev": "Chapitre précédent",
+      "chapterNext": "Chapitre suivant"
     },
     "guests": {
       "title": "Invités",
@@ -706,7 +710,47 @@
       "clear": "Effacer",
       "deleting": "Suppression...",
       "chatMessage": "Message Chat",
-      "chatMessagePlaceholder": "Message envoyé dans le chat lors de l'affichage (optionnel)"
+      "chatMessagePlaceholder": "Message envoyé dans le chat lors de l'affichage (optionnel)",
+      "chapters": "Chapitres",
+      "createSubVideo": "Créer un clip"
+    },
+    "videoEditor": {
+      "chapters": "Chapitres",
+      "addChapter": "Ajouter un chapitre",
+      "editChapter": "Modifier le chapitre",
+      "deleteChapter": "Supprimer le chapitre",
+      "chapterTitle": "Titre du chapitre",
+      "chapterTimestamp": "Horodatage",
+      "noChapters": "Aucun chapitre",
+      "jumpToChapter": "Aller au chapitre",
+      "nextChapter": "Chapitre suivant",
+      "previousChapter": "Chapitre précédent",
+      "currentChapter": "Chapitre actuel",
+      "subVideos": "Sous-vidéos",
+      "createSubVideo": "Créer une sous-vidéo",
+      "editSubVideo": "Modifier la sous-vidéo",
+      "deleteSubVideo": "Supprimer la sous-vidéo",
+      "startTime": "Début",
+      "endTime": "Fin",
+      "endBehavior": "Comportement à la fin",
+      "stop": "Arrêter",
+      "stopDescription": "Pause à la fin",
+      "loop": "Boucle",
+      "loopDescription": "Répéter le clip",
+      "parentVideo": "Vidéo parente",
+      "clipDuration": "Durée du clip",
+      "timeline": "Timeline",
+      "selectRange": "Sélectionner une plage",
+      "thumbnail": "Miniature",
+      "noThumbnail": "Aucune miniature générée",
+      "generateThumbnail": "Générer une miniature",
+      "thumbnailGenerated": "Miniature générée",
+      "confirmDeleteChapter": "Êtes-vous sûr de vouloir supprimer ce chapitre ?",
+      "confirmDeleteSubVideo": "Êtes-vous sûr de vouloir supprimer cette sous-vidéo ?",
+      "subVideoCreated": "Sous-vidéo créée avec succès",
+      "chapterAdded": "Chapitre ajouté",
+      "chapterUpdated": "Chapitre mis à jour",
+      "chapterDeleted": "Chapitre supprimé"
     },
     "themes": {
       "title": "Thèmes",
@@ -741,6 +785,38 @@
       "enable": "Activer",
       "disable": "Désactiver",
       "delete": "Supprimer"
+    },
+    "chapterEditor": {
+      "title": "Chapitres",
+      "addChapter": "Ajouter un chapitre",
+      "editChapter": "Modifier le chapitre",
+      "addChapterDescription": "Ajoutez un nouveau chapitre avec un titre et un horodatage.",
+      "editChapterDescription": "Modifiez le titre ou l'horodatage du chapitre.",
+      "noChapters": "Aucun chapitre. Cliquez sur \"Ajouter un chapitre\" pour commencer.",
+      "chapterTitle": "Titre",
+      "titlePlaceholder": "Entrez le titre du chapitre",
+      "timestamp": "Horodatage",
+      "seconds": "secondes",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "deleteConfirm": {
+        "title": "Supprimer le chapitre ?",
+        "description": "Le chapitre \"{title}\" sera définitivement supprimé.",
+        "cancel": "Annuler",
+        "confirm": "Supprimer"
+      },
+      "toasts": {
+        "chapterCreated": "Chapitre créé avec succès",
+        "chapterUpdated": "Chapitre mis à jour avec succès",
+        "chapterDeleted": "Chapitre supprimé avec succès",
+        "createFailed": "Échec de la création du chapitre",
+        "updateFailed": "Échec de la mise à jour du chapitre",
+        "deleteFailed": "Échec de la suppression du chapitre",
+        "titleRequired": "Le titre est requis",
+        "invalidTimestamp": "L'horodatage doit être compris entre 0 et la durée de la vidéo"
+      }
     },
     "posterUpload": {
       "uploadFile": "Télécharger un fichier",
@@ -1085,7 +1161,8 @@
     "previous": "Précédent",
     "yes": "Oui",
     "no": "Non",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "title": "Titre"
   },
   "regieChat": {
     "cueTypes": {

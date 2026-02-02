@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Power, PowerOff, Trash2, Play, Image as ImageIcon } from "lucide-react";
+import { Edit, Power, PowerOff, Trash2, Play, Image as ImageIcon, ListVideo, Scissors } from "lucide-react";
 
 interface Poster {
   id: string;
@@ -14,6 +14,9 @@ interface Poster {
   tags: string[];
   isEnabled?: boolean;
   createdAt?: string;
+  startTime?: number | null; // For sub-video clips
+  endTime?: number | null; // For sub-video clips
+  thumbnailUrl?: string | null; // Custom thumbnail for clips
 }
 
 interface PosterCardProps {
@@ -22,6 +25,8 @@ interface PosterCardProps {
   onEdit?: (poster: Poster) => void;
   onToggleEnabled?: (poster: Poster) => void;
   onDelete?: (poster: Poster) => void;
+  onChapters?: (poster: Poster) => void;
+  onSubVideos?: (poster: Poster) => void;
   isSelected?: boolean;
   onToggleSelection?: (id: string) => void;
   isBulkDeleting?: boolean;
@@ -37,6 +42,8 @@ export function PosterCard({
   onEdit,
   onToggleEnabled,
   onDelete,
+  onChapters,
+  onSubVideos,
   isSelected = false,
   onToggleSelection,
   isBulkDeleting = false,
@@ -73,14 +80,20 @@ export function PosterCard({
 
   const handleVideoHover = (play: boolean) => {
     if (videoRef.current) {
+      const startTime = poster.startTime ?? 0;
       if (play) {
+        // Seek to startTime before playing (for sub-video clips)
+        if (startTime > 0) {
+          videoRef.current.currentTime = startTime;
+        }
         videoRef.current.play().catch(() => {
           // Ignore play errors
         });
         setIsVideoPlaying(true);
       } else {
         videoRef.current.pause();
-        videoRef.current.currentTime = 0;
+        // Reset to startTime instead of 0 for clips
+        videoRef.current.currentTime = startTime;
         setIsVideoPlaying(false);
       }
     }
@@ -157,10 +170,22 @@ export function PosterCard({
             onMouseLeave={() => handleVideoHover(false)}
             className="relative w-full h-full cursor-pointer"
           >
+            {/* Show thumbnail if available and video not playing */}
+            {poster.thumbnailUrl && (
+              <img
+                src={poster.thumbnailUrl}
+                alt={poster.title}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity ${
+                  isVideoPlaying ? "opacity-0" : "opacity-100"
+                }`}
+              />
+            )}
             <video
               ref={videoRef}
               src={poster.fileUrl}
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-cover ${
+                poster.thumbnailUrl && !isVideoPlaying ? "opacity-0" : "opacity-100"
+              }`}
               muted
               loop
               playsInline
@@ -212,52 +237,85 @@ export function PosterCard({
         )}
 
         {/* Actions - Show on hover */}
-        <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity pt-1">
-          {onEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(poster)}
-              title="Edit"
-              className="flex-1 h-8 text-xs"
-            >
-              <Edit className="w-3 h-3 mr-1" />
-              Edit
-            </Button>
-          )}
-          
-          {onToggleEnabled && (
-            <Button
-              variant={isEnabled ? "outline" : "default"}
-              size="sm"
-              onClick={() => onToggleEnabled(poster)}
-              title={isEnabled ? "Disable" : "Enable"}
-              className="flex-1 h-8 text-xs"
-            >
-              {isEnabled ? (
-                <>
-                  <PowerOff className="w-3 h-3 mr-1" />
-                  Disable
-                </>
-              ) : (
-                <>
-                  <Power className="w-3 h-3 mr-1" />
-                  Enable
-                </>
+        <div className="flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity pt-1">
+          {/* Primary actions row */}
+          <div className="flex gap-1.5">
+            {onEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(poster)}
+                title="Edit"
+                className="flex-1 h-8 text-xs"
+              >
+                <Edit className="w-3 h-3 mr-1" />
+                Edit
+              </Button>
+            )}
+
+            {onToggleEnabled && (
+              <Button
+                variant={isEnabled ? "outline" : "default"}
+                size="sm"
+                onClick={() => onToggleEnabled(poster)}
+                title={isEnabled ? "Disable" : "Enable"}
+                className="flex-1 h-8 text-xs"
+              >
+                {isEnabled ? (
+                  <>
+                    <PowerOff className="w-3 h-3 mr-1" />
+                    Disable
+                  </>
+                ) : (
+                  <>
+                    <Power className="w-3 h-3 mr-1" />
+                    Enable
+                  </>
+                )}
+              </Button>
+            )}
+
+            {onDelete && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => onDelete(poster)}
+                title="Delete"
+                className="h-8 px-2"
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
+
+          {/* Video-specific actions row (chapters & sub-videos) */}
+          {(poster.type === "video" || poster.type === "youtube") && (onChapters || onSubVideos) && (
+            <div className="flex gap-1.5">
+              {onChapters && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onChapters(poster)}
+                  title="Chapters"
+                  className="flex-1 h-7 text-xs"
+                >
+                  <ListVideo className="w-3 h-3 mr-1" />
+                  Chapters
+                </Button>
               )}
-            </Button>
-          )}
-          
-          {onDelete && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => onDelete(poster)}
-              title="Delete"
-              className="h-8 px-2"
-            >
-              <Trash2 className="w-3 h-3" />
-            </Button>
+              {onSubVideos && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onSubVideos(poster)}
+                  title="Sub-videos"
+                  className="flex-1 h-7 text-xs"
+                >
+                  <Scissors className="w-3 h-3 mr-1" />
+                  Clips
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>

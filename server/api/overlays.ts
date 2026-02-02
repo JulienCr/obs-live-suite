@@ -173,6 +173,18 @@ router.post("/poster", async (req, res) => {
         await channelManager.publish(OverlayChannel.POSTER, PosterEventType.UNMUTE);
         break;
 
+      case "chapter-next":
+        await channelManager.publish(OverlayChannel.POSTER, PosterEventType.CHAPTER_NEXT);
+        break;
+
+      case "chapter-previous":
+        await channelManager.publish(OverlayChannel.POSTER, PosterEventType.CHAPTER_PREVIOUS);
+        break;
+
+      case "chapter-jump":
+        await channelManager.publish(OverlayChannel.POSTER, PosterEventType.CHAPTER_JUMP, payload);
+        break;
+
       default:
         return res.status(400).json({ error: "Invalid action" });
     }
@@ -231,6 +243,18 @@ router.post("/poster-bigpicture", async (req, res) => {
 
       case "unmute":
         await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.UNMUTE);
+        break;
+
+      case "chapter-next":
+        await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.CHAPTER_NEXT);
+        break;
+
+      case "chapter-previous":
+        await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.CHAPTER_PREVIOUS);
+        break;
+
+      case "chapter-jump":
+        await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.CHAPTER_JUMP, payload);
         break;
 
       default:

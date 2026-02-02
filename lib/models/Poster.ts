@@ -10,6 +10,28 @@ export enum PosterType {
 }
 
 /**
+ * End behavior for sub-video clips
+ */
+export const endBehaviorSchema = z.enum(["stop", "loop"]);
+export type EndBehavior = z.infer<typeof endBehaviorSchema>;
+
+/**
+ * Video chapter schema - markers in the timeline for navigation
+ */
+export const videoChapterSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1).max(100),
+  timestamp: z.number().min(0),  // seconds
+});
+
+export type VideoChapter = z.infer<typeof videoChapterSchema>;
+
+/**
+ * Video chapters array schema
+ */
+export const videoChaptersSchema = z.array(videoChapterSchema);
+
+/**
  * Poster schema for validation
  */
 export const posterSchema = z.object({
@@ -25,6 +47,12 @@ export const posterSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
   chatMessage: z.string().max(500).nullable().default(null),
   isEnabled: z.boolean().default(true),
+  // Sub-video fields
+  parentPosterId: z.string().uuid().nullable().default(null),
+  startTime: z.number().min(0).nullable().default(null),
+  endTime: z.number().min(0).nullable().default(null),
+  thumbnailUrl: z.string().nullable().default(null),
+  endBehavior: endBehaviorSchema.nullable().default(null),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });
