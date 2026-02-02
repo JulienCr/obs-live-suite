@@ -1,6 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
-import { Logger } from "@/lib/utils/Logger";
-import { safeJsonParse } from "@/lib/utils/safeJsonParse";
+import { BaseRepository, ColumnTransformConfig } from "./BaseRepository";
 import { LAYOUT_DEFAULTS, LOWER_THIRD_ANIMATION } from "@/lib/config/Constants";
 import type { DbTheme, DbThemeInput, DbThemeUpdate } from "@/lib/models/Database";
 
@@ -33,14 +31,53 @@ type DbThemeRow = Omit<
 };
 
 /**
- * ThemeRepository handles all theme-related database operations
+ * Default values for theme JSON fields
  */
-export class ThemeRepository {
+const DEFAULT_COLORS: DbTheme["colors"] = {
+  primary: "#000000",
+  accent: "#ffffff",
+  surface: "#333333",
+  text: "#ffffff",
+  success: "#00ff00",
+  warn: "#ff0000",
+};
+
+const DEFAULT_FONT: DbTheme["lowerThirdFont"] = {
+  family: "Arial",
+  size: 16,
+  weight: 400,
+};
+
+/**
+ * ThemeRepository handles all theme-related database operations.
+ * Uses singleton pattern for consistent database access.
+ */
+export class ThemeRepository extends BaseRepository<
+  DbTheme,
+  DbThemeRow,
+  DbThemeInput,
+  DbThemeUpdate
+> {
   private static instance: ThemeRepository;
-  private logger: Logger;
+
+  protected readonly tableName = "themes";
+  protected readonly loggerName = "ThemeRepository";
+  protected readonly transformConfig: ColumnTransformConfig = {
+    booleanColumns: ["isGlobal"],
+    dateColumns: ["createdAt", "updatedAt"],
+    jsonColumns: [
+      { column: "colors", defaultValue: DEFAULT_COLORS },
+      { column: "lowerThirdFont", defaultValue: DEFAULT_FONT },
+      { column: "lowerThirdLayout", defaultValue: LAYOUT_DEFAULTS.LOWER_THIRD },
+      { column: "lowerThirdAnimation", defaultValue: this.getDefaultLowerThirdAnimation(), optional: true },
+      { column: "countdownFont", defaultValue: DEFAULT_FONT },
+      { column: "countdownLayout", defaultValue: LAYOUT_DEFAULTS.COUNTDOWN },
+      { column: "posterLayout", defaultValue: LAYOUT_DEFAULTS.POSTER },
+    ],
+  };
 
   private constructor() {
-    this.logger = new Logger("ThemeRepository");
+    super();
   }
 
   /**
@@ -53,11 +90,8 @@ export class ThemeRepository {
     return ThemeRepository.instance;
   }
 
-  /**
-   * Get the database instance
-   */
-  private get db() {
-    return DatabaseService.getInstance().getDb();
+  protected override getOrderBy(): string {
+    return "isGlobal DESC, name ASC";
   }
 
   /**
@@ -85,147 +119,65 @@ export class ThemeRepository {
   }
 
   /**
-   * Parse a raw database row into a DbTheme object
-   */
-  private parseRow(row: DbThemeRow): DbTheme {
-    const defaultColors: DbTheme["colors"] = {
-      primary: "#000000",
-      accent: "#ffffff",
-      surface: "#333333",
-      text: "#ffffff",
-      success: "#00ff00",
-      warn: "#ff0000",
-    };
-    const defaultFont: DbTheme["lowerThirdFont"] = {
-      family: "Arial",
-      size: 16,
-      weight: 400,
-    };
-    const defaultLayout: DbTheme["lowerThirdLayout"] = LAYOUT_DEFAULTS.LOWER_THIRD;
-    const defaultAnimation = this.getDefaultLowerThirdAnimation();
-
-    return {
-      ...row,
-      colors: safeJsonParse<DbTheme["colors"]>(row.colors, defaultColors),
-      lowerThirdFont: safeJsonParse<DbTheme["lowerThirdFont"]>(
-        row.lowerThirdFont,
-        defaultFont
-      ),
-      lowerThirdLayout: safeJsonParse<DbTheme["lowerThirdLayout"]>(
-        row.lowerThirdLayout,
-        defaultLayout
-      ),
-      lowerThirdAnimation: safeJsonParse<DbTheme["lowerThirdAnimation"]>(
-        row.lowerThirdAnimation,
-        defaultAnimation
-      ),
-      countdownFont: safeJsonParse<DbTheme["countdownFont"]>(
-        row.countdownFont,
-        defaultFont
-      ),
-      countdownLayout: safeJsonParse<DbTheme["countdownLayout"]>(
-        row.countdownLayout,
-        LAYOUT_DEFAULTS.COUNTDOWN
-      ),
-      posterLayout: safeJsonParse<DbTheme["posterLayout"]>(
-        row.posterLayout,
-        LAYOUT_DEFAULTS.POSTER
-      ),
-      isGlobal: Boolean(row.isGlobal),
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    };
-  }
-
-  /**
-   * Get all themes
-   */
-  getAll(): DbTheme[] {
-    const stmt = this.db.prepare(
-      "SELECT * FROM themes ORDER BY isGlobal DESC, name ASC"
-    );
-    const rows = stmt.all() as DbThemeRow[];
-    return rows.map((row) => this.parseRow(row));
-  }
-
-  /**
-   * Get theme by ID
-   */
-  getById(id: string): DbTheme | null {
-    const stmt = this.db.prepare("SELECT * FROM themes WHERE id = ?");
-    const row = stmt.get(id) as DbThemeRow | undefined;
-    if (!row) return null;
-    return this.parseRow(row);
-  }
-
-  /**
    * Create a new theme
    */
   create(theme: DbThemeInput): void {
     const now = new Date();
-    this.logger.debug("Creating theme", {
+    this.getLogger().debug("Creating theme", {
       id: theme.id,
       name: theme.name,
       isGlobal: theme.isGlobal,
     });
 
-    const stmt = this.db.prepare(`
+    const stmt = this.rawDb.prepare(`
       INSERT INTO themes (id, name, colors, lowerThirdTemplate, lowerThirdFont, lowerThirdLayout, lowerThirdAnimation, countdownStyle, countdownFont, countdownLayout, posterLayout, isGlobal, createdAt, updatedAt)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       theme.id,
       theme.name,
-      JSON.stringify(theme.colors),
+      this.prepareValue(theme.colors),
       theme.lowerThirdTemplate,
-      JSON.stringify(theme.lowerThirdFont),
-      JSON.stringify(theme.lowerThirdLayout || LAYOUT_DEFAULTS.LOWER_THIRD),
-      JSON.stringify(theme.lowerThirdAnimation || this.getDefaultLowerThirdAnimation()),
+      this.prepareValue(theme.lowerThirdFont),
+      this.prepareValue(theme.lowerThirdLayout || LAYOUT_DEFAULTS.LOWER_THIRD),
+      this.prepareValue(theme.lowerThirdAnimation || this.getDefaultLowerThirdAnimation()),
       theme.countdownStyle,
-      JSON.stringify(theme.countdownFont),
-      JSON.stringify(theme.countdownLayout || LAYOUT_DEFAULTS.COUNTDOWN),
-      JSON.stringify(theme.posterLayout || LAYOUT_DEFAULTS.POSTER),
-      theme.isGlobal ? 1 : 0,
-      (theme.createdAt || now).toISOString(),
-      (theme.updatedAt || now).toISOString()
+      this.prepareValue(theme.countdownFont),
+      this.prepareValue(theme.countdownLayout || LAYOUT_DEFAULTS.COUNTDOWN),
+      this.prepareValue(theme.posterLayout || LAYOUT_DEFAULTS.POSTER),
+      this.prepareValue(theme.isGlobal),
+      this.prepareValue(theme.createdAt || now),
+      this.prepareValue(theme.updatedAt || now)
     );
 
-    this.logger.debug("Theme created successfully");
+    this.getLogger().debug("Theme created successfully");
   }
 
   /**
    * Update a theme
    */
   update(id: string, updates: DbThemeUpdate): void {
-    this.logger.debug("Updating theme", { id, name: updates.name });
+    this.getLogger().debug("Updating theme", { id, name: updates.name });
 
-    const stmt = this.db.prepare(`
+    const stmt = this.rawDb.prepare(`
       UPDATE themes
       SET name = ?, colors = ?, lowerThirdTemplate = ?, lowerThirdFont = ?, lowerThirdLayout = ?, lowerThirdAnimation = ?, countdownStyle = ?, countdownFont = ?, countdownLayout = ?, posterLayout = ?, isGlobal = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
       updates.name,
-      JSON.stringify(updates.colors),
+      this.prepareValue(updates.colors),
       updates.lowerThirdTemplate,
-      JSON.stringify(updates.lowerThirdFont),
-      JSON.stringify(updates.lowerThirdLayout || LAYOUT_DEFAULTS.LOWER_THIRD),
-      JSON.stringify(updates.lowerThirdAnimation || this.getDefaultLowerThirdAnimation()),
+      this.prepareValue(updates.lowerThirdFont),
+      this.prepareValue(updates.lowerThirdLayout || LAYOUT_DEFAULTS.LOWER_THIRD),
+      this.prepareValue(updates.lowerThirdAnimation || this.getDefaultLowerThirdAnimation()),
       updates.countdownStyle,
-      JSON.stringify(updates.countdownFont),
-      JSON.stringify(updates.countdownLayout || LAYOUT_DEFAULTS.COUNTDOWN),
-      JSON.stringify(updates.posterLayout || LAYOUT_DEFAULTS.POSTER),
-      updates.isGlobal ? 1 : 0,
-      (updates.updatedAt || new Date()).toISOString(),
+      this.prepareValue(updates.countdownFont),
+      this.prepareValue(updates.countdownLayout || LAYOUT_DEFAULTS.COUNTDOWN),
+      this.prepareValue(updates.posterLayout || LAYOUT_DEFAULTS.POSTER),
+      this.prepareValue(updates.isGlobal),
+      this.prepareValue(updates.updatedAt || new Date()),
       id
     );
-  }
-
-  /**
-   * Delete a theme
-   */
-  delete(id: string): void {
-    const stmt = this.db.prepare("DELETE FROM themes WHERE id = ?");
-    stmt.run(id);
   }
 }

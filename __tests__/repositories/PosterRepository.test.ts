@@ -74,6 +74,11 @@ describe("PosterRepository", () => {
     metadata: '{"key": "value"}',
     chatMessage: "Check out this poster!",
     isEnabled: 1,
+    parentPosterId: null,
+    startTime: null,
+    endTime: null,
+    thumbnailUrl: null,
+    endBehavior: null,
     createdAt: "2024-01-15T10:00:00.000Z",
     updatedAt: "2024-01-15T12:00:00.000Z",
   };
@@ -92,6 +97,11 @@ describe("PosterRepository", () => {
     metadata: { key: "value" },
     chatMessage: "Check out this poster!",
     isEnabled: true,
+    parentPosterId: null,
+    startTime: null,
+    endTime: null,
+    thumbnailUrl: null,
+    endBehavior: null,
     createdAt: new Date("2024-01-15T10:00:00.000Z"),
     updatedAt: new Date("2024-01-15T12:00:00.000Z"),
   };
@@ -260,6 +270,11 @@ describe("PosterRepository", () => {
         '{"custom":"data"}',
         "New poster message",
         1,
+        null, // parentPosterId
+        null, // startTime
+        null, // endTime
+        null, // thumbnailUrl
+        null, // endBehavior
         expect.any(String), // createdAt ISO string
         expect.any(String)  // updatedAt ISO string
       );
@@ -295,6 +310,11 @@ describe("PosterRepository", () => {
         null,
         null,
         0,
+        null, // parentPosterId
+        null, // startTime
+        null, // endTime
+        null, // thumbnailUrl
+        null, // endBehavior
         expect.any(String),
         expect.any(String)
       );
@@ -320,10 +340,10 @@ describe("PosterRepository", () => {
 
       repository.create(posterInput);
 
-      // Verify the date strings are passed correctly (positions 12 and 13)
+      // Verify the date strings are passed correctly (positions 17 and 18 with new sub-video fields)
       const runArgs = mockStmt.run.mock.calls[0];
-      expect(runArgs[12]).toBe("2024-06-01T00:00:00.000Z"); // createdAt
-      expect(runArgs[13]).toBe("2024-06-01T00:00:00.000Z"); // updatedAt
+      expect(runArgs[17]).toBe("2024-06-01T00:00:00.000Z"); // createdAt
+      expect(runArgs[18]).toBe("2024-06-01T00:00:00.000Z"); // updatedAt
     });
 
     it("should convert isEnabled boolean to integer", () => {
@@ -356,7 +376,7 @@ describe("PosterRepository", () => {
       };
 
       repository.create(enabledPoster);
-      // isEnabled is at position 11 (0-indexed)
+      // isEnabled is at position 11 (0-indexed, after chatMessage)
       let runArgs = mockStmt.run.mock.calls[0];
       expect(runArgs[11]).toBe(1); // isEnabled = true -> 1
 
@@ -390,6 +410,11 @@ describe("PosterRepository", () => {
         '{"key":"value"}', // kept from existing
         "Check out this poster!", // kept from existing
         1, // kept from existing
+        null, // parentPosterId
+        null, // startTime
+        null, // endTime
+        null, // thumbnailUrl
+        null, // endBehavior
         expect.any(String), // updatedAt
         "poster-1"
       );
@@ -425,6 +450,11 @@ describe("PosterRepository", () => {
         '{"key":"value"}', // kept
         "Check out this poster!", // kept
         0, // updated to false
+        null, // parentPosterId
+        null, // startTime
+        null, // endTime
+        null, // thumbnailUrl
+        null, // endBehavior
         expect.any(String),
         "poster-1"
       );
@@ -439,15 +469,9 @@ describe("PosterRepository", () => {
 
       repository.update("poster-1", updates);
 
-      // Should keep existing metadata
-      expect(mockStmt.run).toHaveBeenCalledWith(
-        expect.anything(), expect.anything(), expect.anything(),
-        expect.anything(), expect.anything(), expect.anything(),
-        expect.anything(), expect.anything(),
-        '{"key":"value"}', // metadata preserved
-        expect.anything(), expect.anything(),
-        expect.any(String), expect.anything()
-      );
+      // Should keep existing metadata (at position 8)
+      const runArgs = mockStmt.run.mock.calls[0];
+      expect(runArgs[8]).toBe('{"key":"value"}'); // metadata preserved
     });
 
     it("should use provided updatedAt date", () => {
@@ -461,15 +485,11 @@ describe("PosterRepository", () => {
 
       repository.update("poster-1", updates);
 
-      expect(mockStmt.run).toHaveBeenCalledWith(
-        "Holiday Update",
-        expect.anything(), expect.anything(), expect.anything(),
-        expect.anything(), expect.anything(), expect.anything(),
-        expect.anything(), expect.anything(), expect.anything(),
-        expect.anything(),
-        "2024-12-25T00:00:00.000Z",
-        "poster-1"
-      );
+      // updatedAt is at position 16 (second to last before id)
+      const runArgs = mockStmt.run.mock.calls[0];
+      expect(runArgs[0]).toBe("Holiday Update");
+      expect(runArgs[16]).toBe("2024-12-25T00:00:00.000Z");
+      expect(runArgs[17]).toBe("poster-1");
     });
 
     it("should handle clearing optional fields with null", () => {
@@ -483,21 +503,16 @@ describe("PosterRepository", () => {
 
       repository.update("poster-1", updates);
 
-      expect(mockStmt.run).toHaveBeenCalledWith(
-        "Test Poster",
-        null, // description cleared
-        null, // source cleared
-        "/uploads/poster.jpg",
-        "image",
-        30,
-        expect.anything(),
-        expect.anything(),
-        expect.anything(),
-        null, // chatMessage cleared
-        1,
-        expect.any(String),
-        "poster-1"
-      );
+      const runArgs = mockStmt.run.mock.calls[0];
+      expect(runArgs[0]).toBe("Test Poster");
+      expect(runArgs[1]).toBe(null); // description cleared
+      expect(runArgs[2]).toBe(null); // source cleared
+      expect(runArgs[3]).toBe("/uploads/poster.jpg");
+      expect(runArgs[4]).toBe("image");
+      expect(runArgs[5]).toBe(30);
+      expect(runArgs[9]).toBe(null); // chatMessage cleared
+      expect(runArgs[10]).toBe(1); // isEnabled
+      expect(runArgs[17]).toBe("poster-1"); // id at end
     });
   });
 

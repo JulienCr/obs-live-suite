@@ -11,6 +11,7 @@ import {
   type StreamerbotGatewayStatus,
 } from "@/lib/models/StreamerbotChat";
 import { getWebSocketUrl, getBackendUrl } from "@/lib/utils/websocket";
+import { apiPost, apiGet, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 export interface UseStreamerbotClientOptions {
   settings: StreamerbotConnectionSettings | null;
@@ -78,23 +79,16 @@ export function useStreamerbotClient({
 
     try {
       // Call backend API to connect
-      const response = await fetch(`${getBackendUrl()}/api/streamerbot-chat/connect`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Connection failed" }));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
+      await apiPost(`${getBackendUrl()}/api/streamerbot-chat/connect`, undefined);
 
       console.log("[Streamerbot] Gateway connection initiated");
       // Status will be updated via WebSocket messages
     } catch (err) {
       console.error("[Streamerbot] Failed to connect:", err);
+      const errorMessage = isClientFetchError(err) ? err.errorMessage : String(err);
       handleError({
         type: StreamerbotErrorType.CONNECTION_REFUSED,
-        message: err instanceof Error ? err.message : String(err),
+        message: errorMessage,
         originalError: err,
       });
     }
@@ -104,10 +98,7 @@ export function useStreamerbotClient({
   const disconnect = useCallback(() => {
     console.log("[Streamerbot] Disconnecting...");
 
-    fetch(`${getBackendUrl()}/api/streamerbot-chat/disconnect`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    }).catch((err) => {
+    apiPost(`${getBackendUrl()}/api/streamerbot-chat/disconnect`, undefined).catch((err) => {
       console.error("[Streamerbot] Failed to disconnect:", err);
     });
 
@@ -139,34 +130,32 @@ export function useStreamerbotClient({
         ws.send(JSON.stringify({ type: "subscribe", channel: "streamerbot-chat" }));
 
         // Request current status from backend
-        fetch(`${getBackendUrl()}/api/streamerbot-chat/status`)
-        .then((res) => res.json())
-        .then((statusData: StreamerbotGatewayStatus) => {
-          if (mountedRef.current) {
-            setStatus(statusData.status);
-            if (statusData.error) setError(statusData.error);
-            if (statusData.lastEventTime) setLastEventTime(statusData.lastEventTime);
-          }
-        })
-        .catch((err) => {
-          console.error("[Streamerbot] Failed to fetch status:", err);
-        });
+        apiGet<StreamerbotGatewayStatus>(`${getBackendUrl()}/api/streamerbot-chat/status`)
+          .then((statusData) => {
+            if (mountedRef.current) {
+              setStatus(statusData.status);
+              if (statusData.error) setError(statusData.error);
+              if (statusData.lastEventTime) setLastEventTime(statusData.lastEventTime);
+            }
+          })
+          .catch((err) => {
+            console.error("[Streamerbot] Failed to fetch status:", err);
+          });
 
         // Load chat history from database
-        fetch(`${getBackendUrl()}/api/streamerbot-chat/history`)
-        .then((res) => res.json())
-        .then((data: { messages: ChatMessage[]; count: number }) => {
-          if (mountedRef.current && data.messages && data.messages.length > 0) {
-            console.log(`[Streamerbot] Loaded ${data.count} historical messages`);
-            // Add historical messages to the message buffer
-            data.messages.forEach((msg) => {
-              onMessageRef.current?.(msg);
-            });
-          }
-        })
-        .catch((err) => {
-          console.error("[Streamerbot] Failed to fetch history:", err);
-        });
+        apiGet<{ messages: ChatMessage[]; count: number }>(`${getBackendUrl()}/api/streamerbot-chat/history`)
+          .then((data) => {
+            if (mountedRef.current && data.messages && data.messages.length > 0) {
+              console.log(`[Streamerbot] Loaded ${data.count} historical messages`);
+              // Add historical messages to the message buffer
+              data.messages.forEach((msg) => {
+                onMessageRef.current?.(msg);
+              });
+            }
+          })
+          .catch((err) => {
+            console.error("[Streamerbot] Failed to fetch history:", err);
+          });
       };
 
       ws.onmessage = (event) => {
@@ -226,7 +215,7 @@ export function useStreamerbotClient({
       }
       };
 
-      ws.onerror = (err) => {
+      ws.onerror = () => {
         console.warn("[Streamerbot] WebSocket error - backend may not be ready yet");
       };
 
@@ -259,7 +248,7 @@ export function useStreamerbotClient({
         wsRef.current = null;
       }
     };
-  }, []); // Only run on mount/unmount
+  }, [handleError]); // Only run on mount/unmount
 
   // Send message function
   const sendMessage = useCallback(
@@ -272,16 +261,7 @@ export function useStreamerbotClient({
       try {
         console.log(`[Streamerbot] Sending message to ${platform}:`, message);
 
-        const response = await fetch(`${getBackendUrl()}/api/streamerbot-chat/send`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ platform, message }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: "Send failed" }));
-          throw new Error(errorData.error || `HTTP ${response.status}`);
-        }
+        await apiPost(`${getBackendUrl()}/api/streamerbot-chat/send`, { platform, message });
 
         console.log("[Streamerbot] Message sent successfully");
         return true;

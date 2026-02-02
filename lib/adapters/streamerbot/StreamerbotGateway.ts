@@ -1,9 +1,12 @@
 import { StreamerbotClient } from "@streamerbot/client";
-import { Logger } from "../../utils/Logger";
 import { SettingsService } from "../../services/SettingsService";
 import { WebSocketHub } from "../../services/WebSocketHub";
 import { DatabaseService } from "../../services/DatabaseService";
-import { RECONNECTION } from "../../config/Constants";
+import {
+  ConnectionManager,
+  ConnectionStatus as BaseConnectionStatus,
+  ConnectionError,
+} from "../../utils/ConnectionManager";
 import {
   ChatMessage,
   StreamerbotConnectionStatus,
@@ -26,32 +29,39 @@ import {
 } from "../../models/StreamerbotChat";
 
 /**
- * StreamerbotGateway manages backend connection to Streamer.bot and relays messages
- * to frontend clients via WebSocket hub
+ * Map base ConnectionStatus to StreamerbotConnectionStatus
  */
-export class StreamerbotGateway {
+function mapConnectionStatus(status: BaseConnectionStatus): StreamerbotConnectionStatus {
+  switch (status) {
+    case BaseConnectionStatus.CONNECTED:
+      return StreamerbotConnectionStatus.CONNECTED;
+    case BaseConnectionStatus.CONNECTING:
+      return StreamerbotConnectionStatus.CONNECTING;
+    case BaseConnectionStatus.ERROR:
+      return StreamerbotConnectionStatus.ERROR;
+    default:
+      return StreamerbotConnectionStatus.DISCONNECTED;
+  }
+}
+
+/**
+ * StreamerbotGateway manages backend connection to Streamer.bot and relays messages
+ * to frontend clients via WebSocket hub.
+ * Extends ConnectionManager for standardized reconnection logic.
+ */
+export class StreamerbotGateway extends ConnectionManager {
   private static instance: StreamerbotGateway;
   private client: StreamerbotClient | null;
-  private logger: Logger;
   private settingsService: SettingsService;
   private wsHub: WebSocketHub;
-  private status: StreamerbotConnectionStatus;
-  private reconnectTimer?: NodeJS.Timeout;
-  private reconnectAttempts: number;
-  private maxReconnectAttempts: number;
-  private reconnectDelay: number;
   private lastEventTime?: number;
-  private currentError?: StreamerbotConnectionError;
+  private currentStreamerbotError?: StreamerbotConnectionError;
 
   private constructor() {
+    super({ loggerName: "StreamerbotGateway" });
     this.client = null;
-    this.logger = new Logger("StreamerbotGateway");
     this.settingsService = SettingsService.getInstance();
     this.wsHub = WebSocketHub.getInstance();
-    this.status = StreamerbotConnectionStatus.DISCONNECTED;
-    this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = RECONNECTION.MAX_ATTEMPTS;
-    this.reconnectDelay = RECONNECTION.BASE_DELAY_MS;
   }
 
   /**
@@ -164,8 +174,6 @@ export class StreamerbotGateway {
       payload: message,
     };
 
-    // WebSocketHub.broadcast() automatically wraps with { channel, data }
-    // So we just pass the data object directly
     this.wsHub.broadcast("streamerbot-chat", {
       type: "message",
       payload,
@@ -178,8 +186,8 @@ export class StreamerbotGateway {
    */
   private broadcastStatus(): void {
     const statusPayload: StreamerbotGatewayStatus = {
-      status: this.status,
-      error: this.currentError,
+      status: mapConnectionStatus(this.status),
+      error: this.currentStreamerbotError,
       lastEventTime: this.lastEventTime,
     };
 
@@ -188,7 +196,6 @@ export class StreamerbotGateway {
       payload: statusPayload,
     };
 
-    // WebSocketHub.broadcast() automatically wraps with { channel, data }
     this.wsHub.broadcast("streamerbot-chat", {
       type: "status",
       payload,
@@ -197,140 +204,123 @@ export class StreamerbotGateway {
   }
 
   /**
-   * Connect to Streamer.bot using stored settings
+   * Implementation-specific connection logic
    */
-  async connect(): Promise<void> {
+  protected async doConnect(): Promise<void> {
     const settings = this.settingsService.getStreamerbotSettings();
-
-    if (this.status === StreamerbotConnectionStatus.CONNECTED) {
-      this.logger.info("Disconnecting existing Streamer.bot connection");
-      await this.disconnect();
-    }
-
-    this.status = StreamerbotConnectionStatus.CONNECTING;
-    this.logger.info(`Connecting to Streamer.bot at ${settings.scheme}://${settings.host}:${settings.port}${settings.endpoint}...`);
+    this.logger.info(
+      `Connecting to Streamer.bot at ${settings.scheme}://${settings.host}:${settings.port}${settings.endpoint}...`
+    );
     this.broadcastStatus();
 
-    try {
-      // Create new client with settings
-      this.client = new StreamerbotClient({
-        host: settings.host,
-        port: settings.port,
-        endpoint: settings.endpoint,
-        scheme: settings.scheme,
-        password: settings.password,
-        immediate: false,
-        autoReconnect: false, // We handle reconnection ourselves
-        subscribe: {
-          Twitch: ["ChatMessage", "Follow", "Sub", "ReSub", "GiftSub", "GiftBomb", "Raid", "Cheer"],
-          YouTube: ["Message", "NewSponsor", "NewSubscriber", "SuperChat", "SuperSticker"],
-        },
-        onConnect: () => {
-          this.logger.info("Streamer.bot connected");
-          this.status = StreamerbotConnectionStatus.CONNECTED;
-          this.reconnectAttempts = 0;
-          this.currentError = undefined;
-          this.broadcastStatus();
-        },
-        onDisconnect: () => {
-          this.logger.warn("Streamer.bot disconnected");
-          this.status = StreamerbotConnectionStatus.DISCONNECTED;
-          this.broadcastStatus();
-          this.scheduleReconnect();
-        },
-        onError: (error: Error) => {
-          this.logger.error("Streamer.bot error", error);
-          this.status = StreamerbotConnectionStatus.ERROR;
-          this.currentError = {
-            type: StreamerbotErrorType.WEBSOCKET_ERROR,
-            message: error.message,
-            originalError: error,
-          };
-          this.broadcastStatus();
-          this.scheduleReconnect();
-        },
-      });
+    // Create new client with settings
+    this.client = new StreamerbotClient({
+      host: settings.host,
+      port: settings.port,
+      endpoint: settings.endpoint,
+      scheme: settings.scheme,
+      password: settings.password,
+      immediate: false,
+      autoReconnect: false, // We handle reconnection ourselves
+      subscribe: {
+        Twitch: [
+          "ChatMessage",
+          "Follow",
+          "Sub",
+          "ReSub",
+          "GiftSub",
+          "GiftBomb",
+          "Raid",
+          "Cheer",
+        ],
+        YouTube: [
+          "Message",
+          "NewSponsor",
+          "NewSubscriber",
+          "SuperChat",
+          "SuperSticker",
+        ],
+      },
+      onConnect: () => {
+        this.logger.info("Streamer.bot connected");
+        this.currentStreamerbotError = undefined;
+        this.broadcastStatus();
+      },
+      onDisconnect: () => {
+        this.handleConnectionClosed();
+      },
+      onError: (error: Error) => {
+        this.handleConnectionError({
+          type: StreamerbotErrorType.WEBSOCKET_ERROR,
+          message: error.message,
+          originalError: error,
+        });
+      },
+    });
 
-      // Setup event listeners for chat/events
-      this.setupEventListeners();
+    // Setup event listeners for chat/events
+    this.setupEventListeners();
 
-      // Connect
-      await this.client.connect();
-    } catch (error) {
-      this.status = StreamerbotConnectionStatus.ERROR;
-      const errorMessage = error instanceof Error ? error.message : "Failed to connect to Streamer.bot";
-      this.currentError = {
-        type: StreamerbotErrorType.CONNECTION_REFUSED,
-        message: errorMessage,
-        originalError: error,
-      };
-      this.logger.error("Failed to connect to Streamer.bot", error);
-      this.broadcastStatus();
-      this.scheduleReconnect();
-      throw error;
-    }
+    // Connect
+    await this.client.connect();
   }
 
   /**
-   * Disconnect from Streamer.bot
+   * Implementation-specific disconnection logic
    */
-  async disconnect(): Promise<void> {
-    // Clear any pending reconnect
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = undefined;
-    }
-
+  protected async doDisconnect(): Promise<void> {
     // Disable autoConnect
     this.settingsService.setStreamerbotAutoConnect(false);
 
-    if (this.client && this.status === StreamerbotConnectionStatus.CONNECTED) {
+    if (this.client) {
       this.client.disconnect();
       this.client = null;
-      this.status = StreamerbotConnectionStatus.DISCONNECTED;
-      this.logger.info("Disconnected from Streamer.bot");
-      this.broadcastStatus();
     }
   }
 
   /**
-   * Schedule reconnection attempt
+   * Called when connection is successfully established
    */
-  private scheduleReconnect(): void {
-    if (this.reconnectTimer) {
-      return;
-    }
+  protected override onConnected(): void {
+    super.onConnected();
+    this.currentStreamerbotError = undefined;
+    this.broadcastStatus();
+  }
 
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.logger.error("Max reconnection attempts reached");
-      return;
-    }
+  /**
+   * Called when connection is closed
+   */
+  protected override onDisconnected(): void {
+    this.logger.warn("Streamer.bot disconnected");
+    this.broadcastStatus();
+  }
 
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
-    this.reconnectAttempts++;
-
-    this.logger.info(`Scheduling Streamer.bot reconnect in ${delay}ms (attempt ${this.reconnectAttempts})`);
-
-    this.reconnectTimer = setTimeout(async () => {
-      this.reconnectTimer = undefined;
-      try {
-        await this.connect();
-      } catch {
-        // Error already logged in connect()
-      }
-    }, delay);
+  /**
+   * Called when connection error occurs
+   */
+  protected override onError(error: ConnectionError): void {
+    super.onError(error);
+    this.currentStreamerbotError = {
+      type: error.type as StreamerbotErrorType,
+      message: error.message,
+      originalError: error.originalError,
+    };
+    this.broadcastStatus();
   }
 
   /**
    * Send a chat message to Streamer.bot
    */
   async sendMessage(platform: ChatPlatform, message: string): Promise<void> {
-    if (!this.client || this.status !== StreamerbotConnectionStatus.CONNECTED) {
+    if (!this.client || !this.isConnected()) {
       throw new Error("Not connected to Streamer.bot");
     }
 
     try {
-      await this.client.sendMessage(platform, message, { bot: false, internal: false });
+      await this.client.sendMessage(platform, message, {
+        bot: false,
+        internal: false,
+      });
       this.logger.debug(`Sent message to ${platform}: ${message}`);
     } catch (error) {
       this.logger.error(`Failed to send message to ${platform}`, error);
@@ -339,20 +329,13 @@ export class StreamerbotGateway {
   }
 
   /**
-   * Get current connection status
+   * Get current connection status (with Streamerbot-specific types)
    */
-  getStatus(): StreamerbotGatewayStatus {
+  getStreamerbotStatus(): StreamerbotGatewayStatus {
     return {
-      status: this.status,
-      error: this.currentError,
+      status: mapConnectionStatus(this.status),
+      error: this.currentStreamerbotError,
       lastEventTime: this.lastEventTime,
     };
-  }
-
-  /**
-   * Get current connection state
-   */
-  isConnected(): boolean {
-    return this.status === StreamerbotConnectionStatus.CONNECTED;
   }
 }

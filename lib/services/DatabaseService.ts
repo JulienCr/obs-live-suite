@@ -4,9 +4,10 @@ import { Logger } from "../utils/Logger";
 import { safeJsonParse, safeJsonParseOptional } from "../utils/safeJsonParse";
 import { DATABASE } from "../config/Constants";
 import {
-  MigrationError,
-  MigrationErrorCode,
-} from "../errors/MigrationError";
+  MigrationRunner,
+  ColumnMigration,
+  CustomMigration,
+} from "./MigrationRunner";
 import {
   DbGuest,
   DbGuestInput,
@@ -69,483 +70,262 @@ export class DatabaseService {
   }
 
   /**
-   * Run database migrations
+   * Run database migrations using the declarative MigrationRunner.
+   * Migrations are organized into:
+   * - Column migrations: Simple column additions
+   * - Custom migrations: Complex logic (data migrations, table recreations)
    */
   private runMigrations(): void {
     this.logger.info("Starting database migrations...");
 
-    // Migration 1: Add layout columns to themes table
-    this.runMigration({
-      name: "themes_layout_columns",
-      table: "themes",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(themes)").all() as Array<{ name: string }>;
-        const hasLowerThirdLayout = tableInfo.some((col) => col.name === "lowerThirdLayout");
-        const hasCountdownLayout = tableInfo.some((col) => col.name === "countdownLayout");
-        const hasPosterLayout = tableInfo.some((col) => col.name === "posterLayout");
+    const migrationRunner = new MigrationRunner(this.db, this.logger);
 
-        if (!hasLowerThirdLayout) {
-          this.logger.info("Adding lowerThirdLayout column to themes table");
-          this.db.exec(`
-            ALTER TABLE themes ADD COLUMN lowerThirdLayout TEXT NOT NULL DEFAULT '{"x":60,"y":920,"scale":1}';
-          `);
-        }
-
-        if (!hasCountdownLayout) {
-          this.logger.info("Adding countdownLayout column to themes table");
-          this.db.exec(`
-            ALTER TABLE themes ADD COLUMN countdownLayout TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}';
-          `);
-        }
-
-        if (!hasPosterLayout) {
-          this.logger.info("Adding posterLayout column to themes table");
-          this.db.exec(`
-            ALTER TABLE themes ADD COLUMN posterLayout TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}';
-          `);
-        }
-
-        return !hasLowerThirdLayout || !hasCountdownLayout || !hasPosterLayout;
+    // ==================== COLUMN MIGRATIONS ====================
+    // Simple column additions that can be declared statically
+    const columnMigrations: ColumnMigration[] = [
+      // Themes table columns
+      {
+        name: "themes_lowerThirdLayout",
+        table: "themes",
+        column: "lowerThirdLayout",
+        definition: `TEXT NOT NULL DEFAULT '{"x":60,"y":920,"scale":1}'`,
       },
-    });
-
-    // Migration 2: Add isEnabled column to guests table
-    this.runMigration({
-      name: "guests_isEnabled",
-      table: "guests",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(guests)").all() as Array<{ name: string }>;
-        const hasIsEnabled = tableInfo.some((col) => col.name === "isEnabled");
-
-        if (!hasIsEnabled) {
-          this.logger.info("Adding isEnabled column to guests table");
-          this.db.exec(`
-            ALTER TABLE guests ADD COLUMN isEnabled INTEGER NOT NULL DEFAULT 1;
-          `);
-          return true;
-        }
-        return false;
+      {
+        name: "themes_countdownLayout",
+        table: "themes",
+        column: "countdownLayout",
+        definition: `TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}'`,
       },
-    });
-
-    // Migration 3: Add isEnabled column to posters table
-    this.runMigration({
-      name: "posters_isEnabled",
-      table: "posters",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
-        const hasIsEnabled = tableInfo.some((col) => col.name === "isEnabled");
-
-        if (!hasIsEnabled) {
-          this.logger.info("Adding isEnabled column to posters table");
-          this.db.exec(`
-            ALTER TABLE posters ADD COLUMN isEnabled INTEGER NOT NULL DEFAULT 1;
-          `);
-          return true;
-        }
-        return false;
+      {
+        name: "themes_posterLayout",
+        table: "themes",
+        column: "posterLayout",
+        definition: `TEXT NOT NULL DEFAULT '{"x":960,"y":540,"scale":1}'`,
       },
-    });
-
-    // Migration 4: Add description and source columns to posters table
-    this.runMigration({
-      name: "posters_description_source",
-      table: "posters",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
-        const hasDescription = tableInfo.some((col) => col.name === "description");
-        const hasSource = tableInfo.some((col) => col.name === "source");
-        let modified = false;
-
-        if (!hasDescription) {
-          this.logger.info("Adding description column to posters table");
-          this.db.exec(`ALTER TABLE posters ADD COLUMN description TEXT;`);
-          modified = true;
-        }
-
-        if (!hasSource) {
-          this.logger.info("Adding source column to posters table");
-          this.db.exec(`ALTER TABLE posters ADD COLUMN source TEXT;`);
-          modified = true;
-        }
-
-        return modified;
+      {
+        name: "themes_lowerThirdAnimation",
+        table: "themes",
+        column: "lowerThirdAnimation",
+        definition: `TEXT DEFAULT '{"timing":{"logoFadeDuration":200,"logoScaleDuration":200,"flipDuration":600,"flipDelay":500,"barAppearDelay":800,"barExpandDuration":450,"textAppearDelay":1000,"textFadeDuration":250},"styles":{"barBorderRadius":16,"barMinWidth":200,"avatarBorderWidth":4,"avatarBorderColor":"#272727","freeTextMaxWidth":{"left":65,"right":65,"center":90}}}'`,
       },
-    });
 
-    // Migration 5: Add lowerThirdAnimation column to themes table
-    this.runMigration({
-      name: "themes_lowerThirdAnimation",
-      table: "themes",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(themes)").all() as Array<{ name: string }>;
-        const hasLowerThirdAnimation = tableInfo.some((col) => col.name === "lowerThirdAnimation");
-
-        if (!hasLowerThirdAnimation) {
-          this.logger.info("Adding lowerThirdAnimation column to themes table");
-          this.db.exec(`
-            ALTER TABLE themes ADD COLUMN lowerThirdAnimation TEXT DEFAULT '{"timing":{"logoFadeDuration":200,"logoScaleDuration":200,"flipDuration":600,"flipDelay":500,"barAppearDelay":800,"barExpandDuration":450,"textAppearDelay":1000,"textFadeDuration":250},"styles":{"barBorderRadius":16,"barMinWidth":200,"avatarBorderWidth":4,"avatarBorderColor":"#272727","freeTextMaxWidth":{"left":65,"right":65,"center":90}}}';
-          `);
-          return true;
-        }
-        return false;
+      // Guests table columns
+      {
+        name: "guests_isEnabled",
+        table: "guests",
+        column: "isEnabled",
+        definition: "INTEGER NOT NULL DEFAULT 1",
       },
-    });
+      {
+        name: "guests_chatMessage",
+        table: "guests",
+        column: "chatMessage",
+        definition: "TEXT",
+      },
 
-    // Migration 5b: Update existing themes with freeTextMaxWidth (data migration)
-    this.runMigration({
-      name: "themes_freeTextMaxWidth_data",
-      table: "themes",
-      run: () => {
-        const themes = this.db.prepare("SELECT id, lowerThirdAnimation FROM themes").all() as Array<{ id: string; lowerThirdAnimation: string }>;
+      // Posters table columns
+      {
+        name: "posters_isEnabled",
+        table: "posters",
+        column: "isEnabled",
+        definition: "INTEGER NOT NULL DEFAULT 1",
+      },
+      {
+        name: "posters_description",
+        table: "posters",
+        column: "description",
+        definition: "TEXT",
+      },
+      {
+        name: "posters_source",
+        table: "posters",
+        column: "source",
+        definition: "TEXT",
+      },
+      {
+        name: "posters_chatMessage",
+        table: "posters",
+        column: "chatMessage",
+        definition: "TEXT",
+      },
+      {
+        name: "posters_parentPosterId",
+        table: "posters",
+        column: "parentPosterId",
+        definition: "TEXT REFERENCES posters(id)",
+      },
+      {
+        name: "posters_startTime",
+        table: "posters",
+        column: "startTime",
+        definition: "REAL",
+      },
+      {
+        name: "posters_endTime",
+        table: "posters",
+        column: "endTime",
+        definition: "REAL",
+      },
+      {
+        name: "posters_thumbnailUrl",
+        table: "posters",
+        column: "thumbnailUrl",
+        definition: "TEXT",
+      },
+      {
+        name: "posters_endBehavior",
+        table: "posters",
+        column: "endBehavior",
+        definition: "TEXT",
+      },
 
-        let updatedCount = 0;
-        for (const theme of themes) {
-          const animation = safeJsonParse<Record<string, unknown>>(theme.lowerThirdAnimation, {});
-          if (!animation.styles || !(animation.styles as Record<string, unknown>)?.freeTextMaxWidth) {
-            if (!animation.styles) {
-              animation.styles = {};
+      // Wikipedia cache columns
+      {
+        name: "wikipedia_cache_raw_extract",
+        table: "wikipedia_cache",
+        column: "raw_extract",
+        definition: "TEXT",
+      },
+
+      // Rooms table columns
+      {
+        name: "rooms_canSendCustomMessages",
+        table: "rooms",
+        column: "canSendCustomMessages",
+        definition: "INTEGER NOT NULL DEFAULT 0",
+      },
+      {
+        name: "rooms_streamerbotConnection",
+        table: "rooms",
+        column: "streamerbotConnection",
+        definition: "TEXT",
+      },
+      {
+        name: "rooms_allowPresenterToSendMessage",
+        table: "rooms",
+        column: "allowPresenterToSendMessage",
+        definition: "INTEGER NOT NULL DEFAULT 0",
+      },
+
+      // Panel colors columns
+      {
+        name: "panel_colors_scheme",
+        table: "panel_colors",
+        column: "scheme",
+        definition: "TEXT NOT NULL DEFAULT 'neutral'",
+      },
+    ];
+
+    migrationRunner.runColumnMigrations(columnMigrations);
+
+    // ==================== CUSTOM MIGRATIONS ====================
+    // Complex migrations that require custom logic
+
+    const customMigrations: CustomMigration[] = [
+      // Data migration: Update existing themes with freeTextMaxWidth
+      {
+        name: "themes_freeTextMaxWidth_data",
+        table: "themes",
+        run: () => {
+          const themes = this.db.prepare("SELECT id, lowerThirdAnimation FROM themes").all() as Array<{ id: string; lowerThirdAnimation: string }>;
+
+          let updatedCount = 0;
+          for (const theme of themes) {
+            const animation = safeJsonParse<Record<string, unknown>>(theme.lowerThirdAnimation, {});
+            if (!animation.styles || !(animation.styles as Record<string, unknown>)?.freeTextMaxWidth) {
+              if (!animation.styles) {
+                animation.styles = {};
+              }
+              (animation.styles as Record<string, unknown>).freeTextMaxWidth = { left: 65, right: 65, center: 90 };
+
+              this.db.prepare("UPDATE themes SET lowerThirdAnimation = ? WHERE id = ?")
+                .run(JSON.stringify(animation), theme.id);
+              updatedCount++;
             }
-            (animation.styles as Record<string, unknown>).freeTextMaxWidth = { left: 65, right: 65, center: 90 };
-
-            this.db.prepare("UPDATE themes SET lowerThirdAnimation = ? WHERE id = ?")
-              .run(JSON.stringify(animation), theme.id);
-            updatedCount++;
           }
-        }
 
-        if (updatedCount > 0) {
-          this.logger.info(`Updated ${updatedCount} theme(s) with freeTextMaxWidth`);
-          return true;
-        }
-        return false;
+          if (updatedCount > 0) {
+            this.logger.info(`Updated ${updatedCount} theme(s) with freeTextMaxWidth`);
+            return true;
+          }
+          return false;
+        },
       },
-    });
 
-    // Migration 6: Create wikipedia_cache table
-    this.runMigration({
-      name: "wikipedia_cache_table",
-      table: "wikipedia_cache",
-      run: () => {
-        const tables = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='wikipedia_cache'").all() as Array<{ name: string }>;
+      // Table recreation: Remove roomId from cue_messages (single-room presenter system)
+      {
+        name: "cue_messages_remove_roomId",
+        table: "cue_messages",
+        run: () => {
+          const tableInfo = this.db.prepare("PRAGMA table_info(cue_messages)").all() as Array<{ name: string }>;
+          const hasRoomId = tableInfo.some((col) => col.name === "roomId");
 
-        if (tables.length === 0) {
-          this.logger.info("Creating wikipedia_cache table");
-          this.db.exec(`
-            CREATE TABLE wikipedia_cache (
-              id TEXT PRIMARY KEY,
-              query TEXT NOT NULL,
-              lang TEXT NOT NULL DEFAULT 'fr',
-              title TEXT NOT NULL,
-              summary TEXT NOT NULL,
-              thumbnail TEXT,
-              source TEXT NOT NULL,
-              created_at INTEGER NOT NULL,
-              ttl INTEGER NOT NULL DEFAULT 604800,
-              raw_extract TEXT
-            );
-            CREATE INDEX idx_wikipedia_cache_query ON wikipedia_cache(query, lang);
-            CREATE INDEX idx_wikipedia_cache_created_at ON wikipedia_cache(created_at);
-          `);
-          return true;
-        }
-        return false;
+          if (hasRoomId) {
+            this.logger.info("Recreating cue_messages table without roomId column");
+
+            // SQLite doesn't support DROP COLUMN easily, so we recreate the table
+            this.db.exec(`
+              -- Create new table without roomId
+              CREATE TABLE cue_messages_new (
+                id TEXT PRIMARY KEY,
+                type TEXT NOT NULL,
+                fromRole TEXT NOT NULL,
+                severity TEXT,
+                title TEXT,
+                body TEXT,
+                pinned INTEGER NOT NULL DEFAULT 0,
+                actions TEXT NOT NULL DEFAULT '[]',
+                countdownPayload TEXT,
+                contextPayload TEXT,
+                questionPayload TEXT,
+                seenBy TEXT NOT NULL DEFAULT '[]',
+                ackedBy TEXT NOT NULL DEFAULT '[]',
+                resolvedAt INTEGER,
+                resolvedBy TEXT,
+                createdAt INTEGER NOT NULL,
+                updatedAt INTEGER NOT NULL
+              );
+
+              -- Copy data (excluding roomId)
+              INSERT INTO cue_messages_new (id, type, fromRole, severity, title, body, pinned, actions, countdownPayload, contextPayload, questionPayload, seenBy, ackedBy, resolvedAt, resolvedBy, createdAt, updatedAt)
+              SELECT id, type, fromRole, severity, title, body, pinned, actions, countdownPayload, contextPayload, questionPayload, seenBy, ackedBy, resolvedAt, resolvedBy, createdAt, updatedAt
+              FROM cue_messages;
+
+              -- Drop old table and indexes
+              DROP INDEX IF EXISTS idx_cue_messages_roomId;
+              DROP TABLE cue_messages;
+
+              -- Rename new table
+              ALTER TABLE cue_messages_new RENAME TO cue_messages;
+
+              -- Recreate indexes (without roomId index)
+              CREATE INDEX IF NOT EXISTS idx_cue_messages_createdAt ON cue_messages(createdAt);
+              CREATE INDEX IF NOT EXISTS idx_cue_messages_pinned ON cue_messages(pinned);
+            `);
+            return true;
+          }
+          return false;
+        },
       },
-    });
 
-    // Migration 6b: Add raw_extract column to wikipedia_cache
-    this.runMigration({
-      name: "wikipedia_cache_raw_extract",
-      table: "wikipedia_cache",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(wikipedia_cache)").all() as Array<{ name: string }>;
-        const hasRawExtract = tableInfo.some((col) => col.name === "raw_extract");
-
-        if (!hasRawExtract) {
-          this.logger.info("Adding raw_extract column to wikipedia_cache table");
-          this.db.exec(`ALTER TABLE wikipedia_cache ADD COLUMN raw_extract TEXT`);
-          return true;
-        }
-        return false;
+      // Index creation: Add index for sub-video lookups after column migrations
+      {
+        name: "posters_parentPosterId_index",
+        table: "posters",
+        run: () => {
+          // Only create index if the column exists (it should after column migrations)
+          if (migrationRunner.columnExists("posters", "parentPosterId")) {
+            this.db.exec(`CREATE INDEX IF NOT EXISTS idx_posters_parentPosterId ON posters(parentPosterId);`);
+            return true;
+          }
+          return false;
+        },
       },
-    });
+    ];
 
-    // Migration 7: Add canSendCustomMessages column to rooms table
-    this.runMigration({
-      name: "rooms_canSendCustomMessages",
-      table: "rooms",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(rooms)").all() as Array<{ name: string }>;
-        const hasColumn = tableInfo.some((col) => col.name === "canSendCustomMessages");
-
-        if (!hasColumn) {
-          this.logger.info("Adding canSendCustomMessages column to rooms table");
-          this.db.exec(`
-            ALTER TABLE rooms ADD COLUMN canSendCustomMessages INTEGER NOT NULL DEFAULT 0;
-          `);
-          return true;
-        }
-        return false;
-      },
-    });
-
-    // Migration 8: Add streamerbotConnection column to rooms table
-    this.runMigration({
-      name: "rooms_streamerbotConnection",
-      table: "rooms",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(rooms)").all() as Array<{ name: string }>;
-        const hasColumn = tableInfo.some((col) => col.name === "streamerbotConnection");
-
-        if (!hasColumn) {
-          this.logger.info("Adding streamerbotConnection column to rooms table");
-          this.db.exec(`ALTER TABLE rooms ADD COLUMN streamerbotConnection TEXT;`);
-          return true;
-        }
-        return false;
-      },
-    });
-
-    // Migration 9: Add allowPresenterToSendMessage column to rooms table
-    this.runMigration({
-      name: "rooms_allowPresenterToSendMessage",
-      table: "rooms",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(rooms)").all() as Array<{ name: string }>;
-        const hasColumn = tableInfo.some((col) => col.name === "allowPresenterToSendMessage");
-
-        if (!hasColumn) {
-          this.logger.info("Adding allowPresenterToSendMessage column to rooms table");
-          this.db.exec(`
-            ALTER TABLE rooms ADD COLUMN allowPresenterToSendMessage INTEGER NOT NULL DEFAULT 0;
-          `);
-          return true;
-        }
-        return false;
-      },
-    });
-
-    // Migration 10: Add scheme column to panel_colors table
-    this.runMigration({
-      name: "panel_colors_scheme",
-      table: "panel_colors",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(panel_colors)").all() as Array<{ name: string }>;
-        const hasScheme = tableInfo.some((col) => col.name === "scheme");
-
-        if (!hasScheme) {
-          this.logger.info("Adding scheme column to panel_colors table");
-          this.db.exec(`
-            ALTER TABLE panel_colors ADD COLUMN scheme TEXT NOT NULL DEFAULT 'neutral';
-          `);
-          return true;
-        }
-        return false;
-      },
-    });
-
-    // Migration 11: Add chatMessage column to guests table
-    this.runMigration({
-      name: "guests_chatMessage",
-      table: "guests",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(guests)").all() as Array<{ name: string }>;
-        const hasChatMessage = tableInfo.some((col) => col.name === "chatMessage");
-
-        if (!hasChatMessage) {
-          this.logger.info("Adding chatMessage column to guests table");
-          this.db.exec(`ALTER TABLE guests ADD COLUMN chatMessage TEXT;`);
-          return true;
-        }
-        return false;
-      },
-    });
-
-    // Migration 12: Add chatMessage column to posters table
-    this.runMigration({
-      name: "posters_chatMessage",
-      table: "posters",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
-        const hasChatMessage = tableInfo.some((col) => col.name === "chatMessage");
-
-        if (!hasChatMessage) {
-          this.logger.info("Adding chatMessage column to posters table");
-          this.db.exec(`ALTER TABLE posters ADD COLUMN chatMessage TEXT;`);
-          return true;
-        }
-        return false;
-      },
-    });
-
-    // Migration 13: Remove roomId from cue_messages table (single-room presenter system)
-    this.runMigration({
-      name: "cue_messages_remove_roomId",
-      table: "cue_messages",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(cue_messages)").all() as Array<{ name: string }>;
-        const hasRoomId = tableInfo.some((col) => col.name === "roomId");
-
-        if (hasRoomId) {
-          this.logger.info("Recreating cue_messages table without roomId column");
-
-          // SQLite doesn't support DROP COLUMN easily, so we recreate the table
-          this.db.exec(`
-            -- Create new table without roomId
-            CREATE TABLE cue_messages_new (
-              id TEXT PRIMARY KEY,
-              type TEXT NOT NULL,
-              fromRole TEXT NOT NULL,
-              severity TEXT,
-              title TEXT,
-              body TEXT,
-              pinned INTEGER NOT NULL DEFAULT 0,
-              actions TEXT NOT NULL DEFAULT '[]',
-              countdownPayload TEXT,
-              contextPayload TEXT,
-              questionPayload TEXT,
-              seenBy TEXT NOT NULL DEFAULT '[]',
-              ackedBy TEXT NOT NULL DEFAULT '[]',
-              resolvedAt INTEGER,
-              resolvedBy TEXT,
-              createdAt INTEGER NOT NULL,
-              updatedAt INTEGER NOT NULL
-            );
-
-            -- Copy data (excluding roomId)
-            INSERT INTO cue_messages_new (id, type, fromRole, severity, title, body, pinned, actions, countdownPayload, contextPayload, questionPayload, seenBy, ackedBy, resolvedAt, resolvedBy, createdAt, updatedAt)
-            SELECT id, type, fromRole, severity, title, body, pinned, actions, countdownPayload, contextPayload, questionPayload, seenBy, ackedBy, resolvedAt, resolvedBy, createdAt, updatedAt
-            FROM cue_messages;
-
-            -- Drop old table and indexes
-            DROP INDEX IF EXISTS idx_cue_messages_roomId;
-            DROP TABLE cue_messages;
-
-            -- Rename new table
-            ALTER TABLE cue_messages_new RENAME TO cue_messages;
-
-            -- Recreate indexes (without roomId index)
-            CREATE INDEX IF NOT EXISTS idx_cue_messages_createdAt ON cue_messages(createdAt);
-            CREATE INDEX IF NOT EXISTS idx_cue_messages_pinned ON cue_messages(pinned);
-          `);
-          return true;
-        }
-        return false;
-      },
-    });
-
-    // Migration 14: Add sub-video fields to posters table
-    this.runMigration({
-      name: "posters_subvideo_fields",
-      table: "posters",
-      run: () => {
-        const tableInfo = this.db.prepare("PRAGMA table_info(posters)").all() as Array<{ name: string }>;
-        const hasParentPosterId = tableInfo.some((col) => col.name === "parentPosterId");
-        const hasStartTime = tableInfo.some((col) => col.name === "startTime");
-        const hasEndTime = tableInfo.some((col) => col.name === "endTime");
-        const hasThumbnailUrl = tableInfo.some((col) => col.name === "thumbnailUrl");
-        const hasEndBehavior = tableInfo.some((col) => col.name === "endBehavior");
-        let modified = false;
-
-        if (!hasParentPosterId) {
-          this.logger.info("Adding parentPosterId column to posters table");
-          this.db.exec(`ALTER TABLE posters ADD COLUMN parentPosterId TEXT REFERENCES posters(id);`);
-          modified = true;
-        }
-
-        if (!hasStartTime) {
-          this.logger.info("Adding startTime column to posters table");
-          this.db.exec(`ALTER TABLE posters ADD COLUMN startTime REAL;`);
-          modified = true;
-        }
-
-        if (!hasEndTime) {
-          this.logger.info("Adding endTime column to posters table");
-          this.db.exec(`ALTER TABLE posters ADD COLUMN endTime REAL;`);
-          modified = true;
-        }
-
-        if (!hasThumbnailUrl) {
-          this.logger.info("Adding thumbnailUrl column to posters table");
-          this.db.exec(`ALTER TABLE posters ADD COLUMN thumbnailUrl TEXT;`);
-          modified = true;
-        }
-
-        if (!hasEndBehavior) {
-          this.logger.info("Adding endBehavior column to posters table");
-          this.db.exec(`ALTER TABLE posters ADD COLUMN endBehavior TEXT;`);
-          modified = true;
-        }
-
-        // Create index for sub-video lookups
-        if (modified) {
-          this.db.exec(`CREATE INDEX IF NOT EXISTS idx_posters_parentPosterId ON posters(parentPosterId);`);
-        }
-
-        return modified;
-      },
-    });
+    migrationRunner.runCustomMigrations(customMigrations);
 
     this.logger.info("Database migrations completed");
-  }
-
-  /**
-   * Execute a single migration with proper error handling
-   * @param options Migration configuration
-   * @returns true if migration was applied, false if skipped
-   */
-  private runMigration(options: {
-    name: string;
-    table: string;
-    run: () => boolean;
-  }): boolean {
-    const { name, table, run } = options;
-
-    try {
-      const applied = run();
-      if (applied) {
-        this.logger.info(`Migration "${name}" applied successfully`);
-      }
-      return applied;
-    } catch (error) {
-      const migrationError = new MigrationError({
-        migrationName: name,
-        tableName: table,
-        operation: "ALTER/CREATE",
-        originalError: error,
-      });
-
-      // Log detailed error information
-      this.logger.error(`Migration failed: ${migrationError.message}`, migrationError.toLogObject());
-
-      // Handle based on error type
-      if (migrationError.isRecoverable) {
-        const code = migrationError.code;
-        if (code === MigrationErrorCode.TABLE_NOT_FOUND) {
-          // Table doesn't exist yet - this is expected on first run before initializeTables
-          // The table will be created and migration will apply on next start
-          this.logger.warn(
-            `Migration "${name}" skipped: table "${table}" does not exist yet. ` +
-            `This is expected if the table will be created during initialization.`
-          );
-        } else if (code === MigrationErrorCode.COLUMN_EXISTS) {
-          // Column already exists - migration was already applied
-          this.logger.info(
-            `Migration "${name}" skipped: column already exists in table "${table}". ` +
-            `This indicates the migration was already applied.`
-          );
-        }
-        return false;
-      }
-
-      // Non-recoverable error - re-throw to surface the issue
-      // This includes SQL syntax errors or unexpected failures
-      this.logger.error(
-        `FATAL: Migration "${name}" encountered an unrecoverable error. ` +
-        `Database may be in an inconsistent state. Manual intervention may be required.`
-      );
-      throw migrationError;
-    }
   }
 
   /**

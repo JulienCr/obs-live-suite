@@ -1,16 +1,36 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
-import { Logger } from "@/lib/utils/Logger";
+import { EnabledBaseRepository, ColumnTransformConfig } from "./BaseRepository";
 import type { DbGuest, DbGuestInput, DbGuestUpdate } from "@/lib/models/Database";
 
 /**
- * GuestRepository handles all guest-related database operations
+ * Raw guest row type as stored in SQLite database.
  */
-export class GuestRepository {
+type DbGuestRow = Omit<DbGuest, "isEnabled" | "createdAt" | "updatedAt"> & {
+  isEnabled: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * GuestRepository handles all guest-related database operations.
+ * Uses singleton pattern for consistent database access.
+ */
+export class GuestRepository extends EnabledBaseRepository<
+  DbGuest,
+  DbGuestRow,
+  DbGuestInput,
+  DbGuestUpdate
+> {
   private static instance: GuestRepository;
-  private logger: Logger;
+
+  protected readonly tableName = "guests";
+  protected readonly loggerName = "GuestRepository";
+  protected readonly transformConfig: ColumnTransformConfig = {
+    booleanColumns: ["isEnabled"],
+    dateColumns: ["createdAt", "updatedAt"],
+  };
 
   private constructor() {
-    this.logger = new Logger("GuestRepository");
+    super();
   }
 
   /**
@@ -23,63 +43,8 @@ export class GuestRepository {
     return GuestRepository.instance;
   }
 
-  /**
-   * Get the database instance
-   */
-  private get db() {
-    return DatabaseService.getInstance().getDb();
-  }
-
-  /**
-   * Get all guests
-   * @param enabled - Optional filter: true for enabled only, false for disabled only, undefined for all
-   */
-  getAll(enabled?: boolean): DbGuest[] {
-    type GuestRow = Omit<DbGuest, "isEnabled" | "createdAt" | "updatedAt"> & {
-      isEnabled: number;
-      createdAt: string;
-      updatedAt: string;
-    };
-
-    let rows: GuestRow[];
-
-    if (enabled === undefined) {
-      const stmt = this.db.prepare("SELECT * FROM guests ORDER BY displayName ASC");
-      rows = stmt.all() as GuestRow[];
-    } else {
-      const stmt = this.db.prepare(
-        "SELECT * FROM guests WHERE isEnabled = ? ORDER BY displayName ASC"
-      );
-      rows = stmt.all(enabled ? 1 : 0) as GuestRow[];
-    }
-
-    return rows.map((row) => ({
-      ...row,
-      isEnabled: row.isEnabled === 1,
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    }));
-  }
-
-  /**
-   * Get guest by ID
-   */
-  getById(id: string): DbGuest | null {
-    const stmt = this.db.prepare("SELECT * FROM guests WHERE id = ?");
-    const row = stmt.get(id) as
-      | (Omit<DbGuest, "isEnabled" | "createdAt" | "updatedAt"> & {
-          isEnabled: number;
-          createdAt: string;
-          updatedAt: string;
-        })
-      | undefined;
-    if (!row) return null;
-    return {
-      ...row,
-      isEnabled: row.isEnabled === 1,
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    };
+  protected override getOrderBy(): string {
+    return "displayName ASC";
   }
 
   /**
@@ -87,17 +52,12 @@ export class GuestRepository {
    */
   create(guest: DbGuestInput): void {
     const now = new Date();
-    this.logger.debug("Creating guest", {
+    this.getLogger().debug("Creating guest", {
       id: guest.id,
       displayName: guest.displayName,
-      subtitle: guest.subtitle,
-      accentColor: guest.accentColor,
-      avatarUrl: guest.avatarUrl,
-      chatMessage: guest.chatMessage,
-      isEnabled: guest.isEnabled,
     });
 
-    const stmt = this.db.prepare(`
+    const stmt = this.rawDb.prepare(`
       INSERT INTO guests (id, displayName, subtitle, accentColor, avatarUrl, chatMessage, isEnabled, createdAt, updatedAt)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
@@ -108,12 +68,12 @@ export class GuestRepository {
       guest.accentColor,
       guest.avatarUrl || null,
       guest.chatMessage || null,
-      guest.isEnabled ? 1 : 0,
-      (guest.createdAt || now).toISOString(),
-      (guest.updatedAt || now).toISOString()
+      this.prepareValue(guest.isEnabled),
+      this.prepareValue(guest.createdAt || now),
+      this.prepareValue(guest.updatedAt || now)
     );
 
-    this.logger.debug("Guest created successfully");
+    this.getLogger().debug("Guest created successfully");
   }
 
   /**
@@ -140,9 +100,9 @@ export class GuestRepository {
       updatedAt: updates.updatedAt || new Date(),
     };
 
-    this.logger.debug("Updating guest", { id, merged });
+    this.getLogger().debug("Updating guest", { id, merged });
 
-    const stmt = this.db.prepare(`
+    const stmt = this.rawDb.prepare(`
       UPDATE guests
       SET displayName = ?, subtitle = ?, accentColor = ?, avatarUrl = ?, chatMessage = ?, isEnabled = ?, updatedAt = ?
       WHERE id = ?
@@ -153,17 +113,9 @@ export class GuestRepository {
       merged.accentColor,
       merged.avatarUrl || null,
       merged.chatMessage || null,
-      merged.isEnabled ? 1 : 0,
-      merged.updatedAt.toISOString ? merged.updatedAt.toISOString() : merged.updatedAt,
+      this.prepareValue(merged.isEnabled),
+      this.prepareValue(merged.updatedAt),
       id
     );
-  }
-
-  /**
-   * Delete a guest
-   */
-  delete(id: string): void {
-    const stmt = this.db.prepare("DELETE FROM guests WHERE id = ?");
-    stmt.run(id);
   }
 }

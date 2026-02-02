@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/utils/ClientFetch";
 import { queryKeys, GuestFilterOptions } from "./queryKeys";
+import { QUERY_STALE_TIMES } from "@/lib/config/Constants";
 
 export interface Guest {
   id: string;
@@ -54,7 +55,7 @@ export interface UseGuestsOptions {
   enabled?: boolean;
 }
 
-const GUESTS_STALE_TIME = 30 * 1000;
+// Use centralized stale time from Constants
 
 function buildGuestsEndpoint(options?: UseGuestsOptions): string {
   if (options?.enabled !== undefined) {
@@ -75,7 +76,7 @@ export function useGuests(options?: UseGuestsOptions) {
       const response = await apiGet<GuestsResponse>(buildGuestsEndpoint(options));
       return response.guests;
     },
-    staleTime: GUESTS_STALE_TIME,
+    staleTime: QUERY_STALE_TIMES.NORMAL,
   });
 
   const invalidateGuests = () =>
