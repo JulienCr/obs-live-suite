@@ -5,7 +5,7 @@
  * All cue messages are broadcast to the single "presenter" channel.
  */
 import { Router } from "express";
-import { DatabaseService } from "../../lib/services/DatabaseService";
+import { CueMessageRepository } from "../../lib/repositories/CueMessageRepository";
 import { ChannelManager } from "../../lib/services/ChannelManager";
 import { WebSocketHub } from "../../lib/services/WebSocketHub";
 import { createCueMessageSchema, CueType, CueFrom, CueAction } from "../../lib/models/Cue";
@@ -14,7 +14,7 @@ import { randomUUID } from "crypto";
 import { createContextHandler, createSyncContextHandler } from "../utils/expressRouteHandler";
 
 const router = Router();
-const db = DatabaseService.getInstance();
+const cueRepo = CueMessageRepository.getInstance();
 const channelManager = ChannelManager.getInstance();
 const wsHub = WebSocketHub.getInstance();
 
@@ -23,8 +23,8 @@ const cueSyncHandler = createSyncContextHandler("[CueAPI]");
 
 // Set up the presenter join callback to send replay
 wsHub.setOnPresenterJoinCallback((clientId, _role) => {
-  const messages = db.getRecentMessages(50);
-  const pinnedMessages = db.getPinnedMessages();
+  const messages = cueRepo.getRecent(50);
+  const pinnedMessages = cueRepo.getPinned();
   wsHub.sendReplay(clientId, messages, pinnedMessages);
 });
 
@@ -36,7 +36,7 @@ router.post("/send", cueHandler(async (req, res) => {
   const input = createCueMessageSchema.parse(req.body);
   const id = randomUUID();
 
-  const message = db.createMessage({
+  const message = cueRepo.create({
     id,
     type: input.type,
     fromRole: input.from,
@@ -58,7 +58,7 @@ router.post("/send", cueHandler(async (req, res) => {
   await channelManager.publishToPresenter(RoomEventType.MESSAGE, message);
 
   // Clean up old messages (keep last 100)
-  db.deleteOldMessages(100);
+  cueRepo.deleteOld(100);
 
   res.status(201).json({ message });
 }, "Failed to send cue"));
@@ -71,8 +71,8 @@ router.get("/messages", cueSyncHandler((req, res) => {
   const limit = parseInt(req.query.limit as string) || 50;
   const cursor = req.query.cursor ? parseInt(req.query.cursor as string) : undefined;
 
-  const messages = db.getRecentMessages(limit, cursor);
-  const pinnedMessages = db.getPinnedMessages();
+  const messages = cueRepo.getRecent(limit, cursor);
+  const pinnedMessages = cueRepo.getPinned();
 
   res.json({ messages, pinnedMessages });
 }, "Failed to get messages"));
@@ -85,7 +85,7 @@ router.post("/:messageId/action", cueHandler(async (req, res) => {
   const messageId = req.params.messageId as string;
   const { action, clientId } = req.body;
 
-  const message = db.getMessageById(messageId);
+  const message = cueRepo.getById(messageId);
   if (!message) {
     return res.status(404).json({ error: "Message not found" });
   }
@@ -96,7 +96,7 @@ router.post("/:messageId/action", cueHandler(async (req, res) => {
     case CueAction.ACK:
       // Add client to ackedBy list
       if (!message.ackedBy.includes(clientId)) {
-        db.updateMessage(messageId, {
+        cueRepo.update(messageId, {
           ackedBy: [...message.ackedBy, clientId],
           updatedAt: now,
         });
@@ -105,7 +105,7 @@ router.post("/:messageId/action", cueHandler(async (req, res) => {
 
     case CueAction.DONE:
       // Mark as resolved
-      db.updateMessage(messageId, {
+      cueRepo.update(messageId, {
         resolvedAt: now,
         resolvedBy: clientId,
         updatedAt: now,
@@ -114,13 +114,13 @@ router.post("/:messageId/action", cueHandler(async (req, res) => {
 
     case CueAction.CLEAR:
       // Delete the message
-      db.deleteMessage(messageId);
+      cueRepo.delete(messageId);
       break;
 
     case CueAction.TAKE:
     case CueAction.SKIP:
       // Mark as resolved with specific action
-      db.updateMessage(messageId, {
+      cueRepo.update(messageId, {
         resolvedAt: now,
         resolvedBy: clientId,
         updatedAt: now,
@@ -128,14 +128,14 @@ router.post("/:messageId/action", cueHandler(async (req, res) => {
       break;
 
     case CueAction.PIN:
-      db.updateMessage(messageId, {
+      cueRepo.update(messageId, {
         pinned: true,
         updatedAt: now,
       });
       break;
 
     case CueAction.UNPIN:
-      db.updateMessage(messageId, {
+      cueRepo.update(messageId, {
         pinned: false,
         updatedAt: now,
       });
@@ -156,7 +156,7 @@ router.post("/:messageId/action", cueHandler(async (req, res) => {
     });
     res.json({ deleted: true });
   } else {
-    const updated = db.getMessageById(messageId);
+    const updated = cueRepo.getById(messageId);
     await channelManager.publishToPresenter(RoomEventType.ACTION, {
       messageId,
       action,
@@ -180,7 +180,7 @@ router.post("/promote-question", cueHandler(async (req, res) => {
 
   const id = randomUUID();
 
-  const message = db.createMessage({
+  const message = cueRepo.create({
     id,
     type: CueType.QUESTION,
     fromRole: CueFrom.SYSTEM,
@@ -217,14 +217,14 @@ router.post("/:messageId/seen", cueHandler(async (req, res) => {
   const messageId = req.params.messageId as string;
   const { clientId } = req.body;
 
-  const message = db.getMessageById(messageId);
+  const message = cueRepo.getById(messageId);
   if (!message) {
     return res.status(404).json({ error: "Message not found" });
   }
 
   // Add client to seenBy list
   if (!message.seenBy.includes(clientId)) {
-    db.updateMessage(messageId, {
+    cueRepo.update(messageId, {
       seenBy: [...message.seenBy, clientId],
       updatedAt: Date.now(),
     });
@@ -239,7 +239,7 @@ router.post("/:messageId/seen", cueHandler(async (req, res) => {
  */
 router.delete("/clear", cueHandler(async (req, res) => {
   // Clear all messages
-  db.clearAllMessages();
+  cueRepo.clearAll();
 
   // Broadcast clear event to all clients in the presenter channel
   await channelManager.publishToPresenter(RoomEventType.MESSAGE, {

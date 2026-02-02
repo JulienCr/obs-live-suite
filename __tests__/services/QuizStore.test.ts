@@ -28,11 +28,11 @@ jest.mock("@/lib/config/PathManager", () => ({
   },
 }));
 
-// Mock DatabaseService for ensurePlayersFromGuests
-jest.mock("@/lib/services/DatabaseService", () => ({
-  DatabaseService: {
+// Mock GuestRepository for ensurePlayersFromGuests
+jest.mock("@/lib/repositories/GuestRepository", () => ({
+  GuestRepository: {
     getInstance: jest.fn(() => ({
-      getAllGuests: jest.fn().mockReturnValue([]),
+      getAll: jest.fn().mockReturnValue([]),
     })),
   },
 }));

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { ThemeRepository } from "@/lib/repositories/ThemeRepository";
+import { ProfileRepository } from "@/lib/repositories/ProfileRepository";
 import { updateThemeSchema, ThemeModel } from "@/lib/models/Theme";
 import { ApiResponses } from "@/lib/utils/ApiResponses";
 
@@ -11,8 +12,8 @@ type RouteParams = { params: Promise<{ id: string }> };
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const db = DatabaseService.getInstance();
-    const theme = db.getThemeById(id);
+    const themeRepo = ThemeRepository.getInstance();
+    const theme = themeRepo.getById(id);
 
     if (!theme) {
       return ApiResponses.notFound("Theme");
@@ -34,8 +35,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const validated = updateThemeSchema.parse({ ...body, id });
 
-    const db = DatabaseService.getInstance();
-    const existing = db.getThemeById(id);
+    const themeRepo = ThemeRepository.getInstance();
+    const existing = themeRepo.getById(id);
 
     if (!existing) {
       return ApiResponses.notFound("Theme");
@@ -47,7 +48,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       updatedAt: new Date(),
     });
 
-    db.updateTheme(id, theme.toJSON());
+    themeRepo.update(id, theme.toJSON());
 
     return ApiResponses.ok({ theme: theme.toJSON() });
   } catch (error) {
@@ -64,22 +65,23 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const db = DatabaseService.getInstance();
-    const theme = db.getThemeById(id);
+    const themeRepo = ThemeRepository.getInstance();
+    const theme = themeRepo.getById(id);
 
     if (!theme) {
       return ApiResponses.notFound("Theme");
     }
 
     // Check if theme is in use by any profile
-    const profiles = db.getAllProfiles();
+    const profileRepo = ProfileRepository.getInstance();
+    const profiles = profileRepo.getAll();
     const inUse = profiles.some((p) => p.themeId === id);
 
     if (inUse) {
       return ApiResponses.conflict("Theme is in use by one or more profiles");
     }
 
-    db.deleteTheme(id);
+    themeRepo.delete(id);
 
     return ApiResponses.ok({ success: true });
   } catch (error) {

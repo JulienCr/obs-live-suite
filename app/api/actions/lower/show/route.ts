@@ -1,6 +1,5 @@
 import { LowerThirdEventType, OverlayChannel } from "@/lib/models/OverlayEvents";
 import { BackendClient } from "@/lib/utils/BackendClient";
-import { DatabaseService } from "@/lib/services/DatabaseService";
 import { enrichLowerThirdPayload } from "@/lib/utils/themeEnrichment";
 import { sendPresenterNotification } from "@/lib/utils/presenterNotifications";
 import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
@@ -27,7 +26,6 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
   } = body;
 
   // Build base payload and enrich with theme data using shared utility
-  const db = DatabaseService.getInstance();
   const basePayload = {
     title,
     subtitle,
@@ -41,7 +39,7 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
     imageAlt,
   };
 
-  const enrichedPayload = enrichLowerThirdPayload(basePayload, db);
+  const enrichedPayload = enrichLowerThirdPayload(basePayload);
   console.log(`${LOG_CONTEXT} Publishing with theme:`, !!enrichedPayload.theme);
 
   await BackendClient.publish(OverlayChannel.LOWER, LowerThirdEventType.SHOW, enrichedPayload);

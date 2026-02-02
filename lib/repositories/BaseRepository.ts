@@ -1,4 +1,5 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import Database from "better-sqlite3";
+import { DatabaseConnector } from "@/lib/services/DatabaseConnector";
 import { Logger } from "@/lib/utils/Logger";
 import {
   sqliteToBoolean,
@@ -59,7 +60,7 @@ export abstract class BaseRepository<
   TUpdate
 > {
   protected logger!: Logger;
-  private _db?: DatabaseService;
+  private _rawDb?: Database.Database;
 
   /**
    * Table name in the database
@@ -91,20 +92,13 @@ export abstract class BaseRepository<
   }
 
   /**
-   * Get the database service instance (lazy initialization)
+   * Get the raw database connection (lazy initialization)
    */
-  protected get db(): DatabaseService {
-    if (!this._db) {
-      this._db = DatabaseService.getInstance();
+  protected get rawDb(): Database.Database {
+    if (!this._rawDb) {
+      this._rawDb = DatabaseConnector.getInstance().getDb();
     }
-    return this._db;
-  }
-
-  /**
-   * Get the raw database connection
-   */
-  protected get rawDb() {
-    return this.db.getDb();
+    return this._rawDb;
   }
 
   /**
@@ -279,3 +273,4 @@ export abstract class EnabledBaseRepository<
     return rows.map((row) => this.transformRow(row));
   }
 }
+

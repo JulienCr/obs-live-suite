@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { GuestRepository } from "@/lib/repositories/GuestRepository";
 import { updateGuestSchema } from "@/lib/models/Guest";
 import { ApiResponses } from "@/lib/utils/ApiResponses";
 type RouteParams = { params: Promise<{ id: string }> };
@@ -23,12 +23,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       }),
     };
     const updates = updateGuestSchema.parse(cleanedBody);
-    const db = DatabaseService.getInstance();
-    db.updateGuest(id, {
+    const guestRepo = GuestRepository.getInstance();
+    guestRepo.update(id, {
       ...updates,
       updatedAt: new Date(),
     });
-    const guest = db.getGuestById(id);
+    const guest = guestRepo.getById(id);
     return ApiResponses.ok({ guest });
   } catch (error) {
     console.error("[GuestsAPI] Guest update error:", error);
@@ -42,8 +42,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const db = DatabaseService.getInstance();
-    db.deleteGuest(id);
+    const guestRepo = GuestRepository.getInstance();
+    guestRepo.delete(id);
     return ApiResponses.ok({ success: true });
   } catch (error) {
     return ApiResponses.serverError("Failed to delete guest");

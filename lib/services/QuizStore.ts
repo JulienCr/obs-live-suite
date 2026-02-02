@@ -4,7 +4,7 @@ import { existsSync } from "fs";
 import { join } from "path";
 import { Logger } from "../utils/Logger";
 import { PathManager } from "../config/PathManager";
-import { DatabaseService } from "./DatabaseService";
+import { GuestRepository } from "@/lib/repositories/GuestRepository";
 import { Session, sessionSchema, Player, QuizConfig, Question, questionSchema, Round, roundSchema } from "../models/Quiz";
 
 /**
@@ -48,8 +48,8 @@ export class QuizStore {
   }
 
   ensurePlayersFromGuests(): Player[] {
-    const db = DatabaseService.getInstance();
-    const guests = (db.getAllGuests() as any[]).slice(0, 4);
+    const guestRepo = GuestRepository.getInstance();
+    const guests = guestRepo.getAll().slice(0, 4);
     const players: Player[] = guests.map((g) => ({
       id: g.id,
       displayName: g.displayName,

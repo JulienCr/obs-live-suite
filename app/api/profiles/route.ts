@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { ProfileRepository } from "@/lib/repositories/ProfileRepository";
 import { profileSchema } from "@/lib/models/Profile";
 import { randomUUID } from "crypto";
 import {
@@ -14,8 +14,8 @@ const LOG_CONTEXT = "[ProfilesAPI]";
  * List all profiles
  */
 export const GET = withSimpleErrorHandler(async () => {
-  const db = DatabaseService.getInstance();
-  const profiles = db.getAllProfiles();
+  const profileRepo = ProfileRepository.getInstance();
+  const profiles = profileRepo.getAll();
 
   return ApiResponses.ok({ profiles });
 }, LOG_CONTEXT);
@@ -39,8 +39,8 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
       updatedAt: new Date(),
     });
 
-    const db = DatabaseService.getInstance();
-    db.createProfile(profile);
+    const profileRepo = ProfileRepository.getInstance();
+    profileRepo.create(profile);
 
     return ApiResponses.created({ profile });
   } catch (error) {

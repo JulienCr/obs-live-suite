@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { DatabaseConnector } from "@/lib/services/DatabaseConnector";
 import { Logger } from "@/lib/utils/Logger";
 import { safeJsonParse } from "@/lib/utils/safeJsonParse";
 import type {
@@ -49,7 +49,7 @@ export class WorkspaceRepository {
   }
 
   private get db() {
-    return DatabaseService.getInstance().getDb();
+    return DatabaseConnector.getInstance().getDb();
   }
 
   private transformRow(row: DbWorkspaceRow): DbWorkspace {

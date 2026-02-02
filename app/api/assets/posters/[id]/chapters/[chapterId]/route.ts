@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { PosterRepository } from "@/lib/repositories/PosterRepository";
 import { VideoChapter } from "@/lib/models/Poster";
 import {
   ApiResponses,
@@ -29,8 +29,8 @@ const updateChapterSchema = z.object({
 export const GET = withErrorHandler<ChapterRouteParams>(
   async (_request: Request, context: RouteContext<ChapterRouteParams>) => {
     const { id, chapterId } = await context.params;
-    const db = DatabaseService.getInstance();
-    const poster = db.getPosterById(id);
+    const posterRepo = PosterRepository.getInstance();
+    const poster = posterRepo.getById(id);
 
     if (!poster) {
       return ApiResponses.notFound("Poster");
@@ -73,8 +73,8 @@ export const PATCH = withErrorHandler<ChapterRouteParams>(
       return ApiResponses.badRequest("No update fields provided");
     }
 
-    const db = DatabaseService.getInstance();
-    const poster = db.getPosterById(id);
+    const posterRepo = PosterRepository.getInstance();
+    const poster = posterRepo.getById(id);
 
     if (!poster) {
       return ApiResponses.notFound("Poster");
@@ -118,7 +118,7 @@ export const PATCH = withErrorHandler<ChapterRouteParams>(
       chapters: updatedChapters,
     };
 
-    db.updatePoster(id, {
+    posterRepo.update(id, {
       metadata: updatedMetadata,
       updatedAt: new Date(),
     });
@@ -141,8 +141,8 @@ export const PATCH = withErrorHandler<ChapterRouteParams>(
 export const DELETE = withErrorHandler<ChapterRouteParams>(
   async (_request: Request, context: RouteContext<ChapterRouteParams>) => {
     const { id, chapterId } = await context.params;
-    const db = DatabaseService.getInstance();
-    const poster = db.getPosterById(id);
+    const posterRepo = PosterRepository.getInstance();
+    const poster = posterRepo.getById(id);
 
     if (!poster) {
       return ApiResponses.notFound("Poster");
@@ -164,7 +164,7 @@ export const DELETE = withErrorHandler<ChapterRouteParams>(
       chapters: updatedChapters,
     };
 
-    db.updatePoster(id, {
+    posterRepo.update(id, {
       metadata: updatedMetadata,
       updatedAt: new Date(),
     });

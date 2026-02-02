@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { GuestRepository } from "@/lib/repositories/GuestRepository";
 import { guestSchema } from "@/lib/models/Guest";
 import { randomUUID } from "crypto";
 import {
@@ -19,8 +19,8 @@ export const GET = withSimpleErrorHandler(async (request: Request) => {
   const url = new URL(request.url);
   const enabled = parseBooleanQueryParam(url.searchParams.get("enabled"));
 
-  const db = DatabaseService.getInstance();
-  const guests = db.getAllGuests(enabled);
+  const guestRepo = GuestRepository.getInstance();
+  const guests = guestRepo.getAll(enabled);
   return ApiResponses.ok({ guests });
 }, LOG_CONTEXT);
 /**
@@ -42,8 +42,8 @@ export async function POST(request: Request) {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    const db = DatabaseService.getInstance();
-    db.createGuest(guest);
+    const guestRepo = GuestRepository.getInstance();
+    guestRepo.create(guest);
     return ApiResponses.created({ guest });
   } catch (error) {
     console.error("[GuestsAPI] Guest creation error:", error);

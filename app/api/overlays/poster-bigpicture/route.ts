@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { PosterRepository } from "@/lib/repositories/PosterRepository";
 import { SettingsService } from "@/lib/services/SettingsService";
 import { sendPresenterNotification } from "@/lib/utils/presenterNotifications";
 import { sendChatMessageIfEnabled } from "@/lib/utils/chatMessaging";
@@ -60,13 +60,13 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
   if (body.action === 'show' && body.payload) {
     try {
       const { posterId, fileUrl, type, source } = body.payload;
-      const db = DatabaseService.getInstance();
+      const posterRepo = PosterRepository.getInstance();
 
       // Get title and description from database if posterId is provided
       let title = 'Sans titre';
       let description = undefined;
       if (posterId) {
-        const poster = db.getPosterById(posterId);
+        const poster = posterRepo.getById(posterId);
         if (poster) {
           title = poster.title;
           description = poster.description;
@@ -112,7 +112,7 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
 
       // Send chat message if enabled and defined (non-blocking)
       if (posterId) {
-        const poster = db.getPosterById(posterId);
+        const poster = posterRepo.getById(posterId);
         if (poster?.chatMessage) {
           const settingsService = SettingsService.getInstance();
           const chatSettings = settingsService.getChatMessageSettings();

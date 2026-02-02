@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { ProfileRepository } from "@/lib/repositories/ProfileRepository";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -10,10 +10,10 @@ type RouteParams = { params: Promise<{ id: string }> };
 export async function POST(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const db = DatabaseService.getInstance();
-    db.setActiveProfile(id);
+    const profileRepo = ProfileRepository.getInstance();
+    profileRepo.setActive(id);
 
-    const profile = db.getProfileById(id);
+    const profile = profileRepo.getById(id);
     return NextResponse.json({ profile });
   } catch (error) {
     return NextResponse.json(

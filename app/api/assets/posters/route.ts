@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { PosterRepository } from "@/lib/repositories/PosterRepository";
 import { posterSchema } from "@/lib/models/Poster";
 import { randomUUID } from "crypto";
 import {
@@ -19,8 +19,8 @@ export const GET = withSimpleErrorHandler(async (request: Request) => {
   const url = new URL(request.url);
   const enabled = parseBooleanQueryParam(url.searchParams.get("enabled"));
 
-  const db = DatabaseService.getInstance();
-  const posters = db.getAllPosters(enabled);
+  const posterRepo = PosterRepository.getInstance();
+  const posters = posterRepo.getAll(enabled);
 
   return ApiResponses.ok({ posters });
 }, LOG_CONTEXT);
@@ -47,8 +47,8 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
   }
 
   const poster = parseResult.data;
-  const db = DatabaseService.getInstance();
-  db.createPoster({
+  const posterRepo = PosterRepository.getInstance();
+  posterRepo.create({
     ...poster,
     description: poster.description || null,
     source: poster.source || null,

@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { PosterRepository } from "@/lib/repositories/PosterRepository";
 import {
   ApiResponses,
   withSimpleErrorHandler,
@@ -11,8 +11,8 @@ const LOG_CONTEXT = "[AssetsAPI:Tags]";
  * Returns all unique tags from all posters, sorted alphabetically
  */
 export const GET = withSimpleErrorHandler(async () => {
-  const db = DatabaseService.getInstance();
-  const posters = await db.getAllPosters();
+  const posterRepo = PosterRepository.getInstance();
+  const posters = posterRepo.getAll();
 
   // Extract all tags from all posters
   const allTags = posters.flatMap((poster) => poster.tags || []);
