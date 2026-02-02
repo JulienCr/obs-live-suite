@@ -222,7 +222,7 @@ export class TwitchOAuthManager {
     this.broadcastStatus();
 
     if (newStatus.state && newStatus.state !== previousState) {
-      this.logger.info(`Auth state: ${previousState} → ${newState}`);
+      this.logger.debug(`Auth state: ${previousState} → ${newState}`);
     }
   }
 

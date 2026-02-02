@@ -135,9 +135,9 @@ export class MigrationRunner {
         return { name, applied: false, skipped: true };
       }
 
-      this.logger.info(`Adding ${column} column to ${table} table`);
+      this.logger.debug(`Adding ${column} column to ${table} table`);
       this.db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
-      this.logger.info(`Migration "${name}" applied successfully`);
+      this.logger.debug(`Migration "${name}" applied successfully`);
 
       return { name, applied: true, skipped: false };
     } catch (error) {
@@ -174,7 +174,7 @@ export class MigrationRunner {
         return { name, applied: false, skipped: true };
       }
 
-      this.logger.info(`Creating ${table} table`);
+      this.logger.debug(`Creating ${table} table`);
       this.db.exec(createSql);
 
       // Create indexes if provided
@@ -184,7 +184,7 @@ export class MigrationRunner {
         }
       }
 
-      this.logger.info(`Migration "${name}" applied successfully`);
+      this.logger.debug(`Migration "${name}" applied successfully`);
       return { name, applied: true, skipped: false };
     } catch (error) {
       return this.handleMigrationError(name, table, "CREATE TABLE", error);
@@ -202,7 +202,7 @@ export class MigrationRunner {
       const applied = run();
 
       if (applied) {
-        this.logger.info(`Migration "${name}" applied successfully`);
+        this.logger.debug(`Migration "${name}" applied successfully`);
       }
 
       return { name, applied, skipped: !applied };

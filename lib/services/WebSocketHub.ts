@@ -91,7 +91,7 @@ export class WebSocketHub {
       };
 
       this.clients.set(clientId, client);
-      this.logger.info(`Client connected: ${clientId}`);
+      this.logger.debug(`Client connected: ${clientId}`);
 
       ws.on("message", (data: Buffer) => {
         this.handleMessage(clientId, data.toString());
@@ -104,7 +104,7 @@ export class WebSocketHub {
       ws.on("close", () => {
         this.handleClientDisconnect(clientId);
         this.clients.delete(clientId);
-        this.logger.info(`Client disconnected: ${clientId}`);
+        this.logger.debug(`Client disconnected: ${clientId}`);
       });
 
       ws.on("error", (error) => {

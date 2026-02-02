@@ -76,7 +76,7 @@ export class DatabaseService {
    * - Custom migrations: Complex logic (data migrations, table recreations)
    */
   private runMigrations(): void {
-    this.logger.info("Starting database migrations...");
+    this.logger.debug("Starting database migrations...");
 
     const migrationRunner = new MigrationRunner(this.db, this.logger);
 
@@ -245,7 +245,7 @@ export class DatabaseService {
           }
 
           if (updatedCount > 0) {
-            this.logger.info(`Updated ${updatedCount} theme(s) with freeTextMaxWidth`);
+            this.logger.debug(`Updated ${updatedCount} theme(s) with freeTextMaxWidth`);
             return true;
           }
           return false;
@@ -261,7 +261,7 @@ export class DatabaseService {
           const hasRoomId = tableInfo.some((col) => col.name === "roomId");
 
           if (hasRoomId) {
-            this.logger.info("Recreating cue_messages table without roomId column");
+            this.logger.debug("Recreating cue_messages table without roomId column");
 
             // SQLite doesn't support DROP COLUMN easily, so we recreate the table
             this.db.exec(`
@@ -325,7 +325,7 @@ export class DatabaseService {
 
     migrationRunner.runCustomMigrations(customMigrations);
 
-    this.logger.info("Database migrations completed");
+    this.logger.debug("Database migrations completed");
   }
 
   /**
