@@ -8,6 +8,56 @@ export enum LogLevel {
   ERROR = "error",
 }
 
+/**
+ * Numeric priority for log levels (higher = more severe)
+ */
+const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
+  [LogLevel.DEBUG]: 0,
+  [LogLevel.INFO]: 1,
+  [LogLevel.WARN]: 2,
+  [LogLevel.ERROR]: 3,
+};
+
+/**
+ * Parse a log level string (case-insensitive)
+ */
+function parseLogLevel(level: string | undefined): LogLevel | null {
+  if (!level) return null;
+  const normalized = level.toLowerCase().trim();
+  if (normalized === "debug") return LogLevel.DEBUG;
+  if (normalized === "info") return LogLevel.INFO;
+  if (normalized === "warn" || normalized === "warning") return LogLevel.WARN;
+  if (normalized === "error") return LogLevel.ERROR;
+  return null;
+}
+
+/**
+ * ANSI color codes for terminal output
+ */
+const ANSI = {
+  reset: "\x1b[0m",
+  gray: "\x1b[90m",
+  blue: "\x1b[94m",
+  orange: "\x1b[33m", // Yellow/orange (closest to orange in ANSI)
+  red: "\x1b[31m",
+} as const;
+
+/**
+ * Get the color code for a log level
+ */
+function getColorForLevel(level: LogLevel): string {
+  switch (level) {
+    case LogLevel.DEBUG:
+      return ANSI.gray;
+    case LogLevel.INFO:
+      return ANSI.blue;
+    case LogLevel.WARN:
+      return ANSI.orange;
+    case LogLevel.ERROR:
+      return ANSI.red;
+  }
+}
+
 // Detect if we're running in a browser environment
 const isBrowser = typeof window !== "undefined";
 
@@ -45,9 +95,90 @@ export class Logger {
   private static logFilePath: string | null = null;
   private static isFileLoggingEnabled = !isBrowser;
 
-  constructor(context: string, level: LogLevel = LogLevel.INFO) {
+  /**
+   * Global log level - applies to all loggers unless overridden per-instance.
+   * Set via LOG_LEVEL environment variable or Logger.setGlobalLevel()
+   */
+  private static globalLevel: LogLevel = LogLevel.INFO;
+
+  /**
+   * Per-context log level overrides.
+   * Set via LOG_LEVEL_<CONTEXT> env vars or Logger.setContextLevel()
+   * Example: LOG_LEVEL_OBSConnectionManager=debug
+   */
+  private static contextLevels: Map<string, LogLevel> = new Map();
+
+  /**
+   * Whether the global level has been initialized from environment
+   */
+  private static initialized = false;
+
+  constructor(context: string, level?: LogLevel) {
     this.context = context;
-    this.level = level;
+    // Priority: explicit level > context-specific > global
+    this.level = level ?? Logger.getEffectiveLevel(context);
+  }
+
+  /**
+   * Initialize log levels from environment variables.
+   * Called automatically on first Logger creation, but can be called explicitly.
+   *
+   * Environment variables:
+   * - LOG_LEVEL: Global level (debug, info, warn, error)
+   * - LOG_LEVEL_<Context>: Per-context level (e.g., LOG_LEVEL_OBSConnectionManager=debug)
+   */
+  static initFromEnv(): void {
+    if (Logger.initialized || isBrowser) return;
+
+    // Parse global level from LOG_LEVEL
+    const globalLevelStr = process.env.LOG_LEVEL;
+    const parsedGlobal = parseLogLevel(globalLevelStr);
+    if (parsedGlobal) {
+      Logger.globalLevel = parsedGlobal;
+    }
+
+    // Parse context-specific levels from LOG_LEVEL_*
+    for (const [key, value] of Object.entries(process.env)) {
+      if (key.startsWith("LOG_LEVEL_") && key !== "LOG_LEVEL") {
+        const contextName = key.substring("LOG_LEVEL_".length);
+        const parsedLevel = parseLogLevel(value);
+        if (parsedLevel && contextName) {
+          Logger.contextLevels.set(contextName, parsedLevel);
+        }
+      }
+    }
+
+    Logger.initialized = true;
+  }
+
+  /**
+   * Set the global log level programmatically
+   */
+  static setGlobalLevel(level: LogLevel): void {
+    Logger.globalLevel = level;
+  }
+
+  /**
+   * Get the current global log level
+   */
+  static getGlobalLevel(): LogLevel {
+    if (!Logger.initialized) Logger.initFromEnv();
+    return Logger.globalLevel;
+  }
+
+  /**
+   * Set a context-specific log level
+   */
+  static setContextLevel(context: string, level: LogLevel): void {
+    Logger.contextLevels.set(context, level);
+  }
+
+  /**
+   * Get the effective log level for a context
+   */
+  private static getEffectiveLevel(context: string): LogLevel {
+    if (!Logger.initialized) Logger.initFromEnv();
+    return Logger.contextLevels.get(context) ?? Logger.globalLevel;
   }
 
   /**
@@ -96,11 +227,23 @@ export class Logger {
   }
 
   /**
+   * Format the context with color based on log level
+   */
+  private formatContext(level: LogLevel): string {
+    if (isBrowser) {
+      // No ANSI colors in browser
+      return `[${this.context}]`;
+    }
+    const color = getColorForLevel(level);
+    return `${color}[${this.context}]${ANSI.reset}`;
+  }
+
+  /**
    * Log a debug message
    */
   debug(message: string, data?: unknown): void {
     if (this.shouldLog(LogLevel.DEBUG)) {
-      console.debug(`[${this.context}] ${message}`, data || "");
+      console.debug(`${this.formatContext(LogLevel.DEBUG)} ${message}`, data || "");
       this.writeToFile("debug", message, data);
     }
   }
@@ -110,7 +253,7 @@ export class Logger {
    */
   info(message: string, data?: unknown): void {
     if (this.shouldLog(LogLevel.INFO)) {
-      console.info(`[${this.context}] ${message}`, data || "");
+      console.info(`${this.formatContext(LogLevel.INFO)} ${message}`, data || "");
       this.writeToFile("info", message, data);
     }
   }
@@ -120,7 +263,7 @@ export class Logger {
    */
   warn(message: string, data?: unknown): void {
     if (this.shouldLog(LogLevel.WARN)) {
-      console.warn(`[${this.context}] ${message}`, data || "");
+      console.warn(`${this.formatContext(LogLevel.WARN)} ${message}`, data || "");
       this.writeToFile("warn", message, data);
     }
   }
@@ -130,7 +273,7 @@ export class Logger {
    */
   error(message: string, error?: unknown): void {
     if (this.shouldLog(LogLevel.ERROR)) {
-      console.error(`[${this.context}] ${message}`, error || "");
+      console.error(`${this.formatContext(LogLevel.ERROR)} ${message}`, error || "");
       this.writeToFile("error", message, error);
     }
   }
@@ -139,8 +282,7 @@ export class Logger {
    * Check if a message should be logged based on current level
    */
   private shouldLog(messageLevel: LogLevel): boolean {
-    const levels = [LogLevel.DEBUG, LogLevel.INFO, LogLevel.WARN, LogLevel.ERROR];
-    return levels.indexOf(messageLevel) >= levels.indexOf(this.level);
+    return LOG_LEVEL_PRIORITY[messageLevel] >= LOG_LEVEL_PRIORITY[this.level];
   }
 }
 

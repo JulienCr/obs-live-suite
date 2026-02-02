@@ -6,14 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { TagInput } from "@/components/ui/tag-input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EntityHeader } from "@/components/ui/EntityHeader";
+import { EnableSearchCombobox } from "@/components/ui/EnableSearchCombobox";
 import { PosterUploader } from "./PosterUploader";
 import { VirtualizedPosterGrid } from "./VirtualizedPosterGrid";
-import { Plus, Trash2, Upload, ChevronDown, ChevronUp, Image as ImageIcon, Video, Youtube, Loader2 } from "lucide-react";
+import { Trash2, Upload, ChevronDown, ChevronUp, Image as ImageIcon, Video, Youtube, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/utils/ClientFetch";
 import { ChapterEditor } from "./ChapterEditor";
@@ -54,8 +53,6 @@ export function PosterManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showImageReplacer, setShowImageReplacer] = useState(false);
   const [showDisabled, setShowDisabled] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -135,24 +132,6 @@ export function PosterManager() {
 
     return filtered;
   }, [enabledPosters, searchQuery, selectedTags, typeFilter]);
-
-  // Filter posters for search combobox (show all, prioritize disabled)
-  const filteredPostersForSearch = useMemo(() => {
-    return posters
-      .filter(poster => {
-        const search = searchValue.toLowerCase();
-        return (
-          poster.title.toLowerCase().includes(search) ||
-          poster.tags.some(tag => tag.toLowerCase().includes(search))
-        );
-      })
-      .sort((a, b) => {
-        // Disabled posters first in search results
-        if (a.isEnabled === false && b.isEnabled !== false) return -1;
-        if (a.isEnabled !== false && b.isEnabled === false) return 1;
-        return 0;
-      });
-  }, [posters, searchValue]);
 
   // Stats
   const stats = useMemo(() => {
@@ -272,8 +251,6 @@ export function PosterManager() {
     try {
       await apiPatch<Poster>(`/api/assets/posters/${posterId}`, { isEnabled: true });
       fetchPosters();
-      setSearchOpen(false);
-      setSearchValue("");
     } catch (error) {
       console.error("Failed to enable poster:", error);
     }
@@ -343,16 +320,12 @@ export function PosterManager() {
   return (
     <div className="space-y-6">
       {/* Header with Stats and Actions */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <Upload className="w-6 h-6" />
-            {t("title")}
-          </h2>
-          <div className="flex items-center gap-3 mt-1">
-            <p className="text-sm text-muted-foreground">
-              {stats.enabled} active · {stats.total} total
-            </p>
+      <EntityHeader
+        icon={Upload}
+        title={t("title")}
+        stats={
+          <div className="flex items-center gap-3">
+            <span>{stats.enabled} active · {stats.total} total</span>
             <div className="flex gap-2">
               <Badge variant="outline" className="text-xs">
                 {getTypeIcon("image")} {stats.byType.image} {t("images").toLowerCase()}
@@ -365,102 +338,59 @@ export function PosterManager() {
               </Badge>
             </div>
           </div>
-        </div>
-        <Button
-          onClick={() => {
-            setEditingId(null);
-            setShowForm(false);
-            setShowImageReplacer(false);
-            setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [], chatMessage: "", duration: null });
-            setShowUploader(true);
-          }}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          {t("addPoster")}
-        </Button>
-      </div>
+        }
+        onAdd={() => {
+          setEditingId(null);
+          setShowForm(false);
+          setShowImageReplacer(false);
+          setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [], chatMessage: "", duration: null });
+          setShowUploader(true);
+        }}
+        addLabel={t("addPoster")}
+      />
 
       {/* Search Combobox - Enable Disabled Posters */}
-      <div className="space-y-2">
-        <Label htmlFor="poster-search">{t("enablePoster")}</Label>
-        <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={searchOpen}
-              className="w-full justify-between"
-            >
-              <span className="text-muted-foreground">
-                {t("searchToEnable")}
-              </span>
-              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-full p-0" align="start">
-            <Command shouldFilter={false}>
-              <CommandInput
-                placeholder={t("searchByTitleTags")}
-                value={searchValue}
-                onValueChange={setSearchValue}
-              />
-              <CommandList>
-                <CommandEmpty>{t("noPostersFound")}</CommandEmpty>
-                <CommandGroup heading={t("title")}>
-                  {filteredPostersForSearch.map((poster) => (
-                    <CommandItem
-                      key={poster.id}
-                      value={poster.title}
-                      onSelect={() => {
-                        if (poster.isEnabled === false) {
-                          handleEnableFromSearch(poster.id);
-                        } else {
-                          setSearchOpen(false);
-                        }
-                      }}
-                      className="flex items-center gap-3"
-                    >
-                      <div className="w-12 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
-                        {poster.type === "image" ? (
-                          <img
-                            src={poster.fileUrl}
-                            alt={poster.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : poster.type === "youtube" ? (
-                          <div className="w-full h-full flex items-center justify-center bg-red-500/20">
-                            <Youtube className="w-4 h-4 text-red-500" />
-                          </div>
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-blue-500/20">
-                            <Video className="w-4 h-4 text-blue-500" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{poster.title}</div>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <Badge variant="outline" className="text-xs">
-                            {poster.type}
-                          </Badge>
-                          {poster.tags.slice(0, 2).map(tag => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <Badge variant={poster.isEnabled !== false ? "default" : "secondary"} className="text-xs">
-                        {poster.isEnabled !== false ? t("active") : t("disabled")}
-                      </Badge>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      </div>
+      <EnableSearchCombobox
+        items={posters}
+        onEnable={handleEnableFromSearch}
+        getId={(p) => p.id}
+        getName={(p) => `${p.title} ${p.tags.join(" ")}`}
+        getIsEnabled={(p) => p.isEnabled !== false}
+        label={t("enablePoster")}
+        placeholder={t("searchToEnable")}
+        searchPlaceholder={t("searchByTitleTags")}
+        emptyMessage={t("noPostersFound")}
+        groupHeading={t("title")}
+        renderItem={(poster) => (
+          <>
+            <div className="w-12 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
+              {poster.type === "image" ? (
+                <img src={poster.fileUrl} alt={poster.title} className="w-full h-full object-cover" />
+              ) : poster.type === "youtube" ? (
+                <div className="w-full h-full flex items-center justify-center bg-red-500/20">
+                  <Youtube className="w-4 h-4 text-red-500" />
+                </div>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-blue-500/20">
+                  <Video className="w-4 h-4 text-blue-500" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium truncate">{poster.title}</div>
+              <div className="flex items-center gap-1 mt-0.5">
+                <Badge variant="outline" className="text-xs">{poster.type}</Badge>
+                {poster.tags.slice(0, 2).map(tag => (
+                  <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                ))}
+              </div>
+            </div>
+            <Badge variant={poster.isEnabled !== false ? "default" : "secondary"} className="text-xs">
+              {poster.isEnabled !== false ? t("active") : t("disabled")}
+            </Badge>
+          </>
+        )}
+      />
 
       {/* Filter Bar */}
       <div className="flex gap-3 flex-wrap">

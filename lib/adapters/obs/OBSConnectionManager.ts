@@ -1,41 +1,28 @@
 import OBSWebSocket from "obs-websocket-js";
-import { Logger } from "../../utils/Logger";
 import { SettingsService } from "../../services/SettingsService";
-import { RECONNECTION } from "../../config/Constants";
+import {
+  ConnectionManager,
+  ConnectionStatus,
+  ConnectionError,
+} from "../../utils/ConnectionManager";
 
-/**
- * Connection status enum
- */
-export enum ConnectionStatus {
-  DISCONNECTED = "disconnected",
-  CONNECTING = "connecting",
-  CONNECTED = "connected",
-  ERROR = "error",
-}
+// Re-export ConnectionStatus for backwards compatibility
+export { ConnectionStatus } from "../../utils/ConnectionManager";
 
 /**
  * OBSConnectionManager handles connection lifecycle and reconnection
+ * Extends ConnectionManager for standardized reconnection logic.
  */
-export class OBSConnectionManager {
+export class OBSConnectionManager extends ConnectionManager {
   private static instance: OBSConnectionManager;
   private obs: OBSWebSocket;
-  private logger: Logger;
   private settingsService: SettingsService;
-  private status: ConnectionStatus;
-  private reconnectTimer?: NodeJS.Timeout;
-  private reconnectAttempts: number;
-  private maxReconnectAttempts: number;
-  private reconnectDelay: number;
+  private pendingCredentials?: { url: string; password?: string };
 
   private constructor() {
+    super({ loggerName: "OBSConnectionManager" });
     this.obs = new OBSWebSocket();
-    this.logger = new Logger("OBSConnectionManager");
     this.settingsService = SettingsService.getInstance();
-    this.status = ConnectionStatus.DISCONNECTED;
-    this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = RECONNECTION.MAX_ATTEMPTS;
-    this.reconnectDelay = RECONNECTION.BASE_DELAY_MS;
-
     this.setupEventListeners();
   }
 
@@ -54,24 +41,25 @@ export class OBSConnectionManager {
    */
   private setupEventListeners(): void {
     this.obs.on("ConnectionClosed", () => {
-      this.logger.warn("OBS connection closed");
-      this.status = ConnectionStatus.DISCONNECTED;
-      this.scheduleReconnect();
+      this.handleConnectionClosed();
     });
 
     this.obs.on("ConnectionError", (error) => {
-      this.logger.error("OBS connection error", error);
-      this.status = ConnectionStatus.ERROR;
-      this.scheduleReconnect();
+      this.handleConnectionError({
+        type: "OBS_CONNECTION_ERROR",
+        message: error?.message || "OBS connection error",
+        originalError: error,
+      });
     });
   }
 
   /**
    * Connect to OBS WebSocket using stored settings
    */
-  async connect(): Promise<void> {
+  override async connect(): Promise<void> {
     const settings = this.settingsService.getOBSSettings();
-    return this.connectWithCredentials(settings.url, settings.password);
+    this.pendingCredentials = { url: settings.url, password: settings.password };
+    return super.connect();
   }
 
   /**
@@ -79,94 +67,50 @@ export class OBSConnectionManager {
    * Useful for testing connection before saving
    */
   async connectWithCredentials(url: string, password?: string): Promise<void> {
-    if (this.status === ConnectionStatus.CONNECTED) {
-      this.logger.info("Disconnecting existing OBS connection");
-      await this.disconnect();
-    }
+    this.pendingCredentials = { url, password };
+    return super.connect();
+  }
 
-    this.status = ConnectionStatus.CONNECTING;
+  /**
+   * Implementation-specific connection logic
+   */
+  protected async doConnect(): Promise<void> {
+    const { url, password } = this.pendingCredentials || this.settingsService.getOBSSettings();
     this.logger.info(`Connecting to OBS at ${url}...`);
 
-    try {
-      await this.obs.connect(url, password);
+    await this.obs.connect(url, password);
 
-      this.status = ConnectionStatus.CONNECTED;
-      this.reconnectAttempts = 0;
-      this.logger.info("Connected to OBS successfully");
-
-      const version = await this.obs.call("GetVersion");
-      this.logger.info(`OBS Version: ${version.obsVersion}`);
-    } catch (error) {
-      this.status = ConnectionStatus.ERROR;
-      this.logger.error("Failed to connect to OBS", error);
-      this.scheduleReconnect();
-      throw error;
-    }
+    const version = await this.obs.call("GetVersion");
+    this.logger.info(`OBS Version: ${version.obsVersion}`);
   }
 
   /**
-   * Disconnect from OBS
+   * Implementation-specific disconnection logic
    */
-  async disconnect(): Promise<void> {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = undefined;
-    }
-
-    if (this.status === ConnectionStatus.CONNECTED) {
-      await this.obs.disconnect();
-      this.status = ConnectionStatus.DISCONNECTED;
-      this.logger.info("Disconnected from OBS");
-    }
+  protected async doDisconnect(): Promise<void> {
+    await this.obs.disconnect();
   }
 
   /**
-   * Schedule reconnection attempt
+   * Called when connection is successfully established
    */
-  private scheduleReconnect(): void {
-    if (this.reconnectTimer) {
-      return;
-    }
-
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.logger.error("Max reconnection attempts reached");
-      return;
-    }
-
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
-    this.reconnectAttempts++;
-
-    this.logger.info(`Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempts})`);
-
-    this.reconnectTimer = setTimeout(async () => {
-      this.reconnectTimer = undefined;
-      try {
-        await this.connect();
-      } catch {
-        // Error already logged in connect()
-      }
-    }, delay);
+  protected override onConnected(): void {
+    super.onConnected();
+    this.pendingCredentials = undefined;
   }
 
   /**
-   * Get connection status
+   * Called when connection is closed
    */
-  getStatus(): ConnectionStatus {
-    return this.status;
+  protected override onDisconnected(): void {
+    this.logger.warn("OBS connection closed");
   }
 
   /**
-   * Check if connected
+   * Called when connection error occurs
    */
-  isConnected(): boolean {
-    // Check both our status and the actual WebSocket connection state
-    try {
-      // obs-websocket-js doesn't expose connection state directly,
-      // but we can check if we can access the socket
-      return this.status === ConnectionStatus.CONNECTED && this.obs !== null;
-    } catch {
-      return false;
-    }
+  protected override onError(error: ConnectionError): void {
+    this.logger.error("OBS connection error", error.originalError);
   }
 
   /**
@@ -176,4 +120,3 @@ export class OBSConnectionManager {
     return this.obs;
   }
 }
-

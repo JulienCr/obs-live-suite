@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { queryKeys } from "./queryKeys";
+import { QUERY_STALE_TIMES } from "@/lib/config/Constants";
 
 export interface Profile {
   id: string;
@@ -40,7 +41,7 @@ interface ProfileResponse {
   profile: Profile;
 }
 
-const PROFILES_STALE_TIME = 60 * 1000;
+// Use centralized stale time from Constants
 
 export function useProfiles() {
   const queryClient = useQueryClient();
@@ -54,7 +55,7 @@ export function useProfiles() {
       const response = await apiGet<ProfilesResponse>("/api/profiles");
       return response.profiles;
     },
-    staleTime: PROFILES_STALE_TIME,
+    staleTime: QUERY_STALE_TIMES.SLOW,
   });
 
   const activateProfileMutation = useMutation({

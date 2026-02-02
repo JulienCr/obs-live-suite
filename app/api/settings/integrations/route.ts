@@ -1,6 +1,7 @@
 import { DatabaseService } from "@/lib/services/DatabaseService";
 import { OllamaSummarizerService } from "@/lib/services/OllamaSummarizerService";
 import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
+import { LLM_URLS } from "@/lib/config/Constants";
 
 const LOG_CONTEXT = "[SettingsAPI:integrations]";
 
@@ -15,7 +16,7 @@ export const GET = withSimpleErrorHandler(async () => {
     llm_provider: db.getSetting("llm_provider") || "ollama",
 
     // Ollama
-    ollama_url: db.getSetting("ollama_url") || "http://localhost:11434",
+    ollama_url: db.getSetting("ollama_url") || LLM_URLS.OLLAMA_DEFAULT,
     ollama_model: db.getSetting("ollama_model") || "mistral:latest",
 
     // OpenAI

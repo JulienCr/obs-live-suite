@@ -1,6 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
-import { Logger } from "@/lib/utils/Logger";
-import { safeJsonParse } from "@/lib/utils/safeJsonParse";
+import { BaseRepository, ColumnTransformConfig } from "./BaseRepository";
 import type {
   DbProfile,
   DbProfileInput,
@@ -25,14 +23,27 @@ type DbProfileRow = Omit<
  * ProfileRepository handles all profile-related database operations.
  * Follows the singleton pattern for consistent database access.
  */
-export class ProfileRepository {
+export class ProfileRepository extends BaseRepository<
+  DbProfile,
+  DbProfileRow,
+  DbProfileInput,
+  DbProfileUpdate
+> {
   private static instance: ProfileRepository;
-  private db: DatabaseService;
-  private logger: Logger;
+
+  protected readonly tableName = "profiles";
+  protected readonly loggerName = "ProfileRepository";
+  protected readonly transformConfig: ColumnTransformConfig = {
+    booleanColumns: ["isActive"],
+    dateColumns: ["createdAt", "updatedAt"],
+    jsonColumns: [
+      { column: "posterRotation", defaultValue: [] },
+      { column: "audioSettings", defaultValue: {} },
+    ],
+  };
 
   private constructor() {
-    this.db = DatabaseService.getInstance();
-    this.logger = new Logger("ProfileRepository");
+    super();
   }
 
   /**
@@ -45,57 +56,20 @@ export class ProfileRepository {
     return ProfileRepository.instance;
   }
 
-  /**
-   * Convert a raw database row to a typed DbProfile
-   */
-  private mapRowToProfile(row: DbProfileRow): DbProfile {
-    return {
-      ...row,
-      isActive: Boolean(row.isActive),
-      posterRotation: safeJsonParse<DbProfile["posterRotation"]>(
-        row.posterRotation,
-        []
-      ),
-      audioSettings: safeJsonParse<DbProfile["audioSettings"]>(
-        row.audioSettings,
-        {}
-      ),
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    };
-  }
-
-  /**
-   * Get all profiles
-   */
-  getAll(): DbProfile[] {
-    const stmt = this.db
-      .getDb()
-      .prepare("SELECT * FROM profiles ORDER BY isActive DESC, name ASC");
-    const rows = stmt.all() as DbProfileRow[];
-    return rows.map((row) => this.mapRowToProfile(row));
-  }
-
-  /**
-   * Get profile by ID
-   */
-  getById(id: string): DbProfile | null {
-    const stmt = this.db.getDb().prepare("SELECT * FROM profiles WHERE id = ?");
-    const row = stmt.get(id) as DbProfileRow | undefined;
-    if (!row) return null;
-    return this.mapRowToProfile(row);
+  protected override getOrderBy(): string {
+    return "isActive DESC, name ASC";
   }
 
   /**
    * Get active profile
    */
   getActive(): DbProfile | null {
-    const stmt = this.db
-      .getDb()
-      .prepare("SELECT * FROM profiles WHERE isActive = 1 LIMIT 1");
+    const stmt = this.rawDb.prepare(
+      "SELECT * FROM profiles WHERE isActive = 1 LIMIT 1"
+    );
     const row = stmt.get() as DbProfileRow | undefined;
     if (!row) return null;
-    return this.mapRowToProfile(row);
+    return this.transformRow(row);
   }
 
   /**
@@ -103,7 +77,7 @@ export class ProfileRepository {
    */
   create(profile: DbProfileInput): void {
     const now = new Date();
-    const stmt = this.db.getDb().prepare(`
+    const stmt = this.rawDb.prepare(`
       INSERT INTO profiles (id, name, description, themeId, dskSourceName, defaultScene, posterRotation, audioSettings, isActive, createdAt, updatedAt)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
@@ -114,11 +88,11 @@ export class ProfileRepository {
       profile.themeId,
       profile.dskSourceName || "Habillage",
       profile.defaultScene || null,
-      JSON.stringify(profile.posterRotation || []),
-      JSON.stringify(profile.audioSettings || {}),
-      profile.isActive ? 1 : 0,
-      (profile.createdAt || now).toISOString(),
-      (profile.updatedAt || now).toISOString()
+      this.prepareValue(profile.posterRotation || []),
+      this.prepareValue(profile.audioSettings || {}),
+      this.prepareValue(profile.isActive),
+      this.prepareValue(profile.createdAt || now),
+      this.prepareValue(profile.updatedAt || now)
     );
   }
 
@@ -126,7 +100,7 @@ export class ProfileRepository {
    * Update a profile
    */
   update(id: string, updates: DbProfileUpdate): void {
-    const stmt = this.db.getDb().prepare(`
+    const stmt = this.rawDb.prepare(`
       UPDATE profiles
       SET name = ?, description = ?, themeId = ?, dskSourceName = ?, defaultScene = ?, posterRotation = ?, audioSettings = ?, isActive = ?, updatedAt = ?
       WHERE id = ?
@@ -137,10 +111,10 @@ export class ProfileRepository {
       updates.themeId,
       updates.dskSourceName || "Habillage",
       updates.defaultScene || null,
-      JSON.stringify(updates.posterRotation || []),
-      JSON.stringify(updates.audioSettings || {}),
-      updates.isActive ? 1 : 0,
-      (updates.updatedAt || new Date()).toISOString(),
+      this.prepareValue(updates.posterRotation || []),
+      this.prepareValue(updates.audioSettings || {}),
+      this.prepareValue(updates.isActive),
+      this.prepareValue(updates.updatedAt || new Date()),
       id
     );
   }
@@ -149,20 +123,11 @@ export class ProfileRepository {
    * Set active profile (deactivates all others)
    */
   setActive(id: string): void {
-    const db = this.db.getDb();
     // Deactivate all profiles
-    db.prepare("UPDATE profiles SET isActive = 0").run();
+    this.rawDb.prepare("UPDATE profiles SET isActive = 0").run();
     // Activate the specified profile
-    db.prepare(
+    this.rawDb.prepare(
       "UPDATE profiles SET isActive = 1, updatedAt = ? WHERE id = ?"
     ).run(new Date().toISOString(), id);
-  }
-
-  /**
-   * Delete a profile
-   */
-  delete(id: string): void {
-    const stmt = this.db.getDb().prepare("DELETE FROM profiles WHERE id = ?");
-    stmt.run(id);
   }
 }

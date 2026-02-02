@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useMemo } from "react";
 
 /**
  * Hook for managing a map of named timeouts with automatic cleanup.
@@ -59,5 +59,5 @@ export function useTimeoutMap() {
     };
   }, []);
 
-  return { set, clear, clearAll };
+  return useMemo(() => ({ set, clear, clearAll }), [set, clear, clearAll]);
 }

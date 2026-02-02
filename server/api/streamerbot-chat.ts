@@ -17,7 +17,7 @@ const router = Router();
 router.get("/status", async (req, res) => {
   try {
     const gateway = StreamerbotGateway.getInstance();
-    const status = gateway.getStatus();
+    const status = gateway.getStreamerbotStatus();
 
     res.json(status);
   } catch (error) {

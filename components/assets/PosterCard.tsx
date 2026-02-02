@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit, Power, PowerOff, Trash2, Play, Image as ImageIcon, ListVideo, Scissors } from "lucide-react";
+import { CardActionBar } from "@/components/ui/CardActionBar";
 
 interface Poster {
   id: string;
@@ -237,87 +237,30 @@ export function PosterCard({
         )}
 
         {/* Actions - Show on hover */}
-        <div className="flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity pt-1">
-          {/* Primary actions row */}
-          <div className="flex gap-1.5">
-            {onEdit && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onEdit(poster)}
-                title="Edit"
-                className="flex-1 h-8 text-xs"
-              >
-                <Edit className="w-3 h-3 mr-1" />
-                Edit
-              </Button>
-            )}
-
-            {onToggleEnabled && (
-              <Button
-                variant={isEnabled ? "outline" : "default"}
-                size="sm"
-                onClick={() => onToggleEnabled(poster)}
-                title={isEnabled ? "Disable" : "Enable"}
-                className="flex-1 h-8 text-xs"
-              >
-                {isEnabled ? (
-                  <>
-                    <PowerOff className="w-3 h-3 mr-1" />
-                    Disable
-                  </>
-                ) : (
-                  <>
-                    <Power className="w-3 h-3 mr-1" />
-                    Enable
-                  </>
-                )}
-              </Button>
-            )}
-
-            {onDelete && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => onDelete(poster)}
-                title="Delete"
-                className="h-8 px-2"
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
-            )}
-          </div>
-
-          {/* Video-specific actions row (chapters & sub-videos) */}
-          {(poster.type === "video" || poster.type === "youtube") && (onChapters || onSubVideos) && (
-            <div className="flex gap-1.5">
-              {onChapters && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onChapters(poster)}
-                  title="Chapters"
-                  className="flex-1 h-7 text-xs"
-                >
-                  <ListVideo className="w-3 h-3 mr-1" />
-                  Chapters
-                </Button>
-              )}
-              {onSubVideos && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onSubVideos(poster)}
-                  title="Sub-videos"
-                  className="flex-1 h-7 text-xs"
-                >
-                  <Scissors className="w-3 h-3 mr-1" />
-                  Clips
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
+        <CardActionBar
+          actions={[
+            ...(onEdit ? [{ icon: Edit, label: "Edit", onClick: () => onEdit(poster), title: "Edit", className: "flex-1 h-8 text-xs" }] : []),
+            ...(onToggleEnabled ? [{
+              icon: isEnabled ? PowerOff : Power,
+              label: isEnabled ? "Disable" : "Enable",
+              onClick: () => onToggleEnabled(poster),
+              variant: isEnabled ? "outline" as const : "default" as const,
+              title: isEnabled ? "Disable" : "Enable",
+              className: "flex-1 h-8 text-xs",
+            }] : []),
+            ...(onDelete ? [{ icon: Trash2, onClick: () => onDelete(poster), variant: "destructive" as const, title: "Delete", className: "h-8 px-2" }] : []),
+          ]}
+          secondaryActions={
+            (poster.type === "video" || poster.type === "youtube") && (onChapters || onSubVideos)
+              ? [
+                  ...(onChapters ? [{ icon: ListVideo, label: "Chapters", onClick: () => onChapters(poster), title: "Chapters", className: "flex-1 h-7 text-xs" }] : []),
+                  ...(onSubVideos ? [{ icon: Scissors, label: "Clips", onClick: () => onSubVideos(poster), title: "Sub-videos", className: "flex-1 h-7 text-xs" }] : []),
+                ]
+              : undefined
+          }
+          showLabels={true}
+          className="pt-1"
+        />
       </div>
     </div>
   );

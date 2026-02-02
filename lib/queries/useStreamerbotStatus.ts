@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/utils/ClientFetch";
 import { getBackendUrl } from "@/lib/utils/websocket";
 import { queryKeys } from "./queryKeys";
+import { QUERY_STALE_TIMES } from "@/lib/config/Constants";
 import type {
   StreamerbotConnectionStatus,
   StreamerbotConnectionError,
@@ -25,7 +26,7 @@ export function useStreamerbotStatus(options: UseStreamerbotStatusOptions = {}) 
   const query = useQuery<StreamerbotStatusResponse>({
     queryKey: queryKeys.streamerbot.status(),
     queryFn: () => apiGet<StreamerbotStatusResponse>(getBackendUrl() + "/api/streamerbot-chat/status"),
-    staleTime: 5000,
+    staleTime: QUERY_STALE_TIMES.FAST,
     refetchInterval: 10000,
     enabled,
   });

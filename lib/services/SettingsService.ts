@@ -1,35 +1,49 @@
 import { randomUUID } from "crypto";
+import { z } from "zod";
 import { DatabaseService } from "./DatabaseService";
 import { Logger } from "../utils/Logger";
-import { StreamerbotConnectionSettings, DEFAULT_STREAMERBOT_CONNECTION } from "../models/StreamerbotChat";
+import { SettingsStore } from "./SettingsStore";
+import { streamerbotConnectionSchema } from "../models/streamerbot/schemas";
 import { AppConfig } from "../config/AppConfig";
-import { TwitchSettings, TwitchOAuthTokens, DEFAULT_TWITCH_SETTINGS } from "../models/Twitch";
-import { PresenterChannelSettings, DEFAULT_QUICK_REPLIES } from "../models/PresenterChannel";
+import { TwitchSettingsSchema } from "../models/Twitch";
+import { presenterChannelSettingsSchema } from "../models/PresenterChannel";
+import type { TwitchSettings, TwitchOAuthTokens } from "../models/Twitch";
+import type { PresenterChannelSettings } from "../models/PresenterChannel";
 import type { ChatPredefinedMessage } from "../models/ChatMessages";
 
-/**
- * OBS settings interface
- */
-export interface OBSSettings {
-  url: string;
-  password?: string;
-}
+// ============================================================================
+// SETTINGS SCHEMAS
+// ============================================================================
 
 /**
- * Streamerbot settings interface (extends connection settings with autoConnect flag)
+ * OBS WebSocket settings schema
  */
-export interface StreamerbotSettings extends StreamerbotConnectionSettings {
-  autoConnect: boolean;
-}
+export const OBSSettingsSchema = z.object({
+  url: z.string().default("ws://127.0.0.1:4455"),
+  password: z.string().optional(),
+});
+
+export type OBSSettings = z.infer<typeof OBSSettingsSchema>;
 
 /**
- * Overlay settings interface
+ * Streamerbot settings schema (extends connection settings with autoConnect)
  */
-export interface OverlaySettings {
-  lowerThirdDuration: number;      // seconds
-  chatHighlightDuration: number;   // seconds
-  chatHighlightAutoHide: boolean;  // toggle on/off
-}
+export const StreamerbotSettingsSchema = streamerbotConnectionSchema.extend({
+  autoConnect: z.boolean().default(false),
+});
+
+export type StreamerbotSettings = z.infer<typeof StreamerbotSettingsSchema>;
+
+/**
+ * Overlay settings schema
+ */
+export const OverlaySettingsSchema = z.object({
+  lowerThirdDuration: z.number().default(8),
+  chatHighlightDuration: z.number().default(10),
+  chatHighlightAutoHide: z.boolean().default(true),
+});
+
+export type OverlaySettings = z.infer<typeof OverlaySettingsSchema>;
 
 /**
  * Default overlay settings
@@ -41,16 +55,17 @@ export const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
 };
 
 /**
- * Chat message settings interface
- * Controls automatic chat message sending when posters/guests are triggered
+ * Chat message settings schema
  */
-export interface ChatMessageSettings {
-  posterChatMessageEnabled: boolean;
-  guestChatMessageEnabled: boolean;
-}
+export const ChatMessageSettingsSchema = z.object({
+  posterChatMessageEnabled: z.boolean().default(false),
+  guestChatMessageEnabled: z.boolean().default(false),
+});
+
+export type ChatMessageSettings = z.infer<typeof ChatMessageSettingsSchema>;
 
 /**
- * Default chat message settings (disabled by default)
+ * Default chat message settings
  */
 export const DEFAULT_CHAT_MESSAGE_SETTINGS: ChatMessageSettings = {
   posterChatMessageEnabled: false,
@@ -58,16 +73,125 @@ export const DEFAULT_CHAT_MESSAGE_SETTINGS: ChatMessageSettings = {
 };
 
 /**
+ * General UI settings schema
+ */
+export const GeneralSettingsSchema = z.object({
+  defaultPosterDisplayMode: z.string().default("left"),
+});
+
+export type GeneralSettings = z.infer<typeof GeneralSettingsSchema>;
+
+// ============================================================================
+// SETTINGS SERVICE
+// ============================================================================
+
+/**
  * SettingsService manages application settings with fallback to environment variables
+ * using typed SettingsStore instances for each settings group.
  */
 export class SettingsService {
   private static instance: SettingsService;
   private db: DatabaseService;
   private logger: Logger;
 
+  // Settings stores for each group
+  private obsStore: SettingsStore<typeof OBSSettingsSchema.shape>;
+  private streamerbotStore: SettingsStore<typeof StreamerbotSettingsSchema.shape>;
+  private overlayStore: SettingsStore<typeof OverlaySettingsSchema.shape>;
+  private chatMessageStore: SettingsStore<typeof ChatMessageSettingsSchema.shape>;
+  private generalStore: SettingsStore<typeof GeneralSettingsSchema.shape>;
+  private twitchStore: SettingsStore<typeof TwitchSettingsSchema.shape>;
+  private presenterChannelStore: SettingsStore<typeof presenterChannelSettingsSchema.shape>;
+
   private constructor() {
     this.db = DatabaseService.getInstance();
     this.logger = new Logger("SettingsService");
+
+    // Initialize OBS settings store with environment variable fallback
+    const config = AppConfig.getInstance();
+    this.obsStore = new SettingsStore(
+      this.db,
+      "obs",
+      OBSSettingsSchema,
+      this.logger,
+      {
+        keyMapping: {
+          url: "websocket.url",
+          password: "websocket.password",
+        },
+        fallbackProvider: (key) => {
+          if (key === "url") return config.obsWebSocketUrl;
+          if (key === "password") return config.obsWebSocketPassword;
+          return undefined;
+        },
+      }
+    );
+
+    // Initialize Streamerbot settings store
+    this.streamerbotStore = new SettingsStore(
+      this.db,
+      "streamerbot",
+      StreamerbotSettingsSchema,
+      this.logger
+    );
+
+    // Initialize Overlay settings store
+    this.overlayStore = new SettingsStore(
+      this.db,
+      "overlay",
+      OverlaySettingsSchema,
+      this.logger,
+      {
+        keyMapping: {
+          lowerThirdDuration: "lowerThird.defaultDuration",
+          chatHighlightDuration: "chatHighlight.defaultDuration",
+          chatHighlightAutoHide: "chatHighlight.autoHideEnabled",
+        },
+      }
+    );
+
+    // Initialize Chat Message settings store
+    this.chatMessageStore = new SettingsStore(
+      this.db,
+      "chatMessage",
+      ChatMessageSettingsSchema,
+      this.logger,
+      {
+        keyMapping: {
+          posterChatMessageEnabled: "poster.enabled",
+          guestChatMessageEnabled: "guest.enabled",
+        },
+      }
+    );
+
+    // Initialize General settings store
+    this.generalStore = new SettingsStore(
+      this.db,
+      "ui",
+      GeneralSettingsSchema,
+      this.logger,
+      {
+        keyMapping: {
+          defaultPosterDisplayMode: "poster.defaultDisplayMode",
+        },
+      }
+    );
+
+    // Initialize Twitch settings store
+    this.twitchStore = new SettingsStore(
+      this.db,
+      "twitch",
+      TwitchSettingsSchema,
+      this.logger
+    );
+
+    // Initialize Presenter Channel settings store
+    this.presenterChannelStore = new SettingsStore(
+      this.db,
+      "presenter.channel",
+      presenterChannelSettingsSchema,
+      this.logger
+    );
   }
 
   /**
@@ -80,39 +204,41 @@ export class SettingsService {
     return SettingsService.instance;
   }
 
+  // =========================================================================
+  // OBS SETTINGS
+  // =========================================================================
+
   /**
    * Get OBS WebSocket settings
    * Priority: Database > Environment Variables
    */
   getOBSSettings(): OBSSettings {
-    // Try to get from database first
-    const dbUrl = this.db.getSetting("obs.websocket.url");
-    const dbPassword = this.db.getSetting("obs.websocket.password");
-
-    // Fallback to AppConfig (which reads from environment variables)
-    const config = AppConfig.getInstance();
-    const url = dbUrl || config.obsWebSocketUrl;
-    const password = dbPassword || config.obsWebSocketPassword;
+    const settings = this.obsStore.get();
+    const hasDbUrl = this.obsStore.has("url");
+    const hasDbPassword = this.obsStore.has("password");
 
     this.logger.debug(
-      `OBS settings loaded: URL from ${dbUrl ? "database" : "environment"}, ` +
-      `Password from ${dbPassword ? "database" : dbPassword === null ? "environment" : "none"}`
+      `OBS settings loaded: URL from ${hasDbUrl ? "database" : "environment"}, ` +
+      `Password from ${hasDbPassword ? "database" : "environment"}`
     );
 
-    return { url, password };
+    return settings;
   }
 
   /**
    * Save OBS WebSocket settings to database
    */
   saveOBSSettings(settings: OBSSettings): void {
-    this.db.setSetting("obs.websocket.url", settings.url);
-    
-    if (settings.password) {
-      this.db.setSetting("obs.websocket.password", settings.password);
-    } else {
-      // If password is empty, delete it from database (fallback to env)
-      this.db.deleteSetting("obs.websocket.password");
+    this.obsStore.set({
+      url: settings.url,
+      // Only set password if provided, otherwise clear it
+      password: settings.password || undefined,
+    });
+
+    // If password is explicitly empty, clear it from database
+    if (!settings.password) {
+      const dbKey = "obs.websocket.password";
+      this.db.deleteSetting(dbKey);
     }
 
     this.logger.info("OBS settings saved to database");
@@ -122,93 +248,70 @@ export class SettingsService {
    * Clear OBS settings from database (will fallback to environment variables)
    */
   clearOBSSettings(): void {
-    this.db.deleteSetting("obs.websocket.url");
-    this.db.deleteSetting("obs.websocket.password");
-    this.logger.info("OBS settings cleared from database");
+    this.obsStore.clear();
   }
 
   /**
    * Check if OBS settings are defined in database
    */
   hasOBSSettingsInDatabase(): boolean {
-    return this.db.getSetting("obs.websocket.url") !== null;
+    return this.obsStore.has("url");
   }
+
+  // =========================================================================
+  // GENERAL SETTINGS
+  // =========================================================================
 
   /**
    * Get general UI settings
    */
-  getGeneralSettings(): { defaultPosterDisplayMode: string } {
-    const mode = this.db.getSetting("ui.poster.defaultDisplayMode");
-    return {
-      defaultPosterDisplayMode: mode || "left",
-    };
+  getGeneralSettings(): GeneralSettings {
+    return this.generalStore.get();
   }
 
   /**
    * Save general UI settings
    */
-  saveGeneralSettings(settings: { defaultPosterDisplayMode?: string }): void {
-    if (settings.defaultPosterDisplayMode) {
-      this.db.setSetting("ui.poster.defaultDisplayMode", settings.defaultPosterDisplayMode);
-    }
+  saveGeneralSettings(settings: Partial<GeneralSettings>): void {
+    this.generalStore.set(settings);
     this.logger.info("General settings saved to database");
   }
+
+  // =========================================================================
+  // STREAMERBOT SETTINGS
+  // =========================================================================
 
   /**
    * Get Streamerbot connection settings
    * Priority: Database > Defaults
    */
   getStreamerbotSettings(): StreamerbotSettings {
-    const host = this.db.getSetting("streamerbot.host") || DEFAULT_STREAMERBOT_CONNECTION.host;
-    const port = this.db.getSetting("streamerbot.port")
-      ? parseInt(this.db.getSetting("streamerbot.port")!, 10)
-      : DEFAULT_STREAMERBOT_CONNECTION.port;
-    const endpoint = this.db.getSetting("streamerbot.endpoint") || DEFAULT_STREAMERBOT_CONNECTION.endpoint;
-    const scheme = (this.db.getSetting("streamerbot.scheme") as "ws" | "wss") || DEFAULT_STREAMERBOT_CONNECTION.scheme;
-    const password = this.db.getSetting("streamerbot.password") || undefined;
-    const autoConnect = this.db.getSetting("streamerbot.autoConnect") === "true";
+    const settings = this.streamerbotStore.get();
 
-    this.logger.debug(`Streamerbot settings loaded: ${scheme}://${host}:${port}${endpoint}, autoConnect: ${autoConnect}`);
+    this.logger.debug(
+      `Streamerbot settings loaded: ${settings.scheme}://${settings.host}:${settings.port}${settings.endpoint}, autoConnect: ${settings.autoConnect}`
+    );
 
-    return {
-      host,
-      port,
-      endpoint,
-      scheme,
-      password,
-      autoConnect,
-      autoReconnect: true, // Always enabled for gateway
-    };
+    return settings;
   }
 
   /**
    * Save Streamerbot connection settings to database
    */
   saveStreamerbotSettings(settings: Partial<StreamerbotSettings>): void {
-    if (settings.host) this.db.setSetting("streamerbot.host", settings.host);
-    if (settings.port !== undefined) this.db.setSetting("streamerbot.port", settings.port.toString());
-    if (settings.endpoint) this.db.setSetting("streamerbot.endpoint", settings.endpoint);
-    if (settings.scheme) this.db.setSetting("streamerbot.scheme", settings.scheme);
-
-    if (settings.password) {
-      this.db.setSetting("streamerbot.password", settings.password);
-    } else if (settings.password === "") {
-      // Empty string means explicitly clear password
-      this.db.deleteSetting("streamerbot.password");
+    // Handle password specially - empty string means clear
+    const toSave = { ...settings };
+    if (settings.password === "") {
+      toSave.password = undefined;
     }
-
-    if (settings.autoConnect !== undefined) {
-      this.db.setSetting("streamerbot.autoConnect", settings.autoConnect.toString());
-    }
-
-    this.logger.info("Streamerbot settings saved to database");
+    this.streamerbotStore.set(toSave);
   }
 
   /**
    * Enable/disable auto-connect for Streamerbot gateway
    */
   setStreamerbotAutoConnect(enabled: boolean): void {
-    this.db.setSetting("streamerbot.autoConnect", enabled.toString());
+    this.streamerbotStore.setField("autoConnect", enabled);
     this.logger.info(`Streamerbot autoConnect ${enabled ? "enabled" : "disabled"}`);
   }
 
@@ -216,86 +319,51 @@ export class SettingsService {
    * Check if Streamerbot auto-connect is enabled
    */
   isStreamerbotAutoConnectEnabled(): boolean {
-    return this.db.getSetting("streamerbot.autoConnect") === "true";
+    return this.streamerbotStore.getField("autoConnect");
   }
 
   /**
    * Clear Streamerbot settings from database
    */
   clearStreamerbotSettings(): void {
-    this.db.deleteSetting("streamerbot.host");
-    this.db.deleteSetting("streamerbot.port");
-    this.db.deleteSetting("streamerbot.endpoint");
-    this.db.deleteSetting("streamerbot.scheme");
-    this.db.deleteSetting("streamerbot.password");
-    this.db.deleteSetting("streamerbot.autoConnect");
-    this.logger.info("Streamerbot settings cleared from database");
+    this.streamerbotStore.clear();
   }
+
+  // =========================================================================
+  // OVERLAY SETTINGS
+  // =========================================================================
 
   /**
    * Get overlay settings
    */
   getOverlaySettings(): OverlaySettings {
-    const lowerThirdDuration = this.db.getSetting("overlay.lowerThird.defaultDuration");
-    const chatHighlightDuration = this.db.getSetting("overlay.chatHighlight.defaultDuration");
-    const chatHighlightAutoHide = this.db.getSetting("overlay.chatHighlight.autoHideEnabled");
-
-    return {
-      lowerThirdDuration: lowerThirdDuration
-        ? parseInt(lowerThirdDuration, 10)
-        : DEFAULT_OVERLAY_SETTINGS.lowerThirdDuration,
-      chatHighlightDuration: chatHighlightDuration
-        ? parseInt(chatHighlightDuration, 10)
-        : DEFAULT_OVERLAY_SETTINGS.chatHighlightDuration,
-      chatHighlightAutoHide: chatHighlightAutoHide !== null
-        ? chatHighlightAutoHide === "true"
-        : DEFAULT_OVERLAY_SETTINGS.chatHighlightAutoHide,
-    };
+    return this.overlayStore.get();
   }
 
   /**
    * Save overlay settings to database
    */
   saveOverlaySettings(settings: Partial<OverlaySettings>): void {
-    if (settings.lowerThirdDuration !== undefined) {
-      this.db.setSetting("overlay.lowerThird.defaultDuration", settings.lowerThirdDuration.toString());
-    }
-    if (settings.chatHighlightDuration !== undefined) {
-      this.db.setSetting("overlay.chatHighlight.defaultDuration", settings.chatHighlightDuration.toString());
-    }
-    if (settings.chatHighlightAutoHide !== undefined) {
-      this.db.setSetting("overlay.chatHighlight.autoHideEnabled", settings.chatHighlightAutoHide.toString());
-    }
+    this.overlayStore.set(settings);
     this.logger.info("Overlay settings saved to database");
   }
+
+  // =========================================================================
+  // CHAT MESSAGE SETTINGS
+  // =========================================================================
 
   /**
    * Get chat message settings
    */
   getChatMessageSettings(): ChatMessageSettings {
-    const posterEnabled = this.db.getSetting("chatMessage.poster.enabled");
-    const guestEnabled = this.db.getSetting("chatMessage.guest.enabled");
-
-    return {
-      posterChatMessageEnabled: posterEnabled !== null
-        ? posterEnabled === "true"
-        : DEFAULT_CHAT_MESSAGE_SETTINGS.posterChatMessageEnabled,
-      guestChatMessageEnabled: guestEnabled !== null
-        ? guestEnabled === "true"
-        : DEFAULT_CHAT_MESSAGE_SETTINGS.guestChatMessageEnabled,
-    };
+    return this.chatMessageStore.get();
   }
 
   /**
    * Save chat message settings to database
    */
   saveChatMessageSettings(settings: Partial<ChatMessageSettings>): void {
-    if (settings.posterChatMessageEnabled !== undefined) {
-      this.db.setSetting("chatMessage.poster.enabled", settings.posterChatMessageEnabled.toString());
-    }
-    if (settings.guestChatMessageEnabled !== undefined) {
-      this.db.setSetting("chatMessage.guest.enabled", settings.guestChatMessageEnabled.toString());
-    }
+    this.chatMessageStore.set(settings);
     this.logger.info("Chat message settings saved to database");
   }
 
@@ -307,53 +375,19 @@ export class SettingsService {
    * Get Twitch integration settings
    */
   getTwitchSettings(): TwitchSettings {
-    const enabled = this.db.getSetting("twitch.enabled");
-    const pollIntervalMs = this.db.getSetting("twitch.pollIntervalMs");
-    const preferredProvider = this.db.getSetting("twitch.preferredProvider");
-    const clientId = this.db.getSetting("twitch.clientId");
-    const oauthJson = this.db.getSetting("twitch.oauth");
-
-    let oauth: TwitchOAuthTokens | null = null;
-    if (oauthJson) {
-      try {
-        oauth = JSON.parse(oauthJson);
-      } catch {
-        this.logger.warn("Failed to parse Twitch OAuth tokens");
-      }
-    }
-
-    return {
-      enabled: enabled !== null ? enabled === "true" : DEFAULT_TWITCH_SETTINGS.enabled,
-      pollIntervalMs: pollIntervalMs
-        ? parseInt(pollIntervalMs, 10)
-        : DEFAULT_TWITCH_SETTINGS.pollIntervalMs,
-      preferredProvider: (preferredProvider as TwitchSettings["preferredProvider"]) ||
-        DEFAULT_TWITCH_SETTINGS.preferredProvider,
-      clientId: clientId || undefined,
-      oauth,
-    };
+    return this.twitchStore.get();
   }
 
   /**
    * Save Twitch integration settings to database
    */
   saveTwitchSettings(settings: Partial<TwitchSettings>): void {
-    if (settings.enabled !== undefined) {
-      this.db.setSetting("twitch.enabled", settings.enabled.toString());
+    // Handle clientId specially - undefined means clear
+    const toSave = { ...settings };
+    if (settings.clientId === "") {
+      toSave.clientId = undefined;
     }
-    if (settings.pollIntervalMs !== undefined) {
-      this.db.setSetting("twitch.pollIntervalMs", settings.pollIntervalMs.toString());
-    }
-    if (settings.preferredProvider !== undefined) {
-      this.db.setSetting("twitch.preferredProvider", settings.preferredProvider);
-    }
-    if (settings.clientId !== undefined) {
-      if (settings.clientId) {
-        this.db.setSetting("twitch.clientId", settings.clientId);
-      } else {
-        this.db.deleteSetting("twitch.clientId");
-      }
-    }
+    this.twitchStore.set(toSave);
     this.logger.info("Twitch settings saved to database");
   }
 
@@ -361,11 +395,7 @@ export class SettingsService {
    * Save Twitch OAuth tokens
    */
   saveTwitchOAuthTokens(tokens: TwitchOAuthTokens | null): void {
-    if (tokens) {
-      this.db.setSetting("twitch.oauth", JSON.stringify(tokens));
-    } else {
-      this.db.deleteSetting("twitch.oauth");
-    }
+    this.twitchStore.setField("oauth", tokens);
     this.logger.info("Twitch OAuth tokens saved");
   }
 
@@ -373,34 +403,25 @@ export class SettingsService {
    * Get Twitch OAuth tokens
    */
   getTwitchOAuthTokens(): TwitchOAuthTokens | null {
-    const oauthJson = this.db.getSetting("twitch.oauth");
-    if (!oauthJson) return null;
-
-    try {
-      return JSON.parse(oauthJson);
-    } catch {
-      return null;
-    }
+    const oauth = this.twitchStore.getField("oauth");
+    return oauth ?? null;
   }
 
   /**
    * Check if Twitch integration is enabled
    */
   isTwitchEnabled(): boolean {
-    const enabled = this.db.getSetting("twitch.enabled");
-    return enabled === null ? DEFAULT_TWITCH_SETTINGS.enabled : enabled === "true";
+    return this.twitchStore.getField("enabled");
   }
 
   /**
    * Clear all Twitch settings
    */
   clearTwitchSettings(): void {
-    this.db.deleteSetting("twitch.enabled");
-    this.db.deleteSetting("twitch.pollIntervalMs");
-    this.db.deleteSetting("twitch.preferredProvider");
-    this.db.deleteSetting("twitch.clientId");
+    this.twitchStore.clear();
+    // Also clear additional Twitch keys not in the schema
     this.db.deleteSetting("twitch.clientSecret");
-    this.db.deleteSetting("twitch.oauth");
+    this.db.deleteSetting("twitch.pendingOAuth");
     this.logger.info("Twitch settings cleared from database");
   }
 
@@ -465,56 +486,19 @@ export class SettingsService {
    * Get presenter channel settings
    */
   getPresenterChannelSettings(): PresenterChannelSettings {
-    const vdoNinjaUrl = this.db.getSetting("presenter.channel.vdoNinjaUrl");
-    const quickRepliesJson = this.db.getSetting("presenter.channel.quickReplies");
-    const canSendCustomMessages = this.db.getSetting("presenter.channel.canSendCustomMessages");
-    const allowPresenterToSendMessage = this.db.getSetting("presenter.channel.allowPresenterToSendMessage");
-
-    let quickReplies: string[] = DEFAULT_QUICK_REPLIES;
-    if (quickRepliesJson) {
-      try {
-        quickReplies = JSON.parse(quickRepliesJson);
-      } catch {
-        this.logger.warn("Failed to parse presenter channel quick replies");
-      }
-    }
-
-    return {
-      vdoNinjaUrl: vdoNinjaUrl || undefined,
-      quickReplies,
-      canSendCustomMessages: canSendCustomMessages !== null
-        ? canSendCustomMessages === "true"
-        : true,
-      allowPresenterToSendMessage: allowPresenterToSendMessage !== null
-        ? allowPresenterToSendMessage === "true"
-        : true,
-    };
+    return this.presenterChannelStore.get();
   }
 
   /**
    * Save presenter channel settings to database
    */
   savePresenterChannelSettings(settings: Partial<PresenterChannelSettings>): void {
-    if (settings.vdoNinjaUrl !== undefined) {
-      if (settings.vdoNinjaUrl) {
-        this.db.setSetting("presenter.channel.vdoNinjaUrl", settings.vdoNinjaUrl);
-      } else {
-        this.db.deleteSetting("presenter.channel.vdoNinjaUrl");
-      }
+    // Handle vdoNinjaUrl specially - empty string means clear
+    const toSave = { ...settings };
+    if (settings.vdoNinjaUrl === "") {
+      toSave.vdoNinjaUrl = undefined;
     }
-
-    if (settings.quickReplies !== undefined) {
-      this.db.setSetting("presenter.channel.quickReplies", JSON.stringify(settings.quickReplies));
-    }
-
-    if (settings.canSendCustomMessages !== undefined) {
-      this.db.setSetting("presenter.channel.canSendCustomMessages", settings.canSendCustomMessages.toString());
-    }
-
-    if (settings.allowPresenterToSendMessage !== undefined) {
-      this.db.setSetting("presenter.channel.allowPresenterToSendMessage", settings.allowPresenterToSendMessage.toString());
-    }
-
+    this.presenterChannelStore.set(toSave);
     this.logger.info("Presenter channel settings saved to database");
   }
 
@@ -522,11 +506,7 @@ export class SettingsService {
    * Clear presenter channel settings from database
    */
   clearPresenterChannelSettings(): void {
-    this.db.deleteSetting("presenter.channel.vdoNinjaUrl");
-    this.db.deleteSetting("presenter.channel.quickReplies");
-    this.db.deleteSetting("presenter.channel.canSendCustomMessages");
-    this.db.deleteSetting("presenter.channel.allowPresenterToSendMessage");
-    this.logger.info("Presenter channel settings cleared from database");
+    this.presenterChannelStore.clear();
   }
 
   // =========================================================================
@@ -571,4 +551,3 @@ export class SettingsService {
     this.logger.info("Chat predefined messages saved to database");
   }
 }
-

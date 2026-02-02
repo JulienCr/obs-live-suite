@@ -17,6 +17,9 @@ export class QuizStore {
   private session: Session | null;
   private questionBank: Map<string, Question>;
   private roundBank: Map<string, Round>;
+  // Mutex to prevent concurrent file writes that corrupt questions.json
+  private savePromise: Promise<void> | null = null;
+  private pendingSave: boolean = false;
 
   private constructor() {
     this.logger = new Logger("QuizStore");
@@ -287,15 +290,51 @@ export class QuizStore {
         }
       }
     } catch (e) {
-      this.logger.warn("Failed to load question bank", e);
+      // Handle JSON parse errors specifically with clear error message
+      if (e instanceof SyntaxError) {
+        this.logger.error(
+          `Malformed JSON in questions.json at ${filepath}. Initializing with empty question bank.`,
+          e
+        );
+      } else {
+        this.logger.error(`Failed to load question bank from ${filepath}`, e);
+      }
+      // Ensure question bank is initialized empty on failure (it already is from constructor)
+      this.questionBank.clear();
     }
   }
 
+  /**
+   * Save question bank to disk with mutex to prevent concurrent writes.
+   * Uses a coalescing pattern: if a save is in progress, marks pendingSave
+   * and waits for the current save to complete, then triggers one more save.
+   */
   private async saveQuestionBank(): Promise<void> {
-    const pm = PathManager.getInstance();
-    const filepath = join(pm.getQuizDir(), "questions.json");
-    const data = { questions: Array.from(this.questionBank.values()) };
-    await writeFile(filepath, JSON.stringify(data, null, 2), "utf-8");
+    // If a save is already in progress, mark that we need another save and wait
+    if (this.savePromise) {
+      this.pendingSave = true;
+      await this.savePromise;
+      return;
+    }
+
+    const doSave = async (): Promise<void> => {
+      const pm = PathManager.getInstance();
+      const filepath = join(pm.getQuizDir(), "questions.json");
+      const data = { questions: Array.from(this.questionBank.values()) };
+      await writeFile(filepath, JSON.stringify(data, null, 2), "utf-8");
+    };
+
+    try {
+      this.savePromise = doSave();
+      await this.savePromise;
+    } finally {
+      this.savePromise = null;
+      // If another save was requested while we were saving, do one more save
+      if (this.pendingSave) {
+        this.pendingSave = false;
+        await this.saveQuestionBank();
+      }
+    }
   }
 }
 

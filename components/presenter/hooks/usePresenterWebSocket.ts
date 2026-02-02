@@ -5,6 +5,8 @@ import { v4 as uuidv4 } from "uuid";
 import type { CueMessage, CueAction } from "@/lib/models/Cue";
 import type { PresenterPresence } from "@/lib/models/PresenterChannel";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
+import { apiPost, apiDelete, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { useTimeoutMap } from "@/lib/hooks/useTimeoutMap";
 
 interface UsePresenterWebSocketReturn {
   connected: boolean;
@@ -23,8 +25,8 @@ export function usePresenterWebSocket(
   role: "presenter" | "control" | "producer"
 ): UsePresenterWebSocketReturn {
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clientIdRef = useRef<string>("");
+  const timeouts = useTimeoutMap();
 
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState<CueMessage[]>([]);
@@ -39,12 +41,17 @@ export function usePresenterWebSocket(
 
   // Connect to WebSocket
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
+    // Guard against multiple connections - check for OPEN or CONNECTING state
+    const currentState = wsRef.current?.readyState;
+    if (currentState === WebSocket.OPEN || currentState === WebSocket.CONNECTING) {
       return;
     }
 
     const wsUrl = getWebSocketUrl();
     const ws = new WebSocket(wsUrl);
+
+    // Set ref immediately to prevent race conditions with rapid calls
+    wsRef.current = ws;
 
     ws.onopen = () => {
       setConnected(true);
@@ -154,7 +161,7 @@ export function usePresenterWebSocket(
 
       // Reconnect on unexpected close
       if (event.code !== 1000 && event.code !== 1001) {
-        reconnectTimeoutRef.current = setTimeout(() => {
+        timeouts.set("reconnect", () => {
           console.log("[Presenter WS] Reconnecting...");
           connect();
         }, 3000);
@@ -164,78 +171,64 @@ export function usePresenterWebSocket(
     ws.onerror = (error) => {
       console.error("[Presenter WS] Error:", error);
     };
-
-    wsRef.current = ws;
-  }, [role, seenMessageIds]);
+  }, [role, seenMessageIds, timeouts]);
 
   // Setup WebSocket connection
   useEffect(() => {
     connect();
 
     return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
+      timeouts.clearAll();
       if (wsRef.current) {
         wsRef.current.close(1000, "Component unmounting");
         wsRef.current = null;
       }
     };
-  }, [connect]);
+  }, [connect, timeouts]);
 
   // Send action on a message
   const sendAction = useCallback(async (messageId: string, action: CueAction) => {
     try {
-      const response = await fetch(`/api/presenter/cue/${messageId}/action`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action,
-          clientId: clientIdRef.current,
-        }),
+      await apiPost(`/api/presenter/cue/${messageId}/action`, {
+        action,
+        clientId: clientIdRef.current,
       });
-
-      if (!response.ok) {
-        console.error("[Presenter] Action failed:", await response.text());
-      }
     } catch (error) {
-      console.error("[Presenter] Failed to send action:", error);
+      if (isClientFetchError(error)) {
+        console.error("[Presenter] Action failed:", error.errorMessage);
+      } else {
+        console.error("[Presenter] Failed to send action:", error);
+      }
     }
   }, []);
 
   // Send a reply message
   const sendReply = useCallback(async (text: string) => {
     try {
-      const response = await fetch("/api/presenter/cue/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "reply",
-          from: role,
-          body: text,
-        }),
+      await apiPost("/api/presenter/cue/send", {
+        type: "reply",
+        from: role,
+        body: text,
       });
-
-      if (!response.ok) {
-        console.error("[Presenter] Reply failed:", await response.text());
-      }
     } catch (error) {
-      console.error("[Presenter] Failed to send reply:", error);
+      if (isClientFetchError(error)) {
+        console.error("[Presenter] Reply failed:", error.errorMessage);
+      } else {
+        console.error("[Presenter] Failed to send reply:", error);
+      }
     }
   }, [role]);
 
   // Clear message history
   const clearHistory = useCallback(async () => {
     try {
-      const response = await fetch("/api/presenter/cue/clear", {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        console.error("[Presenter] Clear history failed:", await response.text());
-      }
+      await apiDelete("/api/presenter/cue/clear");
     } catch (error) {
-      console.error("[Presenter] Failed to clear history:", error);
+      if (isClientFetchError(error)) {
+        console.error("[Presenter] Clear history failed:", error.errorMessage);
+      } else {
+        console.error("[Presenter] Failed to clear history:", error);
+      }
     }
   }, []);
 

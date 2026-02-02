@@ -451,6 +451,152 @@ export const TWITCH = {
 } as const;
 
 // ============================================================================
+// UI CONSTANTS
+// ============================================================================
+
+/**
+ * UI timing constants for toasts, animations, and transitions.
+ */
+export const UI = {
+  /**
+   * Standard toast notification duration in milliseconds.
+   */
+  TOAST_DURATION_MS: 2000,
+
+  /**
+   * Short toast duration for quick confirmations.
+   */
+  TOAST_SHORT_MS: 1500,
+
+  /**
+   * Long toast duration for important messages.
+   */
+  TOAST_LONG_MS: 3000,
+
+  /**
+   * Error toast duration - longer for reading error messages.
+   */
+  TOAST_ERROR_MS: 5000,
+} as const;
+
+// ============================================================================
+// QUERY STALE TIME CONSTANTS
+// ============================================================================
+
+/**
+ * React Query stale time constants for cache invalidation.
+ */
+export const QUERY_STALE_TIMES = {
+  /**
+   * Fast refresh for frequently changing data (5 seconds).
+   * @example Connection status, live metrics
+   */
+  FAST: 5 * 1000,
+
+  /**
+   * Normal refresh for moderately changing data (30 seconds).
+   * @example Guest list, poster list
+   */
+  NORMAL: 30 * 1000,
+
+  /**
+   * Slow refresh for rarely changing data (1 minute).
+   * @example Themes, profiles, settings
+   */
+  SLOW: 60 * 1000,
+
+  /**
+   * Very slow refresh for configuration data (5 minutes).
+   * @example Plugin list, system info
+   */
+  VERY_SLOW: 5 * 60 * 1000,
+} as const;
+
+// ============================================================================
+// HEALTH CHECK CONSTANTS
+// ============================================================================
+
+/**
+ * Health check and polling constants.
+ */
+export const HEALTH_CHECK = {
+  /**
+   * Interval for polling connection health (5 seconds).
+   */
+  POLL_INTERVAL_MS: 5000,
+
+  /**
+   * Timeout for health check requests.
+   */
+  TIMEOUT_MS: 3000,
+} as const;
+
+// ============================================================================
+// LLM URL CONSTANTS
+// ============================================================================
+
+/**
+ * LLM provider URL constants.
+ */
+export const LLM_URLS = {
+  /**
+   * Default Ollama local server URL.
+   */
+  OLLAMA_DEFAULT: "http://localhost:11434",
+
+  /**
+   * Anthropic API base URL.
+   */
+  ANTHROPIC_API: "https://api.anthropic.com/v1",
+
+  /**
+   * OpenAI API base URL.
+   */
+  OPENAI_API: "https://api.openai.com/v1",
+} as const;
+
+// ============================================================================
+// VALIDATION CONSTANTS
+// ============================================================================
+
+/**
+ * Validation constants for field limits and ranges.
+ */
+export const VALIDATION = {
+  /**
+   * Field length limits for text inputs.
+   */
+  FIELD_LIMITS: {
+    /** Short names (display names, titles) */
+    NAME_SHORT: 100,
+    /** Medium names (descriptions) */
+    NAME_MEDIUM: 200,
+    /** Long text (notes, bodies) */
+    TEXT_LONG: 500,
+    /** Extra long text (full content) */
+    TEXT_EXTRA_LONG: 2000,
+  },
+
+  /**
+   * Numeric ranges for validation.
+   */
+  RANGES: {
+    /** Minimum port number */
+    PORT_MIN: 1,
+    /** Maximum port number */
+    PORT_MAX: 65535,
+    /** Minimum scale factor */
+    SCALE_MIN: 0.5,
+    /** Maximum scale factor */
+    SCALE_MAX: 2,
+    /** Minimum duration in seconds */
+    DURATION_MIN: 1,
+    /** Maximum countdown duration in seconds (1 hour) */
+    COUNTDOWN_MAX: 3600,
+  },
+} as const;
+
+// ============================================================================
 // TYPE EXPORTS
 // ============================================================================
 

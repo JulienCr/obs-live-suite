@@ -4,7 +4,7 @@ import { OpenAIProvider } from "./OpenAIProvider";
 import { AnthropicProvider } from "./AnthropicProvider";
 import { DatabaseService } from "../DatabaseService";
 import { Logger } from "../../utils/Logger";
-import { LLM } from "../../config/Constants";
+import { LLM, LLM_URLS } from "../../config/Constants";
 
 /**
  * Factory to create LLM providers based on configuration
@@ -43,7 +43,7 @@ export class LLMProviderFactory {
       case LLMProviderType.OLLAMA:
       default:
         return new OllamaProvider({
-          url: db.getSetting("ollama_url") || "http://localhost:11434",
+          url: db.getSetting("ollama_url") || LLM_URLS.OLLAMA_DEFAULT,
           model: db.getSetting("ollama_model") || "mistral:latest",
           temperature: LLM.DEFAULT_TEMPERATURE,
           timeout: LLM.DEFAULT_TIMEOUT_MS,
@@ -81,7 +81,7 @@ export class LLMProviderFactory {
       case LLMProviderType.OLLAMA:
       default:
         return new OllamaProvider({
-          url: config.ollamaUrl || "http://localhost:11434",
+          url: config.ollamaUrl || LLM_URLS.OLLAMA_DEFAULT,
           model: config.ollamaModel || "mistral:latest",
           temperature: config.temperature,
           timeout: config.timeout,

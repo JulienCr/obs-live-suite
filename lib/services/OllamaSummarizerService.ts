@@ -8,6 +8,7 @@ import {
 import { LLMProviderFactory } from "./llm/LLMProviderFactory";
 import type { LLMProvider } from "./llm/LLMProvider";
 import { DatabaseService } from "./DatabaseService";
+import { LLM_URLS } from "../config/Constants";
 
 // Configuration constant
 const DISABLE_LLM_SUMMARIZATION = false; // Set to true to return raw Wikipedia extract instead of LLM summary
@@ -205,7 +206,7 @@ export class OllamaSummarizerService {
     if (this.provider.getName() === "Ollama") {
       try {
         const db = DatabaseService.getInstance();
-        const url = db.getSetting("ollama_url") || "http://localhost:11434";
+        const url = db.getSetting("ollama_url") || LLM_URLS.OLLAMA_DEFAULT;
 
         const response = await fetch(`${url}/api/tags`, {
           signal: AbortSignal.timeout(5000),
@@ -260,7 +261,7 @@ export class OllamaSummarizerService {
 
     if (providerType === "ollama") {
       return {
-        url: db.getSetting("ollama_url") || "http://localhost:11434",
+        url: db.getSetting("ollama_url") || LLM_URLS.OLLAMA_DEFAULT,
         model: db.getSetting("ollama_model") || "qwen2.5:3b",
         num_ctx: parseInt(db.getSetting("ollama_num_ctx") || "8192", 10),
       };
