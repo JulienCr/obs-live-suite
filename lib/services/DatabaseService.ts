@@ -1,28 +1,26 @@
 import Database from "better-sqlite3";
 import { DatabaseConnector } from "./DatabaseConnector";
 import { Logger } from "../utils/Logger";
-import { safeJsonParse, safeJsonParseOptional } from "../utils/safeJsonParse";
-import { DATABASE } from "../config/Constants";
+import { safeJsonParse } from "../utils/safeJsonParse";
 import {
   MigrationRunner,
   ColumnMigration,
   CustomMigration,
 } from "./MigrationRunner";
-import {
-  DbStreamerbotChatMessage,
-  DbStreamerbotChatMessageInput,
-  DbPanelColor,
-} from "../models/Database";
 
 /**
- * DatabaseService handles SQLite database table initialization, migrations, and non-entity operations.
+ * DatabaseService handles SQLite database connection, table initialization, and migrations.
  *
- * For entity CRUD operations, use the appropriate repository directly:
+ * For data-access operations, use the appropriate repository directly:
  * - GuestRepository for guests
  * - PosterRepository for posters
  * - ProfileRepository for profiles
  * - ThemeRepository for themes
  * - CueMessageRepository for cue messages
+ * - SettingsRepository for key-value settings
+ * - ChatMessageRepository for streamerbot chat messages
+ * - PanelColorRepository for panel color customization
+ * - WorkspaceRepository for workspace layouts
  */
 export class DatabaseService {
   private static instance: DatabaseService;
@@ -533,202 +531,6 @@ export class DatabaseService {
    */
   checkpoint(): void {
     this.db.pragma("wal_checkpoint(PASSIVE)");
-  }
-
-  // ==================== SETTINGS ====================
-
-  /**
-   * Get a setting by key
-   */
-  getSetting(key: string): string | null {
-    const stmt = this.db.prepare("SELECT value FROM settings WHERE key = ?");
-    const result = stmt.get(key) as { value: string } | undefined;
-    return result?.value || null;
-  }
-
-  /**
-   * Set a setting value
-   */
-  setSetting(key: string, value: string): void {
-    const stmt = this.db.prepare(
-      "INSERT OR REPLACE INTO settings (key, value, updatedAt) VALUES (?, ?, ?)"
-    );
-    stmt.run(key, value, new Date().toISOString());
-  }
-
-  /**
-   * Delete a setting
-   */
-  deleteSetting(key: string): void {
-    const stmt = this.db.prepare("DELETE FROM settings WHERE key = ?");
-    stmt.run(key);
-  }
-
-  /**
-   * Get all settings
-   */
-  getAllSettings(): Record<string, string> {
-    const stmt = this.db.prepare("SELECT key, value FROM settings");
-    const rows = stmt.all() as Array<{ key: string; value: string }>;
-    const settings: Record<string, string> = {};
-    for (const row of rows) {
-      settings[row.key] = row.value;
-    }
-    return settings;
-  }
-
-  // ==================== STREAMERBOT CHAT MESSAGES ====================
-
-  private readonly CHAT_BUFFER_SIZE = DATABASE.CHAT_BUFFER_SIZE;
-
-  /**
-   * Get recent chat messages, ordered by timestamp descending
-   */
-  getStreamerbotChatMessages(limit: number = DATABASE.CHAT_BUFFER_SIZE): DbStreamerbotChatMessage[] {
-    const stmt = this.db.prepare(`
-      SELECT * FROM streamerbot_chat_messages
-      ORDER BY timestamp DESC
-      LIMIT ?
-    `);
-    const rows = stmt.all(limit) as Array<Omit<DbStreamerbotChatMessage, 'parts' | 'metadata'> & {
-      parts: string | null;
-      metadata: string | null;
-    }>;
-
-    return rows.map((row) => ({
-      ...row,
-      parts: safeJsonParseOptional<DbStreamerbotChatMessage['parts']>(row.parts) ?? null,
-      metadata: safeJsonParseOptional<DbStreamerbotChatMessage['metadata']>(row.metadata) ?? null,
-    }));
-  }
-
-  /**
-   * Insert a chat message and maintain rolling buffer (see DATABASE.CHAT_BUFFER_SIZE)
-   */
-  insertStreamerbotChatMessage(message: DbStreamerbotChatMessageInput): void {
-    const now = Date.now();
-
-    // Insert the new message (ignore if duplicate ID)
-    const insertStmt = this.db.prepare(`
-      INSERT OR IGNORE INTO streamerbot_chat_messages
-      (id, timestamp, platform, eventType, channel, username, displayName, message, parts, metadata, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    insertStmt.run(
-      message.id,
-      message.timestamp,
-      message.platform,
-      message.eventType,
-      message.channel || null,
-      message.username,
-      message.displayName,
-      message.message,
-      message.parts ? JSON.stringify(message.parts) : null,
-      message.metadata ? JSON.stringify(message.metadata) : null,
-      message.createdAt || now
-    );
-
-    // Enforce rolling buffer - delete oldest messages beyond limit
-    this.trimStreamerbotChatBuffer();
-  }
-
-  /**
-   * Trim chat buffer to maintain max CHAT_BUFFER_SIZE messages
-   * Deletes oldest messages by createdAt
-   */
-  private trimStreamerbotChatBuffer(): void {
-    const countStmt = this.db.prepare("SELECT COUNT(*) as count FROM streamerbot_chat_messages");
-    const { count } = countStmt.get() as { count: number };
-
-    if (count > this.CHAT_BUFFER_SIZE) {
-      // Get the createdAt of the Nth newest message (threshold)
-      const thresholdStmt = this.db.prepare(`
-        SELECT createdAt FROM streamerbot_chat_messages
-        ORDER BY createdAt DESC
-        LIMIT 1 OFFSET ?
-      `);
-      const row = thresholdStmt.get(this.CHAT_BUFFER_SIZE - 1) as { createdAt: number } | undefined;
-
-      if (row) {
-        const deleteStmt = this.db.prepare(`
-          DELETE FROM streamerbot_chat_messages
-          WHERE createdAt < ?
-        `);
-        deleteStmt.run(row.createdAt);
-      }
-    }
-  }
-
-  /**
-   * Clear all chat messages (for manual clear action)
-   */
-  clearStreamerbotChatMessages(): void {
-    const stmt = this.db.prepare("DELETE FROM streamerbot_chat_messages");
-    stmt.run();
-  }
-
-  // ==================== PANEL COLORS ====================
-
-  /**
-   * Get all panel colors
-   */
-  getAllPanelColors(): DbPanelColor[] {
-    const stmt = this.db.prepare("SELECT * FROM panel_colors ORDER BY panelId ASC");
-    const rows = stmt.all() as Array<Omit<DbPanelColor, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }>;
-    return rows.map((row) => ({
-      ...row,
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    }));
-  }
-
-  /**
-   * Get panel color by panel ID
-   */
-  getPanelColorByPanelId(panelId: string): DbPanelColor | null {
-    const stmt = this.db.prepare("SELECT * FROM panel_colors WHERE panelId = ?");
-    const row = stmt.get(panelId) as (Omit<DbPanelColor, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }) | undefined;
-    if (!row) return null;
-    return {
-      ...row,
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-    };
-  }
-
-  /**
-   * Upsert panel color scheme (create or update)
-   */
-  upsertPanelColor(panelId: string, scheme: string): DbPanelColor {
-    const existing = this.getPanelColorByPanelId(panelId);
-    const now = new Date();
-
-    if (existing) {
-      // Update existing
-      const stmt = this.db.prepare(`
-        UPDATE panel_colors SET scheme = ?, updatedAt = ? WHERE panelId = ?
-      `);
-      stmt.run(scheme, now.toISOString(), panelId);
-    } else {
-      // Create new
-      const id = crypto.randomUUID();
-      const stmt = this.db.prepare(`
-        INSERT INTO panel_colors (id, panelId, scheme, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?)
-      `);
-      stmt.run(id, panelId, scheme, now.toISOString(), now.toISOString());
-    }
-
-    return this.getPanelColorByPanelId(panelId)!;
-  }
-
-  /**
-   * Delete panel color (reset to default)
-   */
-  deletePanelColor(panelId: string): void {
-    const stmt = this.db.prepare("DELETE FROM panel_colors WHERE panelId = ?");
-    stmt.run(panelId);
   }
 
   /**

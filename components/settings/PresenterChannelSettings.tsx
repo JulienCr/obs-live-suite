@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, Loader2, Plus, Trash2, Save } from "lucide-react";
-import { apiGet, apiPut, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { useSettings } from "@/lib/hooks/useSettings";
 import type { PresenterChannelSettings as PresenterChannelSettingsType } from "@/lib/models/PresenterChannel";
 import { DEFAULT_QUICK_REPLIES } from "@/lib/models/PresenterChannel";
 
 const MAX_QUICK_REPLIES = 6;
+
+const INITIAL_STATE: PresenterChannelSettingsType = {
+  vdoNinjaUrl: undefined,
+  quickReplies: [...DEFAULT_QUICK_REPLIES],
+  canSendCustomMessages: false,
+  allowPresenterToSendMessage: false,
+};
 
 /**
  * Presenter channel settings component
@@ -20,76 +27,31 @@ const MAX_QUICK_REPLIES = 6;
  */
 export function PresenterChannelSettings() {
   const t = useTranslations("settings.presenterChannel");
-  const [settings, setSettings] = useState<PresenterChannelSettingsType>({
-    vdoNinjaUrl: undefined,
-    quickReplies: [...DEFAULT_QUICK_REPLIES],
-    canSendCustomMessages: false,
-    allowPresenterToSendMessage: false,
-  });
   const [newQuickReply, setNewQuickReply] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveResult, setSaveResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    try {
-      const data = await apiGet<PresenterChannelSettingsType>("/api/presenter/settings");
-      setSettings({
-        vdoNinjaUrl: data.vdoNinjaUrl,
-        quickReplies: data.quickReplies || [...DEFAULT_QUICK_REPLIES],
-        canSendCustomMessages: data.canSendCustomMessages ?? false,
-        allowPresenterToSendMessage: data.allowPresenterToSendMessage ?? false,
-      });
-    } catch (error) {
-      console.error("Failed to load presenter settings:", error);
-      setSaveResult({
-        success: false,
-        message: t("failedToLoad"),
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    setSaveResult(null);
-
-    try {
-      await apiPut<PresenterChannelSettingsType>("/api/presenter/settings", {
-        vdoNinjaUrl: settings.vdoNinjaUrl || undefined,
-        quickReplies: settings.quickReplies,
-        canSendCustomMessages: settings.canSendCustomMessages,
-        allowPresenterToSendMessage: settings.allowPresenterToSendMessage,
-      });
-
-      setSaveResult({
-        success: true,
-        message: t("settingsSaved"),
-      });
-    } catch (error) {
-      if (isClientFetchError(error)) {
-        setSaveResult({
-          success: false,
-          message: error.errorMessage,
-        });
-      } else {
-        setSaveResult({
-          success: false,
-          message: error instanceof Error ? error.message : t("saveFailed"),
-        });
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
+  const { data: settings, setData: setSettings, loading, saving, saveResult, save } = useSettings<
+    PresenterChannelSettingsType,
+    PresenterChannelSettingsType
+  >({
+    endpoint: "/api/presenter/settings",
+    saveMethod: "PUT",
+    initialState: INITIAL_STATE,
+    fromResponse: (data) => ({
+      vdoNinjaUrl: data.vdoNinjaUrl,
+      quickReplies: data.quickReplies || [...DEFAULT_QUICK_REPLIES],
+      canSendCustomMessages: data.canSendCustomMessages ?? false,
+      allowPresenterToSendMessage: data.allowPresenterToSendMessage ?? false,
+    }),
+    toPayload: (state) => ({
+      vdoNinjaUrl: state.vdoNinjaUrl || undefined,
+      quickReplies: state.quickReplies,
+      canSendCustomMessages: state.canSendCustomMessages,
+      allowPresenterToSendMessage: state.allowPresenterToSendMessage,
+    }),
+    successMessage: t("settingsSaved"),
+    errorMessage: t("saveFailed"),
+    loadErrorMessage: t("failedToLoad"),
+  });
 
   const addQuickReply = () => {
     const trimmed = newQuickReply.trim();
@@ -264,7 +226,7 @@ export function PresenterChannelSettings() {
       )}
 
       {/* Save Button */}
-      <Button onClick={handleSave} disabled={saving}>
+      <Button onClick={save} disabled={saving}>
         {saving ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />

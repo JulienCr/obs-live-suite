@@ -1,4 +1,5 @@
 import { OBSConnectionManager } from "./OBSConnectionManager";
+import type { EventTypes } from "obs-websocket-js";
 import { Logger } from "../../utils/Logger";
 
 /**
@@ -60,8 +61,9 @@ export class OBSEventHandler {
   private setupOBSListener(eventName: string): void {
     const obs = this.connectionManager.getOBS();
 
+    // Dynamic event subscription requires bypassing strict per-event callback typing
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    obs.on(eventName as any, (data: unknown) => {
+    obs.on(eventName as keyof EventTypes, ((data: unknown) => {
       const handlers = this.eventHandlers.get(eventName);
       if (handlers) {
         handlers.forEach((handler) => {
@@ -72,7 +74,7 @@ export class OBSEventHandler {
           }
         });
       }
-    });
+    }) as any);
   }
 
   /**

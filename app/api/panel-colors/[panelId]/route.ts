@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { PanelColorRepository } from "@/lib/repositories/PanelColorRepository";
 import { PANEL_IDS } from "@/lib/models/PanelColor";
 
 /**
@@ -11,8 +11,8 @@ export async function GET(
 ) {
   try {
     const { panelId } = await params;
-    const db = DatabaseService.getInstance();
-    const panelColor = db.getPanelColorByPanelId(panelId);
+    const panelColorRepo = PanelColorRepository.getInstance();
+    const panelColor = panelColorRepo.getPanelColorByPanelId(panelId);
 
     if (!panelColor) {
       return NextResponse.json({ panelColor: null }, { status: 200 });
@@ -46,8 +46,8 @@ export async function DELETE(
       );
     }
 
-    const db = DatabaseService.getInstance();
-    db.deletePanelColor(panelId);
+    const panelColorRepo = PanelColorRepository.getInstance();
+    panelColorRepo.deletePanelColor(panelId);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

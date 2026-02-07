@@ -1,26 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { CheckCircle2, Loader2, MonitorPlay, MessageSquare } from "lucide-react";
-import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { useSettings } from "@/lib/hooks/useSettings";
+
+interface GeneralSettingsState {
+  defaultPosterDisplayMode: string;
+  posterChatMessageEnabled: boolean;
+  guestChatMessageEnabled: boolean;
+}
 
 interface GeneralSettingsResponse {
-  settings?: {
-    defaultPosterDisplayMode?: string;
-    posterChatMessageEnabled?: boolean;
-    guestChatMessageEnabled?: boolean;
-  };
+  settings?: Partial<GeneralSettingsState>;
 }
 
-interface SaveResponse {
-  success: boolean;
-  error?: string;
-}
+const INITIAL_STATE: GeneralSettingsState = {
+  defaultPosterDisplayMode: "left",
+  posterChatMessageEnabled: false,
+  guestChatMessageEnabled: false,
+};
 
 /**
  * General UI settings
@@ -28,71 +30,21 @@ interface SaveResponse {
 export function GeneralSettings() {
   const t = useTranslations("settings.general");
   const tChatMessage = useTranslations("settings.general.chatMessage");
-  const [defaultDisplayMode, setDefaultDisplayMode] = useState<string>("left");
-  const [posterChatMessageEnabled, setPosterChatMessageEnabled] = useState(false);
-  const [guestChatMessageEnabled, setGuestChatMessageEnabled] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveResult, setSaveResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    try {
-      const data = await apiGet<GeneralSettingsResponse>("/api/settings/general");
-      setDefaultDisplayMode(data.settings?.defaultPosterDisplayMode || "left");
-      setPosterChatMessageEnabled(data.settings?.posterChatMessageEnabled || false);
-      setGuestChatMessageEnabled(data.settings?.guestChatMessageEnabled || false);
-    } catch (error) {
-      console.error("Failed to load general settings:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    setSaveResult(null);
-
-    try {
-      const data = await apiPost<SaveResponse>("/api/settings/general", {
-        defaultPosterDisplayMode: defaultDisplayMode,
-        posterChatMessageEnabled,
-        guestChatMessageEnabled,
-      });
-
-      if (data.success) {
-        setSaveResult({
-          success: true,
-          message: t("settingsSaved"),
-        });
-      } else {
-        setSaveResult({
-          success: false,
-          message: data.error || t("saveFailed"),
-        });
-      }
-    } catch (error) {
-      if (isClientFetchError(error)) {
-        setSaveResult({
-          success: false,
-          message: error.errorMessage,
-        });
-      } else {
-        setSaveResult({
-          success: false,
-          message: error instanceof Error ? error.message : t("saveFailed"),
-        });
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
+  const { data: settings, setData: setSettings, loading, saving, saveResult, save } = useSettings<
+    GeneralSettingsResponse,
+    GeneralSettingsState
+  >({
+    endpoint: "/api/settings/general",
+    initialState: INITIAL_STATE,
+    fromResponse: (res) => ({
+      defaultPosterDisplayMode: res.settings?.defaultPosterDisplayMode || "left",
+      posterChatMessageEnabled: res.settings?.posterChatMessageEnabled || false,
+      guestChatMessageEnabled: res.settings?.guestChatMessageEnabled || false,
+    }),
+    successMessage: t("settingsSaved"),
+    errorMessage: t("saveFailed"),
+  });
 
   if (loading) {
     return (
@@ -123,8 +75,8 @@ export function GeneralSettings() {
         </p>
 
         <select
-          value={defaultDisplayMode}
-          onChange={(e) => setDefaultDisplayMode(e.target.value)}
+          value={settings.defaultPosterDisplayMode}
+          onChange={(e) => setSettings((prev) => ({ ...prev, defaultPosterDisplayMode: e.target.value }))}
           className="w-full p-2 border rounded bg-background text-foreground border-input"
         >
           <option value="left">{t("leftSide")}</option>
@@ -165,8 +117,8 @@ export function GeneralSettings() {
             </div>
             <Switch
               id="posterChatMessage"
-              checked={posterChatMessageEnabled}
-              onCheckedChange={setPosterChatMessageEnabled}
+              checked={settings.posterChatMessageEnabled}
+              onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, posterChatMessageEnabled: checked }))}
             />
           </div>
 
@@ -180,8 +132,8 @@ export function GeneralSettings() {
             </div>
             <Switch
               id="guestChatMessage"
-              checked={guestChatMessageEnabled}
-              onCheckedChange={setGuestChatMessageEnabled}
+              checked={settings.guestChatMessageEnabled}
+              onCheckedChange={(checked) => setSettings((prev) => ({ ...prev, guestChatMessageEnabled: checked }))}
             />
           </div>
         </div>
@@ -198,7 +150,7 @@ export function GeneralSettings() {
       )}
 
       {/* Save Button */}
-      <Button onClick={handleSave} disabled={saving}>
+      <Button onClick={save} disabled={saving}>
         {saving ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />

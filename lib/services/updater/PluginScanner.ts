@@ -114,8 +114,13 @@ export class PluginScanner {
         let stats;
         try {
           stats = entry.isSymbolicLink() ? statSync(fullPath) : entry;
-        } catch (error: any) {
-          if (error.code === 'EPERM' || error.code === 'EACCES' || error.code === 'ENOENT') {
+        } catch (error: unknown) {
+          if (
+            error instanceof Error &&
+            'code' in error &&
+            typeof (error as NodeJS.ErrnoException).code === 'string' &&
+            ['EPERM', 'EACCES', 'ENOENT'].includes((error as NodeJS.ErrnoException).code!)
+          ) {
             this.logger.debug(`Skipping inaccessible path: ${fullPath}`);
             continue;
           }

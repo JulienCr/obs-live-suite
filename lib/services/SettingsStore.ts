@@ -29,7 +29,7 @@
  */
 
 import { z, ZodObject, ZodRawShape, ZodTypeAny } from "zod";
-import type { DatabaseService } from "./DatabaseService";
+import type { SettingsRepository } from "../repositories/SettingsRepository";
 import type { Logger } from "../utils/Logger";
 
 /**
@@ -157,7 +157,7 @@ function getZodFieldType(schema: ZodTypeAny): "string" | "number" | "boolean" | 
  * @template T - The Zod schema shape for the settings
  */
 export class SettingsStore<T extends ZodRawShape> {
-  private db: DatabaseService;
+  private db: SettingsRepository;
   private prefix: string;
   private schema: ZodObject<T>;
   private logger: Logger;
@@ -166,14 +166,14 @@ export class SettingsStore<T extends ZodRawShape> {
   /**
    * Create a new SettingsStore instance.
    *
-   * @param db - DatabaseService instance for reading/writing settings
+   * @param db - SettingsRepository instance for reading/writing settings
    * @param prefix - Key prefix for all settings in this store (e.g., "obs", "streamerbot")
    * @param schema - Zod schema defining the settings structure with defaults
    * @param logger - Logger instance for debug/error logging
    * @param options - Optional configuration options
    */
   constructor(
-    db: DatabaseService,
+    db: SettingsRepository,
     prefix: string,
     schema: ZodObject<T>,
     logger: Logger,
@@ -367,7 +367,7 @@ export class SettingsStore<T extends ZodRawShape> {
 /**
  * Factory function to create a SettingsStore with common patterns.
  *
- * @param db - DatabaseService instance
+ * @param db - SettingsRepository instance
  * @param prefix - Key prefix
  * @param schema - Zod schema
  * @param logger - Logger instance
@@ -375,7 +375,7 @@ export class SettingsStore<T extends ZodRawShape> {
  * @returns A configured SettingsStore instance
  */
 export function createSettingsStore<T extends ZodRawShape>(
-  db: DatabaseService,
+  db: SettingsRepository,
   prefix: string,
   schema: ZodObject<T>,
   logger: Logger,

@@ -1,7 +1,7 @@
 import { StreamerbotClient } from "@streamerbot/client";
 import { SettingsService } from "../../services/SettingsService";
 import { WebSocketHub } from "../../services/WebSocketHub";
-import { DatabaseService } from "../../services/DatabaseService";
+import { ChatMessageRepository } from "../../repositories/ChatMessageRepository";
 import {
   ConnectionManager,
   ConnectionStatus as BaseConnectionStatus,
@@ -146,8 +146,8 @@ export class StreamerbotGateway extends ConnectionManager {
    */
   private persistMessage(message: ChatMessage): void {
     try {
-      const db = DatabaseService.getInstance();
-      db.insertStreamerbotChatMessage({
+      const chatRepo = ChatMessageRepository.getInstance();
+      chatRepo.insertStreamerbotChatMessage({
         id: message.id,
         timestamp: message.timestamp,
         platform: message.platform,

@@ -4,7 +4,7 @@
 import { Router } from "express";
 import { StreamerbotGateway } from "../../lib/adapters/streamerbot/StreamerbotGateway";
 import { SettingsService } from "../../lib/services/SettingsService";
-import { DatabaseService } from "../../lib/services/DatabaseService";
+import { ChatMessageRepository } from "../../lib/repositories/ChatMessageRepository";
 import { chatPlatformSchema } from "../../lib/models/StreamerbotChat";
 import { expressError } from "../../lib/utils/apiError";
 
@@ -31,8 +31,8 @@ router.get("/status", async (req, res) => {
  */
 router.get("/history", async (req, res) => {
   try {
-    const db = DatabaseService.getInstance();
-    const messages = db.getStreamerbotChatMessages(200);
+    const chatRepo = ChatMessageRepository.getInstance();
+    const messages = chatRepo.getStreamerbotChatMessages(200);
 
     // Return in chronological order (oldest first) for frontend consumption
     res.json({

@@ -33,7 +33,8 @@ if (!DISABLE_WIKIDATA_FALLBACK) {
 }
 
 // Handle ESM/CJS interop - wikipedia package exports default differently
-const wiki = (wikiModule as any).default || wikiModule;
+const wikiWithDefault = wikiModule as typeof wikiModule & { default?: typeof wikiModule };
+const wiki = wikiWithDefault.default || wikiModule;
 
 /**
  * Result from Wikipedia resolution and fetch
@@ -173,7 +174,12 @@ export class WikipediaResolverService {
 
       // Get page and full wikitext content
       const page = await wiki.page(title);
-      const fullContent = await page.content();
+      // wikipedia package types content() as string, but it returns section objects
+      const fullContent = await page.content() as unknown as Array<{
+        title?: string;
+        content?: string;
+        items?: Array<{ content?: string }>;
+      }>;
 
       // Convert content sections to wikitext string
       // Take intro + first sections up to MAX_SECTIONS
@@ -185,7 +191,8 @@ export class WikipediaResolverService {
 
         // Skip navigation/reference sections
         const skipTitles = ['voir aussi', 'notes et références', 'articles connexes', 'liens externes', 'bibliographie'];
-        if (section.title && skipTitles.some(skip => section.title.toLowerCase().includes(skip))) {
+        const sectionTitle = section.title;
+        if (sectionTitle && skipTitles.some(skip => sectionTitle.toLowerCase().includes(skip))) {
           continue;
         }
 

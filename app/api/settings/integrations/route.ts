@@ -1,4 +1,4 @@
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { SettingsRepository } from "@/lib/repositories/SettingsRepository";
 import { OllamaSummarizerService } from "@/lib/services/OllamaSummarizerService";
 import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
 import { LLM_URLS } from "@/lib/config/Constants";
@@ -10,7 +10,7 @@ const LOG_CONTEXT = "[SettingsAPI:integrations]";
  * Get all LLM integration settings
  */
 export const GET = withSimpleErrorHandler(async () => {
-  const db = DatabaseService.getInstance();
+  const db = SettingsRepository.getInstance();
 
   const settings = {
     llm_provider: db.getSetting("llm_provider") || "ollama",
@@ -37,7 +37,7 @@ export const GET = withSimpleErrorHandler(async () => {
  */
 export const POST = withSimpleErrorHandler(async (request: Request) => {
   const body = await request.json();
-  const db = DatabaseService.getInstance();
+  const db = SettingsRepository.getInstance();
 
   // Save each setting if provided
   const settingsToSave: Record<string, string> = {};

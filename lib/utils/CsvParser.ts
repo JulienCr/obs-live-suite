@@ -4,7 +4,7 @@
  * Parses CSV files containing quiz questions and converts them to Question objects
  */
 
-import { Question } from "@/lib/models/Quiz";
+import { Question, quizModeSchema } from "@/lib/models/Quiz";
 import { v4 as uuidv4 } from "uuid";
 
 export interface CsvRow {
@@ -105,7 +105,7 @@ function csvRowToQuestion(row: CsvRow): Partial<Question> {
   // Base question fields
   const question: Partial<Question> = {
     id: uuidv4(),
-    type: type as any,
+    type: type as Question["type"],
     text: row.text || row.question || '',
     points: parseInt(row.points || '1', 10),
     time_s: parseInt(row.time_s || row.time || '20', 10),
@@ -158,7 +158,10 @@ function csvRowToQuestion(row: CsvRow): Partial<Question> {
 
   // Mode (for advanced question types)
   if (row.mode) {
-    question.mode = row.mode as any;
+    const parsed = quizModeSchema.safeParse(row.mode);
+    if (parsed.success) {
+      question.mode = parsed.data;
+    }
   }
 
   return question;
