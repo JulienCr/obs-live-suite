@@ -27,6 +27,8 @@ export interface SubVideoEditorProps {
   parentPoster: DbPoster;
   onSubVideoCreated?: (subVideo: DbPoster) => void;
   onClose?: () => void;
+  initialStartTime?: number;  // Pre-fill start time (e.g., from I key shortcut)
+  initialEndTime?: number;    // Pre-fill end time (e.g., from O key shortcut)
 }
 
 interface CreateSubVideoResponse {
@@ -48,6 +50,8 @@ export function SubVideoEditor({
   parentPoster,
   onSubVideoCreated,
   onClose,
+  initialStartTime,
+  initialEndTime,
 }: SubVideoEditorProps) {
   const t = useTranslations("assets.videoEditor");
   const tCommon = useTranslations("common");
@@ -56,15 +60,19 @@ export function SubVideoEditor({
   const DEFAULT_DURATION = 3600;
   const effectiveDuration = parentPoster.duration || DEFAULT_DURATION;
 
+  // Compute initial values (use props if provided, otherwise defaults)
+  const defaultStart = initialStartTime ?? 0;
+  const defaultEnd = initialEndTime ?? Math.min(60, effectiveDuration);
+
   // Form state
   const [title, setTitle] = useState("");
-  const [startTime, setStartTime] = useState(0);
-  const [endTime, setEndTime] = useState(Math.min(60, effectiveDuration));
+  const [startTime, setStartTime] = useState(defaultStart);
+  const [endTime, setEndTime] = useState(defaultEnd);
   const [endBehavior, setEndBehavior] = useState<EndBehavior>("stop");
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number }>({
-    start: 0,
-    end: Math.min(60, effectiveDuration),
+    start: defaultStart,
+    end: defaultEnd,
   });
 
   // Sync selection range with form state
@@ -110,7 +118,7 @@ export function SubVideoEditor({
         "/api/assets/thumbnail",
         {
           fileUrl: parentPoster.fileUrl,
-          timestamp: startTime + (clipDuration / 2), // Middle of the clip
+          timestamp: startTime, // First frame of the clip
         }
       );
       return response;

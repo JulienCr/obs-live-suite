@@ -19,11 +19,8 @@ interface Poster {
 interface VirtualizedPosterGridProps {
   posters: Poster[];
   variant?: "enabled" | "disabled";
-  onEdit?: (poster: Poster) => void;
   onToggleEnabled?: (poster: Poster) => void;
   onDelete?: (poster: Poster) => void;
-  onChapters?: (poster: Poster) => void;
-  onSubVideos?: (poster: Poster) => void;
   selectedIds?: Set<string>;
   onToggleSelection?: (id: string) => void;
   isBulkDeleting?: boolean;
@@ -43,11 +40,8 @@ const POSTER_EMPTY_MESSAGES = {
 export function VirtualizedPosterGrid({
   posters,
   variant = "enabled",
-  onEdit,
   onToggleEnabled,
   onDelete,
-  onChapters,
-  onSubVideos,
   selectedIds,
   onToggleSelection,
   isBulkDeleting,
@@ -62,11 +56,8 @@ export function VirtualizedPosterGrid({
         <PosterCard
           poster={poster}
           variant={variant}
-          onEdit={onEdit}
           onToggleEnabled={onToggleEnabled}
           onDelete={onDelete}
-          onChapters={onChapters}
-          onSubVideos={onSubVideos}
           isSelected={selectedIds?.has(poster.id)}
           onToggleSelection={onToggleSelection}
           isBulkDeleting={isBulkDeleting}

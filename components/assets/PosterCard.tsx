@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Power, PowerOff, Trash2, Play, Image as ImageIcon, ListVideo, Scissors } from "lucide-react";
+import { Edit, Power, PowerOff, Trash2, Play, Image as ImageIcon } from "lucide-react";
 import { CardActionBar } from "@/components/ui/CardActionBar";
 
 interface Poster {
@@ -22,11 +22,8 @@ interface Poster {
 interface PosterCardProps {
   poster: Poster;
   variant?: "enabled" | "disabled";
-  onEdit?: (poster: Poster) => void;
   onToggleEnabled?: (poster: Poster) => void;
   onDelete?: (poster: Poster) => void;
-  onChapters?: (poster: Poster) => void;
-  onSubVideos?: (poster: Poster) => void;
   isSelected?: boolean;
   onToggleSelection?: (id: string) => void;
   isBulkDeleting?: boolean;
@@ -39,11 +36,8 @@ interface PosterCardProps {
 export function PosterCard({
   poster,
   variant = "enabled",
-  onEdit,
   onToggleEnabled,
   onDelete,
-  onChapters,
-  onSubVideos,
   isSelected = false,
   onToggleSelection,
   isBulkDeleting = false,
@@ -239,7 +233,7 @@ export function PosterCard({
         {/* Actions - Show on hover */}
         <CardActionBar
           actions={[
-            ...(onEdit ? [{ icon: Edit, label: "Edit", onClick: () => onEdit(poster), title: "Edit", className: "flex-1 h-8 text-xs" }] : []),
+            { icon: Edit, label: "Edit", href: `/assets/posters/${poster.id}`, title: "Edit", className: "flex-1 h-8 text-xs" },
             ...(onToggleEnabled ? [{
               icon: isEnabled ? PowerOff : Power,
               label: isEnabled ? "Disable" : "Enable",
@@ -250,14 +244,6 @@ export function PosterCard({
             }] : []),
             ...(onDelete ? [{ icon: Trash2, onClick: () => onDelete(poster), variant: "destructive" as const, title: "Delete", className: "h-8 px-2" }] : []),
           ]}
-          secondaryActions={
-            (poster.type === "video" || poster.type === "youtube") && (onChapters || onSubVideos)
-              ? [
-                  ...(onChapters ? [{ icon: ListVideo, label: "Chapters", onClick: () => onChapters(poster), title: "Chapters", className: "flex-1 h-7 text-xs" }] : []),
-                  ...(onSubVideos ? [{ icon: Scissors, label: "Clips", onClick: () => onSubVideos(poster), title: "Sub-videos", className: "flex-1 h-7 text-xs" }] : []),
-                ]
-              : undefined
-          }
           showLabels={true}
           className="pt-1"
         />
