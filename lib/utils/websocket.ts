@@ -8,7 +8,7 @@
  * Ports are imported from the centralized config: @/lib/config/urls
  */
 
-import { BACKEND_PORT, WS_PORT, APP_PORT } from "@/lib/config/urls";
+import { BACKEND_PORT, WS_PORT, APP_PORT, HTTP_PROTOCOL, WS_PROTOCOL } from "@/lib/config/urls";
 
 /**
  * Get WebSocket URL for the WebSocket Hub
@@ -16,7 +16,7 @@ import { BACKEND_PORT, WS_PORT, APP_PORT } from "@/lib/config/urls";
  */
 export function getWebSocketUrl(): string {
   if (typeof window === "undefined") {
-    return `ws://localhost:${WS_PORT}`;
+    return `${WS_PROTOCOL}://localhost:${WS_PORT}`;
   }
 
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -29,7 +29,7 @@ export function getWebSocketUrl(): string {
  */
 export function getBackendUrl(): string {
   if (typeof window === "undefined") {
-    return `http://localhost:${BACKEND_PORT}`;
+    return `${HTTP_PROTOCOL}://localhost:${BACKEND_PORT}`;
   }
 
   return `${window.location.protocol}//${window.location.hostname}:${BACKEND_PORT}`;
@@ -40,7 +40,7 @@ export function getBackendUrl(): string {
  */
 export function getAppUrl(): string {
   if (typeof window === "undefined") {
-    return `http://localhost:${APP_PORT}`;
+    return `${HTTP_PROTOCOL}://localhost:${APP_PORT}`;
   }
 
   return `${window.location.protocol}//${window.location.hostname}:${APP_PORT}`;

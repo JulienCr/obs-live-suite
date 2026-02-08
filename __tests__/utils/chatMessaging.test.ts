@@ -1,8 +1,8 @@
 import { sendChatMessage, sendChatMessageIfEnabled, ChatMessageSettings } from '@/lib/utils/chatMessaging';
 
-// Mock the BACKEND_URL from lib/config/urls
-jest.mock('@/lib/config/urls', () => ({
-  BACKEND_URL: 'http://localhost:3002',
+// Mock getBackendUrl which chatMessaging actually uses (via websocket.ts)
+jest.mock('@/lib/utils/websocket', () => ({
+  getBackendUrl: () => 'http://localhost:3002',
 }));
 
 // Mock the Logger
@@ -96,8 +96,8 @@ describe('chatMessaging', () => {
 
       // Re-import to get fresh logger instance
       jest.resetModules();
-      jest.mock('@/lib/config/urls', () => ({
-        BACKEND_URL: 'http://localhost:3002',
+      jest.mock('@/lib/utils/websocket', () => ({
+        getBackendUrl: () => 'http://localhost:3002',
       }));
       
       const mockError = jest.fn();

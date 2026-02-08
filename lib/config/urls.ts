@@ -22,8 +22,35 @@ export const WS_PORT = process.env.WEBSOCKET_PORT || "3003";
 // PROTOCOL - HTTP or HTTPS
 // ============================================================================
 
-/** Use HTTPS for frontend (set USE_HTTPS=true to enable) */
-export const USE_HTTPS = process.env.USE_HTTPS === "true";
+/**
+ * Auto-detect HTTPS from certificate files or USE_HTTPS env var.
+ * Server-side: checks for mkcert certificate files in project root.
+ * Client-side: detects from current page protocol.
+ */
+export const USE_HTTPS: boolean = (() => {
+  // Explicit env var takes priority
+  if (process.env.USE_HTTPS !== undefined) {
+    return process.env.USE_HTTPS === "true";
+  }
+
+  // Server-side: auto-detect from certificate files (matches createServerWithFallback behavior)
+  if (typeof window === "undefined") {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require("fs");
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const path = require("path");
+      const certPath = path.join(process.cwd(), "localhost+4.pem");
+      const keyPath = path.join(process.cwd(), "localhost+4-key.pem");
+      return fs.existsSync(certPath) && fs.existsSync(keyPath);
+    } catch {
+      return false;
+    }
+  }
+
+  // Client-side: detect from page protocol
+  return typeof location !== "undefined" && location.protocol === "https:";
+})();
 
 /** HTTP protocol based on USE_HTTPS setting */
 export const HTTP_PROTOCOL = USE_HTTPS ? "https" : "http";
