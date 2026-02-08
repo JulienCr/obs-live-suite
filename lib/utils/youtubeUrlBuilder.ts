@@ -104,13 +104,13 @@ export function buildYouTubeEmbedUrl(options: YouTubeEmbedOptions): string {
   params.set("mute", mute ? "1" : "0");
   params.set("controls", controls ? "1" : "0");
   
-  // Timing parameters
+  // Timing parameters (YouTube requires integer seconds)
   if (startTime !== undefined) {
-    params.set("start", startTime.toString());
+    params.set("start", Math.floor(startTime).toString());
   }
-  
+
   if (endTime !== undefined) {
-    params.set("end", endTime.toString());
+    params.set("end", Math.ceil(endTime).toString());
   }
   
   // Loop behavior

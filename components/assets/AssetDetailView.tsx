@@ -142,7 +142,7 @@ export function AssetDetailView({
 
   // Enable keyboard shortcuts for videos (not clips)
   useVideoKeyboardShortcuts({
-    enabled: poster.type === "video" && !isClip,
+    enabled: isVideoType && !isClip,
     currentTime,
     onAddChapter: (time) => setPendingChapterTime(time),
     onSetInPoint: (time) => {

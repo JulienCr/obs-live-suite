@@ -61,8 +61,9 @@ export function SubVideoEditor({
   const effectiveDuration = parentPoster.duration || DEFAULT_DURATION;
 
   // Compute initial values (use props if provided, otherwise defaults)
-  const defaultStart = initialStartTime ?? 0;
-  const defaultEnd = initialEndTime ?? Math.min(60, effectiveDuration);
+  // Floor/ceil to integers — YouTube requires integer seconds for start/end params
+  const defaultStart = initialStartTime != null ? Math.floor(initialStartTime) : 0;
+  const defaultEnd = initialEndTime != null ? Math.ceil(initialEndTime) : Math.min(60, effectiveDuration);
 
   // Form state
   const [title, setTitle] = useState("");
