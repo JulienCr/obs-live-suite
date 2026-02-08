@@ -88,7 +88,7 @@ export class SubVideoService {
 
     // Validate time range
     if (startTime < 0) {
-      throw new Error("Start time must be positive");
+      throw new Error("Start time must be non-negative");
     }
     if (endTime <= startTime) {
       throw new Error("End time must be greater than start time");

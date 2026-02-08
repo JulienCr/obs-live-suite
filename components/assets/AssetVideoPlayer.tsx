@@ -78,7 +78,7 @@ export function AssetVideoPlayer({
     }, 500);
 
     return () => clearInterval(interval);
-  }, [type, onTimeUpdate, youtubeApi.stateRef]);
+  }, [type, onTimeUpdate]);
 
   // Update current time from video
   useEffect(() => {

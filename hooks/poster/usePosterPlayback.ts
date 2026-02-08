@@ -182,11 +182,6 @@ export function usePosterPlayback(
 
     // Send state updates periodically for YouTube
     const stateInterval = setInterval(() => {
-      // Increment local time if playing (YouTube doesn't always report continuously)
-      if (youtubeStateRef.current.isPlaying) {
-        youtubeStateRef.current.currentTime += 1;
-      }
-
       setPlaybackState({ ...youtubeStateRef.current });
 
       send({

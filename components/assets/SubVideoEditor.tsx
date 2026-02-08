@@ -173,7 +173,7 @@ export function SubVideoEditor({
       {!parentPoster.duration && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
           <p className="text-sm text-amber-700 dark:text-amber-400">
-            ⚠️ Unknown duration - clip times will not be validated. Please ensure your clip range is within the actual video length and test the clip before use.
+            {t("unknownDurationWarning")}
           </p>
         </div>
       )}

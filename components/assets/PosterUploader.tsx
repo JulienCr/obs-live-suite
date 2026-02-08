@@ -93,7 +93,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
       toast({
         variant: "destructive",
         title: t("invalidYoutubeUrl"),
-        description: "Veuillez fournir une URL YouTube valide ou un ID de vidéo.",
+        description: t("invalidYoutubeUrlDescription"),
       });
       return;
     }
@@ -132,8 +132,8 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
     if (!duration || duration <= 0) {
       toast({
         variant: "destructive",
-        title: "Format invalide",
-        description: "Format de durée invalide. Utilisez HH:MM:SS (ex: 6:05:15)",
+        title: t("invalidDurationFormat"),
+        description: t("invalidDurationFormatDescription"),
       });
       return;
     }
@@ -247,17 +247,16 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
                 <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                    Durée manquante
+                    {t("durationMissing")}
                   </p>
                   <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                    La durée de cette vidéo YouTube ne peut pas être détectée automatiquement.
-                    Veuillez entrer la durée manuellement.
+                    {t("durationMissingDescription")}
                   </p>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="youtube-duration">
-                  Durée de la vidéo (HH:MM:SS)
+                  {t("videoDurationLabel")}
                 </Label>
                 <Input
                   id="youtube-duration"
@@ -268,7 +267,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
                 />
                 <div className="flex gap-2">
                   <Button onClick={handleManualDurationSubmit}>
-                    Créer avec cette durée
+                    {t("createWithDuration")}
                   </Button>
                   <Button
                     variant="outline"
@@ -278,7 +277,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
                       setManualDuration("");
                     }}
                   >
-                    Annuler
+                    {tCommon("cancel")}
                   </Button>
                 </div>
               </div>

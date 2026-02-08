@@ -41,11 +41,16 @@ describe("YouTubeMetadataService", () => {
 
   describe("API Response Structure", () => {
     it("should return null if API key is not configured", async () => {
-      // Without YOUTUBE_API_KEY in environment, should return null
-      const result = await service.fetchMetadata("dQw4w9WgXcQ");
-      
+      // In test environments, API key is typically not set
       if (!service.isConfigured()) {
+        const result = await service.fetchMetadata("dQw4w9WgXcQ");
         expect(result).toBeNull();
+      } else {
+        // If API key happens to be configured, result should be valid metadata
+        const result = await service.fetchMetadata("dQw4w9WgXcQ");
+        expect(result).not.toBeNull();
+        expect(result).toHaveProperty("videoId");
+        expect(result).toHaveProperty("duration");
       }
     });
   });

@@ -737,7 +737,13 @@
       "regenerateThumbnail": "Régénérer la miniature",
       "thumbnailRegenerated": "Miniature régénérée",
       "thumbnailFromPlayhead": "La miniature sera générée à la position actuelle de lecture",
-      "createClipFromSelection": "Créer un clip à partir de la sélection"
+      "createClipFromSelection": "Créer un clip à partir de la sélection",
+      "durationUnknown": "Durée inconnue",
+      "durationUnknownDescription": "La timeline n'est pas disponible car la durée de cette vidéo n'est pas connue. Veuillez l'ajouter manuellement ci-dessous pour activer la timeline et les clips.",
+      "durationInSeconds": "Durée (en secondes)",
+      "durationRequiredForTimeline": "Requis pour activer la timeline",
+      "durationPlaceholder": "Ex: 3600 pour 1 heure",
+      "durationValueUnknown": "Inconnue"
     },
     "videoEditor": {
       "chapters": "Chapitres",
@@ -775,7 +781,8 @@
       "subVideoCreated": "Sous-vidéo créée avec succès",
       "chapterAdded": "Chapitre ajouté",
       "chapterUpdated": "Chapitre mis à jour",
-      "chapterDeleted": "Chapitre supprimé"
+      "chapterDeleted": "Chapitre supprimé",
+      "unknownDurationWarning": "Durée inconnue — les temps du clip ne seront pas validés. Assurez-vous que la plage du clip se trouve dans la longueur réelle de la vidéo et testez le clip avant utilisation."
     },
     "themes": {
       "title": "Thèmes",
@@ -853,7 +860,14 @@
       "youtubeUrlHint": "Collez une URL YouTube ou un ID de vidéo",
       "addYoutubeVideo": "Ajouter la vidéo YouTube",
       "uploadFailed": "Échec du téléchargement",
-      "invalidYoutubeUrl": "URL YouTube invalide"
+      "invalidYoutubeUrl": "URL YouTube invalide",
+      "invalidYoutubeUrlDescription": "Veuillez fournir une URL YouTube valide ou un ID de vidéo.",
+      "invalidDurationFormat": "Format invalide",
+      "invalidDurationFormatDescription": "Format de durée invalide. Utilisez HH:MM:SS (ex: 6:05:15)",
+      "durationMissing": "Durée manquante",
+      "durationMissingDescription": "La durée de cette vidéo YouTube ne peut pas être détectée automatiquement. Veuillez entrer la durée manuellement.",
+      "videoDurationLabel": "Durée de la vidéo (HH:MM:SS)",
+      "createWithDuration": "Créer avec cette durée"
     },
     "quickAdd": {
       "title": "Ajout rapide de média",

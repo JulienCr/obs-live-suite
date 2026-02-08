@@ -448,6 +448,7 @@ export function PosterContent({ className }: PosterContentProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Dashboard-specific compact format (e.g., "2h05") — differs from formatDurationString (H:MM:SS)
   const formatDuration = (seconds: number) => {
     if (isNaN(seconds) || !isFinite(seconds) || seconds === 0) {
       return "Unknown";
@@ -465,6 +466,8 @@ export function PosterContent({ className }: PosterContentProps) {
   const clipStart = activePosterData?.startTime ?? 0;
   const clipEnd = activePosterData?.endTime ?? 0;
   const hasSubClip = clipStart > 0 || clipEnd > 0;
+  const displayCurrentTime = hasSubClip ? Math.max(0, playbackState.currentTime - clipStart) : playbackState.currentTime;
+  const displayDuration = hasSubClip && clipEnd > 0 ? clipEnd - clipStart : playbackState.duration;
 
   // Update active chapters when poster changes
   useEffect(() => {
@@ -771,7 +774,7 @@ export function PosterContent({ className }: PosterContentProps) {
             )}
 
             <span className="text-sm ml-auto">
-              {formatTime(hasSubClip ? Math.max(0, playbackState.currentTime - clipStart) : playbackState.currentTime)} / {formatDuration(hasSubClip && clipEnd > 0 ? clipEnd - clipStart : playbackState.duration)}
+              {formatTime(displayCurrentTime)} / {formatDuration(displayDuration)}
             </span>
           </div>
           <VideoTimeline

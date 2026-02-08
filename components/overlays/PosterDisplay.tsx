@@ -89,8 +89,11 @@ export function PosterDisplay({
     const videoId = extractYouTubeId(fileUrl);
     if (!videoId) {
       console.error("Failed to extract YouTube video ID from:", fileUrl);
-      // Fallback to original URL if extraction fails
-      return null;
+      return (
+        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#000", color: "#666" }}>
+          <span>Invalid YouTube URL</span>
+        </div>
+      );
     }
     const youtubeUrl = buildYouTubeEmbedUrl({
       videoId,

@@ -215,11 +215,10 @@ export function AssetDetailView({
                 <Alert className="border-amber-500/50 bg-amber-500/10">
                   <AlertCircle className="h-4 w-4 text-amber-600" />
                   <AlertTitle className="text-amber-900 dark:text-amber-100">
-                    Durée inconnue
+                    {t("durationUnknown")}
                   </AlertTitle>
                   <AlertDescription className="text-amber-800 dark:text-amber-200">
-                    La timeline n'est pas disponible car la durée de cette vidéo n'est pas connue.
-                    Veuillez l'ajouter manuellement ci-dessous pour activer la timeline et les clips.
+                    {t("durationUnknownDescription")}
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -292,10 +291,10 @@ export function AssetDetailView({
               {poster.type === "youtube" && (
                 <div className="space-y-2">
                   <Label htmlFor="duration">
-                    Durée (en secondes)
+                    {t("durationInSeconds")}
                     {hasUnknownDuration && (
                       <span className="text-amber-600 ml-2 text-xs">
-                        • Requis pour activer la timeline
+                        {t("durationRequiredForTimeline")}
                       </span>
                     )}
                   </Label>
@@ -308,13 +307,13 @@ export function AssetDetailView({
                       const val = e.target.value;
                       handleFieldChange("duration", val ? parseInt(val, 10) : null);
                     }}
-                    placeholder="Ex: 3600 pour 1 heure"
+                    placeholder={t("durationPlaceholder")}
                     className={hasUnknownDuration ? "border-amber-500" : ""}
                   />
                   <p className="text-xs text-muted-foreground">
                     {formData.duration
                       ? `${formatTimestamp(formData.duration)} (${Math.floor(formData.duration / 60)} minutes)`
-                      : "Inconnue"}
+                      : t("durationValueUnknown")}
                   </p>
                 </div>
               )}
