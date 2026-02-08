@@ -85,6 +85,11 @@ export function PosterDisplay({
   if (type === "youtube") {
     // Build YouTube embed URL with parameters
     const videoId = extractYouTubeId(fileUrl);
+    if (!videoId) {
+      console.error("Failed to extract YouTube video ID from:", fileUrl);
+      // Fallback to original URL if extraction fails
+      return null;
+    }
     const youtubeUrl = buildYouTubeEmbedUrl({
       videoId,
       startTime: subVideoConfig?.startTime,
