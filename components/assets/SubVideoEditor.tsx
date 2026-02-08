@@ -138,9 +138,12 @@ export function SubVideoEditor({
     if (!title.trim()) return false;
     if (startTime < 0) return false;
     if (endTime <= startTime) return false;
-    if (endTime > effectiveDuration) return false;
+    // Only validate against duration if we have a known duration
+    if (parentPoster.duration && parentPoster.duration > 0) {
+      if (endTime > effectiveDuration) return false;
+    }
     return true;
-  }, [title, startTime, endTime, effectiveDuration]);
+  }, [title, startTime, endTime, effectiveDuration, parentPoster.duration]);
 
   const handleCreate = () => {
     if (!isValid) return;
@@ -164,6 +167,15 @@ export function SubVideoEditor({
           </p>
         </div>
       </div>
+
+      {/* Duration warning for unknown duration */}
+      {!parentPoster.duration && (
+        <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+          <p className="text-sm text-amber-700 dark:text-amber-400">
+            ⚠️ Unknown duration - clip times will not be validated. Please ensure your clip range is within the actual video length and test the clip before use.
+          </p>
+        </div>
+      )}
 
       {/* Title input */}
       <div className="space-y-2">
