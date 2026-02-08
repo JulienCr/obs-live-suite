@@ -11,6 +11,8 @@ import {
 } from "react";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/utils/ClientFetch";
 import type { DbWorkspaceSummary, DbWorkspace } from "@/lib/models/Database";
+import type { PanelId, ColorScheme } from "@/lib/models/PanelColor";
+import { PANEL_IDS, COLOR_SCHEMES } from "@/lib/models/PanelColor";
 import { usePanelColorsSafe } from "./PanelColorsContext";
 
 const LAYOUT_KEY = "obs-live-suite-dockview-layout";
@@ -136,7 +138,12 @@ export function WorkspacesProvider({ children }: WorkspacesProviderProps) {
         // Apply panel colors
         if (setScheme) {
           for (const [panelId, scheme] of Object.entries(workspacePanelColors)) {
-            await setScheme(panelId as any, scheme as any);
+            if (
+              (PANEL_IDS as readonly string[]).includes(panelId) &&
+              (COLOR_SCHEMES as readonly string[]).includes(scheme)
+            ) {
+              await setScheme(panelId as PanelId, scheme as ColorScheme);
+            }
           }
         }
 

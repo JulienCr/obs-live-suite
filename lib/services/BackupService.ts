@@ -72,11 +72,15 @@ export class BackupService {
 
   /**
    * Import a profile from a zip file
+   *
+   * @deprecated This method is not implemented. The export/import feature
+   * was planned but never completed. Consider removing if not needed.
+   * Tracking: https://github.com/JulienCr/obs-tools/issues/TBD
    */
-  async importProfile(zipPath: string): Promise<string> {
-    // TODO: Implement zip extraction and profile import
-    this.logger.info(`Importing profile from: ${zipPath}`);
-    throw new Error("Not implemented yet");
+  async importProfile(_zipPath: string): Promise<string> {
+    throw new Error(
+      "Profile import is not implemented. Use exportAppConfig() for full backups instead."
+    );
   }
 
   /**

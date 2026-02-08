@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { CheckCircle2, Loader2, Timer, MessageSquare } from "lucide-react";
-import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { useSettings } from "@/lib/hooks/useSettings";
 
 interface OverlaySettingsData {
   lowerThirdDuration: number;
@@ -19,78 +18,25 @@ interface OverlaySettingsResponse {
   settings?: OverlaySettingsData;
 }
 
-interface SaveResponse {
-  success: boolean;
-  error?: string;
-}
+const INITIAL_STATE: OverlaySettingsData = {
+  lowerThirdDuration: 8,
+  chatHighlightDuration: 10,
+  chatHighlightAutoHide: true,
+};
 
 /**
  * Overlay settings for configuring auto-hide timeouts
  */
 export function OverlaySettings() {
-  const [settings, setSettings] = useState<OverlaySettingsData>({
-    lowerThirdDuration: 8,
-    chatHighlightDuration: 10,
-    chatHighlightAutoHide: true,
+  const { data: settings, setData: setSettings, loading, saving, saveResult, save } = useSettings<
+    OverlaySettingsResponse,
+    OverlaySettingsData
+  >({
+    endpoint: "/api/settings/overlay",
+    initialState: INITIAL_STATE,
+    fromResponse: (res) => res.settings ?? INITIAL_STATE,
+    successMessage: "Settings saved successfully!",
   });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveResult, setSaveResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    try {
-      const data = await apiGet<OverlaySettingsResponse>("/api/settings/overlay");
-      if (data.settings) {
-        setSettings(data.settings);
-      }
-    } catch (error) {
-      console.error("Failed to load overlay settings:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    setSaveResult(null);
-
-    try {
-      const data = await apiPost<SaveResponse>("/api/settings/overlay", settings);
-
-      if (data.success) {
-        setSaveResult({
-          success: true,
-          message: "Settings saved successfully!",
-        });
-      } else {
-        setSaveResult({
-          success: false,
-          message: data.error || "Failed to save settings",
-        });
-      }
-    } catch (error) {
-      if (isClientFetchError(error)) {
-        setSaveResult({
-          success: false,
-          message: error.errorMessage,
-        });
-      } else {
-        setSaveResult({
-          success: false,
-          message: error instanceof Error ? error.message : "Failed to save settings",
-        });
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -199,7 +145,7 @@ export function OverlaySettings() {
       )}
 
       {/* Save Button */}
-      <Button onClick={handleSave} disabled={saving}>
+      <Button onClick={save} disabled={saving}>
         {saving ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />

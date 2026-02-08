@@ -12,6 +12,7 @@ import { StreamerbotChatToolbar, SearchBar } from "./StreamerbotChatToolbar";
 import { StreamerbotChatMessageList } from "./StreamerbotChatMessageList";
 import type { StreamerbotChatPanelProps, ChatMessage } from "./types";
 import { StreamerbotConnectionStatus } from "./types";
+import { DEFAULT_STREAMERBOT_CONNECTION } from "@/lib/models/StreamerbotChat";
 import { useToast } from "@/hooks/use-toast";
 import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
@@ -83,7 +84,7 @@ export function StreamerbotChatPanel({
     sendMessage,
     canSendMessages,
   } = useStreamerbotClient({
-    settings: { host: "", port: 0, endpoint: "", scheme: "ws" } as any, // Backend manages actual settings
+    settings: DEFAULT_STREAMERBOT_CONNECTION, // Backend manages actual settings
     onMessage: addMessage,
     onError: (err) => {
       // Only log unexpected errors, not connection refused

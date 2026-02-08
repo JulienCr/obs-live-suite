@@ -7,7 +7,7 @@ import {
 } from "../utils/textProcessing";
 import { LLMProviderFactory } from "./llm/LLMProviderFactory";
 import type { LLMProvider } from "./llm/LLMProvider";
-import { DatabaseService } from "./DatabaseService";
+import { SettingsRepository } from "../repositories/SettingsRepository";
 import { LLM_URLS } from "../config/Constants";
 
 // Configuration constant
@@ -205,7 +205,7 @@ export class OllamaSummarizerService {
     // Only Ollama supports listing models for now
     if (this.provider.getName() === "Ollama") {
       try {
-        const db = DatabaseService.getInstance();
+        const db = SettingsRepository.getInstance();
         const url = db.getSetting("ollama_url") || LLM_URLS.OLLAMA_DEFAULT;
 
         const response = await fetch(`${url}/api/tags`, {
@@ -256,7 +256,7 @@ export class OllamaSummarizerService {
    * Get current configuration info
    */
   getConfig(): { url: string; model: string; num_ctx: number } {
-    const db = DatabaseService.getInstance();
+    const db = SettingsRepository.getInstance();
     const providerType = db.getSetting("llm_provider") || "ollama";
 
     if (providerType === "ollama") {

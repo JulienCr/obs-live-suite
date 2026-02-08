@@ -2,7 +2,7 @@ import { LLMProvider, LLMProviderType, LLMConfig } from "./LLMProvider";
 import { OllamaProvider } from "./OllamaProvider";
 import { OpenAIProvider } from "./OpenAIProvider";
 import { AnthropicProvider } from "./AnthropicProvider";
-import { DatabaseService } from "../DatabaseService";
+import { SettingsRepository } from "../../repositories/SettingsRepository";
 import { Logger } from "../../utils/Logger";
 import { LLM, LLM_URLS } from "../../config/Constants";
 
@@ -16,7 +16,7 @@ export class LLMProviderFactory {
    * Create a provider from database settings
    */
   static createFromSettings(): LLMProvider {
-    const db = DatabaseService.getInstance();
+    const db = SettingsRepository.getInstance();
     
     // Get provider type
     const providerType = (db.getSetting("llm_provider") as LLMProviderType) || LLMProviderType.OLLAMA;

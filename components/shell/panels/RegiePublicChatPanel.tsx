@@ -11,6 +11,7 @@ import { StreamerbotChatHeader } from "@/components/presenter/panels/streamerbot
 import { StreamerbotChatToolbar, SearchBar } from "@/components/presenter/panels/streamerbot-chat/StreamerbotChatToolbar";
 import { RegiePublicChatMessageList } from "./regie-public-chat/RegiePublicChatMessageList";
 import type { ChatMessage } from "@/lib/models/StreamerbotChat";
+import { DEFAULT_STREAMERBOT_CONNECTION } from "@/lib/models/StreamerbotChat";
 import type { ModerationAction } from "./regie-public-chat/types";
 import { CueType, CueFrom, CueAction } from "@/lib/models/Cue";
 import { useToast } from "@/hooks/use-toast";
@@ -62,7 +63,7 @@ function RegiePublicChatContent() {
     connect,
     disconnect,
   } = useStreamerbotClient({
-    settings: { host: "", port: 0, endpoint: "", scheme: "ws" } as any, // Backend manages actual settings
+    settings: DEFAULT_STREAMERBOT_CONNECTION, // Backend manages actual settings
     onMessage: addMessage,
     onError: (err) => {
       if (err.type !== "connection_refused") {

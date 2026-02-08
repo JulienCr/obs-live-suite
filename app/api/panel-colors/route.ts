@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { DatabaseService } from "@/lib/services/DatabaseService";
+import { PanelColorRepository } from "@/lib/repositories/PanelColorRepository";
 import { PANEL_IDS, COLOR_SCHEMES } from "@/lib/models/PanelColor";
 
 /**
@@ -7,8 +7,8 @@ import { PANEL_IDS, COLOR_SCHEMES } from "@/lib/models/PanelColor";
  */
 export async function GET() {
   try {
-    const db = DatabaseService.getInstance();
-    const colors = db.getAllPanelColors();
+    const panelColorRepo = PanelColorRepository.getInstance();
+    const colors = panelColorRepo.getAllPanelColors();
     return NextResponse.json({ colors }, { status: 200 });
   } catch (error) {
     console.error("[API] Failed to get panel colors:", error);
@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = DatabaseService.getInstance();
-    const panelColor = db.upsertPanelColor(panelId, scheme);
+    const panelColorRepo = PanelColorRepository.getInstance();
+    const panelColor = panelColorRepo.upsertPanelColor(panelId, scheme);
 
     return NextResponse.json({ panelColor }, { status: 200 });
   } catch (error) {

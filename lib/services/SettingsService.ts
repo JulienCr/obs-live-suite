@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { z } from "zod";
-import { DatabaseService } from "./DatabaseService";
+import { SettingsRepository } from "../repositories/SettingsRepository";
 import { Logger } from "../utils/Logger";
 import { SettingsStore } from "./SettingsStore";
 import { streamerbotConnectionSchema } from "../models/streamerbot/schemas";
@@ -91,7 +91,7 @@ export type GeneralSettings = z.infer<typeof GeneralSettingsSchema>;
  */
 export class SettingsService {
   private static instance: SettingsService;
-  private db: DatabaseService;
+  private db: SettingsRepository;
   private logger: Logger;
 
   // Settings stores for each group
@@ -104,7 +104,7 @@ export class SettingsService {
   private presenterChannelStore: SettingsStore<typeof presenterChannelSettingsSchema.shape>;
 
   private constructor() {
-    this.db = DatabaseService.getInstance();
+    this.db = SettingsRepository.getInstance();
     this.logger = new Logger("SettingsService");
 
     // Initialize OBS settings store with environment variable fallback

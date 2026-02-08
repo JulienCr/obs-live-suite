@@ -93,7 +93,7 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
     return JSON.parse(text) as T;
   } catch {
     // If parsing fails, return text wrapped in an object
-    return { message: text } as unknown as T;
+    return { message: text } as T;
   }
 }
 

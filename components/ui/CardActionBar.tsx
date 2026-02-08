@@ -1,13 +1,15 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 
 export interface CardAction {
   icon: React.ComponentType<{ className?: string }>;
   label?: string;
-  onClick: () => void;
+  onClick?: () => void;
+  href?: string;
   variant?: "default" | "outline" | "destructive" | "ghost";
   title?: string;
   disabled?: boolean;
@@ -36,7 +38,7 @@ export function CardActionBar({
     const Icon = action.icon;
     const showLabel = showLabels && action.label;
 
-    return (
+    const button = (
       <Button
         key={index}
         variant={action.variant ?? "outline"}
@@ -48,11 +50,23 @@ export function CardActionBar({
           showLabel ? "flex-1" : "px-2",
           action.className
         )}
+        asChild={!!action.href}
       >
-        <Icon className={cn("w-3 h-3", showLabel && "mr-1")} />
-        {showLabel && <span className="text-xs">{action.label}</span>}
+        {action.href ? (
+          <Link href={action.href}>
+            <Icon className={cn("w-3 h-3", showLabel && "mr-1")} />
+            {showLabel && <span className="text-xs">{action.label}</span>}
+          </Link>
+        ) : (
+          <>
+            <Icon className={cn("w-3 h-3", showLabel && "mr-1")} />
+            {showLabel && <span className="text-xs">{action.label}</span>}
+          </>
+        )}
       </Button>
     );
+
+    return button;
   };
 
   return (

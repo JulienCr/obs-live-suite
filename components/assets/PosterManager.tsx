@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { TagInput } from "@/components/ui/tag-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,11 +13,8 @@ import { EnableSearchCombobox } from "@/components/ui/EnableSearchCombobox";
 import { PosterUploader } from "./PosterUploader";
 import { VirtualizedPosterGrid } from "./VirtualizedPosterGrid";
 import { Trash2, Upload, ChevronDown, ChevronUp, Image as ImageIcon, Video, Youtube, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/utils/ClientFetch";
-import { ChapterEditor } from "./ChapterEditor";
-import { SubVideoEditor } from "./SubVideoEditor";
-import type { DbPoster } from "@/lib/models/Database";
+import { apiGet, apiPost, apiPatch } from "@/lib/utils/ClientFetch";
+import { useEntityManager } from "@/lib/hooks";
 
 interface Poster {
   id: string;
@@ -45,13 +42,21 @@ interface Poster {
 export function PosterManager() {
   const t = useTranslations("assets.posters");
   const tCommon = useTranslations("common");
-  const [posters, setPosters] = useState<Poster[]>([]);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  const {
+    items: posters,
+    loading,
+    refresh: refreshPosters,
+    deleteItem,
+  } = useEntityManager<Poster>({
+    endpoint: "/api/assets/posters",
+    extractItems: (data) => (data as { posters: Poster[] }).posters || [],
+    entityName: "posters",
+  });
+
   const [showUploader, setShowUploader] = useState(false);
-  const [showForm, setShowForm] = useState(false);
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [showImageReplacer, setShowImageReplacer] = useState(false);
   const [showDisabled, setShowDisabled] = useState(false);
 
   // Filters
@@ -59,39 +64,13 @@ export function PosterManager() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<"all" | "image" | "video" | "youtube">("all");
 
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    source: "",
-    fileUrl: "",
-    type: "image" as "image" | "video" | "youtube",
-    tags: [] as string[],
-    chatMessage: "",
-    duration: null as number | null,
-  });
   // Track selected poster IDs for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
-  // Chapter and Sub-video dialogs
-  const [chapterDialogPoster, setChapterDialogPoster] = useState<Poster | null>(null);
-  const [subVideoDialogPoster, setSubVideoDialogPoster] = useState<Poster | null>(null);
-
   useEffect(() => {
-    fetchPosters();
     fetchTagSuggestions();
   }, []);
-
-  const fetchPosters = async () => {
-    try {
-      const data = await apiGet<{ posters: Poster[] }>("/api/assets/posters");
-      setPosters(data.posters || []);
-    } catch (error) {
-      console.error("Failed to fetch posters:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchTagSuggestions = async () => {
     try {
@@ -150,87 +129,37 @@ export function PosterManager() {
     type: "image" | "video" | "youtube",
     duration?: number
   ) => {
-    let title = "";
-    let source = "";
-
-    // Auto-fetch metadata for YouTube
-    if (type === "youtube") {
-      try {
-        const data = await apiGet<{ title?: string; author_name?: string }>(
-          `/api/utils/metadata?url=${encodeURIComponent(url)}`
-        );
-        if (data.title) title = data.title;
-        if (data.author_name && data.title) {
-          source = `${data.author_name} | ${data.title}`;
-        }
-      } catch (error) {
-        console.error("Failed to fetch metadata:", error);
-      }
-    }
-
-    setFormData({
-      ...formData,
-      fileUrl: url,
-      type,
-      title: title || formData.title, // Only overwrite if we got a title
-      source: source || formData.source,
-      duration: duration ?? null,
-    });
-    setShowUploader(false);
-    setShowImageReplacer(false);
-    setShowForm(true);
-  };
-
-  const handleEdit = (poster: Poster) => {
-    setEditingId(poster.id);
-    setFormData({
-      title: poster.title,
-      description: poster.description || "",
-      source: poster.source || "",
-      fileUrl: poster.fileUrl,
-      type: poster.type,
-      tags: poster.tags,
-      chatMessage: poster.chatMessage || "",
-      duration: poster.duration ?? null,
-    });
-    setShowForm(true);
-    setShowUploader(false);
-    setShowImageReplacer(false);
-  };
-
-  const handleSubmit = async () => {
+    // Create the poster directly
     try {
-      if (editingId) {
-        // Update existing poster
-        await apiPatch<Poster>(`/api/assets/posters/${editingId}`, formData);
-        fetchPosters();
-        fetchTagSuggestions();
-        resetForm();
-      } else {
-        // Create new poster
-        await apiPost<{ poster: Poster }>("/api/assets/posters", formData);
-        fetchPosters();
-        fetchTagSuggestions();
-        resetForm();
+      let title = "";
+      if (type === "youtube") {
+        try {
+          const data = await apiGet<{ title?: string }>(`/api/utils/metadata?url=${encodeURIComponent(url)}`);
+          if (data.title) title = data.title;
+        } catch {}
       }
-    } catch (error) {
-      console.error("Failed to save poster:", error);
-    }
-  };
 
-  const resetForm = () => {
-    setShowForm(false);
-    setEditingId(null);
+      const response = await apiPost<{ poster: Poster }>("/api/assets/posters", {
+        title: title || "New Poster",
+        fileUrl: url,
+        type,
+        tags: [],
+        duration: duration ?? null,
+      });
+
+      // Navigate to detail page for editing
+      router.push(`/assets/posters/${response.poster.id}`);
+    } catch (error) {
+      console.error("Failed to create poster:", error);
+      refreshPosters();
+    }
     setShowUploader(false);
-    setShowImageReplacer(false);
-    setShowImageReplacer(false);
-    setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [], chatMessage: "", duration: null });
   };
 
   const handleToggleEnabled = async (poster: Poster) => {
     try {
       await apiPatch<Poster>(`/api/assets/posters/${poster.id}`, { isEnabled: !poster.isEnabled });
-      fetchPosters();
+      refreshPosters();
     } catch (error) {
       console.error("Failed to toggle poster:", error);
     }
@@ -238,19 +167,13 @@ export function PosterManager() {
 
   const handleDelete = async (poster: Poster) => {
     if (!confirm(`Delete "${poster.title}"?`)) return;
-
-    try {
-      await apiDelete<{ success: boolean }>(`/api/assets/posters/${poster.id}`);
-      fetchPosters();
-    } catch (error) {
-      console.error("Failed to delete poster:", error);
-    }
+    await deleteItem(poster.id);
   };
 
   const handleEnableFromSearch = async (posterId: string) => {
     try {
       await apiPatch<Poster>(`/api/assets/posters/${posterId}`, { isEnabled: true });
-      fetchPosters();
+      refreshPosters();
     } catch (error) {
       console.error("Failed to enable poster:", error);
     }
@@ -263,20 +186,6 @@ export function PosterManager() {
       case "youtube": return <Youtube className="w-3 h-3" />;
       default: return null;
     }
-  };
-
-  // Chapter and Sub-video handlers
-  const handleChapters = (poster: Poster) => {
-    setChapterDialogPoster(poster);
-  };
-
-  const handleSubVideos = (poster: Poster) => {
-    setSubVideoDialogPoster(poster);
-  };
-
-  const handleSubVideoCreated = () => {
-    fetchPosters(); // Refresh the poster list to show the new sub-video
-    setSubVideoDialogPoster(null);
   };
 
   const handleToggleSelection = (id: string) => {
@@ -305,7 +214,7 @@ export function PosterManager() {
         ids: Array.from(selectedIds),
       });
       setSelectedIds(new Set());
-      fetchPosters();
+      refreshPosters();
     } catch (error) {
       console.error('Failed to bulk delete posters:', error);
     } finally {
@@ -339,13 +248,7 @@ export function PosterManager() {
             </div>
           </div>
         }
-        onAdd={() => {
-          setEditingId(null);
-          setShowForm(false);
-          setShowImageReplacer(false);
-          setFormData({ title: "", description: "", source: "", fileUrl: "", type: "image", tags: [], chatMessage: "", duration: null });
-          setShowUploader(true);
-        }}
+        onAdd={() => setShowUploader(true)}
         addLabel={t("addPoster")}
       />
 
@@ -451,141 +354,6 @@ export function PosterManager() {
         />
       )}
 
-      {/* Create/Edit Form */}
-      {showForm && formData.fileUrl && (
-        <div className="border rounded-lg p-4 space-y-4">
-          <h3 className="font-medium text-lg">
-            {editingId ? t("editPoster") : t("uploadPoster")}
-          </h3>
-
-          {/* Current Image Preview (Edit Mode Only) */}
-          {editingId && !showImageReplacer && (
-            <div className="space-y-2">
-              <Label>{t("currentMedia")}</Label>
-              <div className="border rounded-lg overflow-hidden bg-muted">
-                <div className="aspect-video relative">
-                  {formData.type === "image" ? (
-                    <img
-                      src={formData.fileUrl}
-                      alt={formData.title}
-                      className="w-full h-full object-contain"
-                    />
-                  ) : formData.type === "youtube" ? (
-                    <iframe
-                      src={formData.fileUrl}
-                      title={formData.title}
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <video
-                      src={formData.fileUrl}
-                      className="w-full h-full object-contain"
-                      controls
-                    />
-                  )}
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowImageReplacer(true)}
-              >
-                <Upload className="w-3 h-3 mr-2" />
-                {t("changeMedia")}
-              </Button>
-            </div>
-          )}
-
-          {/* Image Replacer (Edit Mode Only) */}
-          {editingId && showImageReplacer && (
-            <div className="space-y-2">
-              <Label>{t("uploadNewMedia")}</Label>
-              <PosterUploader
-                onUpload={handleUploadComplete}
-                onCancel={() => setShowImageReplacer(false)}
-              />
-            </div>
-          )}
-
-          {/* File Info (Create Mode Only) */}
-          {!editingId && (
-            <div className="flex items-center gap-2">
-              <Badge>{formData.type}</Badge>
-              <span className="text-sm text-muted-foreground truncate">
-                {formData.fileUrl}
-              </span>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="title">{t("posterTitle")}</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder={t("titlePlaceholder")}
-              autoFocus
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="source">{t("source")}</Label>
-              <Input
-                id="source"
-                value={formData.source}
-                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                placeholder={t("sourcePlaceholder")}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">{t("description")}</Label>
-              <Input
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder={t("descriptionPlaceholder")}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="tags">{t("tags")}</Label>
-            <TagInput
-              value={formData.tags}
-              onChange={(tags) => setFormData({ ...formData, tags })}
-              suggestions={tagSuggestions}
-              placeholder={t("tagsPlaceholder")}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="chatMessage">{t("chatMessage")}</Label>
-            <Input
-              id="chatMessage"
-              value={formData.chatMessage}
-              onChange={(e) => setFormData({ ...formData, chatMessage: e.target.value })}
-              placeholder={t("chatMessagePlaceholder")}
-              maxLength={500}
-            />
-            <p className="text-xs text-muted-foreground">
-              {formData.chatMessage.length}/500
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <Button onClick={handleSubmit} disabled={!formData.title}>
-              {editingId ? t("updatePoster") : t("savePoster")}
-            </Button>
-            <Button variant="outline" onClick={resetForm}>
-              {tCommon("cancel")}
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Active Posters Grid */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -611,11 +379,8 @@ export function PosterManager() {
           <VirtualizedPosterGrid
             posters={filteredEnabledPosters}
             variant="enabled"
-            onEdit={handleEdit}
             onToggleEnabled={handleToggleEnabled}
             onDelete={handleDelete}
-            onChapters={handleChapters}
-            onSubVideos={handleSubVideos}
             selectedIds={selectedIds}
             onToggleSelection={handleToggleSelection}
             isBulkDeleting={isBulkDeleting}
@@ -646,11 +411,8 @@ export function PosterManager() {
             <VirtualizedPosterGrid
               posters={disabledPosters}
               variant="disabled"
-              onEdit={handleEdit}
               onToggleEnabled={handleToggleEnabled}
               onDelete={handleDelete}
-              onChapters={handleChapters}
-              onSubVideos={handleSubVideos}
               selectedIds={selectedIds}
               onToggleSelection={handleToggleSelection}
               isBulkDeleting={isBulkDeleting}
@@ -695,43 +457,6 @@ export function PosterManager() {
           </Button>
         </div>
       )}
-
-      {/* Chapters Dialog */}
-      <Dialog open={!!chapterDialogPoster} onOpenChange={(open) => !open && setChapterDialogPoster(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{t("chapters")}</DialogTitle>
-            <DialogDescription>
-              {chapterDialogPoster?.title}
-            </DialogDescription>
-          </DialogHeader>
-          {chapterDialogPoster && (
-            <ChapterEditor
-              posterId={chapterDialogPoster.id}
-              videoDuration={chapterDialogPoster.duration || 600}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Sub-Videos Dialog */}
-      <Dialog open={!!subVideoDialogPoster} onOpenChange={(open) => !open && setSubVideoDialogPoster(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{t("createSubVideo")}</DialogTitle>
-            <DialogDescription>
-              {subVideoDialogPoster?.title}
-            </DialogDescription>
-          </DialogHeader>
-          {subVideoDialogPoster && (
-            <SubVideoEditor
-              parentPoster={subVideoDialogPoster as unknown as DbPoster}
-              onSubVideoCreated={handleSubVideoCreated}
-              onClose={() => setSubVideoDialogPoster(null)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

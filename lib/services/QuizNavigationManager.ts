@@ -1,0 +1,196 @@
+import { ChannelManager } from "./ChannelManager";
+import { OverlayChannel } from "../models/OverlayEvents";
+import { Logger } from "../utils/Logger";
+import { QuizStore } from "./QuizStore";
+import { QuizTimer } from "./QuizTimer";
+import { QuizError, type QuizPhase } from "./QuizTypes";
+import type { Session } from "../models/Quiz";
+
+export interface QuizNavigationDeps {
+  store: QuizStore;
+  channel: ChannelManager;
+  timer: QuizTimer;
+  getPhase: () => QuizPhase;
+  setPhase: (phase: QuizPhase) => void;
+}
+
+/**
+ * Handles question/round navigation: next, prev, select, startRound, endRound.
+ * Owned by QuizManager (not a singleton).
+ */
+export class QuizNavigationManager {
+  private logger = new Logger("QuizNavigationManager");
+  private store: QuizStore;
+  private channel: ChannelManager;
+  private timer: QuizTimer;
+  private getPhase: () => QuizPhase;
+  private setPhase: (phase: QuizPhase) => void;
+
+  constructor(deps: QuizNavigationDeps) {
+    this.store = deps.store;
+    this.channel = deps.channel;
+    this.timer = deps.timer;
+    this.getPhase = deps.getPhase;
+    this.setPhase = deps.setPhase;
+  }
+
+  async startRound(roundIndex: number): Promise<void> {
+    try {
+      const sess = this.requireSession();
+      sess.currentRoundIndex = roundIndex;
+      sess.currentQuestionIndex = 0;
+      await this.channel.publish(OverlayChannel.QUIZ, "quiz.start_round", { round_id: sess.rounds[roundIndex]?.id });
+      this.logger.info(`Started round ${roundIndex}`, { roundId: sess.rounds[roundIndex]?.id });
+    } catch (error) {
+      this.logger.error(`startRound failed for round ${roundIndex}`, error);
+      throw new QuizError(`Failed to start round ${roundIndex}`, "startRound", error);
+    }
+  }
+
+  async endRound(): Promise<void> {
+    try {
+      await this.channel.publish(OverlayChannel.QUIZ, "quiz.end_round", {});
+      this.logger.info("Ended current round");
+    } catch (error) {
+      this.logger.error("endRound failed", error);
+      throw new QuizError("Failed to end round", "endRound", error);
+    }
+  }
+
+  async nextQuestion(): Promise<void> {
+    try {
+      const sess = this.requireSession();
+      const round = sess.rounds[sess.currentRoundIndex];
+      if (!round) {
+        this.logger.warn("nextQuestion: No current round");
+        return;
+      }
+      if (sess.currentQuestionIndex + 1 >= round.questions.length) {
+        this.logger.warn("nextQuestion: Already at last question");
+        return;
+      }
+
+      sess.currentQuestionIndex += 1;
+      this.setPhase("idle");
+      await this.timer.stop();
+
+      // Clear previous question's data
+      sess.playerAnswers = {};
+      this.store.setSession(sess);
+
+      // Clear viewer votes (non-critical)
+      try {
+        const { resetViewerInputs } = await import("../../server/api/quiz-bot");
+        resetViewerInputs();
+      } catch (error) {
+        this.logger.error("nextQuestion: Failed to reset viewer inputs", error);
+      }
+
+      // Emit question change to clear UI state
+      const nextQ = round.questions[sess.currentQuestionIndex];
+      await this.channel.publish(OverlayChannel.QUIZ, "question.change", {
+        question_id: nextQ.id,
+        clear_assignments: true
+      });
+
+      this.logger.info(`Advanced to question ${sess.currentQuestionIndex + 1}/${round.questions.length}`, { questionId: nextQ.id });
+    } catch (error) {
+      this.logger.error("nextQuestion failed", error);
+      throw new QuizError("Failed to advance to next question", "nextQuestion", error);
+    }
+  }
+
+  async prevQuestion(): Promise<void> {
+    try {
+      const sess = this.requireSession();
+      const round = sess.rounds[sess.currentRoundIndex];
+      if (!round) {
+        this.logger.warn("prevQuestion: No current round");
+        return;
+      }
+      if (sess.currentQuestionIndex <= 0) {
+        this.logger.warn("prevQuestion: Already at first question");
+        return;
+      }
+
+      sess.currentQuestionIndex -= 1;
+      this.setPhase("idle");
+      await this.timer.stop();
+
+      // Clear previous question's data
+      sess.playerAnswers = {};
+      this.store.setSession(sess);
+
+      // Clear viewer votes (non-critical)
+      try {
+        const { resetViewerInputs } = await import("../../server/api/quiz-bot");
+        resetViewerInputs();
+      } catch (error) {
+        this.logger.error("prevQuestion: Failed to reset viewer inputs", error);
+      }
+
+      // Emit question change to clear UI state
+      const prevQ = round.questions[sess.currentQuestionIndex];
+      await this.channel.publish(OverlayChannel.QUIZ, "question.change", {
+        question_id: prevQ.id,
+        clear_assignments: true
+      });
+
+      this.logger.info(`Moved back to question ${sess.currentQuestionIndex + 1}/${round.questions.length}`, { questionId: prevQ.id });
+    } catch (error) {
+      this.logger.error("prevQuestion failed", error);
+      throw new QuizError("Failed to go to previous question", "prevQuestion", error);
+    }
+  }
+
+  async selectQuestion(questionId: string): Promise<void> {
+    try {
+      const sess = this.requireSession();
+      const round = sess.rounds[sess.currentRoundIndex];
+      if (!round) {
+        this.logger.warn(`selectQuestion: No current round for question ${questionId}`);
+        return;
+      }
+
+      const qIdx = round.questions.findIndex(q => q.id === questionId);
+      if (qIdx < 0) {
+        this.logger.warn(`selectQuestion: Question ${questionId} not found in current round`);
+        return;
+      }
+
+      sess.currentQuestionIndex = qIdx;
+      this.setPhase("idle");
+      await this.timer.stop();
+
+      // Clear previous question's data
+      sess.playerAnswers = {};
+      this.store.setSession(sess);
+
+      // Clear viewer votes (non-critical)
+      try {
+        const { resetViewerInputs } = await import("../../server/api/quiz-bot");
+        resetViewerInputs();
+      } catch (error) {
+        this.logger.error(`selectQuestion: Failed to reset viewer inputs for question ${questionId}`, error);
+      }
+
+      // Emit question change to clear UI state
+      const selectedQ = round.questions[qIdx];
+      await this.channel.publish(OverlayChannel.QUIZ, "question.change", {
+        question_id: selectedQ.id,
+        clear_assignments: true
+      });
+
+      this.logger.info(`Selected question ${qIdx + 1}/${round.questions.length}`, { questionId });
+    } catch (error) {
+      this.logger.error(`selectQuestion failed for question ${questionId}`, error);
+      throw new QuizError(`Failed to select question ${questionId}`, "selectQuestion", error);
+    }
+  }
+
+  private requireSession(): Session {
+    const sess = this.store.getSession();
+    if (!sess) throw new Error("No active quiz session");
+    return sess;
+  }
+}

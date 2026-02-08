@@ -1,14 +1,20 @@
 import { GuestRepository } from "@/lib/repositories/GuestRepository";
 import { updateGuestSchema } from "@/lib/models/Guest";
-import { ApiResponses } from "@/lib/utils/ApiResponses";
-type RouteParams = { params: Promise<{ id: string }> };
+import {
+  ApiResponses,
+  withErrorHandler,
+  RouteContext,
+} from "@/lib/utils/ApiResponses";
+
+const LOG_CONTEXT = "[GuestsAPI]";
+
 /**
  * PATCH /api/assets/guests/[id]
  * Update guest
  */
-export async function PATCH(request: Request, { params }: RouteParams) {
-  try {
-    const { id } = await params;
+export const PATCH = withErrorHandler<{ id: string }>(
+  async (request: Request, context: RouteContext<{ id: string }>) => {
+    const { id } = await context.params;
     const body = await request.json();
     // Clean up empty strings - convert to null for optional fields
     // Don't use || because it converts empty string to undefined
@@ -30,22 +36,20 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     });
     const guest = guestRepo.getById(id);
     return ApiResponses.ok({ guest });
-  } catch (error) {
-    console.error("[GuestsAPI] Guest update error:", error);
-    return ApiResponses.badRequest("Failed to update guest");
-  }
-}
+  },
+  LOG_CONTEXT
+);
+
 /**
  * DELETE /api/assets/guests/[id]
  * Delete guest
  */
-export async function DELETE(request: Request, { params }: RouteParams) {
-  try {
-    const { id } = await params;
+export const DELETE = withErrorHandler<{ id: string }>(
+  async (_request: Request, context: RouteContext<{ id: string }>) => {
+    const { id } = await context.params;
     const guestRepo = GuestRepository.getInstance();
     guestRepo.delete(id);
     return ApiResponses.ok({ success: true });
-  } catch (error) {
-    return ApiResponses.serverError("Failed to delete guest");
-  }
-}
+  },
+  LOG_CONTEXT
+);
