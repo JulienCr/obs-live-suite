@@ -65,7 +65,7 @@ const DEFAULT_PLAYBACK_STATE: PlaybackState = {
  */
 const DEFAULT_YOUTUBE_STATE: PlaybackState = {
   currentTime: 0,
-  duration: 900,
+  duration: 0, // Changed from 900 - indicates unknown until player reports actual duration
   isPlaying: true,
   isMuted: true,
 };
@@ -209,8 +209,12 @@ export function usePosterPlayback(
           if (info.currentTime !== undefined) {
             youtubeStateRef.current.currentTime = info.currentTime;
           }
-          if (info.duration !== undefined) {
+          if (info.duration !== undefined && info.duration > 0) {
             youtubeStateRef.current.duration = info.duration;
+            // Log long videos for debugging
+            if (info.duration > 3600) {
+              console.log(`Long YouTube video detected: ${Math.floor(info.duration / 60)} minutes`);
+            }
           }
           if (info.playerState !== undefined) {
             youtubeStateRef.current.isPlaying = info.playerState === 1;
