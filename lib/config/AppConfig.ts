@@ -78,6 +78,12 @@ const envSchema = z.object({
   LOG_FILE: z.string().default(join(defaultDataDir, "logs", "app.log")),
   GITHUB_TOKEN: z.string().optional(),
   REGISTRY_UPDATE_INTERVAL: z.string().default("86400"),
+  /**
+   * YouTube Data API v3 key for fetching video metadata
+   * Get your API key from: https://console.cloud.google.com/apis/credentials
+   * Enable YouTube Data API v3 in your Google Cloud project
+   */
+  YOUTUBE_API_KEY: z.string().optional(),
 });
 
 /**
@@ -205,6 +211,13 @@ export class AppConfig {
    */
   get registryUpdateInterval(): number {
     return parseInt(this.config.REGISTRY_UPDATE_INTERVAL, 10);
+  }
+
+  /**
+   * Get YouTube Data API v3 key (optional)
+   */
+  get youtubeApiKey(): string | undefined {
+    return this.config.YOUTUBE_API_KEY;
   }
 }
 

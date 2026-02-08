@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { VideoTimeline } from "./VideoTimeline";
 import { Play, Pause } from "lucide-react";
@@ -121,17 +121,97 @@ export function AssetVideoPlayer({
     return match?.[1];
   };
 
+  // YouTube iframe ref + time tracking
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const ytTimeRef = useRef(effectiveStart);
+  const ytListeningRef = useRef(false);
+
+  const handleYouTubeSeek = useCallback((time: number) => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    const clampedTime = Math.max(effectiveStart, Math.min(time, effectiveEnd));
+    iframe.contentWindow.postMessage(
+      JSON.stringify({ event: "command", func: "seekTo", args: [clampedTime, true] }),
+      "*"
+    );
+    ytTimeRef.current = clampedTime;
+    setCurrentTime(clampedTime);
+  }, [effectiveStart, effectiveEnd]);
+
+  // Send "listening" subscription to YouTube iframe
+  const sendListening = useCallback(() => {
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: "listening", id: "asset-player", channel: "widget" }),
+        "*"
+      );
+    }
+  }, []);
+
+  // Called when iframe finishes loading
+  const handleIframeLoad = useCallback(() => {
+    // YouTube player needs a moment after iframe load to initialize
+    // Send listening command multiple times to ensure we catch it
+    sendListening();
+    setTimeout(sendListening, 500);
+    setTimeout(sendListening, 1500);
+  }, [sendListening]);
+
+  // Listen to YouTube postMessage events for real-time currentTime tracking
+  useEffect(() => {
+    if (type !== "youtube") return;
+
+    const handleMessage = (event: MessageEvent) => {
+      if (typeof event.data !== "string") return;
+      try {
+        const data = JSON.parse(event.data);
+        if (data.event === "onReady") {
+          sendListening();
+        } else if (data.event === "infoDelivery" && data.info) {
+          ytListeningRef.current = true;
+          if (data.info.currentTime !== undefined) {
+            ytTimeRef.current = data.info.currentTime;
+          }
+          if (data.info.playerState !== undefined) {
+            setIsPlaying(data.info.playerState === 1);
+          }
+        }
+      } catch {
+        // Ignore non-JSON messages
+      }
+    };
+
+    // Update React state from the ref periodically
+    const interval = setInterval(() => {
+      setCurrentTime(ytTimeRef.current);
+      onTimeUpdate?.(ytTimeRef.current);
+      // Keep retrying subscription if we haven't received any data yet
+      if (!ytListeningRef.current) {
+        sendListening();
+      }
+    }, 500);
+
+    window.addEventListener("message", handleMessage);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      clearInterval(interval);
+      ytListeningRef.current = false;
+    };
+  }, [type, onTimeUpdate, sendListening]);
+
   if (type === "youtube") {
     const videoId = getYouTubeId(fileUrl);
     return (
       <div className={className}>
         <div className="aspect-video bg-black rounded-lg overflow-hidden">
           <iframe
-            src={`https://www.youtube.com/embed/${videoId}?start=${Math.floor(effectiveStart)}`}
+            ref={iframeRef}
+            src={`https://www.youtube.com/embed/${videoId}?start=${Math.floor(effectiveStart)}&enablejsapi=1&origin=${typeof window !== "undefined" ? window.location.origin : ""}`}
             title={t("videoPlayer")}
             className="w-full h-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            onLoad={handleIframeLoad}
           />
         </div>
         <div className="mt-4">
@@ -139,8 +219,11 @@ export function AssetVideoPlayer({
             duration={duration}
             chapters={chapters}
             currentTime={currentTime}
-            onSeek={handleSeek}
-            onChapterClick={handleChapterClick}
+            onSeek={handleYouTubeSeek}
+            onChapterClick={(chapter) => {
+              handleYouTubeSeek(chapter.timestamp);
+              onChapterClick?.(chapter);
+            }}
             selectionRange={previewRange ?? (startTime != null && endTime != null ? { start: startTime, end: endTime } : undefined)}
             inPointMarker={inPointMarker}
             outPointMarker={outPointMarker}

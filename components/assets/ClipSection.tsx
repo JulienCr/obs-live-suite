@@ -89,7 +89,7 @@ export function ClipSection({
               {t("createClip")}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl overflow-x-hidden">
             <DialogHeader>
               <DialogTitle>{t("createClip")}</DialogTitle>
             </DialogHeader>
