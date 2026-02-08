@@ -395,6 +395,7 @@ export function PosterRenderer() {
           initialTime={isCurrent ? posterData.initialTime : undefined}
           videoKey={posterData.showId}
           subVideoConfig={posterData.subVideoConfig}
+          onYouTubeIframeLoad={isCurrent && posterData.type === "youtube" ? playback.handleYouTubeIframeLoad : undefined}
         />
       </div>
     );

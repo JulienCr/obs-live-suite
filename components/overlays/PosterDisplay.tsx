@@ -17,6 +17,7 @@ interface PosterDisplayProps {
     endTime?: number;
     endBehavior?: "stop" | "loop";
   };
+  onYouTubeIframeLoad?: () => void;
 }
 
 /**
@@ -34,6 +35,7 @@ export function PosterDisplay({
   initialTime,
   videoKey,
   subVideoConfig,
+  onYouTubeIframeLoad,
 }: PosterDisplayProps) {
   const isLeftSide = side === "left";
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -149,6 +151,7 @@ export function PosterDisplay({
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
         aria-label="Poster YouTube video"
+        onLoad={onYouTubeIframeLoad}
       />
     );
   }

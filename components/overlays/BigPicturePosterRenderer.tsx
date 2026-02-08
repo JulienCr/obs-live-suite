@@ -373,6 +373,7 @@ export function BigPicturePosterRenderer() {
           initialTime={passedInitialTime}
           videoKey={posterData.showId}
           subVideoConfig={posterData.subVideoConfig}
+          onYouTubeIframeLoad={isCurrent && posterData.type === "youtube" ? playback.handleYouTubeIframeLoad : undefined}
         />
       </div>
     );

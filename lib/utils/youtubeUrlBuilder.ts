@@ -46,13 +46,29 @@ export interface YouTubeEmbedOptions {
    */
   mute?: boolean;
   
-  /** 
+  /**
    * Show video controls
    * Maps to YouTube's `controls` parameter (1 = show, 0 = hide)
    * @default false
    * @see https://developers.google.com/youtube/player_parameters#controls
    */
   controls?: boolean;
+
+  /**
+   * Enable JavaScript API for postMessage communication
+   * Maps to YouTube's `enablejsapi` parameter (1 = enable)
+   * Required for seek, play/pause, and state tracking via postMessage
+   * @default true
+   * @see https://developers.google.com/youtube/player_parameters#enablejsapi
+   */
+  enablejsapi?: boolean;
+
+  /**
+   * Origin for postMessage security
+   * Maps to YouTube's `origin` parameter
+   * @see https://developers.google.com/youtube/player_parameters#origin
+   */
+  origin?: string;
 }
 
 /**
@@ -91,6 +107,8 @@ export function buildYouTubeEmbedUrl(options: YouTubeEmbedOptions): string {
     autoplay = true,
     mute = true,
     controls = false,
+    enablejsapi = true,
+    origin,
   } = options;
 
   // Base embed URL
@@ -103,6 +121,14 @@ export function buildYouTubeEmbedUrl(options: YouTubeEmbedOptions): string {
   params.set("autoplay", autoplay ? "1" : "0");
   params.set("mute", mute ? "1" : "0");
   params.set("controls", controls ? "1" : "0");
+
+  // JS API for postMessage communication (seek, play/pause, state tracking)
+  if (enablejsapi) {
+    params.set("enablejsapi", "1");
+  }
+  if (origin) {
+    params.set("origin", origin);
+  }
   
   // Timing parameters (YouTube requires integer seconds)
   if (startTime !== undefined) {

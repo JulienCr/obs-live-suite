@@ -5,6 +5,9 @@ import { useTranslations } from "next-intl";
 import { VideoTimeline } from "./VideoTimeline";
 import { Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useYouTubeIframeApi } from "@/hooks/useYouTubeIframeApi";
+import { extractYouTubeId } from "@/lib/utils/urlDetection";
+import { buildYouTubeEmbedUrl } from "@/lib/utils/youtubeUrlBuilder";
 
 interface VideoChapter {
   id: string;
@@ -54,10 +57,32 @@ export function AssetVideoPlayer({
   // Effective duration for clips
   const effectiveStart = startTime ?? 0;
   const effectiveEnd = endTime ?? duration;
-  const effectiveDuration = effectiveEnd - effectiveStart;
+
+  // YouTube iframe ref + shared hook
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const youtubeApi = useYouTubeIframeApi({
+    iframeRef,
+    listenerId: "asset-player",
+    enabled: type === "youtube",
+    pollingInterval: 500,
+  });
+
+  // Sync YouTube state to local state
+  useEffect(() => {
+    if (type !== "youtube") return;
+
+    const interval = setInterval(() => {
+      setCurrentTime(youtubeApi.stateRef.current.currentTime);
+      onTimeUpdate?.(youtubeApi.stateRef.current.currentTime);
+      setIsPlaying(youtubeApi.stateRef.current.isPlaying);
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [type, onTimeUpdate, youtubeApi.stateRef]);
 
   // Update current time from video
   useEffect(() => {
+    if (type === "youtube") return;
     const video = videoRef.current;
     if (!video) return;
 
@@ -89,7 +114,7 @@ export function AssetVideoPlayer({
       video.removeEventListener("play", handlePlay);
       video.removeEventListener("pause", handlePause);
     };
-  }, [effectiveStart, endTime, onTimeUpdate]);
+  }, [type, effectiveStart, endTime, onTimeUpdate]);
 
   const handleSeek = (time: number) => {
     if (videoRef.current) {
@@ -115,103 +140,35 @@ export function AssetVideoPlayer({
     onChapterClick?.(chapter);
   };
 
-  // Extract YouTube video ID
-  const getYouTubeId = (url: string) => {
-    const match = url.match(/(?:youtube\.com\/embed\/|youtu\.be\/)([^?&]+)/);
-    return match?.[1];
-  };
-
-  // YouTube iframe ref + time tracking
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const ytTimeRef = useRef(effectiveStart);
-  const ytListeningRef = useRef(false);
-
   const handleYouTubeSeek = useCallback((time: number) => {
-    const iframe = iframeRef.current;
-    if (!iframe?.contentWindow) return;
     const clampedTime = Math.max(effectiveStart, Math.min(time, effectiveEnd));
-    iframe.contentWindow.postMessage(
-      JSON.stringify({ event: "command", func: "seekTo", args: [clampedTime, true] }),
-      "*"
-    );
-    ytTimeRef.current = clampedTime;
+    youtubeApi.seek(clampedTime);
     setCurrentTime(clampedTime);
-  }, [effectiveStart, effectiveEnd]);
-
-  // Send "listening" subscription to YouTube iframe
-  const sendListening = useCallback(() => {
-    if (iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ event: "listening", id: "asset-player", channel: "widget" }),
-        "*"
-      );
-    }
-  }, []);
-
-  // Called when iframe finishes loading
-  const handleIframeLoad = useCallback(() => {
-    // YouTube player needs a moment after iframe load to initialize
-    // Send listening command multiple times to ensure we catch it
-    sendListening();
-    setTimeout(sendListening, 500);
-    setTimeout(sendListening, 1500);
-  }, [sendListening]);
-
-  // Listen to YouTube postMessage events for real-time currentTime tracking
-  useEffect(() => {
-    if (type !== "youtube") return;
-
-    const handleMessage = (event: MessageEvent) => {
-      if (typeof event.data !== "string") return;
-      try {
-        const data = JSON.parse(event.data);
-        if (data.event === "onReady") {
-          sendListening();
-        } else if (data.event === "infoDelivery" && data.info) {
-          ytListeningRef.current = true;
-          if (data.info.currentTime !== undefined) {
-            ytTimeRef.current = data.info.currentTime;
-          }
-          if (data.info.playerState !== undefined) {
-            setIsPlaying(data.info.playerState === 1);
-          }
-        }
-      } catch {
-        // Ignore non-JSON messages
-      }
-    };
-
-    // Update React state from the ref periodically
-    const interval = setInterval(() => {
-      setCurrentTime(ytTimeRef.current);
-      onTimeUpdate?.(ytTimeRef.current);
-      // Keep retrying subscription if we haven't received any data yet
-      if (!ytListeningRef.current) {
-        sendListening();
-      }
-    }, 500);
-
-    window.addEventListener("message", handleMessage);
-    return () => {
-      window.removeEventListener("message", handleMessage);
-      clearInterval(interval);
-      ytListeningRef.current = false;
-    };
-  }, [type, onTimeUpdate, sendListening]);
+  }, [effectiveStart, effectiveEnd, youtubeApi]);
 
   if (type === "youtube") {
-    const videoId = getYouTubeId(fileUrl);
+    const videoId = extractYouTubeId(fileUrl);
+    const youtubeUrl = buildYouTubeEmbedUrl({
+      videoId: videoId || "",
+      startTime: effectiveStart > 0 ? effectiveStart : undefined,
+      autoplay: false,
+      mute: false,
+      controls: false,
+      enablejsapi: true,
+      origin: typeof window !== "undefined" ? window.location.origin : undefined,
+    });
+
     return (
       <div className={className}>
         <div className="aspect-video bg-black rounded-lg overflow-hidden">
           <iframe
             ref={iframeRef}
-            src={`https://www.youtube.com/embed/${videoId}?start=${Math.floor(effectiveStart)}&enablejsapi=1&origin=${typeof window !== "undefined" ? window.location.origin : ""}`}
+            src={youtubeUrl}
             title={t("videoPlayer")}
             className="w-full h-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
-            onLoad={handleIframeLoad}
+            onLoad={youtubeApi.handleIframeLoad}
           />
         </div>
         <div className="mt-4">
