@@ -73,13 +73,15 @@ export function useYouTubeIframeApi(
 
   // --- postMessage helpers ---
 
+  const YOUTUBE_ORIGIN = "https://www.youtube.com";
+
   const sendCommand = useCallback(
     (func: string, args: unknown = "") => {
       const iframe = iframeRef.current;
       if (!iframe?.contentWindow) return;
       iframe.contentWindow.postMessage(
         JSON.stringify({ event: "command", func, args }),
-        "*"
+        YOUTUBE_ORIGIN
       );
     },
     [iframeRef]
@@ -90,7 +92,7 @@ export function useYouTubeIframeApi(
     if (!iframe?.contentWindow) return;
     iframe.contentWindow.postMessage(
       JSON.stringify({ event: "listening", id: listenerId, channel: "widget" }),
-      "*"
+      YOUTUBE_ORIGIN
     );
   }, [iframeRef, listenerId]);
 
@@ -153,6 +155,7 @@ export function useYouTubeIframeApi(
     if (!enabled) return;
 
     const handleMessage = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
       if (typeof event.data !== "string") return;
       try {
         const data = JSON.parse(event.data);

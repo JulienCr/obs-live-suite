@@ -451,7 +451,7 @@ export function PosterContent({ className }: PosterContentProps) {
   // Dashboard-specific compact format (e.g., "2h05") — differs from formatDurationString (H:MM:SS)
   const formatDuration = (seconds: number) => {
     if (isNaN(seconds) || !isFinite(seconds) || seconds === 0) {
-      return "Unknown";
+      return tCommon("unknown");
     }
     if (seconds >= 3600) {
       const hours = Math.floor(seconds / 3600);

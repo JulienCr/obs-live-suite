@@ -103,7 +103,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
 
     try {
       // Try to fetch metadata from API
-      const response = await fetch(`/api/youtube/metadata?videoId=${videoId}`);
+      const response = await fetch(`/api/youtube/metadata?videoId=${encodeURIComponent(videoId)}`);
 
       if (response.ok) {
         const data = await response.json();
