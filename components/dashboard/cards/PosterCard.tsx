@@ -448,6 +448,18 @@ export function PosterContent({ className }: PosterContentProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const formatDuration = (seconds: number) => {
+    if (isNaN(seconds) || !isFinite(seconds) || seconds === 0) {
+      return "Unknown";
+    }
+    if (seconds >= 3600) {
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      return `${hours}h${mins.toString().padStart(2, '0')}`;
+    }
+    return formatTime(seconds);
+  };
+
   // Update active chapters when poster changes
   useEffect(() => {
     if (activePoster) {
@@ -753,7 +765,7 @@ export function PosterContent({ className }: PosterContentProps) {
             )}
 
             <span className="text-sm ml-auto">
-              {formatTime(playbackState.currentTime)} / {formatTime(playbackState.duration)}
+              {formatTime(playbackState.currentTime)} / {formatDuration(playbackState.duration)}
             </span>
           </div>
           <Slider
