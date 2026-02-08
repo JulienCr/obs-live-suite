@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Slider } from "@/components/ui/slider";
+import { VideoTimeline } from "@/components/assets/VideoTimeline";
 import { Eye, Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
@@ -448,6 +448,27 @@ export function PosterContent({ className }: PosterContentProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Dashboard-specific compact format (e.g., "2h05") — differs from formatDurationString (H:MM:SS)
+  const formatDuration = (seconds: number) => {
+    if (isNaN(seconds) || !isFinite(seconds) || seconds === 0) {
+      return tCommon("unknown");
+    }
+    if (seconds >= 3600) {
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      return `${hours}h${mins.toString().padStart(2, '0')}`;
+    }
+    return formatTime(seconds);
+  };
+
+  // Compute sub-clip bounds for active poster
+  const activePosterData = activePoster ? posters.find(p => p.id === activePoster) : null;
+  const clipStart = activePosterData?.startTime ?? 0;
+  const clipEnd = activePosterData?.endTime ?? 0;
+  const hasSubClip = clipStart > 0 || clipEnd > 0;
+  const displayCurrentTime = hasSubClip ? Math.max(0, playbackState.currentTime - clipStart) : playbackState.currentTime;
+  const displayDuration = hasSubClip && clipEnd > 0 ? clipEnd - clipStart : playbackState.duration;
+
   // Update active chapters when poster changes
   useEffect(() => {
     if (activePoster) {
@@ -734,7 +755,7 @@ export function PosterContent({ className }: PosterContentProps) {
                       >
                         <span className="truncate">{chapter.title}</span>
                         <span className="text-xs text-muted-foreground shrink-0">
-                          {formatTime(chapter.timestamp)}
+                          {formatTime(hasSubClip ? Math.max(0, chapter.timestamp - clipStart) : chapter.timestamp)}
                         </span>
                       </DropdownMenuItem>
                     ))}
@@ -753,28 +774,28 @@ export function PosterContent({ className }: PosterContentProps) {
             )}
 
             <span className="text-sm ml-auto">
-              {formatTime(playbackState.currentTime)} / {formatTime(playbackState.duration)}
+              {formatTime(displayCurrentTime)} / {formatDuration(displayDuration)}
             </span>
           </div>
-          <Slider
-            value={[localSeekTime !== null ? localSeekTime : (isNaN(playbackState.currentTime) ? 0 : playbackState.currentTime)]}
-            max={isNaN(playbackState.duration) || playbackState.duration <= 0 ? 100 : playbackState.duration}
-            step={0.1}
-            onValueChange={([time]) => {
+          <VideoTimeline
+            duration={hasSubClip && clipEnd > 0 ? clipEnd - clipStart : (playbackState.duration > 0 ? playbackState.duration : 0)}
+            chapters={hasSubClip
+              ? activeChapters
+                  .filter(ch => ch.timestamp >= clipStart && (!clipEnd || ch.timestamp <= clipEnd))
+                  .map(ch => ({ ...ch, timestamp: ch.timestamp - clipStart }))
+              : activeChapters
+            }
+            currentTime={hasSubClip
+              ? (localSeekTime ?? Math.max(0, (isNaN(playbackState.currentTime) ? 0 : playbackState.currentTime) - clipStart))
+              : (localSeekTime ?? (isNaN(playbackState.currentTime) ? 0 : playbackState.currentTime))
+            }
+            onSeek={(time) => {
+              const absoluteTime = hasSubClip ? time + clipStart : time;
               setLocalSeekTime(time);
-              // Clear any existing timeout
-              if (seekTimeoutRef.current) {
-                clearTimeout(seekTimeoutRef.current);
-              }
+              handleSeek(absoluteTime);
+              if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
+              seekTimeoutRef.current = setTimeout(() => setLocalSeekTime(null), 1500);
             }}
-            onValueCommit={([time]) => {
-              handleSeek(time);
-              // Clear localSeekTime after 1.5 seconds to allow overlay to update
-              seekTimeoutRef.current = setTimeout(() => {
-                setLocalSeekTime(null);
-              }, 1500);
-            }}
-            className="w-full"
           />
         </div>
       )}

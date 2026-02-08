@@ -1,4 +1,6 @@
 import React, { useEffect, useRef } from "react";
+import { buildYouTubeEmbedUrl } from "@/lib/utils/youtubeUrlBuilder";
+import { extractYouTubeId } from "@/lib/utils/urlDetection";
 
 interface PosterDisplayProps {
   fileUrl: string;
@@ -10,6 +12,12 @@ interface PosterDisplayProps {
   youtubeRef?: React.RefObject<HTMLIFrameElement | null>;
   initialTime?: number; // Initial seek position for video clips (sub-videos)
   videoKey?: string; // Unique key to force video element remount
+  subVideoConfig?: {
+    startTime?: number;
+    endTime?: number;
+    endBehavior?: "stop" | "loop";
+  };
+  onYouTubeIframeLoad?: () => void;
 }
 
 /**
@@ -26,6 +34,8 @@ export function PosterDisplay({
   youtubeRef,
   initialTime,
   videoKey,
+  subVideoConfig,
+  onYouTubeIframeLoad,
 }: PosterDisplayProps) {
   const isLeftSide = side === "left";
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -75,17 +85,25 @@ export function PosterDisplay({
 
   // YouTube has special positioning
   if (type === "youtube") {
-    // Add YouTube parameters to force autoplay and hide UI
-    const youtubeUrl = new URL(fileUrl);
-    youtubeUrl.searchParams.set('autoplay', '1');
-    youtubeUrl.searchParams.set('mute', '1');
-    youtubeUrl.searchParams.set('controls', '0');
-    youtubeUrl.searchParams.set('showinfo', '0');
-    youtubeUrl.searchParams.set('rel', '0');
-    youtubeUrl.searchParams.set('modestbranding', '1');
-    youtubeUrl.searchParams.set('playsinline', '1');
-    youtubeUrl.searchParams.set('loop', '1');
-    youtubeUrl.searchParams.set('enablejsapi', '1');
+    // Build YouTube embed URL with parameters
+    const videoId = extractYouTubeId(fileUrl);
+    if (!videoId) {
+      console.error("Failed to extract YouTube video ID from:", fileUrl);
+      return (
+        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#000", color: "#666" }}>
+          <span>Invalid YouTube URL</span>
+        </div>
+      );
+    }
+    const youtubeUrl = buildYouTubeEmbedUrl({
+      videoId,
+      startTime: subVideoConfig?.startTime,
+      endTime: subVideoConfig?.endTime,
+      endBehavior: subVideoConfig?.endBehavior,
+      autoplay: true,
+      mute: true,
+      controls: false,
+    });
 
     const youtubeStyle: React.CSSProperties =
       positioning === "center"
@@ -131,11 +149,12 @@ export function PosterDisplay({
       <iframe
         ref={youtubeRef}
         style={youtubeStyle}
-        src={youtubeUrl.toString()}
+        src={youtubeUrl}
         title="YouTube video"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
         aria-label="Poster YouTube video"
+        onLoad={onYouTubeIframeLoad}
       />
     );
   }

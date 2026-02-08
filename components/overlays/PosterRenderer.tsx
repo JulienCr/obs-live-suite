@@ -25,6 +25,11 @@ interface PosterData {
   side: "left" | "right";
   initialTime?: number; // Initial seek position for sub-video clips
   showId: string; // Unique ID to force React remount on each show
+  subVideoConfig?: {
+    startTime?: number;
+    endTime?: number;
+    endBehavior?: "stop" | "loop";
+  };
 }
 
 interface PosterState {
@@ -162,6 +167,11 @@ export function PosterRenderer() {
               side: data.payload!.side || "left",
               initialTime: capturedStartTime, // Pass directly to avoid race condition with hook state
               showId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Unique ID to force React remount
+              subVideoConfig: data.payload!.startTime !== undefined ? {
+                startTime: data.payload!.startTime,
+                endTime: data.payload!.endTime,
+                endBehavior: data.payload!.endBehavior || "stop",
+              } : undefined,
             };
 
             setState((prev) => {
@@ -384,6 +394,8 @@ export function PosterRenderer() {
           youtubeRef={posterData.type === "youtube" ? playback.youtubeRef : undefined}
           initialTime={isCurrent ? posterData.initialTime : undefined}
           videoKey={posterData.showId}
+          subVideoConfig={posterData.subVideoConfig}
+          onYouTubeIframeLoad={isCurrent && posterData.type === "youtube" ? playback.handleYouTubeIframeLoad : undefined}
         />
       </div>
     );

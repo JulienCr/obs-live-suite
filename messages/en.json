@@ -737,7 +737,13 @@
       "regenerateThumbnail": "Regenerate thumbnail",
       "thumbnailRegenerated": "Thumbnail regenerated",
       "thumbnailFromPlayhead": "Thumbnail will be generated from current playhead position",
-      "createClipFromSelection": "Create clip from selection"
+      "createClipFromSelection": "Create clip from selection",
+      "durationUnknown": "Unknown duration",
+      "durationUnknownDescription": "The timeline is unavailable because the duration of this video is unknown. Please add it manually below to enable the timeline and clips.",
+      "durationInSeconds": "Duration (in seconds)",
+      "durationRequiredForTimeline": "Required to enable timeline",
+      "durationPlaceholder": "E.g. 3600 for 1 hour",
+      "durationValueUnknown": "Unknown"
     },
     "videoEditor": {
       "chapters": "Chapters",
@@ -775,7 +781,8 @@
       "subVideoCreated": "Sub-video created successfully",
       "chapterAdded": "Chapter added",
       "chapterUpdated": "Chapter updated",
-      "chapterDeleted": "Chapter deleted"
+      "chapterDeleted": "Chapter deleted",
+      "unknownDurationWarning": "Unknown duration — clip times will not be validated. Please ensure your clip range is within the actual video length and test the clip before use."
     },
     "themes": {
       "title": "Themes",
@@ -853,7 +860,14 @@
       "youtubeUrlHint": "Paste a YouTube video URL or video ID",
       "addYoutubeVideo": "Add YouTube Video",
       "uploadFailed": "Upload failed",
-      "invalidYoutubeUrl": "Invalid YouTube URL"
+      "invalidYoutubeUrl": "Invalid YouTube URL",
+      "invalidYoutubeUrlDescription": "Please provide a valid YouTube URL or video ID.",
+      "invalidDurationFormat": "Invalid format",
+      "invalidDurationFormatDescription": "Invalid duration format. Use HH:MM:SS (e.g. 6:05:15)",
+      "durationMissing": "Duration missing",
+      "durationMissingDescription": "The duration of this YouTube video cannot be automatically detected. Please enter the duration manually.",
+      "videoDurationLabel": "Video duration (HH:MM:SS)",
+      "createWithDuration": "Create with this duration"
     },
     "quickAdd": {
       "title": "Quick Add Media",

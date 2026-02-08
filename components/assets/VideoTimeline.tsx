@@ -36,14 +36,100 @@ function formatTime(seconds: number): string {
 }
 
 /**
- * Calculate time marker interval based on duration
+ * Find the smallest divisor of `base` that is >= `min`.
+ * This ensures time markers always land on "round" values
+ * (e.g. divisors of 60 give 1,2,3,4,5,6,10,12,15,20,30,60 — all clean time intervals).
  */
-function getMarkerInterval(duration: number): number {
-  if (duration <= 60) return 10; // 10s intervals for short videos
-  if (duration <= 300) return 30; // 30s intervals for medium videos
-  if (duration <= 600) return 60; // 1min intervals
-  if (duration <= 1800) return 120; // 2min intervals
-  return 300; // 5min intervals for long videos
+function smallestDivisorAtLeast(base: number, min: number): number {
+  const start = Math.max(1, Math.ceil(min));
+  for (let i = start; i <= base; i++) {
+    if (base % i === 0) return i;
+  }
+  return base;
+}
+
+/**
+ * Compute the best minor subdivision count for a major interval.
+ * Prefers the highest subdivision (most ticks) that still produces round time values.
+ */
+function bestMinorDivisions(majorInterval: number): number {
+  if (majorInterval <= 1) return 1;
+  for (let d = 6; d >= 2; d--) {
+    if (majorInterval % d !== 0) continue;
+    const minor = majorInterval / d;
+    // Accept if result is a clean time value (whole minutes, or sub-minute)
+    if (minor % 60 === 0 || minor < 60) return d;
+  }
+  // Fallback: any divisor
+  for (let d = 6; d >= 2; d--) {
+    if (majorInterval % d === 0) return d;
+  }
+  return 4;
+}
+
+interface TickIntervals { major: number; minor: number }
+
+/**
+ * Compute major and minor tick intervals for a given duration.
+ *
+ * Uses divisors of 60 (for seconds/minutes) to guarantee labels always
+ * land on "round" values like :00, :05, :10, :15, :20, :30.
+ * For hours, simply rounds up to the nearest integer.
+ */
+function computeTickIntervals(duration: number): TickIntervals {
+  const TARGET_MAJOR_TICKS = 8;
+  const rawInterval = duration / TARGET_MAJOR_TICKS;
+
+  let majorInterval: number;
+
+  if (rawInterval < 60) {
+    // Seconds: use divisors of 60 for round labels
+    majorInterval = smallestDivisorAtLeast(60, Math.max(1, Math.ceil(rawInterval)));
+  } else if (rawInterval < 3600) {
+    // Minutes: use divisors of 60 for round minute labels
+    const rawMinutes = rawInterval / 60;
+    majorInterval = smallestDivisorAtLeast(60, Math.max(1, Math.ceil(rawMinutes))) * 60;
+  } else {
+    // Hours: round up to nearest integer hour
+    majorInterval = Math.max(1, Math.ceil(rawInterval / 3600)) * 3600;
+  }
+
+  const minorDivisions = bestMinorDivisions(majorInterval);
+  return { major: majorInterval, minor: majorInterval / minorDivisions };
+}
+
+interface TimelineTick {
+  time: number;
+  isMajor: boolean;
+  label?: string;
+}
+
+/**
+ * Generate all ticks (major with labels + minor without) for the ruler
+ */
+function generateTicks(duration: number): TimelineTick[] {
+  if (duration <= 0) return [];
+
+  const { major, minor } = computeTickIntervals(duration);
+  const ticks: TimelineTick[] = [];
+  const epsilon = minor / 100;
+
+  for (let t = 0; t <= duration + epsilon; t += minor) {
+    const time = Math.min(t, duration);
+    const isMajor =
+      Math.abs(time % major) < epsilon ||
+      Math.abs(time % major - major) < epsilon;
+    ticks.push({ time, isMajor, label: isMajor ? formatTime(time) : undefined });
+  }
+
+  // Add final duration marker, removing any tick that's too close to avoid overlap
+  const minGap = major * 0.15;
+  while (ticks.length > 0 && duration - ticks[ticks.length - 1].time < minGap) {
+    ticks.pop();
+  }
+  ticks.push({ time: duration, isMajor: true, label: formatTime(duration) });
+
+  return ticks;
 }
 
 /**
@@ -92,20 +178,8 @@ export function VideoTimeline({
     [duration]
   );
 
-  // Time markers
-  const markers = useMemo(() => {
-    if (duration <= 0) return [];
-    const interval = getMarkerInterval(duration);
-    const result: { time: number; label: string }[] = [];
-    for (let t = 0; t <= duration; t += interval) {
-      result.push({ time: t, label: formatTime(t) });
-    }
-    // Add final marker if not already included
-    if (result.length === 0 || result[result.length - 1].time < duration) {
-      result.push({ time: duration, label: formatTime(duration) });
-    }
-    return result;
-  }, [duration]);
+  // Ruler ticks (major with labels + minor without)
+  const ticks = useMemo(() => generateTicks(duration), [duration]);
 
   // Sorted chapters
   const sortedChapters = useMemo(
@@ -203,7 +277,7 @@ export function VideoTimeline({
     <div
       ref={containerRef}
       className={cn(
-        "relative h-16 select-none",
+        "relative h-20 select-none",
         !readOnly && "cursor-pointer",
         className
       )}
@@ -351,16 +425,28 @@ export function VideoTimeline({
         </>
       )}
 
-      {/* Time markers */}
-      <div className="absolute inset-x-0 bottom-0 h-4 text-[10px] text-muted-foreground">
-        {markers.map((marker) => (
-          <span
-            key={marker.time}
-            className="absolute transform -translate-x-1/2"
-            style={{ left: `${timeToPercent(marker.time)}%` }}
+      {/* Ruler: tick marks + labels */}
+      <div className="absolute inset-x-0 top-[48px] bottom-0">
+        {ticks.map((tick) => (
+          <div
+            key={tick.time}
+            className="absolute -translate-x-1/2 flex flex-col items-center"
+            style={{ left: `${timeToPercent(tick.time)}%` }}
           >
-            {marker.label}
-          </span>
+            <div
+              className={cn(
+                "w-px",
+                tick.isMajor
+                  ? "h-2 bg-muted-foreground/60"
+                  : "h-1.5 bg-muted-foreground/25"
+              )}
+            />
+            {tick.label && (
+              <span className="text-[10px] text-muted-foreground leading-none mt-0.5 whitespace-nowrap">
+                {tick.label}
+              </span>
+            )}
+          </div>
         ))}
       </div>
 

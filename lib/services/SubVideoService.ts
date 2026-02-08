@@ -94,6 +94,16 @@ export class SubVideoService {
       throw new Error("End time must be greater than start time");
     }
 
+    // For YouTube videos, duration may be unknown
+    // Only validate if duration is available
+    if (parentPoster.duration && parentPoster.duration > 0) {
+      if (endTime > parentPoster.duration) {
+        this.logger.warn(`End time ${endTime} exceeds known duration ${parentPoster.duration}`);
+      }
+    } else {
+      this.logger.info(`Creating sub-video for ${parentPoster.type} without known duration - clip times will not be validated against total duration`);
+    }
+
     // Calculate duration from the clip range
     const duration = endTime - startTime;
 

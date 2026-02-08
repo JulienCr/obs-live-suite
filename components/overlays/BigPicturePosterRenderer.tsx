@@ -17,6 +17,11 @@ interface PosterData {
   aspectRatio?: number;
   initialTime?: number; // Initial seek position for sub-video clips
   showId: string; // Unique ID to force React remount on each show
+  subVideoConfig?: {
+    startTime?: number;
+    endTime?: number;
+    endBehavior?: "stop" | "loop";
+  };
 }
 
 interface BigPicturePosterState {
@@ -128,6 +133,11 @@ export function BigPicturePosterRenderer() {
               aspectRatio: 1, // Aspect ratio is not used in "center" positioning mode
               initialTime: data.payload.startTime, // Pass directly to avoid race condition with hook state
               showId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Unique ID to force React remount
+              subVideoConfig: data.payload!.startTime !== undefined ? {
+                startTime: data.payload!.startTime,
+                endTime: data.payload!.endTime,
+                endBehavior: data.payload!.endBehavior || "stop",
+              } : undefined,
             };
 
             setState((prev) => {
@@ -362,6 +372,8 @@ export function BigPicturePosterRenderer() {
           youtubeRef={posterData.type === "youtube" ? playback.youtubeRef : undefined}
           initialTime={passedInitialTime}
           videoKey={posterData.showId}
+          subVideoConfig={posterData.subVideoConfig}
+          onYouTubeIframeLoad={isCurrent && posterData.type === "youtube" ? playback.handleYouTubeIframeLoad : undefined}
         />
       </div>
     );

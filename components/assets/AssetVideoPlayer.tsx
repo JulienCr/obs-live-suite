@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { VideoTimeline } from "./VideoTimeline";
 import { Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useYouTubeIframeApi } from "@/hooks/useYouTubeIframeApi";
+import { extractYouTubeId } from "@/lib/utils/urlDetection";
+import { buildYouTubeEmbedUrl } from "@/lib/utils/youtubeUrlBuilder";
 
 interface VideoChapter {
   id: string;
@@ -54,10 +57,32 @@ export function AssetVideoPlayer({
   // Effective duration for clips
   const effectiveStart = startTime ?? 0;
   const effectiveEnd = endTime ?? duration;
-  const effectiveDuration = effectiveEnd - effectiveStart;
+
+  // YouTube iframe ref + shared hook
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const youtubeApi = useYouTubeIframeApi({
+    iframeRef,
+    listenerId: "asset-player",
+    enabled: type === "youtube",
+    pollingInterval: 500,
+  });
+
+  // Sync YouTube state to local state
+  useEffect(() => {
+    if (type !== "youtube") return;
+
+    const interval = setInterval(() => {
+      setCurrentTime(youtubeApi.stateRef.current.currentTime);
+      onTimeUpdate?.(youtubeApi.stateRef.current.currentTime);
+      setIsPlaying(youtubeApi.stateRef.current.isPlaying);
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [type, onTimeUpdate]);
 
   // Update current time from video
   useEffect(() => {
+    if (type === "youtube") return;
     const video = videoRef.current;
     if (!video) return;
 
@@ -89,7 +114,7 @@ export function AssetVideoPlayer({
       video.removeEventListener("play", handlePlay);
       video.removeEventListener("pause", handlePause);
     };
-  }, [effectiveStart, endTime, onTimeUpdate]);
+  }, [type, effectiveStart, endTime, onTimeUpdate]);
 
   const handleSeek = (time: number) => {
     if (videoRef.current) {
@@ -115,23 +140,35 @@ export function AssetVideoPlayer({
     onChapterClick?.(chapter);
   };
 
-  // Extract YouTube video ID
-  const getYouTubeId = (url: string) => {
-    const match = url.match(/(?:youtube\.com\/embed\/|youtu\.be\/)([^?&]+)/);
-    return match?.[1];
-  };
+  const handleYouTubeSeek = useCallback((time: number) => {
+    const clampedTime = Math.max(effectiveStart, Math.min(time, effectiveEnd));
+    youtubeApi.seek(clampedTime);
+    setCurrentTime(clampedTime);
+  }, [effectiveStart, effectiveEnd, youtubeApi]);
 
   if (type === "youtube") {
-    const videoId = getYouTubeId(fileUrl);
+    const videoId = extractYouTubeId(fileUrl);
+    const youtubeUrl = buildYouTubeEmbedUrl({
+      videoId: videoId || "",
+      startTime: effectiveStart > 0 ? effectiveStart : undefined,
+      autoplay: false,
+      mute: false,
+      controls: false,
+      enablejsapi: true,
+      origin: typeof window !== "undefined" ? window.location.origin : undefined,
+    });
+
     return (
       <div className={className}>
         <div className="aspect-video bg-black rounded-lg overflow-hidden">
           <iframe
-            src={`https://www.youtube.com/embed/${videoId}?start=${Math.floor(effectiveStart)}`}
+            ref={iframeRef}
+            src={youtubeUrl}
             title={t("videoPlayer")}
             className="w-full h-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            onLoad={youtubeApi.handleIframeLoad}
           />
         </div>
         <div className="mt-4">
@@ -139,8 +176,11 @@ export function AssetVideoPlayer({
             duration={duration}
             chapters={chapters}
             currentTime={currentTime}
-            onSeek={handleSeek}
-            onChapterClick={handleChapterClick}
+            onSeek={handleYouTubeSeek}
+            onChapterClick={(chapter) => {
+              handleYouTubeSeek(chapter.timestamp);
+              onChapterClick?.(chapter);
+            }}
             selectionRange={previewRange ?? (startTime != null && endTime != null ? { start: startTime, end: endTime } : undefined)}
             inPointMarker={inPointMarker}
             outPointMarker={outPointMarker}

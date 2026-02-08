@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useYouTubeIframeApi } from "@/hooks/useYouTubeIframeApi";
 
 /**
  * Playback state for video and YouTube media
@@ -48,6 +49,8 @@ export interface UsePosterPlaybackReturn {
   youtubePlayerReady: boolean;
   /** Setter for YouTube player ready state */
   setYoutubePlayerReady: React.Dispatch<React.SetStateAction<boolean>>;
+  /** Call this when the YouTube iframe fires onLoad (pass to PosterDisplay) */
+  handleYouTubeIframeLoad: () => void;
 }
 
 /**
@@ -61,23 +64,13 @@ const DEFAULT_PLAYBACK_STATE: PlaybackState = {
 };
 
 /**
- * Default YouTube state (used when no actual state is available)
- */
-const DEFAULT_YOUTUBE_STATE: PlaybackState = {
-  currentTime: 0,
-  duration: 900,
-  isPlaying: true,
-  isMuted: true,
-};
-
-/**
  * Hook for managing media playback state and controls in poster overlays.
  * Handles both HTML5 video and YouTube iframe players.
  *
  * Features:
  * - Unified playback state for video and YouTube
  * - Automatic state reporting every second
- * - YouTube postMessage API integration
+ * - YouTube postMessage API integration via useYouTubeIframeApi
  * - Seek functionality for both player types
  *
  * @param options - Configuration options
@@ -96,8 +89,20 @@ export function usePosterPlayback(
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const youtubeRef = useRef<HTMLIFrameElement | null>(null);
 
-  // Mutable ref for YouTube state (updated by postMessage events)
-  const youtubeStateRef = useRef<PlaybackState>({ ...DEFAULT_YOUTUBE_STATE });
+  // YouTube iframe API (shared hook)
+  const youtubeListenerId =
+    channelName === "poster" ? "poster-overlay" : "bigpicture-poster-overlay";
+
+  const youtubeApi = useYouTubeIframeApi({
+    iframeRef: youtubeRef,
+    listenerId: youtubeListenerId,
+    enabled: isActive && mediaType === "youtube",
+    pollingInterval: 500,
+  });
+
+  // Alias: youtubeStateRef points at the shared hook's stateRef
+  // We cast because PlaybackState is a superset of YouTubeIframeState
+  const youtubeStateRef = youtubeApi.stateRef as React.MutableRefObject<PlaybackState>;
 
   /**
    * Get current playback time from video or YouTube player
@@ -107,7 +112,7 @@ export function usePosterPlayback(
       return videoRef.current.currentTime;
     }
     return youtubeStateRef.current.currentTime;
-  }, []);
+  }, [youtubeStateRef]);
 
   /**
    * Seek to a specific time in the video/YouTube player
@@ -117,14 +122,10 @@ export function usePosterPlayback(
       videoRef.current.currentTime = time;
     }
     if (youtubeRef.current) {
-      youtubeRef.current.contentWindow?.postMessage(
-        `{"event":"command","func":"seekTo","args":[${time}, true]}`,
-        "*"
-      );
-      youtubeStateRef.current.currentTime = time;
+      youtubeApi.seek(time);
     }
     setPlaybackState((prev) => ({ ...prev, currentTime: time }));
-  }, []);
+  }, [youtubeApi]);
 
   /**
    * Effect: Report video playback state every second
@@ -161,76 +162,26 @@ export function usePosterPlayback(
   }, [isActive, mediaType, send, channelName]);
 
   /**
-   * Effect: Listen to YouTube player messages and report state
-   * Only runs when active and media type is youtube
+   * Effect: Report YouTube playback state every second via WebSocket
+   * The shared useYouTubeIframeApi hook handles postMessage listening;
+   * this effect just syncs its state to the dashboard via WebSocket.
    */
   useEffect(() => {
     if (!isActive || mediaType !== "youtube") {
       return;
     }
 
-    // Initialize from ref or defaults
-    const currentYouTubeState = youtubeStateRef.current;
-
     // Send initial state immediately
-    setPlaybackState(currentYouTubeState);
+    const currentYouTubeState = youtubeStateRef.current;
+    setPlaybackState({ ...currentYouTubeState });
     send({
       type: "state",
       channel: channelName,
       data: currentYouTubeState,
     });
 
-    /**
-     * Handle postMessage events from YouTube iframe
-     */
-    const handleYouTubeMessage = (event: MessageEvent) => {
-      // Only process string messages (YouTube sends JSON strings)
-      if (typeof event.data !== "string") return;
-
-      try {
-        const data = JSON.parse(event.data);
-
-        if (data.event === "onReady") {
-          setYoutubePlayerReady(true);
-
-          // Subscribe to state changes via YouTube JS API
-          if (youtubeRef.current) {
-            const listenerId =
-              channelName === "poster" ? "poster-overlay" : "bigpicture-poster-overlay";
-            youtubeRef.current.contentWindow?.postMessage(
-              `{"event":"listening","id":"${listenerId}","channel":"widget"}`,
-              "*"
-            );
-          }
-        } else if (data.event === "infoDelivery" && data.info) {
-          const info = data.info;
-
-          // Update ref with real YouTube data
-          if (info.currentTime !== undefined) {
-            youtubeStateRef.current.currentTime = info.currentTime;
-          }
-          if (info.duration !== undefined) {
-            youtubeStateRef.current.duration = info.duration;
-          }
-          if (info.playerState !== undefined) {
-            youtubeStateRef.current.isPlaying = info.playerState === 1;
-          }
-          if (info.muted !== undefined) {
-            youtubeStateRef.current.isMuted = info.muted;
-          }
-        }
-      } catch {
-        // Ignore non-JSON messages
-      }
-    };
-
     // Send state updates periodically for YouTube
     const stateInterval = setInterval(() => {
-      // Increment local time if playing (YouTube doesn't always report)
-      if (youtubeStateRef.current.isPlaying) {
-        youtubeStateRef.current.currentTime += 1;
-      }
-
       setPlaybackState({ ...youtubeStateRef.current });
 
       send({
@@ -240,13 +191,17 @@ export function usePosterPlayback(
       });
     }, 1000);
 
-    window.addEventListener("message", handleYouTubeMessage);
-
     return () => {
-      window.removeEventListener("message", handleYouTubeMessage);
       clearInterval(stateInterval);
     };
-  }, [isActive, mediaType, send, channelName]);
+  }, [isActive, mediaType, send, channelName, youtubeStateRef]);
+
+  // Track YouTube readiness from the shared hook
+  useEffect(() => {
+    if (youtubeApi.isSubscribed) {
+      setYoutubePlayerReady(true);
+    }
+  }, [youtubeApi.isSubscribed]);
 
   return {
     playbackState,
@@ -258,5 +213,6 @@ export function usePosterPlayback(
     seekToTime,
     youtubePlayerReady,
     setYoutubePlayerReady,
+    handleYouTubeIframeLoad: youtubeApi.handleIframeLoad,
   };
 }

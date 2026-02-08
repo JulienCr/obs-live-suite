@@ -3,12 +3,13 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Film, ImageIcon, Loader2 } from "lucide-react";
+import { Film, ImageIcon, Loader2, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TagInput } from "@/components/ui/tag-input";
 import { AssetDetailHeader } from "./AssetDetailHeader";
 import { AssetVideoPlayer } from "./AssetVideoPlayer";
@@ -52,6 +53,7 @@ export function AssetDetailView({
     source: poster.source || "",
     tags: poster.tags,
     chatMessage: poster.chatMessage || "",
+    duration: poster.duration || null,
   });
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -123,10 +125,13 @@ export function AssetDetailView({
 
   const isVideoType = poster.type === "video" || poster.type === "youtube";
   const isClip = !!parentPoster;
-  // For clips: use parent duration for timeline, for regular videos: use own duration
+  // For clips: use parent duration for timeline, for regular videos: use own duration (from formData for real-time updates)
   const timelineDuration = isClip
-    ? (parentPoster.duration || 600)
-    : (poster.duration || 600);
+    ? (parentPoster.duration || 0)
+    : (formData.duration || 0);
+
+  // Check if duration is unknown (null or 0) for YouTube videos
+  const hasUnknownDuration = poster.type === "youtube" && timelineDuration === 0;
 
   // Format timestamp helper
   const formatTimestamp = (seconds: number): string => {
@@ -137,7 +142,7 @@ export function AssetDetailView({
 
   // Enable keyboard shortcuts for videos (not clips)
   useVideoKeyboardShortcuts({
-    enabled: poster.type === "video" && !isClip,
+    enabled: isVideoType && !isClip,
     currentTime,
     onAddChapter: (time) => setPendingChapterTime(time),
     onSetInPoint: (time) => {
@@ -205,19 +210,33 @@ export function AssetDetailView({
         {/* Left Column - Player & Timeline */}
         <div className="lg:col-span-2 space-y-6">
           {isVideoType && (
-            <AssetVideoPlayer
-              fileUrl={isClip ? parentPoster.fileUrl : poster.fileUrl}
-              type={poster.type as "video" | "youtube"}
-              duration={timelineDuration}
-              chapters={chapters}
-              startTime={poster.startTime}
-              endTime={poster.endTime}
-              onTimeUpdate={setCurrentTime}
-              previewRange={previewRange}
-              highlightedChapterTime={hoveredChapter?.timestamp}
-              inPointMarker={inPoint}
-              outPointMarker={outPoint}
-            />
+            <>
+              {hasUnknownDuration ? (
+                <Alert className="border-amber-500/50 bg-amber-500/10">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <AlertTitle className="text-amber-900 dark:text-amber-100">
+                    {t("durationUnknown")}
+                  </AlertTitle>
+                  <AlertDescription className="text-amber-800 dark:text-amber-200">
+                    {t("durationUnknownDescription")}
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <AssetVideoPlayer
+                  fileUrl={isClip ? parentPoster.fileUrl : poster.fileUrl}
+                  type={poster.type as "video" | "youtube"}
+                  duration={timelineDuration}
+                  chapters={chapters}
+                  startTime={poster.startTime}
+                  endTime={poster.endTime}
+                  onTimeUpdate={setCurrentTime}
+                  previewRange={previewRange}
+                  highlightedChapterTime={hoveredChapter?.timestamp}
+                  inPointMarker={inPoint}
+                  outPointMarker={outPoint}
+                />
+              )}
+            </>
           )}
 
           {/* Image preview for image type */}
@@ -267,6 +286,37 @@ export function AssetDetailView({
                   />
                 </div>
               </div>
+
+              {/* Duration field for YouTube videos */}
+              {poster.type === "youtube" && (
+                <div className="space-y-2">
+                  <Label htmlFor="duration">
+                    {t("durationInSeconds")}
+                    {hasUnknownDuration && (
+                      <span className="text-amber-600 ml-2 text-xs">
+                        {t("durationRequiredForTimeline")}
+                      </span>
+                    )}
+                  </Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    min="0"
+                    value={formData.duration || ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      handleFieldChange("duration", val ? parseInt(val, 10) : null);
+                    }}
+                    placeholder={t("durationPlaceholder")}
+                    className={hasUnknownDuration ? "border-amber-500" : ""}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {formData.duration
+                      ? `${formatTimestamp(formData.duration)} (${Math.floor(formData.duration / 60)} minutes)`
+                      : t("durationValueUnknown")}
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="tags">{t("tags")}</Label>

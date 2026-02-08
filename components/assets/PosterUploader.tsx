@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, Link2, Loader2 } from "lucide-react";
+import { Upload, Link2, Loader2, AlertCircle } from "lucide-react";
+import { extractYouTubeId } from "@/lib/utils/urlDetection";
+import { parseDurationString } from "@/lib/utils/durationParser";
+import { useToast } from "@/hooks/use-toast";
 
 interface PosterUploaderProps {
   onUpload: (url: string, type: "image" | "video" | "youtube", duration?: number) => void;
@@ -19,10 +22,14 @@ interface PosterUploaderProps {
 export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
   const t = useTranslations("assets.posterUpload");
   const tCommon = useTranslations("common");
+  const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [mode, setMode] = useState<"file" | "youtube">("file");
+  const [youtubeNeedsManualDuration, setYoutubeNeedsManualDuration] = useState(false);
+  const [manualDuration, setManualDuration] = useState("");
+  const [pendingYoutubeUrl, setPendingYoutubeUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = (e: DragEvent) => {
@@ -76,44 +83,66 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
     }
   };
 
-  const handleYouTubeSubmit = () => {
+  const handleYouTubeSubmit = async () => {
     if (!youtubeUrl) return;
 
     // Extract YouTube video ID
-    let videoId = "";
-
-    // Helper to extract ID from URL object
-    const getIdFromUrl = (urlObj: URL) => {
-      if (urlObj.hostname.includes("youtube.com")) {
-        return urlObj.searchParams.get("v") || "";
-      } else if (urlObj.hostname === "youtu.be") {
-        return urlObj.pathname.slice(1);
-      }
-      return "";
-    };
-
-    try {
-      // Try parsing as is
-      const url = new URL(youtubeUrl);
-      videoId = getIdFromUrl(url);
-    } catch {
-      // Try parsing with https:// prefix
-      try {
-        const url = new URL(`https://${youtubeUrl}`);
-        videoId = getIdFromUrl(url);
-      } catch {
-        // Not a URL, treat as just the ID
-        videoId = youtubeUrl;
-      }
-    }
+    const videoId = extractYouTubeId(youtubeUrl);
 
     if (!videoId) {
-      alert(t("invalidYoutubeUrl"));
+      toast({
+        variant: "destructive",
+        title: t("invalidYoutubeUrl"),
+        description: t("invalidYoutubeUrlDescription"),
+      });
       return;
     }
 
-    // Return YouTube embed URL
-    onUpload(`https://www.youtube.com/embed/${videoId}`, "youtube");
+    const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    setUploading(true);
+
+    try {
+      // Try to fetch metadata from API
+      const response = await fetch(`/api/youtube/metadata?videoId=${encodeURIComponent(videoId)}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.metadata?.duration) {
+          // Successfully got duration, create poster directly
+          onUpload(embedUrl, "youtube", data.metadata.duration);
+          setYoutubeUrl("");
+          return;
+        }
+      }
+
+      // API call failed or no duration - request manual input
+      setPendingYoutubeUrl(embedUrl);
+      setYoutubeNeedsManualDuration(true);
+    } catch (error) {
+      // Network error or API unavailable - request manual input
+      setPendingYoutubeUrl(embedUrl);
+      setYoutubeNeedsManualDuration(true);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleManualDurationSubmit = () => {
+    const duration = parseDurationString(manualDuration);
+    if (!duration || duration <= 0) {
+      toast({
+        variant: "destructive",
+        title: t("invalidDurationFormat"),
+        description: t("invalidDurationFormatDescription"),
+      });
+      return;
+    }
+
+    onUpload(pendingYoutubeUrl, "youtube", duration);
+    setYoutubeNeedsManualDuration(false);
+    setPendingYoutubeUrl("");
+    setManualDuration("");
+    setYoutubeUrl("");
   };
 
   return (
@@ -193,13 +222,65 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
                 value={youtubeUrl}
                 onChange={(e) => setYoutubeUrl(e.target.value)}
                 placeholder="https://www.youtube.com/watch?v=..."
+                disabled={uploading}
               />
               <p className="text-xs text-muted-foreground">
                 {t("youtubeUrlHint")}
               </p>
-              <Button onClick={handleYouTubeSubmit} disabled={!youtubeUrl}>
-                {t("addYoutubeVideo")}
+              <Button onClick={handleYouTubeSubmit} disabled={!youtubeUrl || uploading}>
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                    {t("uploading")}
+                  </>
+                ) : (
+                  t("addYoutubeVideo")
+                )}
               </Button>
+            </div>
+          )}
+
+          {/* Manual Duration Input */}
+          {youtubeNeedsManualDuration && (
+            <div className="space-y-3 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                    {t("durationMissing")}
+                  </p>
+                  <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                    {t("durationMissingDescription")}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="youtube-duration">
+                  {t("videoDurationLabel")}
+                </Label>
+                <Input
+                  id="youtube-duration"
+                  type="text"
+                  placeholder="6:05:15"
+                  value={manualDuration}
+                  onChange={(e) => setManualDuration(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <Button onClick={handleManualDurationSubmit}>
+                    {t("createWithDuration")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setYoutubeNeedsManualDuration(false);
+                      setPendingYoutubeUrl("");
+                      setManualDuration("");
+                    }}
+                  >
+                    {tCommon("cancel")}
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 
