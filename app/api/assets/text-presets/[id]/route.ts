@@ -28,6 +28,9 @@ export const PATCH = withErrorHandler<{ id: string }>(
     };
     const updates = updateTextPresetSchema.parse(cleanedBody);
     const repo = TextPresetRepository.getInstance();
+    if (!repo.exists(id)) {
+      return ApiResponses.notFound(`Text preset with ID ${id}`);
+    }
     repo.update(id, {
       ...updates,
       updatedAt: new Date(),

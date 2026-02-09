@@ -362,6 +362,7 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
                         value={presetName}
                         onChange={(e) => setPresetName(e.target.value)}
                         placeholder={t("presetNamePlaceholder")}
+                        maxLength={100}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleSaveAsPreset();
                         }}

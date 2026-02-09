@@ -84,12 +84,10 @@ export class TextPresetRepository extends EnabledBaseRepository<
     }
 
     const merged = {
-      name: updates.name !== undefined ? updates.name : existing.name,
-      body: updates.body !== undefined ? updates.body : existing.body,
-      side: updates.side !== undefined ? updates.side : existing.side,
-      imageUrl: updates.imageUrl !== undefined ? updates.imageUrl : existing.imageUrl,
-      imageAlt: updates.imageAlt !== undefined ? updates.imageAlt : existing.imageAlt,
-      isEnabled: updates.isEnabled !== undefined ? updates.isEnabled : existing.isEnabled,
+      ...existing,
+      ...Object.fromEntries(
+        Object.entries(updates).filter(([, v]) => v !== undefined)
+      ),
       updatedAt: updates.updatedAt || new Date(),
     };
 

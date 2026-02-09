@@ -26,7 +26,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const NAME_MAX_LENGTH = 100;
 const BODY_MAX_LENGTH = 2000;
+const IMAGE_ALT_MAX_LENGTH = 200;
 const SEARCH_PREVIEW_LENGTH = 40;
 
 const INITIAL_FORM_DATA = {
@@ -204,6 +206,7 @@ export function TextPresetManager() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder={t("namePlaceholder")}
+                  maxLength={NAME_MAX_LENGTH}
                 />
               </div>
 
@@ -263,6 +266,7 @@ export function TextPresetManager() {
                         onChange={(e) => setFormData({ ...formData, imageAlt: e.target.value })}
                         placeholder={t("imageAltPlaceholder")}
                         className="text-xs"
+                        maxLength={IMAGE_ALT_MAX_LENGTH}
                       />
                     </div>
                     <Button
