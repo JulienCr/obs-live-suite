@@ -21,6 +21,7 @@ import {
  * - ChatMessageRepository for streamerbot chat messages
  * - PanelColorRepository for panel color customization
  * - WorkspaceRepository for workspace layouts
+ * - TextPresetRepository for text presets
  */
 export class DatabaseService {
   private static instance: DatabaseService;
@@ -495,6 +496,18 @@ export class DatabaseService {
         updatedAt TEXT NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS text_presets (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        body TEXT NOT NULL,
+        side TEXT NOT NULL DEFAULT 'left',
+        imageUrl TEXT,
+        imageAlt TEXT,
+        isEnabled INTEGER NOT NULL DEFAULT 1,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      );
+
       CREATE INDEX IF NOT EXISTS idx_guests_displayName ON guests(displayName);
       CREATE INDEX IF NOT EXISTS idx_posters_profileIds ON posters(profileIds);
       CREATE INDEX IF NOT EXISTS idx_profiles_isActive ON profiles(isActive);
@@ -510,6 +523,7 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_panel_colors_panelId ON panel_colors(panelId);
       CREATE INDEX IF NOT EXISTS idx_workspaces_name ON workspaces(name);
       CREATE INDEX IF NOT EXISTS idx_workspaces_isDefault ON workspaces(isDefault);
+      CREATE INDEX IF NOT EXISTS idx_text_presets_name ON text_presets(name);
     `);
 
     this.logger.info("Database tables initialized");

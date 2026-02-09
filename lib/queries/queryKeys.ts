@@ -2,6 +2,10 @@ export interface GuestFilterOptions {
   enabled?: boolean;
 }
 
+export interface TextPresetFilterOptions {
+  enabled?: boolean;
+}
+
 export const queryKeys = {
   obs: {
     all: ["obs"] as const,
@@ -13,6 +17,13 @@ export const queryKeys = {
     list: (filters?: GuestFilterOptions) =>
       [...queryKeys.guests.all, "list", filters] as const,
     detail: (id: string) => [...queryKeys.guests.all, "detail", id] as const,
+  },
+
+  textPresets: {
+    all: ["textPresets"] as const,
+    list: (filters?: TextPresetFilterOptions) =>
+      [...queryKeys.textPresets.all, "list", filters] as const,
+    detail: (id: string) => [...queryKeys.textPresets.all, "detail", id] as const,
   },
 
   profiles: {

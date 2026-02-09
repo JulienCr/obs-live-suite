@@ -1,5 +1,5 @@
 export { queryKeys } from "./queryKeys";
-export type { GuestFilterOptions } from "./queryKeys";
+export type { GuestFilterOptions, TextPresetFilterOptions } from "./queryKeys";
 
 export { useGuests } from "./useGuests";
 export type {
@@ -9,6 +9,14 @@ export type {
   UpdateGuestInput,
   UseGuestsOptions,
 } from "./useGuests";
+
+export { useTextPresets } from "./useTextPresets";
+export type {
+  TextPreset,
+  CreateTextPresetInput,
+  UpdateTextPresetInput,
+  UseTextPresetsOptions,
+} from "./useTextPresets";
 
 export { useOBSStatus } from "./useOBSStatus";
 export type { OBSStatus, UseOBSStatusOptions } from "./useOBSStatus";

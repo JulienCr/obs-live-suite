@@ -1,8 +1,5 @@
 import { OllamaSettings } from "@/components/settings/OllamaSettings";
 
-export default function IntegrationsSettingsPage() {
+export default function AISettingsPage() {
   return <OllamaSettings />;
 }
-
-
-
