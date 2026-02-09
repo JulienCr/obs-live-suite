@@ -39,7 +39,6 @@ export function AssetDetailView({
   locale,
 }: AssetDetailViewProps) {
   const t = useTranslations("assets.posters");
-  const tCommon = useTranslations("common");
   const router = useRouter();
 
   // Form state
@@ -158,17 +157,14 @@ export function AssetDetailView({
   const handleRegenerateThumbnail = async () => {
     setIsRegenerating(true);
     try {
-      // Use current playhead position
-      const timestamp = currentTime;
-
       // For clips, use parent video. For regular videos, use self.
       const sourceFileUrl = isClip ? parentPoster?.fileUrl : poster.fileUrl;
       if (!sourceFileUrl) throw new Error("No source file");
 
-      // Generate thumbnail
+      // Generate thumbnail at current playhead position
       const data = await apiPost<{ thumbnailUrl: string }>("/api/assets/thumbnail", {
         fileUrl: sourceFileUrl,
-        timestamp: timestamp,
+        timestamp: currentTime,
       });
 
       // Update the poster with new thumbnail

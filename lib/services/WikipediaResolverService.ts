@@ -218,7 +218,7 @@ export class WikipediaResolverService {
 
       // Parse wikitext with wtf_wikipedia to get clean text
       const doc = wtf(wikitext);
-      let cleanText = doc.text();
+      const cleanText = doc.text();
 
       // Get summary for thumbnail
       const summary: wikiSummary = await wiki.summary(title);

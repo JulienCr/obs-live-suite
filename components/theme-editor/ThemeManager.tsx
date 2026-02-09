@@ -7,8 +7,8 @@ import { Theme, CreateThemeInput, LowerThirdTemplate, CountdownStyle } from "@/l
 import { ThemeList } from "./ThemeList";
 import { ThemeEditor } from "./ThemeEditor";
 import { ThemeEditorProvider } from "./ThemeEditorContext";
-import { apiGet, apiPost, apiPut } from "@/lib/utils/ClientFetch";
-import { useThemes } from "@/lib/queries";
+import { apiPost } from "@/lib/utils/ClientFetch";
+import { useThemes, useProfiles } from "@/lib/queries";
 
 const DEFAULT_THEME_DATA: Partial<CreateThemeInput> = {
   name: "",
@@ -73,27 +73,12 @@ export function ThemeManager() {
     deleteThemeAsync,
   } = useThemes();
 
-  const [activeProfileThemeId, setActiveProfileThemeId] = useState<string | null>(null);
+  const { activeProfile, updateProfileAsync } = useProfiles();
+
   const [editingTheme, setEditingTheme] = useState<Theme | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState<Partial<CreateThemeInput>>(DEFAULT_THEME_DATA);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadActiveProfile();
-  }, []);
-
-  const loadActiveProfile = async () => {
-    try {
-      const data = await apiGet<{ profiles?: Array<{ isActive: boolean; themeId: string }> }>("/api/profiles");
-      const activeProfile = data.profiles?.find((p) => p.isActive);
-      if (activeProfile) {
-        setActiveProfileThemeId(activeProfile.themeId);
-      }
-    } catch (err) {
-      console.error("Failed to load active profile:", err);
-    }
-  };
 
   const handleCreate = () => {
     setIsCreating(true);
@@ -158,15 +143,12 @@ export function ThemeManager() {
   const handleApplyTheme = async (themeId: string) => {
     try {
       setError(null);
-      const data = await apiGet<{ profiles?: Array<{ id: string; isActive: boolean }> }>("/api/profiles");
-      const activeProfile = data.profiles?.find((p) => p.isActive);
 
       if (!activeProfile) {
         throw new Error("No active profile found");
       }
 
-      await apiPut(`/api/profiles/${activeProfile.id}`, { themeId });
-      setActiveProfileThemeId(themeId);
+      await updateProfileAsync({ id: activeProfile.id, themeId });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to apply theme";
       setError(message);
@@ -288,7 +270,7 @@ export function ThemeManager() {
       ) : (
         <ThemeList
           themes={themes}
-          activeThemeId={activeProfileThemeId}
+          activeThemeId={activeProfile?.themeId ?? null}
           onEdit={handleEdit}
           onCreate={handleCreate}
           onDelete={handleDelete}

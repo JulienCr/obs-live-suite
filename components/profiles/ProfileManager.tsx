@@ -9,14 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Trash2, Check, Folder, Edit, X } from "lucide-react";
-import { apiGet, isClientFetchError } from "@/lib/utils/ClientFetch";
-import { useProfiles, type Profile } from "@/lib/queries";
-
-interface Theme {
-  id: string;
-  name: string;
-  isGlobal: boolean;
-}
+import { isClientFetchError } from "@/lib/utils/ClientFetch";
+import { useProfiles, useThemes, type Profile } from "@/lib/queries";
 
 /**
  * Profile management component
@@ -33,7 +27,8 @@ export function ProfileManager() {
     deleteProfileAsync,
   } = useProfiles();
 
-  const [themes, setThemes] = useState<Theme[]>([]);
+  const { themes } = useThemes();
+
   const [showForm, setShowForm] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [formData, setFormData] = useState({
@@ -42,26 +37,12 @@ export function ProfileManager() {
     themeId: "",
   });
 
+  // Set default theme when themes load and no theme is selected yet
   useEffect(() => {
-    fetchThemes();
-  }, []);
-
-  const fetchThemes = async () => {
-    try {
-      const data = await apiGet<{ themes: Theme[] }>("/api/themes");
-      setThemes(data.themes || []);
-      // Set default theme if not already set
-      if (data.themes && data.themes.length > 0 && !formData.themeId) {
-        setFormData(prev => ({ ...prev, themeId: data.themes[0].id }));
-      }
-    } catch (error) {
-      if (isClientFetchError(error)) {
-        console.error(`Failed to fetch themes (${error.status}):`, error.errorMessage);
-      } else {
-        console.error("Failed to fetch themes:", error);
-      }
+    if (themes.length > 0 && !formData.themeId) {
+      setFormData(prev => ({ ...prev, themeId: themes[0].id }));
     }
-  };
+  }, [themes]);
 
   const handleCreate = async () => {
     try {

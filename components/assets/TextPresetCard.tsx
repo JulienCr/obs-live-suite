@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CardActionBar } from "@/components/ui/CardActionBar";
 import { Zap, Edit, Power, PowerOff, Trash2, ImageIcon } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 import type { TextPreset } from "@/lib/queries";
 
 const SIDE_LABELS: Record<TextPreset["side"], string> = {
@@ -40,9 +41,10 @@ export function TextPresetCard({
 
   return (
     <div
-      className={`group relative border rounded-lg p-3 hover:shadow-md transition-all ${
-        !isEnabled ? "opacity-60" : ""
-      }`}
+      className={cn(
+        "group relative border rounded-lg p-3 hover:shadow-md transition-all",
+        !isEnabled && "opacity-60"
+      )}
     >
       {/* Name and Body Preview */}
       <div className="flex flex-col items-center space-y-2">
