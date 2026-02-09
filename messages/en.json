@@ -261,7 +261,8 @@
       "deletePreset": "Delete",
       "confirmDelete": "Delete \"{name}\"?",
       "confirmDeleteDesc": "This text preset will be permanently deleted.",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "morePresets": "+{count} more in library"
     },
     "twitch": {
       "title": "Twitch",
@@ -941,7 +942,10 @@
       "imageAltPlaceholder": "Image description...",
       "active": "Active",
       "disabled": "Disabled",
-      "activeCount": "{count} active · {total} total"
+      "activeCount": "{count} active · {total} total",
+      "confirmDelete": "Delete \"{name}\"?",
+      "confirmDeleteDesc": "This text preset will be permanently deleted.",
+      "deleteConfirm": "Delete"
     },
     "textPresetCard": {
       "active": "Active",

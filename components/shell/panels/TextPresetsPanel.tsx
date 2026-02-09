@@ -3,7 +3,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Zap, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { apiPost } from "@/lib/utils/ClientFetch";
+import { apiPost, apiGet } from "@/lib/utils/ClientFetch";
+import { DASHBOARD_EVENTS } from "@/lib/config/Constants";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import { useTextPresets } from "@/lib/queries";
 import { useDockview } from "../DockviewContext";
@@ -36,7 +37,9 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
   const tCommon = useTranslations("common");
   const { api: dockviewApi } = useDockview();
   const { textPresets: allPresets, isLoading: loading, deleteTextPreset } = useTextPresets({ enabled: true });
-  const textPresets = allPresets.slice(0, 10);
+  const MAX_VISIBLE_PRESETS = 10;
+  const textPresets = allPresets.slice(0, MAX_VISIBLE_PRESETS);
+  const hiddenCount = allPresets.length - textPresets.length;
 
   const [activeTextPresetId, setActiveTextPresetId] = useState<string | null>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -96,7 +99,7 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
 
   const handleEdit = (preset: typeof textPresets[0]) => {
     window.dispatchEvent(
-      new CustomEvent("load-text-preset", {
+      new CustomEvent(DASHBOARD_EVENTS.LOAD_TEXT_PRESET, {
         detail: {
           body: preset.body,
           side: preset.side,
@@ -195,6 +198,12 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
               </ContextMenu>
             );
           })}
+        </div>
+      )}
+
+      {hiddenCount > 0 && (
+        <div className="text-xs text-muted-foreground text-center py-1">
+          {t("morePresets", { count: hiddenCount })}
         </div>
       )}
 

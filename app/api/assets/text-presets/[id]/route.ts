@@ -46,6 +46,9 @@ export const DELETE = withErrorHandler<{ id: string }>(
   async (_request: Request, context: RouteContext<{ id: string }>) => {
     const { id } = await context.params;
     const repo = TextPresetRepository.getInstance();
+    if (!repo.exists(id)) {
+      return ApiResponses.notFound(`Text preset with ID ${id}`);
+    }
     repo.delete(id);
     return ApiResponses.ok({ success: true });
   },

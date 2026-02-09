@@ -261,7 +261,8 @@
       "deletePreset": "Supprimer",
       "confirmDelete": "Supprimer « {name} » ?",
       "confirmDeleteDesc": "Ce texte prédéfini sera supprimé définitivement.",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "morePresets": "+{count} de plus dans la bibliothèque"
     },
     "twitch": {
       "title": "Twitch",
@@ -941,7 +942,10 @@
       "imageAltPlaceholder": "Description de l'image...",
       "active": "Actif",
       "disabled": "Désactivé",
-      "activeCount": "{count} actifs · {total} total"
+      "activeCount": "{count} actifs · {total} total",
+      "confirmDelete": "Supprimer « {name} » ?",
+      "confirmDeleteDesc": "Ce texte prédéfini sera supprimé définitivement.",
+      "deleteConfirm": "Supprimer"
     },
     "textPresetCard": {
       "active": "Actif",

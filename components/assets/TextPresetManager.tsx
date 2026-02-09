@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,18 @@ import { EnableSearchCombobox } from "@/components/ui/EnableSearchCombobox";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { TextPresetCard } from "./TextPresetCard";
 import { FileText, ChevronDown, ChevronUp } from "lucide-react";
-import { apiPost } from "@/lib/utils/ClientFetch";
+import { apiPost, apiGet } from "@/lib/utils/ClientFetch";
 import { useTextPresets, type TextPreset } from "@/lib/queries";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const BODY_MAX_LENGTH = 2000;
 const SEARCH_PREVIEW_LENGTH = 40;
@@ -44,6 +54,23 @@ export function TextPresetManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showDisabled, setShowDisabled] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [lowerThirdDuration, setLowerThirdDuration] = useState(8);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  // Fetch overlay settings for lower third duration
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const data = await apiGet<{ settings?: { lowerThirdDuration?: number } }>("/api/settings/overlay");
+        if (data.settings?.lowerThirdDuration) {
+          setLowerThirdDuration(data.settings.lowerThirdDuration);
+        }
+      } catch (error) {
+        console.error("Failed to fetch overlay settings:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const resetForm = () => {
     setFormData(INITIAL_FORM_DATA);
@@ -90,14 +117,20 @@ export function TextPresetManager() {
   };
 
   const handleDelete = (preset: TextPreset) => {
-    if (!confirm(`Delete "${preset.name}"?`)) return;
-    deleteTextPreset(preset.id);
+    setDeleteTarget({ id: preset.id, name: preset.name });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      deleteTextPreset(deleteTarget.id);
+      setDeleteTarget(null);
+    }
   };
 
   const handleQuickShow = async (preset: TextPreset) => {
     try {
       await apiPost<{ success: boolean }>(`/api/actions/lower/text-preset/${preset.id}`, {
-        duration: 8,
+        duration: lowerThirdDuration,
       });
     } catch (error) {
       console.error("Failed to show lower third:", error);
@@ -321,6 +354,25 @@ export function TextPresetManager() {
           )}
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteTarget && t("confirmDelete", { name: deleteTarget.name })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("confirmDeleteDesc")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              {t("deleteConfirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

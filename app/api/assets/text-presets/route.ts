@@ -28,25 +28,20 @@ export const GET = withSimpleErrorHandler(async (request: Request) => {
  * POST /api/assets/text-presets
  * Create a new text preset
  */
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const cleanedBody = {
-      ...body,
-      imageUrl: body.imageUrl === "" ? null : body.imageUrl,
-      imageAlt: body.imageAlt === "" ? null : body.imageAlt,
-    };
-    const textPreset = textPresetSchema.parse({
-      id: randomUUID(),
-      ...cleanedBody,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    const repo = TextPresetRepository.getInstance();
-    repo.create(textPreset);
-    return ApiResponses.created({ textPreset });
-  } catch (error) {
-    console.error("[TextPresetsAPI] Text preset creation error:", error);
-    return ApiResponses.badRequest("Failed to create text preset");
-  }
-}
+export const POST = withSimpleErrorHandler(async (request: Request) => {
+  const body = await request.json();
+  const cleanedBody = {
+    ...body,
+    imageUrl: body.imageUrl === "" ? null : body.imageUrl,
+    imageAlt: body.imageAlt === "" ? null : body.imageAlt,
+  };
+  const textPreset = textPresetSchema.parse({
+    id: randomUUID(),
+    ...cleanedBody,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  const repo = TextPresetRepository.getInstance();
+  repo.create(textPreset);
+  return ApiResponses.created({ textPreset });
+}, LOG_CONTEXT);

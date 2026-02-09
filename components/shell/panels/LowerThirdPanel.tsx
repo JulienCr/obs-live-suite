@@ -8,6 +8,7 @@ import { Eye, EyeOff, Timer, Loader2, ExternalLink, FileText, X, Search, Sparkle
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTextPresets } from "@/lib/queries";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
+import { DASHBOARD_EVENTS } from "@/lib/config/Constants";
 import { toast } from "sonner";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { LowerThirdPreviewDialog } from "./LowerThirdPreviewDialog";
@@ -280,8 +281,8 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
       setImageAlt(presetImageAlt || "");
       if (mode !== "text") setMode("text");
     };
-    window.addEventListener("load-text-preset", handler);
-    return () => window.removeEventListener("load-text-preset", handler);
+    window.addEventListener(DASHBOARD_EVENTS.LOAD_TEXT_PRESET, handler);
+    return () => window.removeEventListener(DASHBOARD_EVENTS.LOAD_TEXT_PRESET, handler);
   }, [mode]);
 
   const handleSaveAsPreset = async () => {
