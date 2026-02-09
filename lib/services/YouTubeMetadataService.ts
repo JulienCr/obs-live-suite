@@ -99,14 +99,9 @@ export class YouTubeMetadataService {
       return null;
     }
 
-    if (!videoId || typeof videoId !== "string") {
-      this.logger.error("Invalid video ID provided");
-      return null;
-    }
-
-    const trimmedId = videoId.trim();
-    if (trimmedId === "") {
-      this.logger.error("Video ID cannot be empty");
+    const trimmedId = videoId?.trim();
+    if (!trimmedId) {
+      this.logger.error("Invalid or empty video ID provided");
       return null;
     }
 
@@ -137,16 +132,7 @@ export class YouTubeMetadataService {
       const video = data.items[0];
 
       // Parse duration from ISO 8601 format
-      let duration: number;
-      try {
-        duration = parseISO8601Duration(video.contentDetails.duration);
-      } catch (error) {
-        this.logger.error(
-          `Failed to parse duration: ${video.contentDetails.duration}`,
-          error
-        );
-        return null;
-      }
+      const duration = parseISO8601Duration(video.contentDetails.duration);
 
       // Select best thumbnail (prefer high, fallback to medium, then default)
       const thumbnails = video.snippet.thumbnails;

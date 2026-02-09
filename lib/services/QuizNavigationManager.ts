@@ -70,30 +70,8 @@ export class QuizNavigationManager {
         return;
       }
 
-      sess.currentQuestionIndex += 1;
-      this.setPhase("idle");
-      await this.timer.stop();
-
-      // Clear previous question's data
-      sess.playerAnswers = {};
-      this.store.setSession(sess);
-
-      // Clear viewer votes (non-critical)
-      try {
-        const { resetViewerInputs } = await import("../../server/api/quiz-bot");
-        resetViewerInputs();
-      } catch (error) {
-        this.logger.error("nextQuestion: Failed to reset viewer inputs", error);
-      }
-
-      // Emit question change to clear UI state
-      const nextQ = round.questions[sess.currentQuestionIndex];
-      await this.channel.publish(OverlayChannel.QUIZ, "question.change", {
-        question_id: nextQ.id,
-        clear_assignments: true
-      });
-
-      this.logger.info(`Advanced to question ${sess.currentQuestionIndex + 1}/${round.questions.length}`, { questionId: nextQ.id });
+      await this.navigateToQuestion(sess, round, sess.currentQuestionIndex + 1);
+      this.logger.info(`Advanced to question ${sess.currentQuestionIndex + 1}/${round.questions.length}`);
     } catch (error) {
       this.logger.error("nextQuestion failed", error);
       throw new QuizError("Failed to advance to next question", "nextQuestion", error);
@@ -113,30 +91,8 @@ export class QuizNavigationManager {
         return;
       }
 
-      sess.currentQuestionIndex -= 1;
-      this.setPhase("idle");
-      await this.timer.stop();
-
-      // Clear previous question's data
-      sess.playerAnswers = {};
-      this.store.setSession(sess);
-
-      // Clear viewer votes (non-critical)
-      try {
-        const { resetViewerInputs } = await import("../../server/api/quiz-bot");
-        resetViewerInputs();
-      } catch (error) {
-        this.logger.error("prevQuestion: Failed to reset viewer inputs", error);
-      }
-
-      // Emit question change to clear UI state
-      const prevQ = round.questions[sess.currentQuestionIndex];
-      await this.channel.publish(OverlayChannel.QUIZ, "question.change", {
-        question_id: prevQ.id,
-        clear_assignments: true
-      });
-
-      this.logger.info(`Moved back to question ${sess.currentQuestionIndex + 1}/${round.questions.length}`, { questionId: prevQ.id });
+      await this.navigateToQuestion(sess, round, sess.currentQuestionIndex - 1);
+      this.logger.info(`Moved back to question ${sess.currentQuestionIndex + 1}/${round.questions.length}`);
     } catch (error) {
       this.logger.error("prevQuestion failed", error);
       throw new QuizError("Failed to go to previous question", "prevQuestion", error);
@@ -158,34 +114,40 @@ export class QuizNavigationManager {
         return;
       }
 
-      sess.currentQuestionIndex = qIdx;
-      this.setPhase("idle");
-      await this.timer.stop();
-
-      // Clear previous question's data
-      sess.playerAnswers = {};
-      this.store.setSession(sess);
-
-      // Clear viewer votes (non-critical)
-      try {
-        const { resetViewerInputs } = await import("../../server/api/quiz-bot");
-        resetViewerInputs();
-      } catch (error) {
-        this.logger.error(`selectQuestion: Failed to reset viewer inputs for question ${questionId}`, error);
-      }
-
-      // Emit question change to clear UI state
-      const selectedQ = round.questions[qIdx];
-      await this.channel.publish(OverlayChannel.QUIZ, "question.change", {
-        question_id: selectedQ.id,
-        clear_assignments: true
-      });
-
+      await this.navigateToQuestion(sess, round, qIdx);
       this.logger.info(`Selected question ${qIdx + 1}/${round.questions.length}`, { questionId });
     } catch (error) {
       this.logger.error(`selectQuestion failed for question ${questionId}`, error);
       throw new QuizError(`Failed to select question ${questionId}`, "selectQuestion", error);
     }
+  }
+
+  /**
+   * Shared navigation logic: update index, reset state, clear inputs, emit change.
+   */
+  private async navigateToQuestion(sess: Session, round: Session["rounds"][number], targetIndex: number): Promise<void> {
+    sess.currentQuestionIndex = targetIndex;
+    this.setPhase("idle");
+    await this.timer.stop();
+
+    // Clear previous question's data
+    sess.playerAnswers = {};
+    this.store.setSession(sess);
+
+    // Clear viewer votes (non-critical)
+    try {
+      const { resetViewerInputs } = await import("../../server/api/quiz-bot");
+      resetViewerInputs();
+    } catch (error) {
+      this.logger.error("navigateToQuestion: Failed to reset viewer inputs", error);
+    }
+
+    // Emit question change to clear UI state
+    const question = round.questions[targetIndex];
+    await this.channel.publish(OverlayChannel.QUIZ, "question.change", {
+      question_id: question.id,
+      clear_assignments: true,
+    });
   }
 
   private requireSession(): Session {
