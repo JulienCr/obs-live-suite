@@ -130,6 +130,7 @@ export const lowerThirdShowPayloadSchema = z.object({
   avatarImage: z.string().optional(),
   logoHasPadding: z.boolean().default(false),
   guestId: z.string().optional(), // Guest ID for tracking in dashboard
+  textPresetId: z.string().optional(), // Text preset ID for tracking in dashboard
   from: z.nativeEnum(EventSource).default(EventSource.REGIE),
   animationConfig: lowerThirdAnimationConfigSchema,
   theme: z.object({

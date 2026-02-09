@@ -13,7 +13,8 @@
       "regieInternalChatView": "Internal Chat View",
       "regiePublicChat": "Public Chat",
       "twitch": "Twitch",
-      "chatMessages": "Chat Messages"
+      "chatMessages": "Chat Messages",
+      "textPresets": "Quick LT"
     },
     "header": {
       "connected": "Connected",
@@ -45,7 +46,8 @@
       "resetWorkspace": "Reset to Default Workspace",
       "saveWorkspace": "Save Current Layout as Workspace",
       "manageWorkspaces": "Manage Workspaces",
-      "switchToWorkspace": "Switch to: {name}"
+      "switchToWorkspace": "Switch to: {name}",
+      "showTextPresetsPanel": "Show Quick LT Panel"
     },
     "workspaces": {
       "title": "Workspaces",
@@ -165,7 +167,14 @@
         "summaryReady": "Summary ready - edit and click Show",
         "failedGenerateSummary": "Failed to generate summary",
         "llmUnavailable": "LLM service unavailable. Check your settings."
-      }
+      },
+      "saveAsPreset": "Save as preset",
+      "save": "Save",
+      "presetNameLabel": "Preset name",
+      "presetNamePlaceholder": "My text preset...",
+      "savePreset": "Save",
+      "presetSaved": "Preset saved",
+      "presetSaveFailed": "Failed to save preset"
     },
     "countdown": {
       "title": "Countdown",
@@ -243,6 +252,16 @@
       "selectGuest": "Select a guest",
       "showLowerThirdTooltip": "Show {name} lower third (Shortcut: {shortcut})",
       "sendMessageTooltip": "Send {name}'s chat message"
+    },
+    "textPresets": {
+      "title": "Text Presets",
+      "noPresets": "No text presets",
+      "showTooltip": "Show {name} lower third (Shortcut: {shortcut})",
+      "editPreset": "Edit",
+      "deletePreset": "Delete",
+      "confirmDelete": "Delete \"{name}\"?",
+      "confirmDeleteDesc": "This text preset will be permanently deleted.",
+      "cancel": "Cancel"
     },
     "twitch": {
       "title": "Twitch",
@@ -326,30 +345,28 @@
   },
   "navigation": {
     "sections": {
-      "live": "LIVE",
       "library": "LIBRARY",
-      "showSetup": "SHOW SETUP",
-      "presenter": "PRESENTER",
-      "integrations": "INTEGRATIONS",
+      "customization": "CUSTOMIZATION",
+      "show": "SHOW",
+      "connections": "CONNECTIONS",
       "settings": "SETTINGS"
     },
     "items": {
-      "showControl": "Show Control",
-      "overlays": "Overlays",
+      "guests": "Guests",
       "posters": "Posters",
+      "textPresets": "Text Presets",
       "themes": "Themes",
       "profiles": "Profiles",
-      "guests": "Guests",
-      "rooms": "Rooms",
+      "overlays": "Overlays",
       "presenterChannel": "Presenter Channel",
-      "streamerbot": "Streamer.bot",
+      "chatMessages": "Chat Messages",
       "obs": "OBS",
       "twitch": "Twitch",
+      "streamerbot": "Streamer.bot",
       "streamDeck": "Stream Deck",
       "pluginsUpdates": "Plugins & Updates",
       "general": "General",
-      "integrationsSettings": "Integrations",
-      "chatMessages": "Chat Messages",
+      "ai": "AI",
       "backend": "Backend",
       "paths": "Paths",
       "backup": "Backup",
@@ -896,6 +913,45 @@
         "invalidUrlImage": "Invalid URL. Paste a direct link to an image file.",
         "invalidUrlFull": "Invalid URL. Paste a YouTube URL or a direct link to an image/video file."
       }
+    },
+    "textPresets": {
+      "title": "Text Presets",
+      "addPreset": "Add a preset",
+      "editPreset": "Edit preset",
+      "createPreset": "Create preset",
+      "updatePreset": "Update",
+      "noPresetsFound": "No presets found.",
+      "activePresets": "Active presets",
+      "disabledPresets": "Disabled presets",
+      "noActivePresets": "No active presets",
+      "addOrEnable": "Add a preset or enable one via the search above",
+      "enablePreset": "Enable a preset",
+      "searchToEnable": "Search to enable a disabled preset...",
+      "searchByName": "Search by name...",
+      "name": "Name",
+      "namePlaceholder": "My text preset",
+      "body": "Content",
+      "bodyPlaceholder": "Markdown content for lower third...",
+      "side": "Position",
+      "side_left": "Left",
+      "side_right": "Right",
+      "side_center": "Center",
+      "imageOptional": "Image (Optional)",
+      "quickAddImage": "Add an image",
+      "imageAltPlaceholder": "Image description...",
+      "active": "Active",
+      "disabled": "Disabled",
+      "activeCount": "{count} active · {total} total"
+    },
+    "textPresetCard": {
+      "active": "Active",
+      "disabled": "Disabled",
+      "quickShow": "Quick show",
+      "quickShowTitle": "Show lower third (auto-hide 8s)",
+      "edit": "Edit",
+      "enable": "Enable",
+      "disable": "Disable",
+      "delete": "Delete"
     }
   },
   "quiz": {
@@ -1200,7 +1256,8 @@
     "previous": "Previous",
     "yes": "Yes",
     "no": "No",
-    "title": "Title"
+    "title": "Title",
+    "clear": "Clear"
   },
   "regieChat": {
     "cueTypes": {

@@ -4,7 +4,9 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Timer, Loader2, ExternalLink, FileText, X, Search, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Timer, Loader2, ExternalLink, FileText, X, Search, Sparkles, Save } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useTextPresets } from "@/lib/queries";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { toast } from "sonner";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
@@ -47,6 +49,9 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
   const [showWikipediaOptions, setShowWikipediaOptions] = useState(false);
   const [lowerThirdDuration, setLowerThirdDuration] = useState(8); // Default, will be updated from settings
   const [showPreview, setShowPreview] = useState(false);
+  const { createTextPresetAsync } = useTextPresets({ enabled: true });
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [presetName, setPresetName] = useState("");
 
   // Sync local state with shared overlay state (handles external hide from EventLog)
   useOverlayHideSync("lowerThird", isVisible, () => setIsVisible(false));
@@ -265,6 +270,39 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
     }
   };
 
+  // Listen for load-text-preset events from the Quick LT panel
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { body, side: presetSide, imageUrl: presetImageUrl, imageAlt: presetImageAlt } = (e as CustomEvent).detail;
+      setMarkdown(body);
+      setSide(presetSide);
+      setImageUrl(presetImageUrl || null);
+      setImageAlt(presetImageAlt || "");
+      if (mode !== "text") setMode("text");
+    };
+    window.addEventListener("load-text-preset", handler);
+    return () => window.removeEventListener("load-text-preset", handler);
+  }, [mode]);
+
+  const handleSaveAsPreset = async () => {
+    if (!presetName.trim() || !markdown.trim()) return;
+    try {
+      await createTextPresetAsync({
+        name: presetName.trim(),
+        body: markdown,
+        side,
+        imageUrl: imageUrl || null,
+        imageAlt: imageAlt || null,
+      });
+      setShowSaveDialog(false);
+      setPresetName("");
+      toast.success(t("presetSaved"));
+    } catch (error) {
+      console.error("Failed to save preset:", error);
+      toast.error(t("presetSaveFailed"));
+    }
+  };
+
   return (
     <BasePanelWrapper config={config}>
         <div className="space-y-4">
@@ -302,6 +340,42 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
             <div className="flex items-center justify-between">
               <Label htmlFor="markdown">{t("markdown")}</Label>
               <div className="flex gap-2">
+                <Popover open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-2"
+                      title={t("saveAsPreset")}
+                      disabled={!markdown.trim()}
+                    >
+                      <Save className="h-4 w-4" />
+                      {t("save")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-3" align="end">
+                    <div className="space-y-2">
+                      <Label htmlFor="presetName">{t("presetNameLabel")}</Label>
+                      <Input
+                        id="presetName"
+                        value={presetName}
+                        onChange={(e) => setPresetName(e.target.value)}
+                        placeholder={t("presetNamePlaceholder")}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveAsPreset();
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={handleSaveAsPreset}
+                        disabled={!presetName.trim()}
+                      >
+                        {t("savePreset")}
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <Button
                   variant="ghost"
                   size="sm"

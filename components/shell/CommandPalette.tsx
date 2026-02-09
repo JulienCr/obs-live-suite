@@ -137,6 +137,12 @@ export function CommandPalette(): React.ReactNode {
       action: () => addPanel("eventLog", "eventLog", "eventLog"),
     },
     {
+      id: "panel-text-presets",
+      label: t("showTextPresetsPanel"),
+      keywords: ["panel", "widget", "text", "presets", "lower", "third", "quick", "add"],
+      action: () => addPanel("textPresets", "textPresets", "textPresets"),
+    },
+    {
       id: "panel-twitch",
       label: t("showTwitchPanel"),
       keywords: ["panel", "widget", "twitch", "stats", "viewers", "broadcast", "stream", "control", "title", "category", "edit", "add"],
