@@ -3,10 +3,10 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Zap, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { apiPost, apiGet } from "@/lib/utils/ClientFetch";
+import { apiPost } from "@/lib/utils/ClientFetch";
 import { DASHBOARD_EVENTS } from "@/lib/config/Constants";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
-import { useTextPresets } from "@/lib/queries";
+import { useTextPresets, type TextPreset } from "@/lib/queries";
 import { useDockview } from "../DockviewContext";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import type { LowerThirdEvent } from "@/lib/models/OverlayEvents";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const config: PanelConfig = { id: "textPresets", context: "dashboard" };
+const MAX_VISIBLE_PRESETS = 10;
 
 /**
  * Text Presets panel for Dockview - quick play text lower thirds
@@ -37,7 +38,6 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
   const tCommon = useTranslations("common");
   const { api: dockviewApi } = useDockview();
   const { textPresets: allPresets, isLoading: loading, deleteTextPreset } = useTextPresets({ enabled: true });
-  const MAX_VISIBLE_PRESETS = 10;
   const textPresets = allPresets.slice(0, MAX_VISIBLE_PRESETS);
   const hiddenCount = allPresets.length - textPresets.length;
 
@@ -79,7 +79,7 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
     };
   }, []);
 
-  const handleQuickShow = async (preset: typeof textPresets[0]) => {
+  const handleQuickShow = async (preset: TextPreset) => {
     try {
       if (activeTextPresetId === preset.id) {
         if (hideTimeoutRef.current) {
@@ -97,7 +97,7 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
     }
   };
 
-  const handleEdit = (preset: typeof textPresets[0]) => {
+  const handleEdit = (preset: TextPreset) => {
     window.dispatchEvent(
       new CustomEvent(DASHBOARD_EVENTS.LOAD_TEXT_PRESET, {
         detail: {

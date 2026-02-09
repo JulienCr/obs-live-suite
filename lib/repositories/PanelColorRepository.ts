@@ -1,5 +1,4 @@
 import { DatabaseConnector } from "@/lib/services/DatabaseConnector";
-import { Logger } from "@/lib/utils/Logger";
 import type { DbPanelColor } from "@/lib/models/Database";
 
 /**
@@ -8,11 +7,8 @@ import type { DbPanelColor } from "@/lib/models/Database";
  */
 export class PanelColorRepository {
   private static instance: PanelColorRepository;
-  private logger: Logger;
 
-  private constructor() {
-    this.logger = new Logger("PanelColorRepository");
-  }
+  private constructor() {}
 
   /**
    * Get singleton instance
@@ -59,24 +55,15 @@ export class PanelColorRepository {
    * Upsert panel color scheme (create or update)
    */
   upsertPanelColor(panelId: string, scheme: string): DbPanelColor {
-    const existing = this.getPanelColorByPanelId(panelId);
-    const now = new Date();
+    const now = new Date().toISOString();
+    const id = crypto.randomUUID();
 
-    if (existing) {
-      // Update existing
-      const stmt = this.db.prepare(`
-        UPDATE panel_colors SET scheme = ?, updatedAt = ? WHERE panelId = ?
-      `);
-      stmt.run(scheme, now.toISOString(), panelId);
-    } else {
-      // Create new
-      const id = crypto.randomUUID();
-      const stmt = this.db.prepare(`
-        INSERT INTO panel_colors (id, panelId, scheme, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?)
-      `);
-      stmt.run(id, panelId, scheme, now.toISOString(), now.toISOString());
-    }
+    const stmt = this.db.prepare(`
+      INSERT INTO panel_colors (id, panelId, scheme, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(panelId) DO UPDATE SET scheme = excluded.scheme, updatedAt = excluded.updatedAt
+    `);
+    stmt.run(id, panelId, scheme, now, now);
 
     return this.getPanelColorByPanelId(panelId)!;
   }

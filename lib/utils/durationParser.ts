@@ -56,14 +56,12 @@ export function parseDurationString(input: string): number | null {
     return null;
   }
 
-  // Parse all parts as integers
+  // Parse all parts as integers (only digits allowed)
   const numbers = parts.map(part => {
-    // Check if part contains only digits (reject decimals, letters, etc.)
     if (!/^\d+$/.test(part.trim())) {
       return null;
     }
-    const num = parseInt(part, 10);
-    return isNaN(num) ? null : num;
+    return parseInt(part, 10);
   });
 
   // Check if any part failed to parse

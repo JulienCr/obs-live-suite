@@ -92,7 +92,7 @@ export function TextPresetCard({
             ...(onToggleEnabled ? [{
               icon: isEnabled ? PowerOff : Power,
               onClick: () => onToggleEnabled(preset),
-              variant: isEnabled ? "outline" as const : "default" as const,
+              variant: (isEnabled ? "outline" : "default") as "outline" | "default",
               title: isEnabled ? t("disable") : t("enable"),
             }] : []),
             ...(onDelete ? [{ icon: Trash2, onClick: () => onDelete(preset), variant: "destructive" as const, title: t("delete") }] : []),

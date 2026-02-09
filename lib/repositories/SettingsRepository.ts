@@ -1,5 +1,4 @@
 import { DatabaseConnector } from "@/lib/services/DatabaseConnector";
-import { Logger } from "@/lib/utils/Logger";
 
 /**
  * SettingsRepository handles all settings key-value database operations.
@@ -7,11 +6,8 @@ import { Logger } from "@/lib/utils/Logger";
  */
 export class SettingsRepository {
   private static instance: SettingsRepository;
-  private logger: Logger;
 
-  private constructor() {
-    this.logger = new Logger("SettingsRepository");
-  }
+  private constructor() {}
 
   /**
    * Get singleton instance
@@ -33,7 +29,7 @@ export class SettingsRepository {
   getSetting(key: string): string | null {
     const stmt = this.db.prepare("SELECT value FROM settings WHERE key = ?");
     const result = stmt.get(key) as { value: string } | undefined;
-    return result?.value || null;
+    return result?.value ?? null;
   }
 
   /**
@@ -60,10 +56,6 @@ export class SettingsRepository {
   getAllSettings(): Record<string, string> {
     const stmt = this.db.prepare("SELECT key, value FROM settings");
     const rows = stmt.all() as Array<{ key: string; value: string }>;
-    const settings: Record<string, string> = {};
-    for (const row of rows) {
-      settings[row.key] = row.value;
-    }
-    return settings;
+    return Object.fromEntries(rows.map((row) => [row.key, row.value]));
   }
 }

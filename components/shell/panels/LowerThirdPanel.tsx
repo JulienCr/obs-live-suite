@@ -72,25 +72,16 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
     fetchSettings();
   }, []);
 
+  const buildPayload = (duration?: number) => {
+    const base = mode === "text"
+      ? { contentType: "text" as const, body: markdown, imageUrl: imageUrl || undefined, imageAlt: imageAlt || undefined, side }
+      : { contentType: "guest" as const, title, subtitle, side };
+    return duration !== undefined ? { ...base, duration } : base;
+  };
+
   const handleShow = async () => {
     try {
-      const payload =
-        mode === "text"
-          ? {
-              contentType: "text",
-              body: markdown,
-              imageUrl: imageUrl || undefined,
-              imageAlt: imageAlt || undefined,
-              side,
-            }
-          : {
-              contentType: "guest",
-              title,
-              subtitle,
-              side,
-            };
-
-      await apiPost("/api/actions/lower/show", payload);
+      await apiPost("/api/actions/lower/show", buildPayload());
       setIsVisible(true);
     } catch (error) {
       console.error("Error showing lower third:", error);
@@ -108,25 +99,7 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
 
   const handleAuto = async () => {
     try {
-      const payload =
-        mode === "text"
-          ? {
-              contentType: "text",
-              body: markdown,
-              imageUrl: imageUrl || undefined,
-              imageAlt: imageAlt || undefined,
-              side,
-              duration: lowerThirdDuration,
-            }
-          : {
-              contentType: "guest",
-              title,
-              subtitle,
-              side,
-              duration: lowerThirdDuration,
-            };
-
-      await apiPost("/api/actions/lower/show", payload);
+      await apiPost("/api/actions/lower/show", buildPayload(lowerThirdDuration));
       setIsVisible(true);
       setTimeout(() => setIsVisible(false), lowerThirdDuration * 1000);
     } catch (error) {
