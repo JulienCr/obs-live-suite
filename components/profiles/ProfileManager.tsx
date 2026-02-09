@@ -9,22 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Trash2, Check, Folder, Edit, X } from "lucide-react";
-import {
-  apiGet,
-  apiPost,
-  apiPut,
-  isClientFetchError,
-} from "@/lib/utils/ClientFetch";
-import { useEntityManager } from "@/lib/hooks";
-
-interface Profile {
-  id: string;
-  name: string;
-  description?: string;
-  themeId: string;
-  isActive: boolean;
-  createdAt: string;
-}
+import { apiGet, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { useProfiles, type Profile } from "@/lib/queries";
 
 interface Theme {
   id: string;
@@ -39,15 +25,13 @@ export function ProfileManager() {
   const t = useTranslations("profiles");
 
   const {
-    items: profiles,
-    loading,
-    refresh: refreshProfiles,
-    deleteItem,
-  } = useEntityManager<Profile>({
-    endpoint: "/api/profiles",
-    extractItems: (data) => (data as { profiles: Profile[] }).profiles || [],
-    entityName: "profiles",
-  });
+    profiles,
+    isLoading: loading,
+    activateProfileAsync,
+    createProfileAsync,
+    updateProfileAsync,
+    deleteProfileAsync,
+  } = useProfiles();
 
   const [themes, setThemes] = useState<Theme[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -81,11 +65,10 @@ export function ProfileManager() {
 
   const handleCreate = async () => {
     try {
-      await apiPost<{ profile: Profile }>("/api/profiles", {
+      await createProfileAsync({
         ...formData,
         isActive: profiles.length === 0, // First profile is active
       });
-      refreshProfiles();
       setShowForm(false);
       setEditingProfile(null);
       setFormData({ name: "", description: "", themeId: themes[0]?.id || "" });
@@ -102,11 +85,10 @@ export function ProfileManager() {
     if (!editingProfile) return;
 
     try {
-      await apiPut<{ profile: Profile }>(
-        `/api/profiles/${editingProfile.id}`,
-        formData
-      );
-      refreshProfiles();
+      await updateProfileAsync({
+        id: editingProfile.id,
+        ...formData,
+      });
       setShowForm(false);
       setEditingProfile(null);
       setFormData({ name: "", description: "", themeId: themes[0]?.id || "" });
@@ -137,8 +119,7 @@ export function ProfileManager() {
 
   const handleActivate = async (id: string) => {
     try {
-      await apiPost<{ success: boolean }>(`/api/profiles/${id}/activate`);
-      refreshProfiles();
+      await activateProfileAsync(id);
     } catch (error) {
       if (isClientFetchError(error)) {
         console.error(`Failed to activate profile (${error.status}):`, error.errorMessage);
@@ -150,7 +131,11 @@ export function ProfileManager() {
 
   const handleDelete = async (id: string) => {
     if (!confirm(t("deleteConfirm"))) return;
-    await deleteItem(id);
+    try {
+      await deleteProfileAsync(id);
+    } catch (error) {
+      console.error("Failed to delete profile:", error);
+    }
   };
 
   if (loading) {

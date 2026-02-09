@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils/cn";
+import { formatTimeShort } from "@/lib/utils/durationParser";
 import type { VideoChapter } from "@/lib/models/Poster";
 
 export interface VideoTimelineProps {
@@ -22,25 +23,11 @@ export interface VideoTimelineProps {
 }
 
 /**
- * Format seconds to human-readable time string
- */
-function formatTime(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-
-  if (hours > 0) {
-    return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  }
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
-
-/**
  * Find the smallest divisor of `base` that is >= `min`.
  * This ensures time markers always land on "round" values
  * (e.g. divisors of 60 give 1,2,3,4,5,6,10,12,15,20,30,60 — all clean time intervals).
  */
-function smallestDivisorAtLeast(base: number, min: number): number {
+export function smallestDivisorAtLeast(base: number, min: number): number {
   const start = Math.max(1, Math.ceil(min));
   for (let i = start; i <= base; i++) {
     if (base % i === 0) return i;
@@ -52,7 +39,7 @@ function smallestDivisorAtLeast(base: number, min: number): number {
  * Compute the best minor subdivision count for a major interval.
  * Prefers the highest subdivision (most ticks) that still produces round time values.
  */
-function bestMinorDivisions(majorInterval: number): number {
+export function bestMinorDivisions(majorInterval: number): number {
   if (majorInterval <= 1) return 1;
   for (let d = 6; d >= 2; d--) {
     if (majorInterval % d !== 0) continue;
@@ -67,7 +54,7 @@ function bestMinorDivisions(majorInterval: number): number {
   return 4;
 }
 
-interface TickIntervals { major: number; minor: number }
+export interface TickIntervals { major: number; minor: number }
 
 /**
  * Compute major and minor tick intervals for a given duration.
@@ -76,7 +63,7 @@ interface TickIntervals { major: number; minor: number }
  * land on "round" values like :00, :05, :10, :15, :20, :30.
  * For hours, simply rounds up to the nearest integer.
  */
-function computeTickIntervals(duration: number): TickIntervals {
+export function computeTickIntervals(duration: number): TickIntervals {
   const TARGET_MAJOR_TICKS = 8;
   const rawInterval = duration / TARGET_MAJOR_TICKS;
 
@@ -98,7 +85,7 @@ function computeTickIntervals(duration: number): TickIntervals {
   return { major: majorInterval, minor: majorInterval / minorDivisions };
 }
 
-interface TimelineTick {
+export interface TimelineTick {
   time: number;
   isMajor: boolean;
   label?: string;
@@ -107,7 +94,7 @@ interface TimelineTick {
 /**
  * Generate all ticks (major with labels + minor without) for the ruler
  */
-function generateTicks(duration: number): TimelineTick[] {
+export function generateTicks(duration: number): TimelineTick[] {
   if (duration <= 0) return [];
 
   const { major, minor } = computeTickIntervals(duration);
@@ -119,7 +106,7 @@ function generateTicks(duration: number): TimelineTick[] {
     const isMajor =
       Math.abs(time % major) < epsilon ||
       Math.abs(time % major - major) < epsilon;
-    ticks.push({ time, isMajor, label: isMajor ? formatTime(time) : undefined });
+    ticks.push({ time, isMajor, label: isMajor ? formatTimeShort(time) : undefined });
   }
 
   // Add final duration marker, removing any tick that's too close to avoid overlap
@@ -127,7 +114,7 @@ function generateTicks(duration: number): TimelineTick[] {
   while (ticks.length > 0 && duration - ticks[ticks.length - 1].time < minGap) {
     ticks.pop();
   }
-  ticks.push({ time: duration, isMajor: true, label: formatTime(duration) });
+  ticks.push({ time: duration, isMajor: true, label: formatTimeShort(duration) });
 
   return ticks;
 }
@@ -360,7 +347,7 @@ export function VideoTimeline({
               }}
               onMouseEnter={() => setHoveredChapter(chapter)}
               onMouseLeave={() => setHoveredChapter(null)}
-              title={`${chapter.title} (${formatTime(chapter.timestamp)})`}
+              title={`${chapter.title} (${formatTimeShort(chapter.timestamp)})`}
             />
           );
         })}
@@ -373,7 +360,7 @@ export function VideoTimeline({
           style={{ left: `${timeToPercent(hoveredChapter.timestamp)}%` }}
         >
           <p className="font-medium">{hoveredChapter.title}</p>
-          <p className="text-muted-foreground">{formatTime(hoveredChapter.timestamp)}</p>
+          <p className="text-muted-foreground">{formatTimeShort(hoveredChapter.timestamp)}</p>
         </div>
       )}
 
@@ -456,11 +443,11 @@ export function VideoTimeline({
           className="absolute -top-6 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-0.5 rounded shadow-md z-40"
           style={{ left: `${timeToPercent(hoverTime)}%` }}
         >
-          {formatTime(hoverTime)}
+          {formatTimeShort(hoverTime)}
         </div>
       )}
     </div>
   );
 }
 
-export { formatTime };
+export { formatTimeShort as formatTime } from "@/lib/utils/durationParser";

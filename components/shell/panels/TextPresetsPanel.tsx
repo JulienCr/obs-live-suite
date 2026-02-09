@@ -16,16 +16,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDeleteDialog } from "@/components/ui/ConfirmDeleteDialog";
 
 const config: PanelConfig = { id: "textPresets", context: "dashboard" };
 const MAX_VISIBLE_PRESETS = 10;
@@ -118,13 +109,6 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
     }
   };
 
-  const handleDeleteConfirm = () => {
-    if (deleteTarget) {
-      deleteTextPreset(deleteTarget.id);
-      setDeleteTarget(null);
-    }
-  };
-
   return (
     <BasePanelWrapper config={config}>
       {loading ? (
@@ -207,24 +191,15 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
         </div>
       )}
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {deleteTarget && t("confirmDelete", { name: deleteTarget.name })}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("confirmDeleteDesc")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>
-              {t("deletePreset")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteDialog
+        target={deleteTarget}
+        onConfirm={(id) => { deleteTextPreset(id); setDeleteTarget(null); }}
+        onCancel={() => setDeleteTarget(null)}
+        title={deleteTarget ? t("confirmDelete", { name: deleteTarget.name }) : ""}
+        description={t("confirmDeleteDesc")}
+        confirmLabel={t("deletePreset")}
+        cancelLabel={t("cancel")}
+      />
     </BasePanelWrapper>
   );
 }

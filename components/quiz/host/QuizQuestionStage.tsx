@@ -4,6 +4,7 @@ import { Question, Player } from "@/lib/models/Quiz";
 import { Button } from "@/components/ui/button";
 import { Clock, Play, Pause, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatTimeShort } from "@/lib/utils/durationParser";
 import { PlayerAvatarChip } from "./PlayerAvatarChip";
 import { useState } from "react";
 import * as React from "react";
@@ -96,11 +97,6 @@ export function QuizQuestionStage({
   }
 
   const totalVotes = Object.values(viewerVotes).reduce((a, b) => a + b, 0);
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
 
   const isQcmMode =
     question.type === "qcm" ||
@@ -604,7 +600,7 @@ export function QuizQuestionStage({
                 timerSeconds < 10 && "text-red-600"
               )}
             >
-              {formatTime(timerSeconds)}
+              {formatTimeShort(timerSeconds)}
             </span>
             <div className="flex gap-2">
               {timerRunning ? (

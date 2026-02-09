@@ -27,7 +27,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { VideoTimeline, formatTime } from "./VideoTimeline";
+import { formatTimeShort as formatTime } from "@/lib/utils/durationParser";
+import { VideoTimeline } from "./VideoTimeline";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/utils/ClientFetch";
 import { toast } from "sonner";
 

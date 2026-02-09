@@ -1,5 +1,4 @@
-import { DatabaseConnector } from "@/lib/services/DatabaseConnector";
-import { Logger } from "@/lib/utils/Logger";
+import { SingletonRepository } from "@/lib/repositories/SingletonRepository";
 import { safeJsonParseOptional } from "@/lib/utils/safeJsonParse";
 import { DATABASE } from "@/lib/config/Constants";
 import type {
@@ -11,13 +10,12 @@ import type {
  * ChatMessageRepository handles all streamerbot chat message database operations.
  * Uses singleton pattern for consistent database access.
  */
-export class ChatMessageRepository {
+export class ChatMessageRepository extends SingletonRepository {
   private static instance: ChatMessageRepository;
-  private logger: Logger;
   private readonly CHAT_BUFFER_SIZE = DATABASE.CHAT_BUFFER_SIZE;
 
   private constructor() {
-    this.logger = new Logger("ChatMessageRepository");
+    super();
   }
 
   /**
@@ -30,15 +28,11 @@ export class ChatMessageRepository {
     return ChatMessageRepository.instance;
   }
 
-  private get db() {
-    return DatabaseConnector.getInstance().getDb();
-  }
-
   /**
    * Get recent chat messages, ordered by timestamp descending
    */
   getStreamerbotChatMessages(limit: number = DATABASE.CHAT_BUFFER_SIZE): DbStreamerbotChatMessage[] {
-    const stmt = this.db.prepare(`
+    const stmt = this.rawDb.prepare(`
       SELECT * FROM streamerbot_chat_messages
       ORDER BY timestamp DESC
       LIMIT ?
@@ -62,7 +56,7 @@ export class ChatMessageRepository {
     const now = Date.now();
 
     // Insert the new message (ignore if duplicate ID)
-    const insertStmt = this.db.prepare(`
+    const insertStmt = this.rawDb.prepare(`
       INSERT OR IGNORE INTO streamerbot_chat_messages
       (id, timestamp, platform, eventType, channel, username, displayName, message, parts, metadata, createdAt)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -91,12 +85,12 @@ export class ChatMessageRepository {
    * Deletes oldest messages by createdAt
    */
   private trimStreamerbotChatBuffer(): void {
-    const countStmt = this.db.prepare("SELECT COUNT(*) as count FROM streamerbot_chat_messages");
+    const countStmt = this.rawDb.prepare("SELECT COUNT(*) as count FROM streamerbot_chat_messages");
     const { count } = countStmt.get() as { count: number };
 
     if (count > this.CHAT_BUFFER_SIZE) {
       // Get the createdAt of the Nth newest message (threshold)
-      const thresholdStmt = this.db.prepare(`
+      const thresholdStmt = this.rawDb.prepare(`
         SELECT createdAt FROM streamerbot_chat_messages
         ORDER BY createdAt DESC
         LIMIT 1 OFFSET ?
@@ -104,7 +98,7 @@ export class ChatMessageRepository {
       const row = thresholdStmt.get(this.CHAT_BUFFER_SIZE - 1) as { createdAt: number } | undefined;
 
       if (row) {
-        const deleteStmt = this.db.prepare(`
+        const deleteStmt = this.rawDb.prepare(`
           DELETE FROM streamerbot_chat_messages
           WHERE createdAt < ?
         `);
@@ -117,7 +111,7 @@ export class ChatMessageRepository {
    * Clear all chat messages (for manual clear action)
    */
   clearStreamerbotChatMessages(): void {
-    const stmt = this.db.prepare("DELETE FROM streamerbot_chat_messages");
+    const stmt = this.rawDb.prepare("DELETE FROM streamerbot_chat_messages");
     stmt.run();
   }
 }

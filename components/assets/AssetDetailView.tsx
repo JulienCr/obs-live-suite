@@ -16,6 +16,7 @@ import { AssetVideoPlayer } from "./AssetVideoPlayer";
 import { ChapterSection } from "./ChapterSection";
 import { ClipSection } from "./ClipSection";
 import { apiPatch, apiDelete, apiGet, apiPost } from "@/lib/utils/ClientFetch";
+import { formatTimeShort } from "@/lib/utils/durationParser";
 import { toast } from "sonner";
 import type { DbPoster } from "@/lib/models/Database";
 import { useQuery } from "@tanstack/react-query";
@@ -133,13 +134,6 @@ export function AssetDetailView({
   // Check if duration is unknown (null or 0) for YouTube videos
   const hasUnknownDuration = poster.type === "youtube" && timelineDuration === 0;
 
-  // Format timestamp helper
-  const formatTimestamp = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
   // Enable keyboard shortcuts for videos (not clips)
   useVideoKeyboardShortcuts({
     enabled: isVideoType && !isClip,
@@ -147,11 +141,11 @@ export function AssetDetailView({
     onAddChapter: (time) => setPendingChapterTime(time),
     onSetInPoint: (time) => {
       setInPoint(time);
-      toast.info(t("inPointSet", { time: formatTimestamp(time) }));
+      toast.info(t("inPointSet", { time: formatTimeShort(time) }));
     },
     onSetOutPoint: (time) => {
       setOutPoint(time);
-      toast.info(t("outPointSet", { time: formatTimestamp(time) }));
+      toast.info(t("outPointSet", { time: formatTimeShort(time) }));
     },
     onClearInPoint: () => {
       setInPoint(null);
@@ -312,7 +306,7 @@ export function AssetDetailView({
                   />
                   <p className="text-xs text-muted-foreground">
                     {formData.duration
-                      ? `${formatTimestamp(formData.duration)} (${Math.floor(formData.duration / 60)} minutes)`
+                      ? `${formatTimeShort(formData.duration)} (${Math.floor(formData.duration / 60)} minutes)`
                       : t("durationValueUnknown")}
                   </p>
                 </div>

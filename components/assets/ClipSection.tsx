@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SubVideoEditor } from "./SubVideoEditor";
-import { formatTime } from "./VideoTimeline";
+import { formatTimeShort as formatTime } from "@/lib/utils/durationParser";
 import { apiGet } from "@/lib/utils/ClientFetch";
 import type { DbPoster } from "@/lib/models/Database";
 

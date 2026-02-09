@@ -210,3 +210,18 @@ export function parseISO8601Duration(isoDuration: string): number {
   // Calculate total seconds
   return hours * 3600 + minutes * 60 + seconds;
 }
+
+/**
+ * Formats seconds as M:SS or H:MM:SS (only when hours > 0).
+ * Used for video timeline display, poster cards, quiz timers, etc.
+ */
+export function formatTimeShort(seconds: number): string {
+  const totalSeconds = Math.floor(seconds);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}

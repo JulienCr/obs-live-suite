@@ -1,14 +1,16 @@
-import { DatabaseConnector } from "@/lib/services/DatabaseConnector";
+import { SingletonRepository } from "@/lib/repositories/SingletonRepository";
 import type { DbPanelColor } from "@/lib/models/Database";
 
 /**
  * PanelColorRepository handles all panel color database operations.
  * Uses singleton pattern for consistent database access.
  */
-export class PanelColorRepository {
+export class PanelColorRepository extends SingletonRepository {
   private static instance: PanelColorRepository;
 
-  private constructor() {}
+  private constructor() {
+    super();
+  }
 
   /**
    * Get singleton instance
@@ -20,15 +22,11 @@ export class PanelColorRepository {
     return PanelColorRepository.instance;
   }
 
-  private get db() {
-    return DatabaseConnector.getInstance().getDb();
-  }
-
   /**
    * Get all panel colors
    */
   getAllPanelColors(): DbPanelColor[] {
-    const stmt = this.db.prepare("SELECT * FROM panel_colors ORDER BY panelId ASC");
+    const stmt = this.rawDb.prepare("SELECT * FROM panel_colors ORDER BY panelId ASC");
     const rows = stmt.all() as Array<Omit<DbPanelColor, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }>;
     return rows.map((row) => ({
       ...row,
@@ -41,7 +39,7 @@ export class PanelColorRepository {
    * Get panel color by panel ID
    */
   getPanelColorByPanelId(panelId: string): DbPanelColor | null {
-    const stmt = this.db.prepare("SELECT * FROM panel_colors WHERE panelId = ?");
+    const stmt = this.rawDb.prepare("SELECT * FROM panel_colors WHERE panelId = ?");
     const row = stmt.get(panelId) as (Omit<DbPanelColor, 'createdAt' | 'updatedAt'> & { createdAt: string; updatedAt: string }) | undefined;
     if (!row) return null;
     return {
@@ -58,7 +56,7 @@ export class PanelColorRepository {
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
 
-    const stmt = this.db.prepare(`
+    const stmt = this.rawDb.prepare(`
       INSERT INTO panel_colors (id, panelId, scheme, createdAt, updatedAt)
       VALUES (?, ?, ?, ?, ?)
       ON CONFLICT(panelId) DO UPDATE SET scheme = excluded.scheme, updatedAt = excluded.updatedAt
@@ -72,7 +70,7 @@ export class PanelColorRepository {
    * Delete panel color (reset to default)
    */
   deletePanelColor(panelId: string): void {
-    const stmt = this.db.prepare("DELETE FROM panel_colors WHERE panelId = ?");
+    const stmt = this.rawDb.prepare("DELETE FROM panel_colors WHERE panelId = ?");
     stmt.run(panelId);
   }
 }

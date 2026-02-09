@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Timer, Loader2, ExternalLink, FileText, X, Search, Sparkles, Save } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useTextPresets } from "@/lib/queries";
+import { useTextPresets, useOverlaySettings } from "@/lib/queries";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { DASHBOARD_EVENTS } from "@/lib/config/Constants";
 import { toast } from "sonner";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { LowerThirdPreviewDialog } from "./LowerThirdPreviewDialog";
-import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 import { useOverlayHideSync } from "@/hooks/useSyncWithOverlayState";
 
 interface WikipediaPreview {
@@ -48,29 +48,14 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
   const [wikipediaPreview, setWikipediaPreview] = useState<WikipediaPreview | null>(null);
   const [wikipediaOptions, setWikipediaOptions] = useState<WikipediaSearchOption[]>([]);
   const [showWikipediaOptions, setShowWikipediaOptions] = useState(false);
-  const [lowerThirdDuration, setLowerThirdDuration] = useState(8); // Default, will be updated from settings
   const [showPreview, setShowPreview] = useState(false);
   const { createTextPresetAsync } = useTextPresets({ enabled: true });
+  const { lowerThirdDuration } = useOverlaySettings();
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [presetName, setPresetName] = useState("");
 
   // Sync local state with shared overlay state (handles external hide from EventLog)
   useOverlayHideSync("lowerThird", isVisible, () => setIsVisible(false));
-
-  // Fetch overlay settings on mount
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const data = await apiGet<{ settings?: { lowerThirdDuration?: number } }>("/api/settings/overlay");
-        if (data.settings?.lowerThirdDuration) {
-          setLowerThirdDuration(data.settings.lowerThirdDuration);
-        }
-      } catch (error) {
-        console.error("Failed to fetch overlay settings:", error);
-      }
-    };
-    fetchSettings();
-  }, []);
 
   const buildPayload = (duration?: number) => {
     const base = mode === "text"

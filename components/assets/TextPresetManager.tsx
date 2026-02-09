@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,19 +12,11 @@ import { EntityHeader } from "@/components/ui/EntityHeader";
 import { EnableSearchCombobox } from "@/components/ui/EnableSearchCombobox";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { TextPresetCard } from "./TextPresetCard";
-import { FileText, ChevronDown, ChevronUp } from "lucide-react";
-import { apiPost, apiGet } from "@/lib/utils/ClientFetch";
-import { useTextPresets, type TextPreset } from "@/lib/queries";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { FileText } from "lucide-react";
+import { apiPost } from "@/lib/utils/ClientFetch";
+import { useTextPresets, useOverlaySettings, type TextPreset } from "@/lib/queries";
+import { ConfirmDeleteDialog } from "@/components/ui/ConfirmDeleteDialog";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 
 const NAME_MAX_LENGTH = 100;
 const BODY_MAX_LENGTH = 2000;
@@ -54,25 +46,9 @@ export function TextPresetManager() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [showDisabled, setShowDisabled] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
-  const [lowerThirdDuration, setLowerThirdDuration] = useState(8);
+  const { lowerThirdDuration } = useOverlaySettings();
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-
-  // Fetch overlay settings for lower third duration
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const data = await apiGet<{ settings?: { lowerThirdDuration?: number } }>("/api/settings/overlay");
-        if (data.settings?.lowerThirdDuration) {
-          setLowerThirdDuration(data.settings.lowerThirdDuration);
-        }
-      } catch (error) {
-        console.error("Failed to fetch overlay settings:", error);
-      }
-    };
-    fetchSettings();
-  }, []);
 
   const resetForm = () => {
     setFormData(INITIAL_FORM_DATA);
@@ -120,13 +96,6 @@ export function TextPresetManager() {
 
   const handleDelete = (preset: TextPreset) => {
     setDeleteTarget({ id: preset.id, name: preset.name });
-  };
-
-  const handleDeleteConfirm = () => {
-    if (deleteTarget) {
-      deleteTextPreset(deleteTarget.id);
-      setDeleteTarget(null);
-    }
   };
 
   const handleQuickShow = async (preset: TextPreset) => {
@@ -324,59 +293,30 @@ export function TextPresetManager() {
       </div>
 
       {/* Disabled Presets Section (Collapsible) */}
-      {disabledPresets.length > 0 && (
-        <div className="space-y-3 pt-4 border-t">
-          <Button
-            variant="ghost"
-            onClick={() => setShowDisabled(!showDisabled)}
-            className="w-full justify-between"
-          >
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-medium">{t("disabledPresets")}</h3>
-              <Badge variant="secondary">{disabledPresets.length}</Badge>
-            </div>
-            {showDisabled ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-          </Button>
-
-          {showDisabled && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {disabledPresets.map((preset) => (
-                <TextPresetCard
-                  key={preset.id}
-                  preset={preset}
-                  variant="disabled"
-                  onEdit={handleEdit}
-                  onToggleEnabled={handleToggleEnabled}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </div>
-          )}
+      <CollapsibleSection title={t("disabledPresets")} count={disabledPresets.length}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {disabledPresets.map((preset) => (
+            <TextPresetCard
+              key={preset.id}
+              preset={preset}
+              variant="disabled"
+              onEdit={handleEdit}
+              onToggleEnabled={handleToggleEnabled}
+              onDelete={handleDelete}
+            />
+          ))}
         </div>
-      )}
+      </CollapsibleSection>
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {deleteTarget && t("confirmDelete", { name: deleteTarget.name })}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("confirmDeleteDesc")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>
-              {t("deleteConfirm")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteDialog
+        target={deleteTarget}
+        onConfirm={(id) => { deleteTextPreset(id); setDeleteTarget(null); }}
+        onCancel={() => setDeleteTarget(null)}
+        title={deleteTarget ? t("confirmDelete", { name: deleteTarget.name }) : ""}
+        description={t("confirmDeleteDesc")}
+        confirmLabel={t("deleteConfirm")}
+        cancelLabel={tCommon("cancel")}
+      />
     </div>
   );
 }

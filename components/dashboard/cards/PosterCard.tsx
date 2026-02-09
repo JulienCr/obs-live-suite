@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { VideoChapter } from "@/lib/models/Poster";
 import { cn } from "@/lib/utils/cn";
+import { formatTimeShort } from "@/lib/utils/durationParser";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
@@ -439,15 +440,6 @@ export function PosterContent({ className }: PosterContentProps) {
     }
   };
 
-  const formatTime = (seconds: number) => {
-    if (isNaN(seconds) || !isFinite(seconds)) {
-      return "0:00";
-    }
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   // Dashboard-specific compact format (e.g., "2h05") — differs from formatDurationString (H:MM:SS)
   const formatDuration = (seconds: number) => {
     if (isNaN(seconds) || !isFinite(seconds) || seconds === 0) {
@@ -458,7 +450,7 @@ export function PosterContent({ className }: PosterContentProps) {
       const mins = Math.floor((seconds % 3600) / 60);
       return `${hours}h${mins.toString().padStart(2, '0')}`;
     }
-    return formatTime(seconds);
+    return formatTimeShort(seconds);
   };
 
   // Compute sub-clip bounds for active poster
@@ -755,7 +747,7 @@ export function PosterContent({ className }: PosterContentProps) {
                       >
                         <span className="truncate">{chapter.title}</span>
                         <span className="text-xs text-muted-foreground shrink-0">
-                          {formatTime(hasSubClip ? Math.max(0, chapter.timestamp - clipStart) : chapter.timestamp)}
+                          {formatTimeShort(hasSubClip ? Math.max(0, chapter.timestamp - clipStart) : chapter.timestamp)}
                         </span>
                       </DropdownMenuItem>
                     ))}
@@ -774,7 +766,7 @@ export function PosterContent({ className }: PosterContentProps) {
             )}
 
             <span className="text-sm ml-auto">
-              {formatTime(displayCurrentTime)} / {formatDuration(displayDuration)}
+              {formatTimeShort(displayCurrentTime)} / {formatDuration(displayDuration)}
             </span>
           </div>
           <VideoTimeline

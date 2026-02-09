@@ -8,7 +8,7 @@ import { ThemeList } from "./ThemeList";
 import { ThemeEditor } from "./ThemeEditor";
 import { ThemeEditorProvider } from "./ThemeEditorContext";
 import { apiGet, apiPost, apiPut } from "@/lib/utils/ClientFetch";
-import { useEntityManager } from "@/lib/hooks";
+import { useThemes } from "@/lib/queries";
 
 const DEFAULT_THEME_DATA: Partial<CreateThemeInput> = {
   name: "",
@@ -66,15 +66,12 @@ const DEFAULT_THEME_DATA: Partial<CreateThemeInput> = {
  */
 export function ThemeManager() {
   const {
-    items: themes,
-    loading,
-    refresh: refreshThemes,
-    deleteItem,
-  } = useEntityManager<Theme>({
-    endpoint: "/api/themes",
-    extractItems: (data) => (data as { themes: Theme[] }).themes || [],
-    entityName: "themes",
-  });
+    themes,
+    isLoading: loading,
+    createThemeAsync,
+    updateThemeAsync,
+    deleteThemeAsync,
+  } = useThemes();
 
   const [activeProfileThemeId, setActiveProfileThemeId] = useState<string | null>(null);
   const [editingTheme, setEditingTheme] = useState<Theme | null>(null);
@@ -127,14 +124,13 @@ export function ThemeManager() {
       setError(null);
 
       if (isCreating) {
-        await apiPost("/api/themes", data);
+        await createThemeAsync(data);
       } else if (editingTheme) {
-        await apiPut(`/api/themes/${editingTheme.id}`, data);
+        await updateThemeAsync({ id: editingTheme.id, ...data });
       }
 
       setIsCreating(false);
       setEditingTheme(null);
-      await refreshThemes();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save theme");
     }
@@ -153,7 +149,7 @@ export function ThemeManager() {
 
     try {
       setError(null);
-      await deleteItem(id);
+      await deleteThemeAsync(id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete theme");
     }

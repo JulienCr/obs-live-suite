@@ -25,4 +25,21 @@ export { useStreamerbotStatus } from "./useStreamerbotStatus";
 export type { UseStreamerbotStatusOptions } from "./useStreamerbotStatus";
 
 export { useProfiles } from "./useProfiles";
-export type { Profile, ProfileSummary } from "./useProfiles";
+export type {
+  Profile,
+  ProfileSummary,
+  CreateProfileInput,
+  UpdateProfileInput,
+} from "./useProfiles";
+
+export { useOverlaySettings } from "./useOverlaySettings";
+
+export { usePosters } from "./usePosters";
+export type {
+  Poster,
+  CreatePosterInput,
+  UpdatePosterInput,
+} from "./usePosters";
+
+export { useThemes } from "./useThemes";
+export type { ThemeSummary } from "./useThemes";
