@@ -31,18 +31,12 @@ import { formatTimeShort as formatTime } from "@/lib/utils/durationParser";
 import { VideoTimeline } from "./VideoTimeline";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/utils/ClientFetch";
 import { toast } from "sonner";
-
-interface VideoChapter {
-  id: string;
-  title: string;
-  timestamp: number;
-}
+import type { VideoChapter } from "@/lib/models/Poster";
 
 interface ChapterSectionProps {
   posterId: string;
   videoDuration: number;
   initialChapters?: VideoChapter[];
-  onChaptersChange?: (chapters: VideoChapter[]) => void;
   pendingChapterTime?: number | null;
   onPendingChapterClear?: () => void;
   onChapterHover?: (chapter: VideoChapter | null) => void;
@@ -52,7 +46,6 @@ export function ChapterSection({
   posterId,
   videoDuration,
   initialChapters = [],
-  onChaptersChange,
   pendingChapterTime,
   onPendingChapterClear,
   onChapterHover,

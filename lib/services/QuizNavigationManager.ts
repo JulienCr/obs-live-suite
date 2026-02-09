@@ -3,7 +3,7 @@ import { OverlayChannel } from "../models/OverlayEvents";
 import { Logger } from "../utils/Logger";
 import { QuizStore } from "./QuizStore";
 import { QuizTimer } from "./QuizTimer";
-import { QuizError, type QuizPhase } from "./QuizTypes";
+import { QuizError, requireSession, type QuizPhase } from "./QuizTypes";
 import type { Session } from "../models/Quiz";
 
 export interface QuizNavigationDeps {
@@ -36,7 +36,7 @@ export class QuizNavigationManager {
 
   async startRound(roundIndex: number): Promise<void> {
     try {
-      const sess = this.requireSession();
+      const sess = requireSession(this.store);
       sess.currentRoundIndex = roundIndex;
       sess.currentQuestionIndex = 0;
       await this.channel.publish(OverlayChannel.QUIZ, "quiz.start_round", { round_id: sess.rounds[roundIndex]?.id });
@@ -59,7 +59,7 @@ export class QuizNavigationManager {
 
   async nextQuestion(): Promise<void> {
     try {
-      const sess = this.requireSession();
+      const sess = requireSession(this.store);
       const round = sess.rounds[sess.currentRoundIndex];
       if (!round) {
         this.logger.warn("nextQuestion: No current round");
@@ -80,7 +80,7 @@ export class QuizNavigationManager {
 
   async prevQuestion(): Promise<void> {
     try {
-      const sess = this.requireSession();
+      const sess = requireSession(this.store);
       const round = sess.rounds[sess.currentRoundIndex];
       if (!round) {
         this.logger.warn("prevQuestion: No current round");
@@ -101,7 +101,7 @@ export class QuizNavigationManager {
 
   async selectQuestion(questionId: string): Promise<void> {
     try {
-      const sess = this.requireSession();
+      const sess = requireSession(this.store);
       const round = sess.rounds[sess.currentRoundIndex];
       if (!round) {
         this.logger.warn(`selectQuestion: No current round for question ${questionId}`);
@@ -150,9 +150,4 @@ export class QuizNavigationManager {
     });
   }
 
-  private requireSession(): Session {
-    const sess = this.store.getSession();
-    if (!sess) throw new Error("No active quiz session");
-    return sess;
-  }
 }

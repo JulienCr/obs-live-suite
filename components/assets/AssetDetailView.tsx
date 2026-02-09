@@ -19,14 +19,9 @@ import { apiPatch, apiDelete, apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { formatTimeShort } from "@/lib/utils/durationParser";
 import { toast } from "sonner";
 import type { DbPoster } from "@/lib/models/Database";
+import type { VideoChapter } from "@/lib/models/Poster";
 import { useQuery } from "@tanstack/react-query";
 import { useVideoKeyboardShortcuts } from "@/lib/hooks";
-
-interface VideoChapter {
-  id: string;
-  title: string;
-  timestamp: number;
-}
 
 interface AssetDetailViewProps {
   poster: DbPoster;

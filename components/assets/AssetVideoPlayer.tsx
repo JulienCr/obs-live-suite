@@ -8,12 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useYouTubeIframeApi } from "@/hooks/useYouTubeIframeApi";
 import { extractYouTubeId } from "@/lib/utils/urlDetection";
 import { buildYouTubeEmbedUrl } from "@/lib/utils/youtubeUrlBuilder";
-
-interface VideoChapter {
-  id: string;
-  title: string;
-  timestamp: number;
-}
+import type { VideoChapter } from "@/lib/models/Poster";
 
 interface AssetVideoPlayerProps {
   fileUrl: string;
