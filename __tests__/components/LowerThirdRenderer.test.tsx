@@ -1,7 +1,4 @@
-/**
-// Skipped pending fix: hook uses 50ms debounce - tests need wait adjustment
- * @jest-environment jsdom
- */
+/** @jest-environment jsdom */
 import { render, screen, waitFor } from '@testing-library/react';
 import {
   setupWebSocketMock,
@@ -28,7 +25,7 @@ jest.mock('remark-breaks', () => ({
 // Import after mocks are set up
 import { LowerThirdRenderer } from '@/components/overlays/LowerThirdRenderer';
 
-describe.skip('LowerThirdRenderer', () => {
+describe('LowerThirdRenderer', () => {
   let mockWs: MockWebSocket | null;
   let cleanupWebSocket: () => void;
 
@@ -46,6 +43,7 @@ describe.skip('LowerThirdRenderer', () => {
   // Helper to get the mock WebSocket after rendering
   const renderAndGetWs = () => {
     render(<LowerThirdRenderer />);
+    jest.advanceTimersByTime(50);
     mockWs = getLastMockWebSocket();
     return mockWs;
   };
@@ -271,6 +269,7 @@ describe.skip('LowerThirdRenderer', () => {
 
   it('should close WebSocket on unmount', () => {
     const { unmount } = render(<LowerThirdRenderer />);
+    jest.advanceTimersByTime(50);
     const ws = getLastMockWebSocket();
     unmount();
     expect(ws?.close).toHaveBeenCalled();
@@ -278,6 +277,7 @@ describe.skip('LowerThirdRenderer', () => {
 
   it('should clear timeout on unmount', async () => {
     const { unmount } = render(<LowerThirdRenderer />);
+    jest.advanceTimersByTime(50);
     const ws = getLastMockWebSocket();
     ws?.simulateOpen();
 
