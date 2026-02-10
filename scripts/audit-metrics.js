@@ -5,7 +5,7 @@
  * Collects automated code quality metrics for the OBS Live Suite project.
  * Outputs structured JSON for trending analysis.
  *
- * Usage: node scripts/audit-metrics.js [--output <path>]
+ * Usage: node scripts/audit-metrics.js [--output <path>] [--json]
  */
 
 import fs from "fs";
@@ -16,58 +16,15 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Configuration
 const ROOT_DIR = path.resolve(__dirname, "..");
 const OUTPUT_DIR = path.join(ROOT_DIR, "docs", "audit-reports");
 
-// Patterns to detect
-const PATTERNS = {
-  unsafeJsonParse: {
-    // JSON.parse not wrapped in try-catch (simplified detection)
-    regex: /JSON\.parse\s*\(/g,
-    exclude: ["safeJsonParse.ts", "node_modules", ".test.ts"],
-    description: "JSON.parse without try-catch wrapper",
-  },
-  exposedErrors: {
-    // String(error) outside of Logger calls
-    regex: /String\s*\(\s*error\s*\)|\.toString\s*\(\s*\)/g,
-    exclude: ["node_modules", "Logger.ts", ".test.ts"],
-    description: "Error converted to string (potential stack trace exposure)",
-  },
-  asAnyCasts: {
-    regex: /as\s+any(?!\w)/g,
-    exclude: ["node_modules", ".test.ts", ".d.ts"],
-    description: "Type cast to 'any' (type safety bypass)",
-  },
-  nonNullAssertions: {
-    regex: /!\s*[;,)\]}]/g,
-    exclude: ["node_modules", ".test.ts"],
-    description: "Non-null assertion operator usage",
-  },
-};
+// Source directories for pattern scanning (quality metrics)
+const SCAN_DIRS = ["lib", "server", "components", "hooks", "app"];
 
-// Directories to scan
-const SCAN_DIRS = {
-  services: "lib/services",
-  repositories: "lib/repositories",
-  utils: "lib/utils",
-  serverApi: "server/api",
-  appApi: "app/api",
-  adapters: "lib/adapters",
-};
+// Service directories for maintainability tracking (file sizes, avg lines)
+const SERVICE_DIRS = ["lib/services", "lib/repositories"];
 
-// Files that should use Constants.ts
-const MAGIC_NUMBER_FILES = [
-  "lib/services/QuizManager.ts",
-  "lib/services/WebSocketHub.ts",
-  "lib/services/ChannelManager.ts",
-  "lib/services/DatabaseService.ts",
-  "server/api/quiz-bot.ts",
-];
-
-/**
- * Get current git commit hash
- */
 function getGitCommit() {
   try {
     return execSync("git rev-parse --short HEAD", { cwd: ROOT_DIR })
@@ -78,9 +35,6 @@ function getGitCommit() {
   }
 }
 
-/**
- * Get current git branch
- */
 function getGitBranch() {
   try {
     return execSync("git rev-parse --abbrev-ref HEAD", { cwd: ROOT_DIR })
@@ -114,9 +68,6 @@ function getTypeScriptFiles(dir, files = []) {
   return files;
 }
 
-/**
- * Count lines in a file
- */
 function countLines(filePath) {
   try {
     const content = fs.readFileSync(path.join(ROOT_DIR, filePath), "utf-8");
@@ -127,48 +78,14 @@ function countLines(filePath) {
 }
 
 /**
- * Search for pattern matches in files
- */
-function findPatternMatches(files, pattern) {
-  const matches = [];
-
-  for (const file of files) {
-    // Check exclusions
-    if (pattern.exclude.some((exc) => file.includes(exc))) continue;
-
-    try {
-      const content = fs.readFileSync(path.join(ROOT_DIR, file), "utf-8");
-      const lines = content.split("\n");
-
-      lines.forEach((line, index) => {
-        const lineMatches = line.match(pattern.regex);
-        if (lineMatches) {
-          matches.push({
-            file,
-            line: index + 1,
-            match: lineMatches[0],
-            context: line.trim().substring(0, 100),
-          });
-        }
-      });
-    } catch {
-      // Skip unreadable files
-    }
-  }
-
-  return matches;
-}
-
-/**
- * Check if JSON.parse is wrapped in try-catch
- * More sophisticated detection
+ * Find JSON.parse calls not wrapped in try-catch or Zod chain
  */
 function findUnsafeJsonParse(files) {
   const matches = [];
-  const safePatterns = [
+  const safeLinePatterns = [
     /safeJsonParse/,
     /safeJsonParseOptional/,
-    /try\s*{[^}]*JSON\.parse/,
+    /\.parse\s*\(\s*JSON\.parse/, // Zod schema.parse(JSON.parse(...))
   ];
 
   for (const file of files) {
@@ -184,16 +101,93 @@ function findUnsafeJsonParse(files) {
       const lines = content.split("\n");
 
       lines.forEach((line, index) => {
-        if (line.includes("JSON.parse")) {
-          // Check if it's using safe wrapper
-          const isSafe = safePatterns.some((p) => p.test(line));
+        if (!line.includes("JSON.parse")) return;
 
-          // Check if within a try block (simplified - checks previous 5 lines)
-          const context = lines.slice(Math.max(0, index - 5), index + 1).join("\n");
-          const inTryCatch = /try\s*{/.test(context);
+        // Check if the line itself uses a safe wrapper
+        if (safeLinePatterns.some((p) => p.test(line))) return;
 
-          if (!isSafe && !inTryCatch) {
-            matches.push({
+        // Check if within a try block (previous 5 lines)
+        const context = lines
+          .slice(Math.max(0, index - 5), index + 1)
+          .join("\n");
+        if (/try\s*\{/.test(context)) return;
+
+        // Check for Zod chain split across lines: schema.parse(\n  JSON.parse(...))
+        const prevContext = lines
+          .slice(Math.max(0, index - 3), index)
+          .join("\n");
+        if (/\.parse\s*\(\s*$/.test(prevContext.trim())) return;
+
+        matches.push({
+          file,
+          line: index + 1,
+          context: line.trim().substring(0, 100),
+        });
+      });
+    } catch {
+      // Skip unreadable files
+    }
+  }
+
+  return matches;
+}
+
+/**
+ * Find 'as any' type casts
+ */
+function findAsAnyCasts(files) {
+  const matches = [];
+
+  for (const file of files) {
+    if (
+      file.includes("node_modules") ||
+      file.includes(".test.") ||
+      file.includes(".d.ts")
+    )
+      continue;
+
+    try {
+      const content = fs.readFileSync(path.join(ROOT_DIR, file), "utf-8");
+      const lines = content.split("\n");
+
+      lines.forEach((line, index) => {
+        const lineMatches = line.match(/as\s+any(?!\w)/g);
+        if (lineMatches) {
+          matches.push({
+            file,
+            line: index + 1,
+            match: lineMatches[0],
+            context: line.trim().substring(0, 100),
+          });
+        }
+      });
+    } catch {
+      // Skip
+    }
+  }
+
+  return matches;
+}
+
+/**
+ * Count TODO/FIXME/HACK/XXX comments in source files
+ */
+function countTodoFixme(files) {
+  let count = 0;
+  const locations = [];
+
+  for (const file of files) {
+    if (file.includes(".test.") || file.includes("node_modules")) continue;
+
+    try {
+      const content = fs.readFileSync(path.join(ROOT_DIR, file), "utf-8");
+      const lines = content.split("\n");
+
+      lines.forEach((line, index) => {
+        if (/\b(TODO|FIXME|HACK|XXX)\b/.test(line)) {
+          count++;
+          if (locations.length < 20) {
+            locations.push({
               file,
               line: index + 1,
               context: line.trim().substring(0, 100),
@@ -206,50 +200,36 @@ function findUnsafeJsonParse(files) {
     }
   }
 
-  return matches;
+  return { count, locations };
 }
 
 /**
- * Detect magic numbers (hardcoded numeric values)
+ * Count console.log statements in source files (excludes tests, Logger.ts)
  */
-function findMagicNumbers(files) {
-  const matches = [];
-  // Look for standalone numbers that aren't 0, 1, common indices, or in imports
-  const magicNumberRegex = /(?<![.\w])([2-9]\d{2,}|[1-9]\d{3,})(?![.\w])/g;
-  const excludePatterns = [
-    /import/,
-    /export/,
-    /const.*=/,
-    /let.*=/,
-    /\.length/,
-    /index/,
-    /port/,
-    /1920|1080/, // Resolution
-    /status.*:/,
-    /version/,
-  ];
+function countConsoleLogs(files) {
+  let count = 0;
+  const locations = [];
 
   for (const file of files) {
-    if (!MAGIC_NUMBER_FILES.some((f) => file.includes(f))) continue;
+    if (
+      file.includes(".test.") ||
+      file.includes("node_modules") ||
+      file.includes("Logger.ts")
+    )
+      continue;
 
     try {
       const content = fs.readFileSync(path.join(ROOT_DIR, file), "utf-8");
       const lines = content.split("\n");
 
       lines.forEach((line, index) => {
-        // Skip comments
-        if (line.trim().startsWith("//") || line.trim().startsWith("*")) return;
-
-        const lineMatches = [...line.matchAll(magicNumberRegex)];
-        if (lineMatches.length > 0) {
-          // Check if line matches any exclusion pattern
-          const excluded = excludePatterns.some((p) => p.test(line));
-          if (!excluded) {
-            matches.push({
+        if (/console\.log\s*\(/.test(line) && !line.trim().startsWith("//")) {
+          count++;
+          if (locations.length < 20) {
+            locations.push({
               file,
               line: index + 1,
-              values: lineMatches.map((m) => m[1]),
-              context: line.trim().substring(0, 80),
+              context: line.trim().substring(0, 100),
             });
           }
         }
@@ -259,23 +239,21 @@ function findMagicNumbers(files) {
     }
   }
 
-  return matches;
+  return { count, locations };
 }
 
 /**
- * Get file sizes for service files
+ * Get file sizes for service/repository files (maintainability tracking)
  */
 function getServiceFileSizes() {
   const sizes = [];
-  const serviceDirs = ["lib/services", "lib/repositories"];
 
-  for (const dir of serviceDirs) {
+  for (const dir of SERVICE_DIRS) {
     const files = getTypeScriptFiles(dir);
     for (const file of files) {
       if (file.endsWith(".test.ts")) continue;
       const lines = countLines(file);
       if (lines > 50) {
-        // Only track significant files
         sizes.push({ file, lines });
       }
     }
@@ -340,7 +318,10 @@ function countProxyHelperUsage() {
         content.includes("createPostProxy")
       ) {
         usingProxyHelper++;
-      } else if (content.includes("fetch(") && content.includes("BACKEND_URL")) {
+      } else if (
+        content.includes("fetch(") &&
+        content.includes("BACKEND_URL")
+      ) {
         usingRawFetch++;
       }
     } catch {
@@ -361,49 +342,78 @@ function countRepositories() {
   const files = fs
     .readdirSync(repoDir)
     .filter((f) => f.endsWith("Repository.ts"));
-  return {
-    extracted: files.length,
-    files: files,
-  };
+  return { extracted: files.length, files };
+}
+
+/**
+ * Count total source files and lines across all scanned directories
+ */
+function countSourceStats(allFiles) {
+  let totalFiles = 0;
+  let totalLines = 0;
+
+  for (const file of allFiles) {
+    if (file.includes(".test.")) continue;
+    totalFiles++;
+    totalLines += countLines(file);
+  }
+
+  return { totalFiles, totalLines };
 }
 
 /**
  * Calculate scores based on metrics
  */
 function calculateScores(metrics) {
-  // Quality score (0-10)
-  // Penalize: unsafe JSON.parse, exposed errors, as any casts
-  const qualityDeductions =
-    metrics.quality.unsafeJsonParse.count * 0.3 +
-    metrics.quality.exposedErrors.count * 0.2 +
-    metrics.quality.asAnyCasts.count * 0.1;
-  const qualityScore = Math.max(0, Math.min(10, 10 - qualityDeductions));
+  // Quality (0-10): penalize unsafe patterns and code smells
+  const qualityScore = Math.max(
+    0,
+    Math.min(
+      10,
+      10 -
+        metrics.quality.unsafeJsonParse.count * 0.5 -
+        metrics.quality.asAnyCasts.count * 0.2 -
+        Math.min(3, metrics.quality.consoleLogCount.count * 0.05)
+    )
+  );
 
-  // Maintainability score (0-10)
-  // Based on largest file sizes and repository extraction
-  const largestFile = metrics.maintainability.fileSizes[0]?.lines || 0;
-  const repoProgress = metrics.maintainability.repositories.extracted / 8; // Target: 8 repos
+  // Maintainability (0-10): penalize large files, reward repo extraction
+  const largestFileLines = metrics.maintainability.fileSizes[0]?.lines || 0;
+  const avgLines = metrics.maintainability.avgServiceLines;
+  const repoBonus = Math.min(
+    2,
+    metrics.maintainability.repositories.extracted * 0.3
+  );
   const maintainabilityScore = Math.max(
     0,
     Math.min(
       10,
-      10 - largestFile / 300 + repoProgress * 3
+      10 -
+        Math.max(0, (largestFileLines - 300) / 200) -
+        Math.max(0, (avgLines - 150) / 100) +
+        repoBonus
     )
   );
 
-  // DRY score (0-10)
-  // Based on proxy helper adoption
+  // DRY (0-10): based on proxy helper adoption
   const proxyTotal =
     metrics.dry.proxyHelper.usingProxyHelper +
     metrics.dry.proxyHelper.usingRawFetch;
   const proxyAdoption =
-    proxyTotal > 0 ? metrics.dry.proxyHelper.usingProxyHelper / proxyTotal : 1;
+    proxyTotal > 0
+      ? metrics.dry.proxyHelper.usingProxyHelper / proxyTotal
+      : 1;
   const dryScore = Math.max(0, Math.min(10, proxyAdoption * 10));
 
-  // Test score (0-10)
-  // Based on coverage and test file count
-  const coverage = metrics.tests.coverage?.lines || 0;
-  const testScore = Math.max(0, Math.min(10, coverage / 10));
+  // Tests (0-10): coverage if available, otherwise test-to-source ratio
+  let testScore;
+  const coverage = metrics.tests.coverage?.lines;
+  if (coverage != null && coverage > 0) {
+    testScore = Math.min(10, coverage / 10);
+  } else {
+    testScore = Math.min(10, metrics.tests.testToSourceRatio * 30);
+  }
+  testScore = Math.max(0, testScore);
 
   return {
     quality: Math.round(qualityScore * 10) / 10,
@@ -423,66 +433,81 @@ function calculateScores(metrics) {
 function collectMetrics() {
   console.log("Collecting audit metrics...\n");
 
-  // Get all TypeScript files
+  // Get all TypeScript files from scan directories
   const allFiles = [];
-  Object.values(SCAN_DIRS).forEach((dir) => {
+  for (const dir of SCAN_DIRS) {
     allFiles.push(...getTypeScriptFiles(dir));
-  });
+  }
+  // Deduplicate (in case of overlapping dirs)
+  const uniqueFiles = [...new Set(allFiles)];
 
-  console.log(`Found ${allFiles.length} TypeScript files to analyze\n`);
+  console.log(`Found ${uniqueFiles.length} TypeScript files to analyze\n`);
 
-  // Collect metrics
-  const unsafeJsonParse = findUnsafeJsonParse(allFiles);
+  // Quality metrics
+  const unsafeJsonParse = findUnsafeJsonParse(uniqueFiles);
   console.log(`- Unsafe JSON.parse: ${unsafeJsonParse.length}`);
 
-  const exposedErrors = findPatternMatches(allFiles, PATTERNS.exposedErrors);
-  console.log(`- Exposed errors: ${exposedErrors.length}`);
-
-  const asAnyCasts = findPatternMatches(allFiles, PATTERNS.asAnyCasts);
+  const asAnyCasts = findAsAnyCasts(uniqueFiles);
   console.log(`- 'as any' casts: ${asAnyCasts.length}`);
 
-  const magicNumbers = findMagicNumbers(allFiles);
-  console.log(`- Magic numbers: ${magicNumbers.length}`);
+  const todoFixme = countTodoFixme(uniqueFiles);
+  console.log(`- TODO/FIXME/HACK/XXX: ${todoFixme.count}`);
 
+  const consoleLogs = countConsoleLogs(uniqueFiles);
+  console.log(`- console.log statements: ${consoleLogs.count}`);
+
+  // Maintainability metrics
   const fileSizes = getServiceFileSizes();
   console.log(`- Large service files: ${fileSizes.length}`);
 
+  const repositories = countRepositories();
+  console.log(`- Repositories extracted: ${repositories.extracted}`);
+
+  const sourceStats = countSourceStats(uniqueFiles);
+  console.log(`- Total source files: ${sourceStats.totalFiles}`);
+  console.log(`- Total source lines: ${sourceStats.totalLines}`);
+
+  // DRY metrics
+  const proxyHelper = countProxyHelperUsage();
+  console.log(
+    `- ProxyHelper usage: ${proxyHelper.usingProxyHelper}/${proxyHelper.usingProxyHelper + proxyHelper.usingRawFetch}`
+  );
+
+  // Test metrics
   const testFileCount = countTestFiles();
   console.log(`- Test files: ${testFileCount}`);
 
   const coverage = getJestCoverage();
   console.log(`- Coverage available: ${coverage ? "Yes" : "No"}`);
 
-  const proxyHelper = countProxyHelperUsage();
+  const testToSourceRatio =
+    sourceStats.totalFiles > 0 ? testFileCount / sourceStats.totalFiles : 0;
   console.log(
-    `- ProxyHelper usage: ${proxyHelper.usingProxyHelper}/${proxyHelper.usingProxyHelper + proxyHelper.usingRawFetch}`
+    `- Test-to-source ratio: ${(testToSourceRatio * 100).toFixed(1)}%`
   );
-
-  const repositories = countRepositories();
-  console.log(`- Repositories extracted: ${repositories.extracted}`);
 
   // Build metrics object
   const metrics = {
     quality: {
       unsafeJsonParse: {
         count: unsafeJsonParse.length,
-        locations: unsafeJsonParse.slice(0, 10), // Top 10
-      },
-      exposedErrors: {
-        count: exposedErrors.length,
-        locations: exposedErrors.slice(0, 10),
+        locations: unsafeJsonParse.slice(0, 10),
       },
       asAnyCasts: {
         count: asAnyCasts.length,
         locations: asAnyCasts.slice(0, 10),
       },
-      magicNumbers: {
-        count: magicNumbers.length,
-        locations: magicNumbers.slice(0, 10),
+      consoleLogCount: {
+        count: consoleLogs.count,
+        locations: consoleLogs.locations.slice(0, 10),
+      },
+      todoFixmeCount: {
+        count: todoFixme.count,
+        locations: todoFixme.locations.slice(0, 10),
       },
     },
     maintainability: {
-      fileSizes: fileSizes.slice(0, 10), // Top 10 largest
+      fileSizes: fileSizes.slice(0, 10),
       avgServiceLines:
         fileSizes.length > 0
           ? Math.round(
@@ -490,53 +515,45 @@ function collectMetrics() {
             )
           : 0,
       repositories,
+      totalSourceFiles: sourceStats.totalFiles,
+      totalSourceLines: sourceStats.totalLines,
     },
     dry: {
       proxyHelper,
-      estimatedDuplicateLines:
-        proxyHelper.usingRawFetch * 40, // Estimate ~40 lines per unrefactored route
+      estimatedDuplicateLines: proxyHelper.usingRawFetch * 40,
     },
     tests: {
       testFileCount,
       coverage,
+      testToSourceRatio: Math.round(testToSourceRatio * 1000) / 1000,
     },
   };
 
   // Calculate scores
   const scores = calculateScores(metrics);
 
-  // Build output
-  const output = {
+  return {
     timestamp: new Date().toISOString(),
     commit: getGitCommit(),
     branch: getGitBranch(),
     scores,
     metrics,
   };
-
-  return output;
 }
 
-/**
- * Write output to file
- */
 function writeOutput(data, outputPath) {
-  // Ensure output directory exists
   const dir = path.dirname(outputPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-
   fs.writeFileSync(outputPath, JSON.stringify(data, null, 2));
   console.log(`\nMetrics written to: ${outputPath}`);
 }
 
-// Main execution
 function main() {
   const args = process.argv.slice(2);
   let outputPath;
 
-  // Parse arguments
   const outputIndex = args.indexOf("--output");
   if (outputIndex !== -1 && args[outputIndex + 1]) {
     outputPath = args[outputIndex + 1];
@@ -545,19 +562,17 @@ function main() {
     outputPath = path.join(OUTPUT_DIR, `metrics-${timestamp}.json`);
   }
 
-  // Collect and output
   const metrics = collectMetrics();
 
   console.log("\n--- Scores ---");
-  console.log(`Quality:        ${metrics.scores.quality}/10`);
+  console.log(`Quality:         ${metrics.scores.quality}/10`);
   console.log(`Maintainability: ${metrics.scores.maintainability}/10`);
-  console.log(`DRY:            ${metrics.scores.dry}/10`);
-  console.log(`Tests:          ${metrics.scores.tests}/10`);
-  console.log(`Overall:        ${metrics.scores.overall}/10`);
+  console.log(`DRY:             ${metrics.scores.dry}/10`);
+  console.log(`Tests:           ${metrics.scores.tests}/10`);
+  console.log(`Overall:         ${metrics.scores.overall}/10`);
 
   writeOutput(metrics, outputPath);
 
-  // Also output to stdout for piping
   if (args.includes("--json")) {
     console.log(JSON.stringify(metrics, null, 2));
   }
