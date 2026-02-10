@@ -23,14 +23,20 @@ const DEFAULT_REPORTS_DIR = path.join(ROOT_DIR, "docs", "audit-reports");
  * Get trend indicator
  */
 function getTrend(delta, metric) {
+  // First audit has no previous data - show as baseline, not regression
+  if (delta === null || delta === undefined)
+    return { symbol: "—", label: "baseline", color: "gray" };
+
   // For some metrics, lower is better
   const lowerIsBetter = [
     "unsafeJsonParse",
-    "exposedErrors",
     "asAnyCasts",
-    "magicNumbers",
+    "consoleLogCount",
+    "todoFixmeCount",
     "estimatedDuplicateLines",
     "usingRawFetch",
+    "avgServiceLines",
+    "largestFile",
   ];
 
   if (delta === 0) return { symbol: "→", label: "stable", color: "yellow" };
@@ -59,9 +65,11 @@ function calcDelta(current, previous) {
  * Format delta with sign
  */
 function formatDelta(delta) {
-  if (delta === null) return "N/A";
-  if (delta > 0) return `+${delta}`;
-  return String(delta);
+  if (delta === null || delta === undefined) return "N/A";
+  // Round to 1 decimal to avoid floating point artifacts
+  const rounded = Math.round(delta * 10) / 10;
+  if (rounded > 0) return `+${rounded}`;
+  return String(rounded);
 }
 
 /**
@@ -88,7 +96,7 @@ function compareScores(current, previous) {
  * Compare quality metrics
  */
 function compareQualityMetrics(current, previous) {
-  const metrics = ["unsafeJsonParse", "exposedErrors", "asAnyCasts", "magicNumbers"];
+  const metrics = ["unsafeJsonParse", "asAnyCasts", "consoleLogCount", "todoFixmeCount"];
   const comparisons = {};
 
   for (const metric of metrics) {
@@ -112,11 +120,17 @@ function compareQualityMetrics(current, previous) {
  * Compare maintainability metrics
  */
 function compareMaintainabilityMetrics(current, previous) {
+  const currentFile = current?.fileSizes?.[0]?.file ?? "N/A";
+  const previousFile = previous?.fileSizes?.[0]?.file ?? null;
+  const fileChanged = previousFile && currentFile !== previousFile;
+
   return {
     largestFile: {
       current: current?.fileSizes?.[0]?.lines ?? 0,
       previous: previous?.fileSizes?.[0]?.lines ?? null,
-      file: current?.fileSizes?.[0]?.file ?? "N/A",
+      file: currentFile,
+      previousFile: fileChanged ? previousFile : undefined,
+      fileChanged: fileChanged || false,
       delta: calcDelta(
         current?.fileSizes?.[0]?.lines ?? 0,
         previous?.fileSizes?.[0]?.lines
@@ -247,19 +261,12 @@ function generateSummary(comparison) {
     for (const [key, value] of Object.entries(obj)) {
       if (value.trend) {
         const label = prefix ? `${prefix}.${key}` : key;
+        const delta = value.deltaFormatted ?? formatDelta(value.delta);
         if (value.trend.label === "improved") {
-          improvements.push({
-            metric: label,
-            delta: value.deltaFormatted,
-            current: value.current,
-          });
+          improvements.push({ metric: label, delta, current: value.current });
         } else if (value.trend.label === "regressed") {
-          regressions.push({
-            metric: label,
-            delta: value.deltaFormatted,
-            current: value.current,
-          });
-        } else {
+          regressions.push({ metric: label, delta, current: value.current });
+        } else if (value.trend.label === "stable") {
           stable.push({ metric: label, current: value.current });
         }
       } else if (typeof value === "object" && value !== null) {

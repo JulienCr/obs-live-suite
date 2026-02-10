@@ -1,6 +1,105 @@
 {
   "audits": [
     {
+      "date": "2026-01-01",
+      "label": "Pre-Audit Baseline",
+      "commit": "7ac1d28",
+      "branch": "feat/i18n-system",
+      "scores": {
+        "quality": 5.5,
+        "maintainability": 6.5,
+        "dry": 4.0,
+        "tests": 2.0,
+        "overall": 4.5
+      },
+      "metrics": {
+        "quality": {
+          "unsafeJsonParse": 40,
+          "asAnyCasts": 8
+        },
+        "maintainability": {
+          "largestFile": 1572,
+          "avgServiceLines": 380,
+          "repositoriesExtracted": 0
+        },
+        "dry": {
+          "proxyHelperAdoption": 0,
+          "proxyHelperTotal": 23,
+          "rawFetchRemaining": 23
+        },
+        "tests": {
+          "testFileCount": 15,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "date": "2026-01-03",
+      "label": "Post Phase 2.5",
+      "commit": "5a4dfbd",
+      "branch": "refactor/audit-phase1-phase2",
+      "scores": {
+        "quality": 6.5,
+        "maintainability": 7.0,
+        "dry": 5.5,
+        "tests": 2.5,
+        "overall": 5.4
+      },
+      "metrics": {
+        "quality": {
+          "unsafeJsonParse": 8,
+          "asAnyCasts": 5
+        },
+        "maintainability": {
+          "largestFile": 887,
+          "avgServiceLines": 245,
+          "repositoriesExtracted": 6
+        },
+        "dry": {
+          "proxyHelperAdoption": 23,
+          "proxyHelperTotal": 28,
+          "rawFetchRemaining": 5
+        },
+        "tests": {
+          "testFileCount": 19,
+          "coverage": null
+        }
+      }
+    },
+    {
+      "date": "2026-01-03",
+      "label": "Post Phase 5 - Critical Services Tests",
+      "commit": "23ebee7",
+      "branch": "refactor/audit-phase1-phase2",
+      "scores": {
+        "quality": 4.1,
+        "maintainability": 8.9,
+        "dry": 8.5,
+        "tests": 0,
+        "overall": 5.4
+      },
+      "metrics": {
+        "quality": {
+          "unsafeJsonParse": 4,
+          "asAnyCasts": 7
+        },
+        "maintainability": {
+          "largestFile": 1005,
+          "avgServiceLines": 206,
+          "repositoriesExtracted": 6
+        },
+        "dry": {
+          "proxyHelperAdoption": 23,
+          "proxyHelperTotal": 27,
+          "rawFetchRemaining": 4
+        },
+        "tests": {
+          "testFileCount": 32,
+          "coverage": null
+        }
+      }
+    },
+    {
       "date": "2026-01-07",
       "label": "Baseline - Post ClientFetch migration",
       "commit": "b66d158",
@@ -15,9 +114,7 @@
       "metrics": {
         "quality": {
           "unsafeJsonParse": 4,
-          "exposedErrors": 20,
-          "asAnyCasts": 5,
-          "magicNumbers": 0
+          "asAnyCasts": 5
         },
         "maintainability": {
           "largestFile": 1113,
