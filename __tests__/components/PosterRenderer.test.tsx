@@ -1,7 +1,4 @@
-/**
-// Skipped pending fix: hook uses 50ms debounce - tests need wait adjustment
- * @jest-environment jsdom
- */
+/** @jest-environment jsdom */
 import { render, screen, waitFor } from '@testing-library/react';
 import { PosterRenderer } from '@/components/overlays/PosterRenderer';
 import {
@@ -10,7 +7,7 @@ import {
   MockWebSocket,
 } from '@/__tests__/test-utils/websocket-mock';
 
-describe.skip('PosterRenderer', () => {
+describe('PosterRenderer', () => {
   let cleanupWebSocket: () => void;
   const originalImage = global.Image;
   const originalCreateElement = document.createElement.bind(document);
@@ -81,6 +78,7 @@ describe.skip('PosterRenderer', () => {
   // Helper to render and get WebSocket
   const renderAndGetWs = (): MockWebSocket | null => {
     render(<PosterRenderer />);
+    jest.advanceTimersByTime(50);
     return getLastMockWebSocket();
   };
 
@@ -152,6 +150,7 @@ describe.skip('PosterRenderer', () => {
 
     for (const format of videoFormats) {
       const { unmount } = render(<PosterRenderer />);
+      jest.advanceTimersByTime(50);
       const ws = getLastMockWebSocket();
       ws?.simulateOpen();
 
@@ -282,6 +281,7 @@ describe.skip('PosterRenderer', () => {
 
     for (const transition of transitions) {
       const { unmount } = render(<PosterRenderer />);
+      jest.advanceTimersByTime(50);
       const ws = getLastMockWebSocket();
       ws?.simulateOpen();
 
@@ -328,6 +328,7 @@ describe.skip('PosterRenderer', () => {
 
   it('should close WebSocket on unmount', () => {
     const { unmount } = render(<PosterRenderer />);
+    jest.advanceTimersByTime(50);
     const ws = getLastMockWebSocket();
     unmount();
     expect(ws?.close).toHaveBeenCalled();
@@ -335,6 +336,7 @@ describe.skip('PosterRenderer', () => {
 
   it('should clear timeout on unmount', async () => {
     const { unmount } = render(<PosterRenderer />);
+    jest.advanceTimersByTime(50);
     const ws = getLastMockWebSocket();
     ws?.simulateOpen();
 

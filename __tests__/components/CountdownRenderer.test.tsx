@@ -1,7 +1,4 @@
-/**
-// Skipped pending fix: hook uses 50ms debounce - tests need wait adjustment
- * @jest-environment jsdom
- */
+/** @jest-environment jsdom */
 import { render, screen, waitFor } from '@testing-library/react';
 import { CountdownRenderer } from '@/components/overlays/CountdownRenderer';
 import {
@@ -10,21 +7,24 @@ import {
   type MockWebSocket,
 } from '@/__tests__/test-utils/websocket-mock';
 
-describe.skip('CountdownRenderer', () => {
+describe('CountdownRenderer', () => {
   let cleanupWebSocket: () => void;
 
   beforeEach(() => {
     cleanupWebSocket = setupWebSocketMock();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
     cleanupWebSocket();
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
 
   // Helper to render and get WebSocket
   const renderAndGetWs = (): MockWebSocket | null => {
     render(<CountdownRenderer />);
+    jest.advanceTimersByTime(50);
     return getLastMockWebSocket();
   };
 
@@ -185,6 +185,7 @@ describe.skip('CountdownRenderer', () => {
 
   it('should close WebSocket on unmount', () => {
     const { unmount } = render(<CountdownRenderer />);
+    jest.advanceTimersByTime(50);
     const ws = getLastMockWebSocket();
     unmount();
     expect(ws?.close).toHaveBeenCalled();
