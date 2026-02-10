@@ -8,12 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useYouTubeIframeApi } from "@/hooks/useYouTubeIframeApi";
 import { extractYouTubeId } from "@/lib/utils/urlDetection";
 import { buildYouTubeEmbedUrl } from "@/lib/utils/youtubeUrlBuilder";
-
-interface VideoChapter {
-  id: string;
-  title: string;
-  timestamp: number;
-}
+import type { VideoChapter } from "@/lib/models/Poster";
 
 interface AssetVideoPlayerProps {
   fileUrl: string;
@@ -146,6 +141,9 @@ export function AssetVideoPlayer({
     setCurrentTime(clampedTime);
   }, [effectiveStart, effectiveEnd, youtubeApi]);
 
+  // Compute selectionRange once (used by both YouTube and HTML5 video timelines)
+  const selectionRange = previewRange ?? (startTime != null && endTime != null ? { start: startTime, end: endTime } : undefined);
+
   if (type === "youtube") {
     const videoId = extractYouTubeId(fileUrl);
     const youtubeUrl = buildYouTubeEmbedUrl({
@@ -181,7 +179,7 @@ export function AssetVideoPlayer({
               handleYouTubeSeek(chapter.timestamp);
               onChapterClick?.(chapter);
             }}
-            selectionRange={previewRange ?? (startTime != null && endTime != null ? { start: startTime, end: endTime } : undefined)}
+            selectionRange={selectionRange}
             inPointMarker={inPointMarker}
             outPointMarker={outPointMarker}
             highlightedChapterTime={highlightedChapterTime}
@@ -222,7 +220,7 @@ export function AssetVideoPlayer({
           currentTime={currentTime}
           onSeek={handleSeek}
           onChapterClick={handleChapterClick}
-          selectionRange={previewRange ?? (startTime != null && endTime != null ? { start: startTime, end: endTime } : undefined)}
+          selectionRange={selectionRange}
           inPointMarker={inPointMarker}
           outPointMarker={outPointMarker}
           highlightedChapterTime={highlightedChapterTime}

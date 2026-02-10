@@ -9,6 +9,7 @@ import { DbPoster, DbPosterInput } from "../models/Database";
 import { PosterType, EndBehavior } from "../models/Poster";
 import { extractYouTubeId, isYouTubeUrl } from "../utils/urlDetection";
 import { urlToFilePath } from "../utils/fileUpload";
+import { formatTimeShort } from "../utils/durationParser";
 
 /**
  * Parameters for creating a sub-video
@@ -114,7 +115,7 @@ export class SubVideoService {
     const subVideoPoster: DbPosterInput = {
       id: subVideoId,
       title,
-      description: `Sub-video of "${parentPoster.title}" (${this.formatTime(startTime)} - ${this.formatTime(endTime)})`,
+      description: `Sub-video of "${parentPoster.title}" (${formatTimeShort(startTime)} - ${formatTimeShort(endTime)})`,
       source: parentPoster.source,
       fileUrl: parentPoster.fileUrl, // Same video file as parent
       type: parentPoster.type,
@@ -241,20 +242,6 @@ export class SubVideoService {
     };
 
     return `https://img.youtube.com/vi/${videoId}/${qualityMap[quality]}`;
-  }
-
-  /**
-   * Format time in seconds to human-readable string
-   */
-  private formatTime(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-    }
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
   }
 
   /**

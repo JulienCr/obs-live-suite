@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Zap, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { getWebSocketUrl } from "@/lib/utils/websocket";
-import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
+import { apiPost } from "@/lib/utils/ClientFetch";
 import { sendChatMessage } from "@/lib/utils/chatMessaging";
-import { useGuests, type Guest } from "@/lib/queries";
+import { useGuests, useOverlaySettings, type Guest } from "@/lib/queries";
 
 interface GuestsCardProps {
   className?: string;
@@ -24,24 +24,9 @@ export function GuestsCard({ className }: GuestsCardProps = {}) {
   const totalEnabledGuests = allGuests.length;
 
   const [activeGuestId, setActiveGuestId] = useState<string | null>(null);
-  const [lowerThirdDuration, setLowerThirdDuration] = useState(8); // Default, will be updated from settings
+  const { lowerThirdDuration } = useOverlaySettings();
   const wsRef = useRef<WebSocket | null>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    // Fetch overlay settings
-    const fetchSettings = async () => {
-      try {
-        const data = await apiGet<{ settings?: { lowerThirdDuration?: number } }>("/api/settings/overlay");
-        if (data.settings?.lowerThirdDuration) {
-          setLowerThirdDuration(data.settings.lowerThirdDuration);
-        }
-      } catch (error) {
-        console.error("Failed to fetch overlay settings:", error);
-      }
-    };
-    fetchSettings();
-  }, []);
 
   // WebSocket connection to track active lower third
   useEffect(() => {

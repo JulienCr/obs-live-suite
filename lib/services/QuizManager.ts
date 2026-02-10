@@ -106,88 +106,20 @@ export class QuizManager {
   }
 
   // --- Zoom controls (direct delegation to controller) ---
-  async zoomStart(): Promise<void> {
-    try {
-      await this.zoom.start();
-      this.logger.debug("Zoom started");
-    } catch (error) {
-      this.logger.error("zoomStart failed", error);
-      throw error;
-    }
-  }
-
-  async zoomStop(): Promise<void> {
-    try {
-      await this.zoom.stop();
-      this.logger.debug("Zoom stopped");
-    } catch (error) {
-      this.logger.error("zoomStop failed", error);
-      throw error;
-    }
-  }
-
-  async zoomResume(): Promise<void> {
-    try {
-      await this.zoom.resume();
-      this.logger.debug("Zoom resumed");
-    } catch (error) {
-      this.logger.error("zoomResume failed", error);
-      throw error;
-    }
-  }
-
-  async zoomStep(delta: number): Promise<void> {
-    try {
-      await this.zoom.step(delta);
-    } catch (error) {
-      this.logger.error(`zoomStep failed with delta ${delta}`, error);
-      throw error;
-    }
-  }
-
-  // --- Mystery image controls (direct delegation to controller) ---
-  async mysteryStart(totalSquares: number): Promise<void> {
-    try {
-      await this.mystery.start(totalSquares);
-      this.logger.debug(`Mystery reveal started with ${totalSquares} squares`);
-    } catch (error) {
-      this.logger.error(`mysteryStart failed for ${totalSquares} squares`, error);
-      throw error;
-    }
-  }
-
-  async mysteryStop(): Promise<void> {
-    try {
-      await this.mystery.stop();
-      this.logger.debug("Mystery reveal stopped");
-    } catch (error) {
-      this.logger.error("mysteryStop failed", error);
-      throw error;
-    }
-  }
-
-  async mysteryResume(): Promise<void> {
-    try {
-      await this.mystery.resume();
-      this.logger.debug("Mystery reveal resumed");
-    } catch (error) {
-      this.logger.error("mysteryResume failed", error);
-      throw error;
-    }
-  }
-
-  async mysteryStep(count: number): Promise<void> {
-    try {
-      await this.mystery.step(count);
-    } catch (error) {
-      this.logger.error(`mysteryStep failed with count ${count}`, error);
-      throw error;
-    }
-  }
+  async zoomStart(): Promise<void> { return this.delegate(() => this.zoom.start(), "zoomStart"); }
+  async zoomStop(): Promise<void> { return this.delegate(() => this.zoom.stop(), "zoomStop"); }
+  async zoomResume(): Promise<void> { return this.delegate(() => this.zoom.resume(), "zoomResume"); }
+  async zoomStep(delta: number): Promise<void> { return this.delegate(() => this.zoom.step(delta), "zoomStep"); }
 
   getMysteryState(): { revealed: number; total: number; running: boolean } {
     return this.mystery.getState();
   }
+
+  // --- Mystery image controls (direct delegation to controller) ---
+  async mysteryStart(totalSquares: number): Promise<void> { return this.delegate(() => this.mystery.start(totalSquares), "mysteryStart"); }
+  async mysteryStop(): Promise<void> { return this.delegate(() => this.mystery.stop(), "mysteryStop"); }
+  async mysteryResume(): Promise<void> { return this.delegate(() => this.mystery.resume(), "mysteryResume"); }
+  async mysteryStep(count: number): Promise<void> { return this.delegate(() => this.mystery.step(count), "mysteryStep"); }
 
   // --- Buzzer controls (direct delegation to service) ---
   buzzerHit(playerId: string): { accepted: boolean; winner?: string } { return this.buzzer.hit(playerId); }
@@ -195,35 +127,9 @@ export class QuizManager {
   buzzerRelease(): void { this.buzzer.release(); }
 
   // --- Timer controls (direct delegation) ---
-  async timerAdd(deltaSeconds: number): Promise<void> {
-    try {
-      await this.timer.addTime(deltaSeconds);
-      this.logger.debug(`Timer adjusted by ${deltaSeconds}s`);
-    } catch (error) {
-      this.logger.error(`timerAdd failed with delta ${deltaSeconds}`, error);
-      throw error;
-    }
-  }
-
-  async timerResume(): Promise<void> {
-    try {
-      await this.timer.resume(this.phase);
-      this.logger.debug("Timer resumed");
-    } catch (error) {
-      this.logger.error("timerResume failed", error);
-      throw error;
-    }
-  }
-
-  async timerStop(): Promise<void> {
-    try {
-      await this.timer.stop();
-      this.logger.debug("Timer stopped");
-    } catch (error) {
-      this.logger.error("timerStop failed", error);
-      throw error;
-    }
-  }
+  async timerAdd(deltaSeconds: number): Promise<void> { return this.delegate(() => this.timer.addTime(deltaSeconds), "timerAdd"); }
+  async timerResume(): Promise<void> { return this.delegate(() => this.timer.resume(this.phase), "timerResume"); }
+  async timerStop(): Promise<void> { return this.delegate(() => this.timer.stop(), "timerStop"); }
 
   getTimerState(): { seconds: number; running: boolean; phase: string } {
     return {
@@ -231,5 +137,18 @@ export class QuizManager {
       running: this.timer.isRunning(),
       phase: this.timer.getPhase(),
     };
+  }
+
+  /**
+   * Delegate an async operation with error logging.
+   * Reduces boilerplate in zoom/mystery/timer delegation methods.
+   */
+  private async delegate(fn: () => Promise<void>, name: string): Promise<void> {
+    try {
+      await fn();
+    } catch (error) {
+      this.logger.error(`${name} failed`, error);
+      throw error;
+    }
   }
 }

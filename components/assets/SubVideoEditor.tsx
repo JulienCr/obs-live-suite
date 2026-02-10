@@ -21,7 +21,8 @@ import { Separator } from "@/components/ui/separator";
 import { apiPost } from "@/lib/utils/ClientFetch";
 import type { DbPoster } from "@/lib/models/Database";
 import type { EndBehavior } from "@/lib/models/Poster";
-import { VideoTimeline, formatTime } from "./VideoTimeline";
+import { formatTimeShort as formatTime } from "@/lib/utils/durationParser";
+import { VideoTimeline } from "./VideoTimeline";
 
 export interface SubVideoEditorProps {
   parentPoster: DbPoster;

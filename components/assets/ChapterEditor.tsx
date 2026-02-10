@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/utils/ClientFetch";
+import { formatTimeShort } from "@/lib/utils/durationParser";
 import type { VideoChapter } from "@/lib/models/Poster";
 import { VideoTimeline } from "./VideoTimeline";
 
@@ -49,15 +50,6 @@ interface ChapterResponse {
 
 interface DeleteResponse {
   success: boolean;
-}
-
-/**
- * Format seconds as MM:SS
- */
-function formatTimestamp(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 }
 
 /**
@@ -275,7 +267,7 @@ export function ChapterEditor({
                   <div className="flex items-center gap-1.5 text-muted-foreground shrink-0">
                     <Clock className="h-4 w-4" />
                     <span className="text-xs font-mono">
-                      {formatTimestamp(chapter.timestamp)}
+                      {formatTimeShort(chapter.timestamp)}
                     </span>
                   </div>
                   <span className="text-sm truncate" title={chapter.title}>
@@ -345,7 +337,7 @@ export function ChapterEditor({
                 className="h-14"
               />
               <div className="text-sm text-muted-foreground text-center">
-                {formatTimestamp(timestamp)} / {formatTimestamp(videoDuration)}
+                {formatTimeShort(timestamp)} / {formatTimeShort(videoDuration)}
               </div>
             </div>
           </div>

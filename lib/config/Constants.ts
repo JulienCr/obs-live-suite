@@ -597,6 +597,18 @@ export const VALIDATION = {
 } as const;
 
 // ============================================================================
+// DASHBOARD EVENT CONSTANTS
+// ============================================================================
+
+/**
+ * Custom event names dispatched on `window` for inter-panel communication.
+ */
+export const DASHBOARD_EVENTS = {
+  /** Dispatched by TextPresetsPanel to load a preset into LowerThirdPanel */
+  LOAD_TEXT_PRESET: "load-text-preset",
+} as const;
+
+// ============================================================================
 // TYPE EXPORTS
 // ============================================================================
 

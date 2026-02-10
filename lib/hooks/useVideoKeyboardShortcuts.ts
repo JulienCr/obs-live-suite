@@ -46,20 +46,15 @@ export function useVideoKeyboardShortcuts({
     if (!enabled) return;
 
     const handler = (e: KeyboardEvent) => {
-      // Check if user is typing in any input field
       const target = e.target as HTMLElement;
-      const activeElement = document.activeElement as HTMLElement;
 
-      // Skip if typing in form fields
+      // Skip if typing in form fields or contenteditable elements
       if (
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
-        target.isContentEditable ||
-        activeElement?.tagName === "INPUT" ||
-        activeElement?.tagName === "TEXTAREA" ||
-        activeElement?.isContentEditable
+        target.isContentEditable
       ) {
-        return; // Don't prevent default, just return
+        return;
       }
 
       // Check if ANY dialog is open (Radix Dialog uses data-state="open")

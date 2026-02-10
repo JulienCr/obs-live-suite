@@ -303,6 +303,28 @@ export type DbPanelColorUpdate = Partial<Omit<DbPanelColor, 'id' | 'panelId' | '
   updatedAt?: Date;
 };
 
+// Text Presets (lower third text library)
+export interface DbTextPreset {
+  id: string;
+  name: string;
+  body: string;
+  side: 'left' | 'right' | 'center';
+  imageUrl: string | null;
+  imageAlt: string | null;
+  isEnabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type DbTextPresetInput = Omit<DbTextPreset, 'createdAt' | 'updatedAt'> & {
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+export type DbTextPresetUpdate = Partial<Omit<DbTextPreset, 'id' | 'createdAt'>> & {
+  updatedAt?: Date;
+};
+
 // Workspaces (dashboard layout configurations)
 export interface DbWorkspace {
   id: string;

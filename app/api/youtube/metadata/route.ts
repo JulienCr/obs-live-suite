@@ -1,10 +1,8 @@
-import { Logger } from "@/lib/utils/Logger";
 import { YouTubeMetadataService } from "@/lib/services/YouTubeMetadataService";
 import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
 import { z } from "zod";
 
 const LOG_CONTEXT = "[YouTubeMetadataAPI]";
-const logger = new Logger("YouTubeMetadataAPI");
 
 const metadataRequestSchema = z.object({
   videoId: z.string().min(1).max(20),
@@ -28,9 +26,6 @@ export const GET = withSimpleErrorHandler(async (request: Request) => {
   }
 
   const { videoId: validatedVideoId } = validationResult.data;
-
-  logger.info(`Fetching metadata for YouTube video: ${validatedVideoId}`);
-
   const service = YouTubeMetadataService.getInstance();
 
   if (!service.isConfigured()) {
@@ -44,10 +39,6 @@ export const GET = withSimpleErrorHandler(async (request: Request) => {
   if (!metadata) {
     return ApiResponses.notFound("YouTube video metadata");
   }
-
-  logger.info(
-    `Successfully retrieved metadata for "${metadata.title}" (${metadata.duration}s)`
-  );
 
   return ApiResponses.ok({
     success: true,

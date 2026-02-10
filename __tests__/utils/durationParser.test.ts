@@ -2,6 +2,7 @@ import {
   parseDurationString,
   formatDurationString,
   parseISO8601Duration,
+  formatTimeShort,
 } from '@/lib/utils/durationParser';
 
 describe('parseDurationString', () => {
@@ -295,6 +296,52 @@ describe('parseISO8601Duration', () => {
       // but our regex-based parser is lenient
       expect(parseISO8601Duration('PT30M5H15S')).toBe(19815);
       expect(parseISO8601Duration('PT15S30M5H')).toBe(19815);
+    });
+  });
+});
+
+describe('formatTimeShort', () => {
+  describe('basic seconds', () => {
+    it('should format 0 seconds', () => {
+      expect(formatTimeShort(0)).toBe('0:00');
+    });
+
+    it('should format single-digit seconds', () => {
+      expect(formatTimeShort(5)).toBe('0:05');
+    });
+
+    it('should format 30 seconds', () => {
+      expect(formatTimeShort(30)).toBe('0:30');
+    });
+  });
+
+  describe('minutes', () => {
+    it('should format exact minutes', () => {
+      expect(formatTimeShort(60)).toBe('1:00');
+    });
+
+    it('should format minutes and seconds', () => {
+      expect(formatTimeShort(90)).toBe('1:30');
+    });
+
+    it('should format multi-digit minutes', () => {
+      expect(formatTimeShort(125)).toBe('2:05');
+    });
+  });
+
+  describe('hours', () => {
+    it('should format exact hours', () => {
+      expect(formatTimeShort(3600)).toBe('1:00:00');
+    });
+
+    it('should format hours, minutes, and seconds', () => {
+      expect(formatTimeShort(3661)).toBe('1:01:01');
+    });
+  });
+
+  describe('decimal seconds', () => {
+    it('should floor decimal seconds', () => {
+      expect(formatTimeShort(90.7)).toBe('1:30');
     });
   });
 });

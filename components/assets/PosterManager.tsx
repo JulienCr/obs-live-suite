@@ -10,31 +10,12 @@ import { TagInput } from "@/components/ui/tag-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EntityHeader } from "@/components/ui/EntityHeader";
 import { EnableSearchCombobox } from "@/components/ui/EnableSearchCombobox";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { PosterUploader } from "./PosterUploader";
 import { VirtualizedPosterGrid } from "./VirtualizedPosterGrid";
-import { Trash2, Upload, ChevronDown, ChevronUp, Image as ImageIcon, Video, Youtube, Loader2 } from "lucide-react";
-import { apiGet, apiPost, apiPatch } from "@/lib/utils/ClientFetch";
-import { useEntityManager } from "@/lib/hooks";
-
-interface Poster {
-  id: string;
-  title: string;
-  description?: string;
-  source?: string;
-  fileUrl: string;
-  type: "image" | "video" | "youtube";
-  tags: string[];
-  chatMessage?: string;
-  isEnabled?: boolean;
-  createdAt?: string;
-  duration?: number | null;
-  metadata?: Record<string, unknown>;
-  parentPosterId?: string | null;
-  // Sub-video clip fields
-  startTime?: number | null;
-  endTime?: number | null;
-  thumbnailUrl?: string | null;
-}
+import { Trash2, Upload, Image as ImageIcon, Video, Youtube, Loader2 } from "lucide-react";
+import { apiGet } from "@/lib/utils/ClientFetch";
+import { usePosters, type Poster } from "@/lib/queries";
 
 /**
  * Poster management component with virtualized grids and advanced filters
@@ -45,19 +26,17 @@ export function PosterManager() {
   const router = useRouter();
 
   const {
-    items: posters,
-    loading,
-    refresh: refreshPosters,
-    deleteItem,
-  } = useEntityManager<Poster>({
-    endpoint: "/api/assets/posters",
-    extractItems: (data) => (data as { posters: Poster[] }).posters || [],
-    entityName: "posters",
-  });
+    posters,
+    isLoading: loading,
+    toggleEnabled,
+    deletePoster,
+    createPosterAsync,
+    bulkDelete,
+    isBulkDeleting,
+  } = usePosters();
 
   const [showUploader, setShowUploader] = useState(false);
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
-  const [showDisabled, setShowDisabled] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -66,7 +45,6 @@ export function PosterManager() {
 
   // Track selected poster IDs for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   useEffect(() => {
     fetchTagSuggestions();
@@ -139,7 +117,7 @@ export function PosterManager() {
         } catch {}
       }
 
-      const response = await apiPost<{ poster: Poster }>("/api/assets/posters", {
+      const poster = await createPosterAsync({
         title: title || "New Poster",
         fileUrl: url,
         type,
@@ -148,35 +126,24 @@ export function PosterManager() {
       });
 
       // Navigate to detail page for editing
-      router.push(`/assets/posters/${response.poster.id}`);
+      router.push(`/assets/posters/${poster.id}`);
     } catch (error) {
       console.error("Failed to create poster:", error);
-      refreshPosters();
     }
     setShowUploader(false);
   };
 
-  const handleToggleEnabled = async (poster: Poster) => {
-    try {
-      await apiPatch<Poster>(`/api/assets/posters/${poster.id}`, { isEnabled: !poster.isEnabled });
-      refreshPosters();
-    } catch (error) {
-      console.error("Failed to toggle poster:", error);
-    }
+  const handleToggleEnabled = (poster: Poster) => {
+    toggleEnabled({ id: poster.id, isEnabled: !poster.isEnabled });
   };
 
   const handleDelete = async (poster: Poster) => {
     if (!confirm(`Delete "${poster.title}"?`)) return;
-    await deleteItem(poster.id);
+    deletePoster(poster.id);
   };
 
-  const handleEnableFromSearch = async (posterId: string) => {
-    try {
-      await apiPatch<Poster>(`/api/assets/posters/${posterId}`, { isEnabled: true });
-      refreshPosters();
-    } catch (error) {
-      console.error("Failed to enable poster:", error);
-    }
+  const handleEnableFromSearch = (posterId: string) => {
+    toggleEnabled({ id: posterId, isEnabled: true });
   };
 
   const getTypeIcon = (type: string) => {
@@ -204,22 +171,13 @@ export function PosterManager() {
     setSelectedIds(new Set());
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     const count = selectedIds.size;
     if (!confirm(`Delete ${count} poster${count !== 1 ? 's' : ''}? This cannot be undone.`)) return;
 
-    setIsBulkDeleting(true);
-    try {
-      await apiPost<{ success: boolean; deleted: number }>('/api/assets/posters/bulk', {
-        ids: Array.from(selectedIds),
-      });
-      setSelectedIds(new Set());
-      refreshPosters();
-    } catch (error) {
-      console.error('Failed to bulk delete posters:', error);
-    } finally {
-      setIsBulkDeleting(false);
-    }
+    bulkDelete(Array.from(selectedIds), {
+      onSuccess: () => setSelectedIds(new Set()),
+    });
   };
 
   if (loading) {
@@ -389,37 +347,17 @@ export function PosterManager() {
       </div>
 
       {/* Disabled Posters Section (Collapsible) */}
-      {disabledPosters.length > 0 && (
-        <div className="space-y-3 pt-4 border-t">
-          <Button
-            variant="ghost"
-            onClick={() => setShowDisabled(!showDisabled)}
-            className="w-full justify-between"
-          >
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-medium">{t("disabledPosters")}</h3>
-              <Badge variant="secondary">{disabledPosters.length}</Badge>
-            </div>
-            {showDisabled ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-          </Button>
-
-          {showDisabled && (
-            <VirtualizedPosterGrid
-              posters={disabledPosters}
-              variant="disabled"
-              onToggleEnabled={handleToggleEnabled}
-              onDelete={handleDelete}
-              selectedIds={selectedIds}
-              onToggleSelection={handleToggleSelection}
-              isBulkDeleting={isBulkDeleting}
-            />
-          )}
-        </div>
-      )}
+      <CollapsibleSection title={t("disabledPosters")} count={disabledPosters.length}>
+        <VirtualizedPosterGrid
+          posters={disabledPosters}
+          variant="disabled"
+          onToggleEnabled={handleToggleEnabled}
+          onDelete={handleDelete}
+          selectedIds={selectedIds}
+          onToggleSelection={handleToggleSelection}
+          isBulkDeleting={isBulkDeleting}
+        />
+      </CollapsibleSection>
 
       {/* Bulk Action Toolbar - appears when items selected */}
       {selectedIds.size > 0 && (

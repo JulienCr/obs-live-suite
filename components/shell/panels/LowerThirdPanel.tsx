@@ -4,12 +4,15 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Timer, Loader2, ExternalLink, FileText, X, Search, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Timer, Loader2, ExternalLink, FileText, X, Search, Sparkles, Save } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useTextPresets, useOverlaySettings } from "@/lib/queries";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
+import { DASHBOARD_EVENTS } from "@/lib/config/Constants";
 import { toast } from "sonner";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { LowerThirdPreviewDialog } from "./LowerThirdPreviewDialog";
-import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 import { useOverlayHideSync } from "@/hooks/useSyncWithOverlayState";
 
 interface WikipediaPreview {
@@ -45,46 +48,25 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
   const [wikipediaPreview, setWikipediaPreview] = useState<WikipediaPreview | null>(null);
   const [wikipediaOptions, setWikipediaOptions] = useState<WikipediaSearchOption[]>([]);
   const [showWikipediaOptions, setShowWikipediaOptions] = useState(false);
-  const [lowerThirdDuration, setLowerThirdDuration] = useState(8); // Default, will be updated from settings
   const [showPreview, setShowPreview] = useState(false);
+  const { createTextPresetAsync } = useTextPresets({ enabled: true });
+  const { lowerThirdDuration } = useOverlaySettings();
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [presetName, setPresetName] = useState("");
 
   // Sync local state with shared overlay state (handles external hide from EventLog)
   useOverlayHideSync("lowerThird", isVisible, () => setIsVisible(false));
 
-  // Fetch overlay settings on mount
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const data = await apiGet<{ settings?: { lowerThirdDuration?: number } }>("/api/settings/overlay");
-        if (data.settings?.lowerThirdDuration) {
-          setLowerThirdDuration(data.settings.lowerThirdDuration);
-        }
-      } catch (error) {
-        console.error("Failed to fetch overlay settings:", error);
-      }
-    };
-    fetchSettings();
-  }, []);
+  const buildPayload = (duration?: number) => {
+    const base = mode === "text"
+      ? { contentType: "text" as const, body: markdown, imageUrl: imageUrl || undefined, imageAlt: imageAlt || undefined, side }
+      : { contentType: "guest" as const, title, subtitle, side };
+    return duration !== undefined ? { ...base, duration } : base;
+  };
 
   const handleShow = async () => {
     try {
-      const payload =
-        mode === "text"
-          ? {
-              contentType: "text",
-              body: markdown,
-              imageUrl: imageUrl || undefined,
-              imageAlt: imageAlt || undefined,
-              side,
-            }
-          : {
-              contentType: "guest",
-              title,
-              subtitle,
-              side,
-            };
-
-      await apiPost("/api/actions/lower/show", payload);
+      await apiPost("/api/actions/lower/show", buildPayload());
       setIsVisible(true);
     } catch (error) {
       console.error("Error showing lower third:", error);
@@ -102,25 +84,7 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
 
   const handleAuto = async () => {
     try {
-      const payload =
-        mode === "text"
-          ? {
-              contentType: "text",
-              body: markdown,
-              imageUrl: imageUrl || undefined,
-              imageAlt: imageAlt || undefined,
-              side,
-              duration: lowerThirdDuration,
-            }
-          : {
-              contentType: "guest",
-              title,
-              subtitle,
-              side,
-              duration: lowerThirdDuration,
-            };
-
-      await apiPost("/api/actions/lower/show", payload);
+      await apiPost("/api/actions/lower/show", buildPayload(lowerThirdDuration));
       setIsVisible(true);
       setTimeout(() => setIsVisible(false), lowerThirdDuration * 1000);
     } catch (error) {
@@ -265,6 +229,39 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
     }
   };
 
+  // Listen for load-text-preset events from the Quick LT panel
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { body, side: presetSide, imageUrl: presetImageUrl, imageAlt: presetImageAlt } = (e as CustomEvent).detail;
+      setMarkdown(body);
+      setSide(presetSide);
+      setImageUrl(presetImageUrl || null);
+      setImageAlt(presetImageAlt || "");
+      if (mode !== "text") setMode("text");
+    };
+    window.addEventListener(DASHBOARD_EVENTS.LOAD_TEXT_PRESET, handler);
+    return () => window.removeEventListener(DASHBOARD_EVENTS.LOAD_TEXT_PRESET, handler);
+  }, [mode]);
+
+  const handleSaveAsPreset = async () => {
+    if (!presetName.trim() || !markdown.trim()) return;
+    try {
+      await createTextPresetAsync({
+        name: presetName.trim(),
+        body: markdown,
+        side,
+        imageUrl: imageUrl || null,
+        imageAlt: imageAlt || null,
+      });
+      setShowSaveDialog(false);
+      setPresetName("");
+      toast.success(t("presetSaved"));
+    } catch (error) {
+      console.error("Failed to save preset:", error);
+      toast.error(t("presetSaveFailed"));
+    }
+  };
+
   return (
     <BasePanelWrapper config={config}>
         <div className="space-y-4">
@@ -302,6 +299,43 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
             <div className="flex items-center justify-between">
               <Label htmlFor="markdown">{t("markdown")}</Label>
               <div className="flex gap-2">
+                <Popover open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-2"
+                      title={t("saveAsPreset")}
+                      disabled={!markdown.trim()}
+                    >
+                      <Save className="h-4 w-4" />
+                      {t("save")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-3" align="end">
+                    <div className="space-y-2">
+                      <Label htmlFor="presetName">{t("presetNameLabel")}</Label>
+                      <Input
+                        id="presetName"
+                        value={presetName}
+                        onChange={(e) => setPresetName(e.target.value)}
+                        placeholder={t("presetNamePlaceholder")}
+                        maxLength={100}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveAsPreset();
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={handleSaveAsPreset}
+                        disabled={!presetName.trim()}
+                      >
+                        {t("savePreset")}
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <Button
                   variant="ghost"
                   size="sm"

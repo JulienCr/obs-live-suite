@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/utils/ClientFetch";
 import { queryKeys } from "./queryKeys";
 import { QUERY_STALE_TIMES } from "@/lib/config/Constants";
 
@@ -33,6 +33,19 @@ export interface ProfileSummary {
   isActive: boolean;
 }
 
+export interface CreateProfileInput {
+  name: string;
+  description?: string;
+  themeId: string;
+  isActive?: boolean;
+}
+
+export interface UpdateProfileInput {
+  name?: string;
+  description?: string;
+  themeId?: string;
+}
+
 interface ProfilesResponse {
   profiles: Profile[];
 }
@@ -40,8 +53,6 @@ interface ProfilesResponse {
 interface ProfileResponse {
   profile: Profile;
 }
-
-// Use centralized stale time from Constants
 
 export function useProfiles() {
   const queryClient = useQueryClient();
@@ -68,6 +79,33 @@ export function useProfiles() {
     onSuccess: invalidateProfiles,
   });
 
+  const createProfileMutation = useMutation({
+    mutationFn: async (input: CreateProfileInput) => {
+      const response = await apiPost<ProfileResponse>("/api/profiles", input);
+      return response.profile;
+    },
+    onSuccess: invalidateProfiles,
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async ({ id, ...updates }: UpdateProfileInput & { id: string }) => {
+      const response = await apiPut<ProfileResponse>(
+        `/api/profiles/${id}`,
+        updates
+      );
+      return response.profile;
+    },
+    onSuccess: invalidateProfiles,
+  });
+
+  const deleteProfileMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiDelete<{ success: boolean }>(`/api/profiles/${id}`);
+      return id;
+    },
+    onSuccess: invalidateProfiles,
+  });
+
   const profiles = data ?? [];
   const activeProfile = profiles.find((p) => p.isActive);
 
@@ -79,7 +117,16 @@ export function useProfiles() {
     error: error as Error | null,
     refetch,
     activateProfile: activateProfileMutation.mutate,
+    createProfile: createProfileMutation.mutate,
+    updateProfile: updateProfileMutation.mutate,
+    deleteProfile: deleteProfileMutation.mutate,
     isActivating: activateProfileMutation.isPending,
+    isCreating: createProfileMutation.isPending,
+    isUpdating: updateProfileMutation.isPending,
+    isDeleting: deleteProfileMutation.isPending,
     activateProfileAsync: activateProfileMutation.mutateAsync,
+    createProfileAsync: createProfileMutation.mutateAsync,
+    updateProfileAsync: updateProfileMutation.mutateAsync,
+    deleteProfileAsync: deleteProfileMutation.mutateAsync,
   };
 }

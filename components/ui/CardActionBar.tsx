@@ -38,7 +38,7 @@ export function CardActionBar({
     const Icon = action.icon;
     const showLabel = showLabels && action.label;
 
-    const button = (
+    return (
       <Button
         key={index}
         variant={action.variant ?? "outline"}
@@ -65,8 +65,6 @@ export function CardActionBar({
         )}
       </Button>
     );
-
-    return button;
   };
 
   return (

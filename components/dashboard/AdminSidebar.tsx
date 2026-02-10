@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, Play, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield, Package, Sparkles, MessageSquare, Twitch, Bot, Send } from "lucide-react";
+import { ChevronDown, ChevronRight, Layers, Image, Palette, FolderOpen, Users, Settings as SettingsIcon, Plug, Download, HelpCircle, Database, FolderCog, FileStack, Shield, Package, Sparkles, MessageSquare, Twitch, Bot, Send, Type } from "lucide-react";
 
 interface NavSection {
   id: string;
@@ -21,40 +21,34 @@ interface NavItem {
 
 const navigationSections: NavSection[] = [
   {
-    id: "live",
-    labelKey: "live",
-    items: [
-      { labelKey: "showControl", href: "/dashboard", icon: Play },
-      { labelKey: "overlays", href: "/settings/overlays", icon: Layers },
-    ],
-  },
-  {
     id: "library",
     labelKey: "library",
     items: [
-      { labelKey: "posters", href: "/assets/posters", icon: Image },
-      { labelKey: "themes", href: "/assets/themes", icon: Palette },
-    ],
-  },
-  {
-    id: "show-setup",
-    labelKey: "showSetup",
-    items: [
-      { labelKey: "profiles", href: "/profiles", icon: FolderOpen },
       { labelKey: "guests", href: "/assets/guests", icon: Users },
+      { labelKey: "posters", href: "/assets/posters", icon: Image },
+      { labelKey: "textPresets", href: "/assets/text-presets", icon: Type },
     ],
   },
   {
-    id: "presenter",
-    labelKey: "presenter",
+    id: "customization",
+    labelKey: "customization",
     items: [
+      { labelKey: "themes", href: "/assets/themes", icon: Palette },
+      { labelKey: "profiles", href: "/profiles", icon: FolderOpen },
+    ],
+  },
+  {
+    id: "show",
+    labelKey: "show",
+    items: [
+      { labelKey: "overlays", href: "/settings/overlays", icon: Layers },
       { labelKey: "presenterChannel", href: "/settings/presenter", icon: MessageSquare },
       { labelKey: "chatMessages", href: "/settings/chat-messages", icon: Send },
     ],
   },
   {
-    id: "integrations",
-    labelKey: "integrations",
+    id: "connections",
+    labelKey: "connections",
     items: [
       { labelKey: "obs", href: "/settings/obs", icon: Plug },
       { labelKey: "twitch", href: "/settings/twitch", icon: Twitch },
@@ -68,7 +62,7 @@ const navigationSections: NavSection[] = [
     labelKey: "settings",
     items: [
       { labelKey: "general", href: "/settings/general", icon: SettingsIcon },
-      { labelKey: "integrationsSettings", href: "/settings/integrations", icon: Sparkles },
+      { labelKey: "ai", href: "/settings/ai", icon: Sparkles },
       { labelKey: "backend", href: "/settings/backend", icon: Database },
       { labelKey: "paths", href: "/settings/paths", icon: FolderCog },
       { labelKey: "backup", href: "/settings/backup", icon: FileStack },
@@ -111,9 +105,6 @@ export function AdminSidebar() {
   };
 
   const isActive = (href: string) => {
-    if (href === "/dashboard") {
-      return pathname === "/" || pathname === "/dashboard";
-    }
     return pathname.startsWith(href);
   };
 

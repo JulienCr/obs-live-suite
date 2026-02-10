@@ -56,14 +56,12 @@ export function parseDurationString(input: string): number | null {
     return null;
   }
 
-  // Parse all parts as integers
+  // Parse all parts as integers (only digits allowed)
   const numbers = parts.map(part => {
-    // Check if part contains only digits (reject decimals, letters, etc.)
     if (!/^\d+$/.test(part.trim())) {
       return null;
     }
-    const num = parseInt(part, 10);
-    return isNaN(num) ? null : num;
+    return parseInt(part, 10);
   });
 
   // Check if any part failed to parse
@@ -211,4 +209,19 @@ export function parseISO8601Duration(isoDuration: string): number {
 
   // Calculate total seconds
   return hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
+ * Formats seconds as M:SS or H:MM:SS (only when hours > 0).
+ * Used for video timeline display, poster cards, quiz timers, etc.
+ */
+export function formatTimeShort(seconds: number): string {
+  const totalSeconds = Math.floor(seconds);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }

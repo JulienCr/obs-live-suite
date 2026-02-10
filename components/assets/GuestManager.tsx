@@ -9,9 +9,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { EntityHeader } from "@/components/ui/EntityHeader";
 import { EnableSearchCombobox } from "@/components/ui/EnableSearchCombobox";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { AvatarUploader } from "./AvatarUploader";
 import { VirtualizedGuestGrid } from "./VirtualizedGuestGrid";
-import { User, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { User, Users } from "lucide-react";
 import { apiPost } from "@/lib/utils/ClientFetch";
 import { useGuests, type Guest } from "@/lib/queries";
 
@@ -31,7 +32,6 @@ export function GuestManager() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [showDisabled, setShowDisabled] = useState(false);
   const [formData, setFormData] = useState({
     displayName: "",
     subtitle: "",
@@ -286,35 +286,15 @@ export function GuestManager() {
       </div>
 
       {/* Disabled Guests Section (Collapsible) */}
-      {disabledGuests.length > 0 && (
-        <div className="space-y-3 pt-4 border-t">
-          <Button
-            variant="ghost"
-            onClick={() => setShowDisabled(!showDisabled)}
-            className="w-full justify-between"
-          >
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-medium">{t("disabledGuests")}</h3>
-              <Badge variant="secondary">{disabledGuests.length}</Badge>
-            </div>
-            {showDisabled ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-          </Button>
-
-          {showDisabled && (
-            <VirtualizedGuestGrid
-              guests={disabledGuests}
-              variant="disabled"
-              onEdit={handleEdit}
-              onToggleEnabled={handleToggleEnabled}
-              onDelete={handleDelete}
-            />
-          )}
-        </div>
-      )}
+      <CollapsibleSection title={t("disabledGuests")} count={disabledGuests.length}>
+        <VirtualizedGuestGrid
+          guests={disabledGuests}
+          variant="disabled"
+          onEdit={handleEdit}
+          onToggleEnabled={handleToggleEnabled}
+          onDelete={handleDelete}
+        />
+      </CollapsibleSection>
     </div>
   );
 }

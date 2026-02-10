@@ -5,7 +5,7 @@ import { QuizStore } from "./QuizStore";
 import { QuizTimer } from "./QuizTimer";
 import { QuizZoomController } from "./QuizZoomController";
 import { QuizMysteryImageController } from "./QuizMysteryImageController";
-import { QuizError, type QuizPhase } from "./QuizTypes";
+import { QuizError, requireSession, type QuizPhase } from "./QuizTypes";
 import type { Session, Question } from "../models/Quiz";
 import { QUIZ } from "../config/Constants";
 
@@ -49,7 +49,7 @@ export class QuizPhaseManager {
 
     try {
       q = this.getCurrentQuestion();
-      sess = this.requireSession();
+      sess = requireSession(this.store);
     } catch (error) {
       this.logger.error("showCurrentQuestion: Failed to get current question or session", error);
       throw new QuizError("Failed to get current question", "showCurrentQuestion", error);
@@ -65,18 +65,7 @@ export class QuizPhaseManager {
     this.store.setSession(sess);
 
     // Clear viewer votes for new question (non-critical, log and continue)
-    try {
-      const { resetViewerInputs } = await import("../../server/api/quiz-bot");
-      resetViewerInputs();
-      // Emit empty vote counts to reset UI
-      await this.channel.publish(OverlayChannel.QUIZ, "vote.update", {
-        counts: { A: 0, B: 0, C: 0, D: 0 },
-        percentages: { A: 0, B: 0, C: 0, D: 0 },
-      });
-    } catch (error) {
-      this.logger.error("showCurrentQuestion: Failed to reset viewer inputs", error);
-      // Continue despite error - viewer vote reset is non-critical
-    }
+    await this.resetViewerVotes("showCurrentQuestion");
 
     try {
       this.setPhase("show_question");
@@ -126,7 +115,7 @@ export class QuizPhaseManager {
 
     try {
       q = this.getCurrentQuestion();
-      sess = this.requireSession();
+      sess = requireSession(this.store);
     } catch (error) {
       this.logger.error("reveal: Failed to get current question or session", error);
       throw new QuizError("Failed to reveal answer - no active question", "reveal", error);
@@ -198,7 +187,7 @@ export class QuizPhaseManager {
 
     try {
       q = this.getCurrentQuestion();
-      sess = this.requireSession();
+      sess = requireSession(this.store);
     } catch (error) {
       this.logger.error("resetQuestion: Failed to get current question or session", error);
       throw new QuizError("Failed to reset question - no active question", "resetQuestion", error);
@@ -210,17 +199,7 @@ export class QuizPhaseManager {
       this.store.setSession(sess);
 
       // Clear viewer votes (non-critical)
-      try {
-        const { resetViewerInputs } = await import("../../server/api/quiz-bot");
-        resetViewerInputs();
-        // Emit empty vote counts to reset UI
-        await this.channel.publish(OverlayChannel.QUIZ, "vote.update", {
-          counts: { A: 0, B: 0, C: 0, D: 0 },
-          percentages: { A: 0, B: 0, C: 0, D: 0 },
-        });
-      } catch (error) {
-        this.logger.error("resetQuestion: Failed to reset viewer inputs", error);
-      }
+      await this.resetViewerVotes("resetQuestion");
 
       // Stop timer
       await this.timer.stop();
@@ -236,7 +215,7 @@ export class QuizPhaseManager {
 
   async toggleScorePanel(): Promise<void> {
     try {
-      const sess = this.requireSession();
+      const sess = requireSession(this.store);
       const currentValue = sess.scorePanelVisible ?? true;
       const newValue = !currentValue;
       sess.scorePanelVisible = newValue;
@@ -252,7 +231,7 @@ export class QuizPhaseManager {
   async submitPlayerAnswer(playerId: string, option?: string, text?: string, value?: number): Promise<void> {
     try {
       const q = this.getCurrentQuestion();
-      const sess = this.requireSession();
+      const sess = requireSession(this.store);
 
       // Store player answer in session
       const answer = option || text || value?.toString() || "";
@@ -285,7 +264,7 @@ export class QuizPhaseManager {
     options?: { points?: number; remove?: boolean }
   ): Promise<void> {
     try {
-      const sess = this.requireSession();
+      const sess = requireSession(this.store);
       const q = this.getCurrentQuestion();
       const basePoints = Number.isFinite(options?.points as number)
         ? Number(options?.points)
@@ -315,6 +294,23 @@ export class QuizPhaseManager {
   }
 
   // --- Private helpers ---
+
+  /**
+   * Reset viewer vote inputs and emit empty vote counts to clear UI.
+   * Non-critical: logs errors but does not throw.
+   */
+  private async resetViewerVotes(caller: string): Promise<void> {
+    try {
+      const { resetViewerInputs } = await import("../../server/api/quiz-bot");
+      resetViewerInputs();
+      await this.channel.publish(OverlayChannel.QUIZ, "vote.update", {
+        counts: { A: 0, B: 0, C: 0, D: 0 },
+        percentages: { A: 0, B: 0, C: 0, D: 0 },
+      });
+    } catch (error) {
+      this.logger.error(`${caller}: Failed to reset viewer inputs`, error);
+    }
+  }
 
   private async emitPhaseUpdate(): Promise<void> {
     try {
@@ -390,14 +386,8 @@ export class QuizPhaseManager {
     }
   }
 
-  private requireSession(): Session {
-    const sess = this.store.getSession();
-    if (!sess) throw new Error("No active quiz session");
-    return sess;
-  }
-
   private getCurrentQuestion(): Question {
-    const sess = this.requireSession();
+    const sess = requireSession(this.store);
     const round = sess.rounds[sess.currentRoundIndex];
     if (!round) throw new Error("No current round");
     const q = round.questions[sess.currentQuestionIndex];

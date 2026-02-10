@@ -13,7 +13,8 @@
       "regieInternalChatView": "Vue chat interne",
       "regiePublicChat": "Chat public régie",
       "twitch": "Twitch",
-      "chatMessages": "Messages Chat"
+      "chatMessages": "Messages Chat",
+      "textPresets": "Textes rapides"
     },
     "header": {
       "connected": "Connecté",
@@ -45,7 +46,8 @@
       "resetWorkspace": "Réinitialiser l'espace de travail",
       "saveWorkspace": "Sauvegarder l'espace de travail",
       "manageWorkspaces": "Gérer les espaces de travail",
-      "switchToWorkspace": "Basculer vers : {name}"
+      "switchToWorkspace": "Basculer vers : {name}",
+      "showTextPresetsPanel": "Afficher le panneau Textes rapides"
     },
     "workspaces": {
       "title": "Espaces de travail",
@@ -165,7 +167,14 @@
         "summaryReady": "Résumé prêt - modifiez et cliquez Afficher",
         "failedGenerateSummary": "Échec de la génération du résumé",
         "llmUnavailable": "Service LLM indisponible. Vérifiez vos paramètres."
-      }
+      },
+      "saveAsPreset": "Sauvegarder comme preset",
+      "save": "Sauver",
+      "presetNameLabel": "Nom du preset",
+      "presetNamePlaceholder": "Mon texte prédéfini...",
+      "savePreset": "Sauvegarder",
+      "presetSaved": "Preset sauvegardé",
+      "presetSaveFailed": "Échec de la sauvegarde du preset"
     },
     "countdown": {
       "title": "Compte à rebours",
@@ -243,6 +252,17 @@
       "selectGuest": "Sélectionner un invité",
       "showLowerThirdTooltip": "Afficher le synthé de {name} (Raccourci : {shortcut})",
       "sendMessageTooltip": "Envoyer le message chat de {name}"
+    },
+    "textPresets": {
+      "title": "Textes prédéfinis",
+      "noPresets": "Aucun texte prédéfini",
+      "showTooltip": "Afficher le synthé {name} (Raccourci : {shortcut})",
+      "editPreset": "Modifier",
+      "deletePreset": "Supprimer",
+      "confirmDelete": "Supprimer « {name} » ?",
+      "confirmDeleteDesc": "Ce texte prédéfini sera supprimé définitivement.",
+      "cancel": "Annuler",
+      "morePresets": "+{count} de plus dans la bibliothèque"
     },
     "twitch": {
       "title": "Twitch",
@@ -326,30 +346,28 @@
   },
   "navigation": {
     "sections": {
-      "live": "EN DIRECT",
       "library": "BIBLIOTHÈQUE",
-      "showSetup": "CONFIG. ÉMISSION",
-      "presenter": "PRÉSENTATEUR",
-      "integrations": "INTÉGRATIONS",
+      "customization": "PERSONNALISATION",
+      "show": "ÉMISSION",
+      "connections": "CONNEXIONS",
       "settings": "PARAMÈTRES"
     },
     "items": {
-      "showControl": "Contrôle émission",
-      "overlays": "Overlays",
+      "guests": "Invités",
       "posters": "Affiches",
+      "textPresets": "Presets texte",
       "themes": "Thèmes",
       "profiles": "Profils",
-      "guests": "Invités",
-      "rooms": "Salles",
-      "presenterChannel": "Canal presentateur",
-      "streamerbot": "Streamer.bot",
+      "overlays": "Overlays",
+      "presenterChannel": "Canal présentateur",
+      "chatMessages": "Messages Chat",
       "obs": "OBS",
       "twitch": "Twitch",
+      "streamerbot": "Streamer.bot",
       "streamDeck": "Stream Deck",
       "pluginsUpdates": "Plugins et mises à jour",
       "general": "Général",
-      "integrationsSettings": "Intégrations",
-      "chatMessages": "Messages Chat",
+      "ai": "IA",
       "backend": "Backend",
       "paths": "Chemins",
       "backup": "Sauvegarde",
@@ -896,6 +914,48 @@
         "invalidUrlImage": "URL invalide. Collez un lien direct vers un fichier image.",
         "invalidUrlFull": "URL invalide. Collez une URL YouTube ou un lien direct vers un fichier image/vidéo."
       }
+    },
+    "textPresets": {
+      "title": "Textes prédéfinis",
+      "addPreset": "Ajouter un texte",
+      "editPreset": "Modifier le texte",
+      "createPreset": "Créer le texte",
+      "updatePreset": "Mettre à jour",
+      "noPresetsFound": "Aucun texte trouvé.",
+      "activePresets": "Textes actifs",
+      "disabledPresets": "Textes désactivés",
+      "noActivePresets": "Aucun texte actif",
+      "addOrEnable": "Ajoutez un texte ou activez-en un via la recherche ci-dessus",
+      "enablePreset": "Activer un texte",
+      "searchToEnable": "Rechercher pour activer un texte désactivé...",
+      "searchByName": "Rechercher par nom...",
+      "name": "Nom",
+      "namePlaceholder": "Mon texte prédéfini",
+      "body": "Contenu",
+      "bodyPlaceholder": "Contenu markdown du lower third...",
+      "side": "Position",
+      "side_left": "Gauche",
+      "side_right": "Droite",
+      "side_center": "Centre",
+      "imageOptional": "Image (Optionnel)",
+      "quickAddImage": "Ajouter une image",
+      "imageAltPlaceholder": "Description de l'image...",
+      "active": "Actif",
+      "disabled": "Désactivé",
+      "activeCount": "{count} actifs · {total} total",
+      "confirmDelete": "Supprimer « {name} » ?",
+      "confirmDeleteDesc": "Ce texte prédéfini sera supprimé définitivement.",
+      "deleteConfirm": "Supprimer"
+    },
+    "textPresetCard": {
+      "active": "Actif",
+      "disabled": "Désactivé",
+      "quickShow": "Synthé rapide",
+      "quickShowTitle": "Afficher le synthé (masquage auto 8s)",
+      "edit": "Modifier",
+      "enable": "Activer",
+      "disable": "Désactiver",
+      "delete": "Supprimer"
     }
   },
   "quiz": {
@@ -1201,7 +1261,8 @@
     "yes": "Oui",
     "no": "Non",
     "retry": "Réessayer",
-    "title": "Titre"
+    "title": "Titre",
+    "clear": "Effacer"
   },
   "regieChat": {
     "cueTypes": {

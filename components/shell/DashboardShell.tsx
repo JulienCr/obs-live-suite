@@ -24,6 +24,7 @@ import { RegieInternalChatViewPanel } from "./panels/RegieInternalChatViewPanel"
 import { RegiePublicChatPanel } from "./panels/RegiePublicChatPanel";
 import { TwitchPanel } from "./panels/TwitchPanel";
 import { ChatMessagesPanel } from "./panels/ChatMessagesPanel";
+import { TextPresetsPanel } from "./panels/TextPresetsPanel";
 import { DockviewContext, usePanelPositions } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { WorkspacesProvider, useWorkspaces } from "./WorkspacesContext";
@@ -51,6 +52,7 @@ const components = {
   regiePublicChat: RegiePublicChatPanel,
   twitch: TwitchPanel,
   chatMessages: ChatMessagesPanel,
+  textPresets: TextPresetsPanel,
 };
 
 const tabComponents = {
@@ -98,6 +100,13 @@ export function DashboardShell() {
       id: "guests",
       component: "guests",
       title: "panels.guests",
+      position: { referencePanel: lowerThird, direction: "within" },
+    });
+
+    apiRef.current.addPanel({
+      id: "textPresets",
+      component: "textPresets",
+      title: "panels.textPresets",
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
