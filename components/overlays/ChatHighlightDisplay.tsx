@@ -1,5 +1,6 @@
 "use client";
 
+import { m } from "framer-motion";
 import { ChatHighlightMessagePart } from "@/lib/models/OverlayEvents";
 import "./chat-highlight.css";
 
@@ -39,7 +40,6 @@ export interface ChatHighlightDisplayProps {
   metadata?: ChatHighlightMetadata;
   side?: "left" | "right" | "center";
   theme?: ChatHighlightTheme;
-  animating?: boolean;
   isPreview?: boolean;
 }
 
@@ -55,7 +55,6 @@ export function ChatHighlightDisplay({
   metadata,
   side = "center",
   theme,
-  animating = true,
   isPreview = false,
 }: ChatHighlightDisplayProps) {
   // Theme-based colors
@@ -109,9 +108,13 @@ export function ChatHighlightDisplay({
   };
 
   return (
-    <div
-      className={`chat-highlight chat-highlight--${side} ${animating ? "chat-highlight--visible" : "chat-highlight--hidden"}`}
+    <m.div
+      className={`chat-highlight chat-highlight--${side}`}
       style={containerStyle}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 30 }}
+      transition={{ type: "tween", duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
     >
       <div className="chat-highlight__bar">
         {/* Header row: platform + badges + username */}
@@ -161,7 +164,7 @@ export function ChatHighlightDisplay({
           )}
         </div>
       </div>
-    </div>
+    </m.div>
   );
 }
 

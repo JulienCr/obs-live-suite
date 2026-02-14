@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { AnimatePresence, m, type Variants } from "framer-motion";
 import { PosterShowPayload, ChapterJumpPayload } from "@/lib/models/OverlayEvents";
 import { PosterDisplay } from "./PosterDisplay";
+import { OverlayMotionProvider } from "./OverlayMotionProvider";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import {
   usePosterPlayback,
@@ -10,6 +12,30 @@ import {
   useSubVideoPlayback,
 } from "@/hooks/poster";
 import "./bigpicture-poster.css";
+
+/** Framer Motion variants for big-picture poster transition types */
+const bigPictureTransitionVariants: Record<string, Variants> = {
+  fade: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: 0.5, ease: "easeOut" } },
+    exit: { opacity: 0, transition: { duration: 0.5, ease: "easeOut" } },
+  },
+  slide: {
+    initial: { opacity: 0, y: -50 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+    exit: { opacity: 0, transition: { duration: 0.5, ease: "easeOut" } },
+  },
+  cut: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1, transition: { duration: 0.1, ease: "linear" } },
+    exit: { opacity: 0, transition: { duration: 0.1, ease: "linear" } },
+  },
+  blur: {
+    initial: { opacity: 0, filter: "blur(20px)" },
+    animate: { opacity: 1, filter: "blur(0px)", transition: { duration: 0.8, ease: "easeOut" } },
+    exit: { opacity: 0, filter: "blur(20px)", transition: { duration: 0.5, ease: "easeIn" } },
+  },
+};
 
 interface PosterData {
   fileUrl: string;
@@ -26,9 +52,7 @@ interface PosterData {
 
 interface BigPicturePosterState {
   visible: boolean;
-  hiding: boolean;
   current: PosterData | null;
-  previous: PosterData | null;
   transition: "fade" | "slide" | "cut" | "blur";
 }
 
@@ -44,9 +68,7 @@ interface BigPicturePosterEvent {
 export function BigPicturePosterRenderer() {
   const [state, setState] = useState<BigPicturePosterState>({
     visible: false,
-    hiding: false,
     current: null,
-    previous: null,
     transition: "fade",
   });
 
@@ -54,8 +76,6 @@ export function BigPicturePosterRenderer() {
   const sendAckRef = useRef<(eventId: string, success?: boolean) => void>(() => {});
   const sendRef = useRef<(data: unknown) => void>(() => {});
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
-  const fadeOutTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
-  const crossFadeTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Memoized send function to prevent effect re-runs
   const memoizedSend = useCallback((data: unknown) => sendRef.current(data), []);
@@ -93,12 +113,6 @@ export function BigPicturePosterRenderer() {
     }) => {
       if (hideTimeout.current) {
         clearTimeout(hideTimeout.current);
-      }
-      if (fadeOutTimeout.current) {
-        clearTimeout(fadeOutTimeout.current);
-      }
-      if (crossFadeTimeout.current) {
-        clearTimeout(crossFadeTimeout.current);
       }
 
       switch (data.type) {
@@ -140,31 +154,10 @@ export function BigPicturePosterRenderer() {
               } : undefined,
             };
 
-            setState((prev) => {
-              // Cross-fade: move current to previous if there's a current poster
-              if (prev.visible && prev.current) {
-                // Clear previous after cross-fade completes
-                crossFadeTimeout.current = setTimeout(() => {
-                  setState((s) => ({ ...s, previous: null }));
-                }, 500); // Match fade duration
-
-                return {
-                  visible: true,
-                  hiding: false,
-                  current: newPoster,
-                  previous: prev.current,
-                  transition: data.payload!.transition || "fade",
-                };
-              }
-
-              // No current poster, just show the new one
-              return {
-                visible: true,
-                hiding: false,
-                current: newPoster,
-                previous: null,
-                transition: data.payload!.transition || "fade",
-              };
+            setState({
+              visible: true,
+              current: newPoster,
+              transition: data.payload!.transition || "fade",
             });
 
             // Seek to startTime after video loads (robust approach)
@@ -185,18 +178,8 @@ export function BigPicturePosterRenderer() {
 
             if (data.payload!.duration) {
               hideTimeout.current = setTimeout(() => {
-                // Start fade out animation
-                setState((prev) => ({ ...prev, hiding: true }));
-                // After fade completes, fully hide
-                fadeOutTimeout.current = setTimeout(() => {
-                  setState((prev) => ({
-                    ...prev,
-                    visible: false,
-                    hiding: false,
-                    current: null,
-                    previous: null,
-                  }));
-                }, 500); // Match fade duration
+                // Set visible to false; AnimatePresence handles the exit animation
+                setState((prev) => ({ ...prev, visible: false, current: null }));
               }, data.payload!.duration * 1000);
             }
           }
@@ -222,24 +205,16 @@ export function BigPicturePosterRenderer() {
             isMuted: true,
           };
 
-          // Start fade out animation
-          setState((prev) => ({ ...prev, hiding: true }));
-          // After fade completes, fully hide and clean up
-          fadeOutTimeout.current = setTimeout(() => {
-            setState((prev) => ({
-              ...prev,
-              visible: false,
-              hiding: false,
-              current: null,
-              previous: null,
-            }));
+          // Set visible to false; AnimatePresence handles the exit animation
+          setState((prev) => ({ ...prev, visible: false, current: null }));
 
-            // Clean up refs
+          // Clean up refs after exit animation completes
+          setTimeout(() => {
             if (playback.videoRef.current) {
               playback.videoRef.current.src = "";
               playback.videoRef.current.load();
             }
-          }, 500); // Match fade duration
+          }, 600);
           break;
         case "play":
           if (playback.videoRef.current) {
@@ -345,55 +320,41 @@ export function BigPicturePosterRenderer() {
       if (hideTimeout.current) {
         clearTimeout(hideTimeout.current);
       }
-      if (fadeOutTimeout.current) {
-        clearTimeout(fadeOutTimeout.current);
-      }
-      if (crossFadeTimeout.current) {
-        clearTimeout(crossFadeTimeout.current);
-      }
     };
   }, []);
 
-  if (!state.visible && !state.hiding) {
-    return null;
-  }
-
-  const renderPoster = (posterData: PosterData, className: string, isCurrent: boolean) => {
-    const passedInitialTime = isCurrent ? posterData.initialTime : undefined;
-
-    return (
-      <div key={posterData.showId} className={className}>
-        <PosterDisplay
-          fileUrl={posterData.fileUrl}
-          type={posterData.type}
-          aspectRatio={posterData.aspectRatio || 1}
-          positioning="center"
-          videoRef={posterData.type === "video" ? playback.videoRef : undefined}
-          youtubeRef={posterData.type === "youtube" ? playback.youtubeRef : undefined}
-          initialTime={passedInitialTime}
-          videoKey={posterData.showId}
-          subVideoConfig={posterData.subVideoConfig}
-          onYouTubeIframeLoad={isCurrent && posterData.type === "youtube" ? playback.handleYouTubeIframeLoad : undefined}
-        />
-      </div>
-    );
-  };
+  // Get the variants for the current transition type
+  const variants = bigPictureTransitionVariants[state.transition] || bigPictureTransitionVariants.fade;
 
   return (
-    <div
-      className={`bigpicture-poster-container ${state.hiding ? "bigpicture-poster-hiding" : ""}`}
-    >
-      {/* Previous poster fading out */}
-      {state.previous &&
-        renderPoster(state.previous, "bigpicture-poster-layer bigpicture-poster-crossfade-out", false)}
-
-      {/* Current poster */}
-      {state.current &&
-        renderPoster(
-          state.current,
-          `bigpicture-poster-layer bigpicture-poster-transition-${state.transition} ${state.previous ? "bigpicture-poster-crossfade-in" : ""}`,
-          true
-        )}
-    </div>
+    <OverlayMotionProvider>
+      <div className="bigpicture-poster-container">
+        <AnimatePresence>
+          {state.visible && state.current && (
+            <m.div
+              key={state.current.showId}
+              className="bigpicture-poster-layer"
+              variants={variants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <PosterDisplay
+                fileUrl={state.current.fileUrl}
+                type={state.current.type}
+                aspectRatio={state.current.aspectRatio || 1}
+                positioning="center"
+                videoRef={state.current.type === "video" ? playback.videoRef : undefined}
+                youtubeRef={state.current.type === "youtube" ? playback.youtubeRef : undefined}
+                initialTime={state.current.initialTime}
+                videoKey={state.current.showId}
+                subVideoConfig={state.current.subVideoConfig}
+                onYouTubeIframeLoad={state.current.type === "youtube" ? playback.handleYouTubeIframeLoad : undefined}
+              />
+            </m.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </OverlayMotionProvider>
   );
 }

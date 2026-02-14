@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, useLayoutEffect } from "react";
+import { useEffect, useState, useRef, useMemo, useLayoutEffect, useCallback } from "react";
+import { m } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
@@ -59,12 +60,10 @@ export function LowerThirdDisplay({
   isPreview = false,
   viewportWidth: propViewportWidth,
 }: LowerThirdDisplayProps) {
-  const [logoVisible, setLogoVisible] = useState(false);
-  const [flipped, setFlipped] = useState(false);
-  const [barVisible, setBarVisible] = useState(false);
-  const [textVisible, setTextVisible] = useState(false);
-  
-  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+  // Animation state machine: idle -> logo -> flip -> bar -> text -> visible
+  type AnimPhase = "idle" | "logo" | "flip" | "bar" | "text" | "visible";
+  const [phase, setPhase] = useState<AnimPhase>("idle");
+
   const markdownRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [wrapWidth, setWrapWidth] = useState(0);
@@ -115,62 +114,44 @@ export function LowerThirdDisplay({
   const finalLogoImage = logoImage || DEFAULT_LOGO_IMAGE;
   const finalAvatarImage = avatarImage || undefined; // Ensure empty string becomes undefined
 
-  // Animation sequence
-  useEffect(() => {
-    // Clear any existing timeouts
-    timeoutsRef.current.forEach(clearTimeout);
-    timeoutsRef.current = [];
+  // Determine if there is an avatar to flip to
+  const hasAvatar = !!finalAvatarImage;
 
+  // Animation state machine: when animating starts, kick off the sequence
+  useEffect(() => {
     if (!animating) {
-      // Ne rien faire - laisser le CSS gérer l'animation de sortie
-      // Les états seront reset quand une nouvelle animation d'entrée commence
+      // On exit, reset to idle (CSS exit animations handle the visual)
+      setPhase("idle");
       return;
     }
 
-    // Reset states
-    setLogoVisible(false);
-    setFlipped(false);
-    setBarVisible(false);
-    setTextVisible(false);
-
-    // Start animation sequence with a small initial delay to ensure DOM is ready
+    // Reset and start the sequence
+    setPhase("idle");
+    // Small initial delay to ensure DOM is ready, then advance to "logo"
     const initTimeout = setTimeout(() => {
-      // 1. Logo appears
-      setLogoVisible(true);
-
-      // Calculate timing based on whether we have an avatar to flip
-      const hasAvatar = !!finalAvatarImage;
-      const barDelay = hasAvatar ? config.timing.barAppearDelay : 300; // Quick delay if no flip
-      const textDelay = hasAvatar ? config.timing.textAppearDelay : 500;
-
-      // 2. Flip starts (only if avatar image is provided)
-      if (hasAvatar) {
-        const flipTimeout = setTimeout(() => {
-          setFlipped(true);
-        }, config.timing.flipDelay);
-        timeoutsRef.current.push(flipTimeout);
-      }
-
-      // 3. Bar appears
-      const barTimeout = setTimeout(() => {
-        setBarVisible(true);
-      }, barDelay);
-
-      // 4. Text appears
-      const textTimeout = setTimeout(() => {
-        setTextVisible(true);
-      }, textDelay);
-
-      timeoutsRef.current.push(barTimeout, textTimeout);
+      setPhase("logo");
     }, 50);
 
-    timeoutsRef.current.push(initTimeout);
+    return () => clearTimeout(initTimeout);
+  }, [animating]);
 
-    return () => {
-      timeoutsRef.current.forEach(clearTimeout);
-      timeoutsRef.current = [];
-    };
-  }, [animating, finalAvatarImage, config.timing.flipDelay, config.timing.barAppearDelay, config.timing.textAppearDelay]);
+  // Advance the state machine when each phase's animation completes
+  const advancePhase = useCallback(() => {
+    setPhase((current) => {
+      switch (current) {
+        case "logo":
+          return hasAvatar ? "flip" : "bar"; // Skip flip if no avatar
+        case "flip":
+          return "bar";
+        case "bar":
+          return "text";
+        case "text":
+          return "visible";
+        default:
+          return current;
+      }
+    });
+  }, [hasAvatar]);
 
   // Generate CSS variables - memoized to prevent re-render flicker
   const freeTextMaxWidth = config.styles.freeTextMaxWidth?.[side] ?? (side === 'center' ? 90 : 65);
@@ -444,6 +425,12 @@ export function LowerThirdDisplay({
     lineHeight: 1.25,
   };
 
+  // Derived boolean states from phase for cleaner rendering
+  const logoVisible = phase !== "idle";
+  const flipped = phase === "flip" || phase === "bar" || phase === "text" || phase === "visible";
+  const barVisible = phase === "bar" || phase === "text" || phase === "visible";
+  const textVisible = phase === "text" || phase === "visible";
+
   return (
     <div style={wrapperStyle}>
       <div
@@ -451,12 +438,29 @@ export function LowerThirdDisplay({
         style={containerStyle}
       >
       {!isTextMode && (
-        <div className={`avatar ${flipped ? "flip" : ""}`}>
+        <m.div
+          className={`avatar ${flipped ? "flip" : ""}`}
+          initial={{ opacity: 0, scale: 1.6 }}
+          animate={logoVisible
+            ? { opacity: 1, scale: 1 }
+            : { opacity: 0, scale: 1.6 }
+          }
+          transition={{
+            opacity: { duration: config.timing.logoFadeDuration / 1000 },
+            scale: { duration: config.timing.logoScaleDuration / 1000 },
+          }}
+          onAnimationComplete={() => {
+            // Only advance from logo phase when animation finishes
+            if (phase === "logo") {
+              advancePhase();
+            }
+          }}
+        >
           <div className="avatar-inner">
-            <div className={`face front ${logoVisible ? "visible" : ""}`}>
-              <img 
-                src={finalLogoImage} 
-                alt="Logo" 
+            <div className="face front visible">
+              <img
+                src={finalLogoImage}
+                alt="Logo"
                 className={logoHasPadding ? "has-padding" : ""}
               />
             </div>
@@ -466,29 +470,61 @@ export function LowerThirdDisplay({
               </div>
             )}
           </div>
-        </div>
+        </m.div>
       )}
 
       {isTextMode && imageUrl && (
-        <div className={`lowerthird-media ${barVisible ? "show" : ""}`}>
+        <m.div
+          className="lowerthird-media"
+          initial={{ opacity: 0, y: 10 }}
+          animate={barVisible
+            ? { opacity: 1, y: 0 }
+            : { opacity: 0, y: 10 }
+          }
+          transition={{ duration: 0.3 }}
+        >
           <img src={imageUrl} alt={imageAlt || "Lower third image"} />
-        </div>
+        </m.div>
       )}
 
-      <div className={`bar ${barVisible ? "show" : ""}`}>
-        <div className={`text ${textVisible ? "show" : ""}`}>
+      <m.div
+        className={`bar ${barVisible ? "show" : ""}`}
+        onAnimationComplete={() => {
+          // Advance from bar to text phase when bar expansion finishes
+          if (phase === "bar") {
+            advancePhase();
+          }
+        }}
+      >
+        <m.div
+          className={`text ${textVisible ? "show" : ""}`}
+          onAnimationComplete={() => {
+            // Advance from text to visible phase when text animation finishes
+            if (phase === "text") {
+              advancePhase();
+            }
+          }}
+        >
           {isTextMode ? (
             <div className="lowerthird-markdown" ref={markdownRef} style={markdownStyle}>
               {wrappedLines.map((line, index) => (
-                <div
+                <m.div
                   key={`line-${index}`}
                   className="lowerthird-line"
-                  style={{ "--lt-line-delay": `${index * 140}ms` } as React.CSSProperties}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={textVisible
+                    ? { opacity: 1, y: 0 }
+                    : { opacity: 0, y: 6 }
+                  }
+                  transition={{
+                    duration: config.timing.textFadeDuration / 1000,
+                    delay: index * 0.14,
+                  }}
                 >
                   <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                     {line || " "}
                   </ReactMarkdown>
-                </div>
+                </m.div>
               ))}
             </div>
           ) : (
@@ -499,8 +535,8 @@ export function LowerThirdDisplay({
               )}
             </>
           )}
-        </div>
-      </div>
+        </m.div>
+      </m.div>
     </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useLayoutHistory } from "./useLayoutHistory";
 import { LowerThirdDisplay } from "@/components/overlays/LowerThirdDisplay";
 import { CountdownDisplay } from "@/components/overlays/CountdownDisplay";
+import { OverlayMotionProvider } from "@/components/overlays/OverlayMotionProvider";
 
 interface OverlayCanvasProps {
   // Lower third props
@@ -177,6 +178,7 @@ export function OverlayCanvas({
   };
 
   return (
+    <OverlayMotionProvider>
     <div className="space-y-4">
       {/* Undo/Redo Controls */}
       <div className="flex items-center justify-between gap-2">
@@ -356,6 +358,7 @@ export function OverlayCanvas({
         </div>
       </div>
     </div>
+    </OverlayMotionProvider>
   );
 }
 

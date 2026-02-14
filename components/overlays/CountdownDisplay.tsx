@@ -3,6 +3,7 @@
  * Separated from CountdownRenderer to allow reuse in preview
  */
 
+import { m } from "framer-motion";
 import { ColorScheme, FontConfig, LayoutConfig } from "@/lib/models/Theme";
 import "./countdown.css";
 
@@ -110,9 +111,16 @@ export function CountdownDisplay({
   };
 
   return (
-    <div className="countdown" style={containerStyle}>
+    <m.div
+      className="countdown"
+      style={containerStyle}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="countdown-time" style={timeStyle}>{formatTime(seconds)}</div>
-    </div>
+    </m.div>
   );
 }
 

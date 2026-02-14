@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { AnimatePresence } from "framer-motion";
 import { CountdownDisplay } from "./CountdownDisplay";
+import { OverlayMotionProvider } from "./OverlayMotionProvider";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import "./countdown.css";
 
@@ -168,10 +170,6 @@ export function CountdownRenderer() {
     };
   }, [state.isRunning, state.seconds]);
 
-  if (!state.visible) {
-    return null;
-  }
-
   console.log("[Countdown] Rendering with theme:", {
     hasTheme: !!state.theme,
     colors: state.theme?.colors,
@@ -184,15 +182,22 @@ export function CountdownRenderer() {
   });
 
   return (
-    <CountdownDisplay
-      seconds={state.seconds}
-      style={state.style}
-      position={state.position}
-      format={state.format}
-      size={state.size}
-      theme={state.theme}
-      isPreview={false}
-    />
+    <OverlayMotionProvider>
+      <AnimatePresence>
+        {state.visible && (
+          <CountdownDisplay
+            key="countdown"
+            seconds={state.seconds}
+            style={state.style}
+            position={state.position}
+            format={state.format}
+            size={state.size}
+            theme={state.theme}
+            isPreview={false}
+          />
+        )}
+      </AnimatePresence>
+    </OverlayMotionProvider>
   );
 }
 

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { AnimatePresence } from "framer-motion";
 import { ChatHighlightShowPayload } from "@/lib/models/OverlayEvents";
 import { ChatHighlightDisplay } from "./ChatHighlightDisplay";
+import { OverlayMotionProvider } from "./OverlayMotionProvider";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 
 interface ChatHighlightTheme {
@@ -21,7 +23,6 @@ interface ChatHighlightTheme {
 
 interface ChatHighlightState {
   visible: boolean;
-  animating: boolean;
   messageId?: string;
   platform: "twitch" | "youtube" | "trovo";
   username?: string;
@@ -40,12 +41,12 @@ interface ChatHighlightEvent {
 }
 
 /**
- * ChatHighlightRenderer manages WebSocket connection and state for chat highlight overlay
+ * ChatHighlightRenderer manages WebSocket connection and state for chat highlight overlay.
+ * Uses Framer Motion AnimatePresence for smooth enter/exit animations.
  */
 export function ChatHighlightRenderer() {
   const [state, setState] = useState<ChatHighlightState>({
     visible: false,
-    animating: false,
     platform: "twitch",
     side: "center",
   });
@@ -65,7 +66,6 @@ export function ChatHighlightRenderer() {
 
           setState({
             visible: true,
-            animating: true,
             messageId: data.payload.messageId,
             platform: data.payload.platform,
             username: data.payload.username,
@@ -82,11 +82,8 @@ export function ChatHighlightRenderer() {
           const duration = data.payload.duration;
           if (duration && duration > 0) {
             hideTimeout.current = setTimeout(() => {
-              setState((prev) => ({ ...prev, animating: false }));
-              // Wait for animation to complete before hiding
-              setTimeout(() => {
-                setState((prev) => ({ ...prev, visible: false }));
-              }, 500);
+              // Set visible to false directly; AnimatePresence handles the exit animation
+              setState((prev) => ({ ...prev, visible: false }));
             }, duration * 1000);
           }
           // If duration is 0 or undefined/null, no auto-hide timeout is set
@@ -94,10 +91,8 @@ export function ChatHighlightRenderer() {
         break;
 
       case "hide":
-        setState((prev) => ({ ...prev, animating: false }));
-        setTimeout(() => {
-          setState((prev) => ({ ...prev, visible: false }));
-        }, 500);
+        // Set visible to false directly; AnimatePresence handles the exit animation
+        setState((prev) => ({ ...prev, visible: false }));
         break;
     }
 
@@ -125,21 +120,23 @@ export function ChatHighlightRenderer() {
     };
   }, []);
 
-  if (!state.visible) {
-    return null;
-  }
-
   return (
-    <ChatHighlightDisplay
-      displayName={state.displayName || ""}
-      message={state.message || ""}
-      parts={state.parts}
-      platform={state.platform}
-      metadata={state.metadata}
-      side={state.side}
-      theme={state.theme}
-      animating={state.animating}
-      isPreview={false}
-    />
+    <OverlayMotionProvider>
+      <AnimatePresence>
+        {state.visible && (
+          <ChatHighlightDisplay
+            key={state.messageId || "chat-highlight"}
+            displayName={state.displayName || ""}
+            message={state.message || ""}
+            parts={state.parts}
+            platform={state.platform}
+            metadata={state.metadata}
+            side={state.side}
+            theme={state.theme}
+            isPreview={false}
+          />
+        )}
+      </AnimatePresence>
+    </OverlayMotionProvider>
   );
 }

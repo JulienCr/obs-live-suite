@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { LowerThirdShowPayload, LowerThirdAnimationConfig } from "@/lib/models/OverlayEvents";
 import { LowerThirdDisplay } from "./LowerThirdDisplay";
+import { OverlayMotionProvider } from "./OverlayMotionProvider";
 import { LowerThirdAnimationTheme } from "@/lib/models/Theme";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 
@@ -171,27 +172,29 @@ export function LowerThirdRenderer() {
   });
 
   return (
-    <LowerThirdDisplay
-      title={state.title}
-      subtitle={state.subtitle}
-      body={state.body}
-      contentType={state.contentType}
-      imageUrl={state.imageUrl}
-      imageAlt={state.imageAlt}
-      logoImage={state.logoImage}
-      avatarImage={state.avatarImage}
-      logoHasPadding={state.logoHasPadding}
-      accentColor={state.accentColor}
-      side={state.side}
-      theme={state.theme ? {
-        colors: state.theme.colors,
-        font: state.theme.font,
-        layout: state.theme.layout || { x: 60, y: 920, scale: 1 },
-        lowerThirdAnimation: state.theme.lowerThirdAnimation,
-      } : undefined}
-      animationConfig={state.animationConfig}
-      animating={state.animating}
-      isPreview={false}
-    />
+    <OverlayMotionProvider>
+      <LowerThirdDisplay
+        title={state.title}
+        subtitle={state.subtitle}
+        body={state.body}
+        contentType={state.contentType}
+        imageUrl={state.imageUrl}
+        imageAlt={state.imageAlt}
+        logoImage={state.logoImage}
+        avatarImage={state.avatarImage}
+        logoHasPadding={state.logoHasPadding}
+        accentColor={state.accentColor}
+        side={state.side}
+        theme={state.theme ? {
+          colors: state.theme.colors,
+          font: state.theme.font,
+          layout: state.theme.layout || { x: 60, y: 920, scale: 1 },
+          lowerThirdAnimation: state.theme.lowerThirdAnimation,
+        } : undefined}
+        animationConfig={state.animationConfig}
+        animating={state.animating}
+        isPreview={false}
+      />
+    </OverlayMotionProvider>
   );
 }

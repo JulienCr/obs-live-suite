@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LowerThirdDisplay } from "@/components/overlays/LowerThirdDisplay";
+import { OverlayMotionProvider } from "@/components/overlays/OverlayMotionProvider";
 import { apiGet } from "@/lib/utils/ClientFetch";
 import { ColorScheme, FontConfig, LayoutConfig, LowerThirdAnimationTheme } from "@/lib/models/Theme";
 import { Loader2 } from "lucide-react";
@@ -184,6 +185,7 @@ export function LowerThirdPreviewDialog({
                 overflow: "hidden",
               }}
             >
+              <OverlayMotionProvider>
               <div
                 className="origin-top-left"
                 style={{
@@ -206,6 +208,7 @@ export function LowerThirdPreviewDialog({
                   viewportWidth={1920}
                 />
               </div>
+              </OverlayMotionProvider>
             </div>
           )}
         </div>
