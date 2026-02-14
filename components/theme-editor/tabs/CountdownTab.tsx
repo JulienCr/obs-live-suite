@@ -3,7 +3,7 @@
 import { CountdownStyle } from "@/lib/models/Theme";
 import { TemplateSelector } from "../inputs/TemplateSelector";
 import { FontEditor } from "../inputs/FontEditor";
-import { useThemeEditor } from "../ThemeEditorContext";
+import { useThemeEditorStore } from "@/lib/stores";
 
 const STYLE_OPTIONS = [
   {
@@ -27,12 +27,10 @@ const STYLE_OPTIONS = [
  * Countdown tab for theme editor
  */
 export function CountdownTab() {
-  const {
-    formData,
-    updateCountdownStyle,
-    updateCountdownFont,
-    resetCountdownFont,
-  } = useThemeEditor();
+  const formData = useThemeEditorStore((s) => s.formData);
+  const updateCountdownStyle = useThemeEditorStore((s) => s.updateCountdownStyle);
+  const updateCountdownFont = useThemeEditorStore((s) => s.updateCountdownFont);
+  const resetCountdownFont = useThemeEditorStore((s) => s.resetCountdownFont);
 
   return (
     <div className="space-y-6">

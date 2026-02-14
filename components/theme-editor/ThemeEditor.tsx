@@ -12,7 +12,7 @@ import { ColorsTab } from "./tabs/ColorsTab";
 import { LowerThirdTab } from "./tabs/LowerThirdTab";
 import { CountdownTab } from "./tabs/CountdownTab";
 import { PositioningTab } from "./tabs/PositioningTab";
-import { useThemeEditor } from "./ThemeEditorContext";
+import { useThemeEditorStore } from "@/lib/stores";
 import { useTranslations } from "next-intl";
 import { CreateThemeInput } from "@/lib/models/Theme";
 
@@ -27,14 +27,11 @@ interface ThemeEditorProps {
  */
 export function ThemeEditor({ isCreating, onSave, onCancel }: ThemeEditorProps) {
   const t = useTranslations("themeEditor");
-  const {
-    formData,
-    updateName,
-    updateLowerThirdLayout,
-    updateCountdownLayout,
-    updatePosterLayout,
-    enableOBSPreview,
-  } = useThemeEditor();
+  const formData = useThemeEditorStore((s) => s.formData);
+  const updateName = useThemeEditorStore((s) => s.updateName);
+  const updateLowerThirdLayout = useThemeEditorStore((s) => s.updateLowerThirdLayout);
+  const updateCountdownLayout = useThemeEditorStore((s) => s.updateCountdownLayout);
+  const enableOBSPreview = useThemeEditorStore((s) => s.enableOBSPreview);
 
   const handleSave = () => {
     onSave(formData);

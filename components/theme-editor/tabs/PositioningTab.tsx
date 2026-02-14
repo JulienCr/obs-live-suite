@@ -3,22 +3,20 @@
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { PositionEditor } from "../inputs/PositionEditor";
-import { useThemeEditor } from "../ThemeEditorContext";
+import { useThemeEditorStore } from "@/lib/stores";
 
 /**
  * Positioning tab for theme editor
  */
 export function PositioningTab() {
-  const {
-    formData,
-    updateLowerThirdLayout,
-    updateCountdownLayout,
-    updatePosterLayout,
-    resetLowerThirdLayout,
-    resetCountdownLayout,
-    resetPosterLayout,
-    resetAllLayouts,
-  } = useThemeEditor();
+  const formData = useThemeEditorStore((s) => s.formData);
+  const updateLowerThirdLayout = useThemeEditorStore((s) => s.updateLowerThirdLayout);
+  const updateCountdownLayout = useThemeEditorStore((s) => s.updateCountdownLayout);
+  const updatePosterLayout = useThemeEditorStore((s) => s.updatePosterLayout);
+  const resetLowerThirdLayout = useThemeEditorStore((s) => s.resetLowerThirdLayout);
+  const resetCountdownLayout = useThemeEditorStore((s) => s.resetCountdownLayout);
+  const resetPosterLayout = useThemeEditorStore((s) => s.resetPosterLayout);
+  const resetAllLayouts = useThemeEditorStore((s) => s.resetAllLayouts);
 
   return (
     <div className="space-y-6">

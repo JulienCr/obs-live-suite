@@ -13,7 +13,7 @@ import {
   ContextMenuRadioGroup,
   ContextMenuRadioItem,
 } from "@/components/ui/context-menu";
-import { usePanelColors } from "./PanelColorsContext";
+import { usePanelColorsStore } from "@/lib/stores";
 import type { PanelId, ColorScheme } from "@/lib/models/PanelColor";
 import { PANEL_DISPLAY_NAMES, COLOR_SCHEMES, COLOR_SCHEME_DISPLAY_NAMES } from "@/lib/models/PanelColor";
 
@@ -88,7 +88,9 @@ interface PanelColorMenuProps {
 
 export function PanelColorMenu({ panelId, children }: PanelColorMenuProps) {
   const { theme } = useTheme();
-  const { colors, setScheme, resetScheme } = usePanelColors();
+  const colors = usePanelColorsStore((s) => s.colors);
+  const setScheme = usePanelColorsStore((s) => s.setScheme);
+  const resetScheme = usePanelColorsStore((s) => s.resetScheme);
   const currentScheme = colors[panelId]?.scheme ?? "neutral";
   const displayName = PANEL_DISPLAY_NAMES[panelId] || panelId;
   const isDark = theme === "dark";

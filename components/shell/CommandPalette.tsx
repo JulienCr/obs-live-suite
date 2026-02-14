@@ -11,7 +11,7 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 import { useDockview } from "./DockviewContext";
-import { useWorkspacesSafe } from "./WorkspacesContext";
+import { useWorkspacesStore } from "@/lib/stores";
 import { WorkspaceSaveDialog } from "./WorkspaceSaveDialog";
 import { WorkspaceManagerDialog } from "./WorkspaceManagerDialog";
 
@@ -30,7 +30,9 @@ export function CommandPalette(): React.ReactNode {
   const t = useTranslations("dashboard.commandPalette");
   const tPanels = useTranslations("dashboard.panels");
 
-  const workspacesContext = useWorkspacesSafe();
+  const workspacesWorkspaces = useWorkspacesStore((s) => s.workspaces);
+  const workspacesResetToDefault = useWorkspacesStore((s) => s.resetToDefault);
+  const workspacesApplyWorkspace = useWorkspacesStore((s) => s.applyWorkspace);
 
   const addPanel = useCallback(
     (id: string, component: string, titleKey: string): void => {
@@ -152,14 +154,12 @@ export function CommandPalette(): React.ReactNode {
   );
 
   const workspaceCommands: Command[] = useMemo(() => {
-    if (!workspacesContext) return [];
-
     const commands: Command[] = [
       {
         id: "workspace-reset",
         label: t("resetWorkspace"),
         keywords: ["workspace", "reset", "default", "restore"],
-        action: () => workspacesContext.resetToDefault().catch(console.error),
+        action: () => workspacesResetToDefault().catch(console.error),
       },
       {
         id: "workspace-save",
@@ -175,17 +175,17 @@ export function CommandPalette(): React.ReactNode {
       },
     ];
 
-    for (const workspace of workspacesContext.workspaces) {
+    for (const workspace of workspacesWorkspaces) {
       commands.push({
         id: `workspace-switch-${workspace.id}`,
         label: t("switchToWorkspace", { name: workspace.name }),
         keywords: ["workspace", "switch", "change", workspace.name.toLowerCase()],
-        action: () => workspacesContext.applyWorkspace(workspace.id).catch(console.error),
+        action: () => workspacesApplyWorkspace(workspace.id).catch(console.error),
       });
     }
 
     return commands;
-  }, [workspacesContext, t]);
+  }, [workspacesWorkspaces, workspacesResetToDefault, workspacesApplyWorkspace, t]);
 
   const allCommands = useMemo(
     () => [...COMMANDS, ...workspaceCommands],

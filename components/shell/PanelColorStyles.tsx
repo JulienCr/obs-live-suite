@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePanelColors } from "./PanelColorsContext";
+import { usePanelColorsStore } from "@/lib/stores";
 import { COLOR_SCHEMES } from "@/lib/models/PanelColor";
 
 /**
@@ -10,7 +10,7 @@ import { COLOR_SCHEMES } from "@/lib/models/PanelColor";
  * matching `[data-panel-id]`, enabling CSS variable overrides for theming.
  */
 export function PanelColorStyles() {
-  const { colors } = usePanelColors();
+  const colors = usePanelColorsStore((s) => s.colors);
 
   // Apply color schemes to all panel elements when colors change
   useEffect(() => {

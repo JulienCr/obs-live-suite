@@ -4,7 +4,7 @@ import { LowerThirdTemplate } from "@/lib/models/Theme";
 import { TemplateSelector } from "../inputs/TemplateSelector";
 import { FontEditor } from "../inputs/FontEditor";
 import { LowerThirdAnimationEditor } from "@/components/assets/LowerThirdAnimationEditor";
-import { useThemeEditor } from "../ThemeEditorContext";
+import { useThemeEditorStore } from "@/lib/stores";
 
 const TEMPLATE_OPTIONS = [
   {
@@ -33,13 +33,11 @@ const TEMPLATE_OPTIONS = [
  * Lower Third tab for theme editor
  */
 export function LowerThirdTab() {
-  const {
-    formData,
-    updateTemplate,
-    updateLowerThirdFont,
-    updateLowerThirdAnimation,
-    resetLowerThirdFont,
-  } = useThemeEditor();
+  const formData = useThemeEditorStore((s) => s.formData);
+  const updateTemplate = useThemeEditorStore((s) => s.updateTemplate);
+  const updateLowerThirdFont = useThemeEditorStore((s) => s.updateLowerThirdFont);
+  const updateLowerThirdAnimation = useThemeEditorStore((s) => s.updateLowerThirdAnimation);
+  const resetLowerThirdFont = useThemeEditorStore((s) => s.resetLowerThirdFont);
 
   return (
     <div className="space-y-6">

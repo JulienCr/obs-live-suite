@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useWorkspaces } from "./WorkspacesContext";
+import { useWorkspacesStore } from "@/lib/stores";
 import { Loader2 } from "lucide-react";
 
 interface WorkspaceSaveDialogProps {
@@ -31,8 +31,10 @@ interface WorkspaceSaveDialogProps {
 
 export function WorkspaceSaveDialog({ open, onOpenChange }: WorkspaceSaveDialogProps): React.ReactNode {
   const t = useTranslations("dashboard.workspaces");
-  const { workspaces, saveCurrentAsWorkspace, saveToExistingWorkspace, setAsDefault } =
-    useWorkspaces();
+  const workspaces = useWorkspacesStore((s) => s.workspaces);
+  const saveCurrentAsWorkspace = useWorkspacesStore((s) => s.saveCurrentAsWorkspace);
+  const saveToExistingWorkspace = useWorkspacesStore((s) => s.saveToExistingWorkspace);
+  const setAsDefault = useWorkspacesStore((s) => s.setAsDefault);
 
   const [mode, setMode] = useState<"new" | "overwrite">("new");
   const [name, setName] = useState("");

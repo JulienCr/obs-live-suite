@@ -2,7 +2,7 @@
 
 import { IDockviewPanelHeaderProps } from "dockview-react";
 import { useTranslations } from "next-intl";
-import { usePanelColors } from "./PanelColorsContext";
+import { usePanelColorsStore } from "@/lib/stores";
 import { useDockview } from "./DockviewContext";
 import type { PanelId } from "@/lib/models/PanelColor";
 
@@ -74,7 +74,7 @@ function usePanelTitle(rawTitle: string | undefined): string {
  * our color scheme system to work on tabs.
  */
 export function PanelTab(props: IDockviewPanelHeaderProps) {
-  const { colors } = usePanelColors();
+  const colors = usePanelColorsStore((s) => s.colors);
   const { savePositionBeforeClose } = useDockview();
   const panelId = props.api.id as PanelId;
   const scheme = colors[panelId]?.scheme ?? "neutral";

@@ -6,7 +6,7 @@ import { Palette } from "lucide-react";
 import { Theme, CreateThemeInput, LowerThirdTemplate, CountdownStyle } from "@/lib/models/Theme";
 import { ThemeList } from "./ThemeList";
 import { ThemeEditor } from "./ThemeEditor";
-import { ThemeEditorProvider } from "./ThemeEditorContext";
+import { useThemeEditorStore } from "@/lib/stores";
 import { apiPost } from "@/lib/utils/ClientFetch";
 import { useThemes, useProfiles } from "@/lib/queries";
 
@@ -257,7 +257,7 @@ export function ThemeManager() {
       )}
 
       {isEditing ? (
-        <ThemeEditorProvider
+        <ThemeEditorInitializer
           initialData={formData}
           onOBSPreviewUpdate={sendLivePreviewToOBS}
         >
@@ -266,7 +266,7 @@ export function ThemeManager() {
             onSave={handleSave}
             onCancel={handleCancel}
           />
-        </ThemeEditorProvider>
+        </ThemeEditorInitializer>
       ) : (
         <ThemeList
           themes={themes}
@@ -281,4 +281,30 @@ export function ThemeManager() {
       )}
     </div>
   );
+}
+
+/**
+ * Helper component that initializes/cleans up the theme editor store
+ * when entering/leaving edit mode (replaces ThemeEditorProvider).
+ */
+function ThemeEditorInitializer({
+  initialData,
+  onOBSPreviewUpdate,
+  children,
+}: {
+  initialData?: Partial<CreateThemeInput>;
+  onOBSPreviewUpdate?: (formData: Partial<CreateThemeInput>) => void;
+  children: React.ReactNode;
+}) {
+  const init = useThemeEditorStore((s) => s.init);
+  const cleanup = useThemeEditorStore((s) => s.cleanup);
+
+  useEffect(() => {
+    init(initialData, onOBSPreviewUpdate);
+    return () => {
+      cleanup();
+    };
+  }, []); // Only on mount/unmount
+
+  return <>{children}</>;
 }

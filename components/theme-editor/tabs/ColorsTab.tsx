@@ -3,13 +3,15 @@
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { ColorPicker } from "../inputs/ColorPicker";
-import { useThemeEditor } from "../ThemeEditorContext";
+import { useThemeEditorStore } from "@/lib/stores";
 
 /**
  * Colors tab for theme editor
  */
 export function ColorsTab() {
-  const { formData, updateColor, resetColors } = useThemeEditor();
+  const formData = useThemeEditorStore((s) => s.formData);
+  const updateColor = useThemeEditorStore((s) => s.updateColor);
+  const resetColors = useThemeEditorStore((s) => s.resetColors);
 
   const colors = formData.colors || {
     primary: "#3B82F6",

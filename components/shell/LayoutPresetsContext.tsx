@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, useMemo, ReactNode } from "react";
 
 export type LayoutPreset = "live" | "prep" | "minimal";
 
@@ -11,8 +11,10 @@ interface LayoutPresetsContextValue {
 const LayoutPresetsContext = createContext<LayoutPresetsContextValue | null>(null);
 
 export function LayoutPresetsProvider({ children, applyPreset }: { children: ReactNode; applyPreset: (preset: LayoutPreset) => void }) {
+  const value = useMemo(() => ({ applyPreset }), [applyPreset]);
+
   return (
-    <LayoutPresetsContext.Provider value={{ applyPreset }}>
+    <LayoutPresetsContext.Provider value={value}>
       {children}
     </LayoutPresetsContext.Provider>
   );

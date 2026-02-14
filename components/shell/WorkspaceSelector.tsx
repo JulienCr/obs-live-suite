@@ -18,29 +18,20 @@ import {
   Settings2,
   Layout,
 } from "lucide-react";
-import { useWorkspacesSafe } from "./WorkspacesContext";
+import { useWorkspacesStore } from "@/lib/stores";
 import { WorkspaceSaveDialog } from "./WorkspaceSaveDialog";
 import { WorkspaceManagerDialog } from "./WorkspaceManagerDialog";
 import { WorkspaceListItem } from "./WorkspaceListItem";
 
 export function WorkspaceSelector() {
   const t = useTranslations("dashboard.workspaces");
-  const workspacesContext = useWorkspacesSafe();
-
-  // If we're outside the WorkspacesProvider, don't render anything
-  if (!workspacesContext) {
-    return null;
-  }
-
-  const {
-    workspaces,
-    currentWorkspaceId,
-    isModified,
-    isLoading,
-    isReady,
-    applyWorkspace,
-    resetToDefault,
-  } = workspacesContext;
+  const workspaces = useWorkspacesStore((s) => s.workspaces);
+  const currentWorkspaceId = useWorkspacesStore((s) => s.currentWorkspaceId);
+  const isModified = useWorkspacesStore((s) => s.isModified);
+  const isLoading = useWorkspacesStore((s) => s.isLoading);
+  const isReady = useWorkspacesStore((s) => s.isReady);
+  const applyWorkspace = useWorkspacesStore((s) => s.applyWorkspace);
+  const resetToDefault = useWorkspacesStore((s) => s.resetToDefault);
 
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [managerDialogOpen, setManagerDialogOpen] = useState(false);
