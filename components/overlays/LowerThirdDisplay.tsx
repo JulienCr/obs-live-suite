@@ -117,23 +117,33 @@ export function LowerThirdDisplay({
   // Determine if there is an avatar to flip to
   const hasAvatar = !!finalAvatarImage;
 
+  // Determine mode early - needed by animation state machine
+  const isTextMode = contentType === "text" || !!body;
+
   // Animation state machine: when animating starts, kick off the sequence
   useEffect(() => {
     if (!animating) {
-      // On exit, reset to idle (CSS exit animations handle the visual)
-      setPhase("idle");
+      // Don't reset phase on exit: FM elements stay in their visible state
+      // while CSS .animate-out keyframes handle the sequenced exit visual.
+      // Phase will be reset when a new show starts (animating=true).
       return;
     }
 
     // Reset and start the sequence
     setPhase("idle");
-    // Small initial delay to ensure DOM is ready, then advance to "logo"
+    // Small initial delay to ensure DOM is ready, then advance to first phase
     const initTimeout = setTimeout(() => {
-      setPhase("logo");
+      // In text mode, there's no avatar element to animate, so skip logo/flip
+      // and start directly at bar phase
+      if (isTextMode) {
+        setPhase("bar");
+      } else {
+        setPhase("logo");
+      }
     }, 50);
 
     return () => clearTimeout(initTimeout);
-  }, [animating]);
+  }, [animating, isTextMode]);
 
   // Advance the state machine when each phase's animation completes
   const advancePhase = useCallback(() => {
@@ -152,6 +162,16 @@ export function LowerThirdDisplay({
       }
     });
   }, [hasAvatar]);
+
+  // The flip is a CSS transition (not Framer Motion), so we advance
+  // from "flip" to "bar" after the CSS transition duration elapses
+  useEffect(() => {
+    if (phase !== "flip") return;
+    const timer = setTimeout(() => {
+      setPhase("bar");
+    }, config.timing.flipDuration);
+    return () => clearTimeout(timer);
+  }, [phase, config.timing.flipDuration]);
 
   // Generate CSS variables - memoized to prevent re-render flicker
   const freeTextMaxWidth = config.styles.freeTextMaxWidth?.[side] ?? (side === 'center' ? 90 : 65);
@@ -243,7 +263,6 @@ export function LowerThirdDisplay({
   } : {};
 
   const avatarBorderStyle = `${config.styles.avatarBorderWidth}px solid ${config.styles.avatarBorderColor}`;
-  const isTextMode = contentType === "text" || !!body;
   const markdownSource = body || title || "";
   const baseFontSize = theme?.font.size || 32;
   const baseFontWeight = theme?.font.weight || 700;
@@ -427,7 +446,7 @@ export function LowerThirdDisplay({
 
   // Derived boolean states from phase for cleaner rendering
   const logoVisible = phase !== "idle";
-  const flipped = phase === "flip" || phase === "bar" || phase === "text" || phase === "visible";
+  const flipped = hasAvatar && (phase === "flip" || phase === "bar" || phase === "text" || phase === "visible");
   const barVisible = phase === "bar" || phase === "text" || phase === "visible";
   const textVisible = phase === "text" || phase === "visible";
 
@@ -488,7 +507,16 @@ export function LowerThirdDisplay({
       )}
 
       <m.div
-        className={`bar ${barVisible ? "show" : ""}`}
+        className="bar"
+        initial={{ scaleX: 0 }}
+        animate={barVisible
+          ? { scaleX: 1 }
+          : { scaleX: 0 }
+        }
+        transition={{
+          duration: config.timing.barExpandDuration / 1000,
+          ease: [0.16, 1, 0.3, 1],
+        }}
         onAnimationComplete={() => {
           // Advance from bar to text phase when bar expansion finishes
           if (phase === "bar") {
@@ -497,7 +525,16 @@ export function LowerThirdDisplay({
         }}
       >
         <m.div
-          className={`text ${textVisible ? "show" : ""}`}
+          className="text"
+          initial={{ opacity: 0, x: side === "right" ? 10 : -10 }}
+          animate={textVisible
+            ? { opacity: 1, x: 0 }
+            : { opacity: 0, x: side === "right" ? 10 : -10 }
+          }
+          transition={{
+            opacity: { duration: config.timing.textFadeDuration / 1000 },
+            x: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+          }}
           onAnimationComplete={() => {
             // Advance from text to visible phase when text animation finishes
             if (phase === "text") {

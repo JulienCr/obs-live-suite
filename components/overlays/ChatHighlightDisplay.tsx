@@ -81,6 +81,8 @@ export function ChatHighlightDisplay({
     "--ch-font-weight": fontWeight,
   } as React.CSSProperties;
 
+  const isCenter = side === "center" && !isPreview;
+
   const containerStyle: React.CSSProperties = {
     ...cssVars,
     ...(isPreview
@@ -93,7 +95,6 @@ export function ChatHighlightDisplay({
             ? {
                 left: "50%",
                 bottom: "80px",
-                transform: "translateX(-50%)",
               }
             : side === "right"
               ? {
@@ -111,9 +112,9 @@ export function ChatHighlightDisplay({
     <m.div
       className={`chat-highlight chat-highlight--${side}`}
       style={containerStyle}
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 30, ...(isCenter && { x: "-50%" }) }}
+      animate={{ opacity: 1, y: 0, ...(isCenter && { x: "-50%" }) }}
+      exit={{ opacity: 0, y: 30, ...(isCenter && { x: "-50%" }) }}
       transition={{ type: "tween", duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
     >
       <div className="chat-highlight__bar">

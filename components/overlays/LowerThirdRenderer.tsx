@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { LowerThirdShowPayload, LowerThirdAnimationConfig } from "@/lib/models/OverlayEvents";
 import { LowerThirdDisplay } from "./LowerThirdDisplay";
 import { OverlayMotionProvider } from "./OverlayMotionProvider";
@@ -74,11 +74,26 @@ export function LowerThirdRenderer() {
   });
 
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const visibilityTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const sendAckRef = useRef<(eventId: string) => void>(() => {});
 
+  // Clean up all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (hideTimeout.current) clearTimeout(hideTimeout.current);
+      if (visibilityTimeout.current) clearTimeout(visibilityTimeout.current);
+    };
+  }, []);
+
   const handleMessage = useCallback((data: LowerThirdEventData) => {
+    // Clear all pending timeouts to prevent race conditions
     if (hideTimeout.current) {
       clearTimeout(hideTimeout.current);
+      hideTimeout.current = undefined;
+    }
+    if (visibilityTimeout.current) {
+      clearTimeout(visibilityTimeout.current);
+      visibilityTimeout.current = undefined;
     }
 
     switch (data.type) {
@@ -115,18 +130,18 @@ export function LowerThirdRenderer() {
           if (data.payload.duration) {
             hideTimeout.current = setTimeout(() => {
               setState((prev) => ({ ...prev, animating: false }));
-              setTimeout(() => {
+              visibilityTimeout.current = setTimeout(() => {
                 setState((prev) => ({ ...prev, visible: false }));
-              }, 500); // Wait for animation to complete
+              }, 500); // Wait for exit animation to complete
             }, data.payload.duration * 1000);
           }
         }
         break;
       case "hide":
         setState((prev) => ({ ...prev, animating: false }));
-        setTimeout(() => {
+        visibilityTimeout.current = setTimeout(() => {
           setState((prev) => ({ ...prev, visible: false }));
-        }, 500); // Wait for animation to complete
+        }, 500); // Wait for exit animation to complete
         break;
       case "update":
         console.log("[LowerThird] Received update payload:", data.payload);

@@ -22,6 +22,17 @@ export class ChannelManager {
     this.wsHub = WebSocketHub.getInstance();
     this.logger = new Logger("ChannelManager");
     this.pendingAcks = new Map();
+
+    // Register ack callback so WebSocketHub forwards client acks to us
+    this.wsHub.setOnAckCallback((ack) => {
+      this.handleAck({
+        eventId: ack.eventId,
+        channel: ack.channel as OverlayChannel,
+        success: ack.success,
+        error: ack.error,
+        timestamp: Date.now(),
+      });
+    });
   }
 
   /**

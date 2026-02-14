@@ -9,11 +9,7 @@ import { useThemeEditorStore } from "@/lib/stores";
  * Colors tab for theme editor
  */
 export function ColorsTab() {
-  const formData = useThemeEditorStore((s) => s.formData);
-  const updateColor = useThemeEditorStore((s) => s.updateColor);
-  const resetColors = useThemeEditorStore((s) => s.resetColors);
-
-  const colors = formData.colors || {
+  const colors = useThemeEditorStore((s) => s.formData.colors) || {
     primary: "#3B82F6",
     accent: "#60A5FA",
     surface: "#1E293B",
@@ -21,6 +17,8 @@ export function ColorsTab() {
     success: "#10B981",
     warn: "#F59E0B",
   };
+  const updateColor = useThemeEditorStore((s) => s.updateColor);
+  const resetColors = useThemeEditorStore((s) => s.resetColors);
 
   const colorDescriptions: Record<string, string> = {
     primary: "Main brand color",

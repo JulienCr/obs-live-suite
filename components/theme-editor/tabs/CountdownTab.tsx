@@ -4,6 +4,7 @@ import { CountdownStyle } from "@/lib/models/Theme";
 import { TemplateSelector } from "../inputs/TemplateSelector";
 import { FontEditor } from "../inputs/FontEditor";
 import { useThemeEditorStore } from "@/lib/stores";
+import { useShallow } from "zustand/react/shallow";
 
 const STYLE_OPTIONS = [
   {
@@ -27,7 +28,12 @@ const STYLE_OPTIONS = [
  * Countdown tab for theme editor
  */
 export function CountdownTab() {
-  const formData = useThemeEditorStore((s) => s.formData);
+  const { countdownStyle, countdownFont } = useThemeEditorStore(
+    useShallow((s) => ({
+      countdownStyle: s.formData.countdownStyle,
+      countdownFont: s.formData.countdownFont,
+    }))
+  );
   const updateCountdownStyle = useThemeEditorStore((s) => s.updateCountdownStyle);
   const updateCountdownFont = useThemeEditorStore((s) => s.updateCountdownFont);
   const resetCountdownFont = useThemeEditorStore((s) => s.resetCountdownFont);
@@ -37,7 +43,7 @@ export function CountdownTab() {
       <div>
         <TemplateSelector
           label="Countdown Style"
-          value={formData.countdownStyle || CountdownStyle.BOLD}
+          value={countdownStyle || CountdownStyle.BOLD}
           onChange={updateCountdownStyle}
           options={STYLE_OPTIONS}
         />
@@ -46,7 +52,7 @@ export function CountdownTab() {
       <div className="pt-4 border-t">
         <FontEditor
           label="Countdown Font"
-          value={formData.countdownFont || { family: "Courier New, monospace", size: 80, weight: 900 }}
+          value={countdownFont || { family: "Courier New, monospace", size: 80, weight: 900 }}
           onChange={(font) => updateCountdownFont(font)}
           onReset={resetCountdownFont}
         />

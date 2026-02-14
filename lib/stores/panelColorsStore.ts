@@ -24,6 +24,7 @@ export const usePanelColorsStore = create<PanelColorsState>((set, get) => ({
 
   fetchColors: async () => {
     if (get()._initialized) return;
+    set({ _initialized: true }); // Prevent duplicate fetches
     try {
       const data = await apiGet<{
         colors: Array<{ panelId: string; scheme: ColorScheme }>;
@@ -32,9 +33,10 @@ export const usePanelColorsStore = create<PanelColorsState>((set, get) => ({
       for (const color of data.colors) {
         colorMap[color.panelId] = { scheme: color.scheme };
       }
-      set({ colors: colorMap, _initialized: true });
+      set({ colors: colorMap });
     } catch (error) {
       console.error("Failed to fetch panel colors:", error);
+      set({ _initialized: false }); // Allow retry on error
     } finally {
       set({ isLoading: false });
     }

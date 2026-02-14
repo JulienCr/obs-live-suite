@@ -136,6 +136,10 @@ export const useThemeEditorStore = create<ThemeEditorState>((set, get) => ({
   _updateTimeout: null,
 
   init: (initialData, onOBSPreviewUpdate) => {
+    const state = get();
+    if (state._updateTimeout) {
+      clearTimeout(state._updateTimeout);
+    }
     const data = initialData || DEFAULT_FORM_DATA;
     set({
       formData: data,
@@ -143,6 +147,7 @@ export const useThemeEditorStore = create<ThemeEditorState>((set, get) => ({
       isDirty: false,
       enableOBSPreview: true,
       _onOBSPreviewUpdate: onOBSPreviewUpdate ?? null,
+      _updateTimeout: null,
     });
   },
 

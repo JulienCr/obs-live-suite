@@ -98,25 +98,28 @@ export function CountdownDisplay({
     // Apply layout positioning (only in non-preview mode)
     ...(isPreview ? {
       position: "relative" as const,
-      transform: "none",
     } : {
       left: `${position?.x || layout.x}px`,
       top: `${position?.y || layout.y}px`,
-      transform: `translate(-50%, -50%) scale(${finalScale})`,
-      transformOrigin: "center",
+      // translate and scale are handled by Framer Motion x/y/scale props
+      // to avoid FM overwriting the CSS transform property during animation
     }),
     ...(theme && style === "banner" && theme.colors?.surface ? {
       background: `linear-gradient(180deg, ${theme.colors.surface}E6 0%, ${theme.colors.surface}00 100%)`,
     } : {}),
   };
 
+  // Framer Motion x/y/scale props are composed together into a single transform,
+  // so centering via translate(-50%, -50%) and theme scale are preserved during animation.
+  const fmCenter = isPreview ? {} : { x: "-50%", y: "-50%" };
+
   return (
     <m.div
       className="countdown"
       style={containerStyle}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: isPreview ? 0.9 : finalScale * 0.9, ...fmCenter }}
+      animate={{ opacity: 1, scale: isPreview ? 1 : finalScale, ...fmCenter }}
+      exit={{ opacity: 0, scale: isPreview ? 0.9 : finalScale * 0.9, ...fmCenter }}
       transition={{ duration: 0.3 }}
     >
       <div className="countdown-time" style={timeStyle}>{formatTime(seconds)}</div>

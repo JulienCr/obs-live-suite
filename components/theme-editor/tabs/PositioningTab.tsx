@@ -4,12 +4,20 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { PositionEditor } from "../inputs/PositionEditor";
 import { useThemeEditorStore } from "@/lib/stores";
+import { useShallow } from "zustand/react/shallow";
 
 /**
  * Positioning tab for theme editor
  */
 export function PositioningTab() {
-  const formData = useThemeEditorStore((s) => s.formData);
+  const { lowerThirdLayout, countdownLayout, posterLayout } =
+    useThemeEditorStore(
+      useShallow((s) => ({
+        lowerThirdLayout: s.formData.lowerThirdLayout,
+        countdownLayout: s.formData.countdownLayout,
+        posterLayout: s.formData.posterLayout,
+      }))
+    );
   const updateLowerThirdLayout = useThemeEditorStore((s) => s.updateLowerThirdLayout);
   const updateCountdownLayout = useThemeEditorStore((s) => s.updateCountdownLayout);
   const updatePosterLayout = useThemeEditorStore((s) => s.updatePosterLayout);
@@ -38,21 +46,21 @@ export function PositioningTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <PositionEditor
           label="Lower Third"
-          value={formData.lowerThirdLayout || { x: 60, y: 920, scale: 1 }}
+          value={lowerThirdLayout || { x: 60, y: 920, scale: 1 }}
           onChange={updateLowerThirdLayout}
           onReset={resetLowerThirdLayout}
         />
 
         <PositionEditor
           label="Countdown"
-          value={formData.countdownLayout || { x: 960, y: 540, scale: 1 }}
+          value={countdownLayout || { x: 960, y: 540, scale: 1 }}
           onChange={updateCountdownLayout}
           onReset={resetCountdownLayout}
         />
 
         <PositionEditor
           label="Poster"
-          value={formData.posterLayout || { x: 960, y: 540, scale: 1 }}
+          value={posterLayout || { x: 960, y: 540, scale: 1 }}
           onChange={updatePosterLayout}
           onReset={resetPosterLayout}
         />

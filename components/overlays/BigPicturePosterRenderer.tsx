@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { AnimatePresence, m, type Variants } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { PosterShowPayload, ChapterJumpPayload } from "@/lib/models/OverlayEvents";
 import { PosterDisplay } from "./PosterDisplay";
 import { OverlayMotionProvider } from "./OverlayMotionProvider";
@@ -11,31 +11,8 @@ import {
   useChapterNavigation,
   useSubVideoPlayback,
 } from "@/hooks/poster";
+import { bigPictureTransitionVariants } from "./posterTransitionVariants";
 import "./bigpicture-poster.css";
-
-/** Framer Motion variants for big-picture poster transition types */
-const bigPictureTransitionVariants: Record<string, Variants> = {
-  fade: {
-    initial: { opacity: 0 },
-    animate: { opacity: 1, transition: { duration: 0.5, ease: "easeOut" } },
-    exit: { opacity: 0, transition: { duration: 0.5, ease: "easeOut" } },
-  },
-  slide: {
-    initial: { opacity: 0, y: -50 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
-    exit: { opacity: 0, transition: { duration: 0.5, ease: "easeOut" } },
-  },
-  cut: {
-    initial: { opacity: 0 },
-    animate: { opacity: 1, transition: { duration: 0.1, ease: "linear" } },
-    exit: { opacity: 0, transition: { duration: 0.1, ease: "linear" } },
-  },
-  blur: {
-    initial: { opacity: 0, filter: "blur(20px)" },
-    animate: { opacity: 1, filter: "blur(0px)", transition: { duration: 0.8, ease: "easeOut" } },
-    exit: { opacity: 0, filter: "blur(20px)", transition: { duration: 0.5, ease: "easeIn" } },
-  },
-};
 
 interface PosterData {
   fileUrl: string;
