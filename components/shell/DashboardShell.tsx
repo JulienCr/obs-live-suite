@@ -347,6 +347,7 @@ export function DashboardShell() {
 
   return (
     <PanelColorsProvider>
+      <WorkspacesProvider>
         <WorkspacesInitializer getLayoutJson={getLayoutJson} applyLayout={applyLayout} onCallbacksReady={setWorkspaceCallbacks} />
         <LayoutPresetsProvider applyPreset={applyPreset}>
           <DockviewContext.Provider value={{ api, savePositionBeforeClose, getSavedPosition }}>
@@ -365,6 +366,7 @@ export function DashboardShell() {
             </div>
           </DockviewContext.Provider>
         </LayoutPresetsProvider>
+      </WorkspacesProvider>
     </PanelColorsProvider>
   );
 }
