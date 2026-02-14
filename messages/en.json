@@ -47,7 +47,8 @@
       "saveWorkspace": "Save Current Layout as Workspace",
       "manageWorkspaces": "Manage Workspaces",
       "switchToWorkspace": "Switch to: {name}",
-      "showTextPresetsPanel": "Show Quick LT Panel"
+      "showTextPresetsPanel": "Show Quick LT Panel",
+      "noResults": "No results found"
     },
     "workspaces": {
       "title": "Workspaces",

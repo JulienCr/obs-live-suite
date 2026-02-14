@@ -47,7 +47,8 @@
       "saveWorkspace": "Sauvegarder l'espace de travail",
       "manageWorkspaces": "Gérer les espaces de travail",
       "switchToWorkspace": "Basculer vers : {name}",
-      "showTextPresetsPanel": "Afficher le panneau Textes rapides"
+      "showTextPresetsPanel": "Afficher le panneau Textes rapides",
+      "noResults": "Aucun résultat"
     },
     "workspaces": {
       "title": "Espaces de travail",
