@@ -134,11 +134,11 @@ export function GuestsPanel(_props: IDockviewPanelProps) {
                 onClick={() => handleQuickLowerThird(guest)}
                 title={t("showLowerThirdTooltip", { name: guest.displayName, shortcut: index === 9 ? '0' : index + 1 })}
               >
-                <div className="w-5 h-5 rounded flex items-center justify-center bg-primary/10 text-primary text-xs font-bold flex-shrink-0">
+                <div className="w-5 h-5 rounded flex items-center justify-center bg-primary/10 text-primary text-xs font-bold shrink-0">
                   {index === 9 ? '0' : index + 1}
                 </div>
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 overflow-hidden"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0 overflow-hidden"
                   style={{ backgroundColor: guest.accentColor }}
                 >
                   {guest.avatarUrl ? (
@@ -161,7 +161,7 @@ export function GuestsPanel(_props: IDockviewPanelProps) {
                 {guest.chatMessage && (
                   <button
                     onClick={(e) => handleSendMessage(e, guest)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-6 w-6 flex items-center justify-center hover:bg-primary/20 rounded"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-6 w-6 flex items-center justify-center hover:bg-primary/20 rounded"
                     title={t("sendMessageTooltip", { name: guest.displayName })}
                   >
                     <MessageSquare className="w-3 h-3 text-muted-foreground" />
@@ -169,11 +169,11 @@ export function GuestsPanel(_props: IDockviewPanelProps) {
                 )}
 
                 {isActive ? (
-                  <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 bg-green-500 rounded-full">
+                  <div className="shrink-0 flex items-center justify-center w-6 h-6 bg-green-500 rounded-full">
                     <Zap className="w-3 h-3 text-white fill-white" />
                   </div>
                 ) : (
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-6 w-6 flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-6 w-6 flex items-center justify-center">
                     <Zap className="w-3 h-3 text-muted-foreground" />
                   </div>
                 )}

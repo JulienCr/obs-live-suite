@@ -70,7 +70,7 @@ export function PlayerSelector({ selectedPlayers, onChange }: PlayerSelectorProp
         <div className="space-y-2">
           {selectedPlayers.map((player, idx) => (
             <div key={player.id} className="flex items-center gap-3 p-2 bg-green-50 rounded">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 overflow-hidden bg-blue-600">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0 overflow-hidden bg-blue-600">
                 {player.avatar ? (
                   <img src={player.avatar} alt={player.name} className="w-full h-full object-cover" />
                 ) : (
@@ -109,7 +109,7 @@ export function PlayerSelector({ selectedPlayers, onChange }: PlayerSelectorProp
             placeholder="Search guests..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border rounded text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -137,7 +137,7 @@ export function PlayerSelector({ selectedPlayers, onChange }: PlayerSelectorProp
               className="flex items-center gap-3 p-2 rounded text-left bg-gray-50 hover:bg-gray-100 transition"
             >
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 overflow-hidden"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0 overflow-hidden"
                 style={{ backgroundColor: guest.accentColor || "#3b82f6" }}
               >
                 {guest.avatarUrl ? (

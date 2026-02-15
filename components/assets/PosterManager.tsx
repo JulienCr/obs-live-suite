@@ -224,7 +224,7 @@ export function PosterManager() {
         groupHeading={t("title")}
         renderItem={(poster) => (
           <>
-            <div className="w-12 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
+            <div className="w-12 h-12 rounded overflow-hidden bg-muted shrink-0">
               {poster.type === "image" ? (
                 <img src={poster.fileUrl} alt={poster.title} className="w-full h-full object-cover" />
               ) : poster.type === "youtube" ? (

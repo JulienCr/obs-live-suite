@@ -164,7 +164,7 @@ export function PresenterShell() {
       isStandalone && "pwa-safe-top pwa-safe-bottom"
     )}>
       {/* Status Bar */}
-      <div className="flex-shrink-0 h-10 border-b flex items-center justify-between px-4 bg-card">
+      <div className="shrink-0 h-10 border-b flex items-center justify-between px-4 bg-card">
         <div className="flex items-center gap-4">
           <span className="text-sm font-medium">
             {t("title")}
@@ -238,7 +238,7 @@ export function PresenterShell() {
           </div>
 
           {/* Quick Reply */}
-          <div className="flex-shrink-0 border-t">
+          <div className="shrink-0 border-t">
             <QuickReplyPanel
               quickReplies={quickReplies}
               onSend={sendReply}

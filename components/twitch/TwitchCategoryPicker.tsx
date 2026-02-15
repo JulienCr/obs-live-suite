@@ -139,7 +139,7 @@ export function TwitchCategoryPicker({
           <div className="flex items-center border-b px-3">
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
             <input
-              className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
               placeholder={t("categoryPicker.searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -171,16 +171,16 @@ export function TwitchCategoryPicker({
                       <img
                         src={formatBoxArtUrl(category.boxArtUrl)}
                         alt=""
-                        className="h-9 w-[26px] rounded object-cover flex-shrink-0"
+                        className="h-9 w-[26px] rounded object-cover shrink-0"
                       />
                     ) : (
-                      <div className="h-9 w-[26px] rounded bg-muted flex items-center justify-center flex-shrink-0">
+                      <div className="h-9 w-[26px] rounded bg-muted flex items-center justify-center shrink-0">
                         <Gamepad2 className="h-4 w-4 text-muted-foreground" />
                       </div>
                     )}
                     <span className="flex-1 truncate">{category.name}</span>
                     {value?.id === category.id && (
-                      <Check className="h-4 w-4 flex-shrink-0" />
+                      <Check className="h-4 w-4 shrink-0" />
                     )}
                   </CommandItem>
                 ))}

@@ -96,7 +96,7 @@ export function QuizHostTopBar({
 
       <Button
         size="sm"
-        variant={scorePanelVisible ? "default" : "outline"}
+        variant={scorePanelVisible ? "default" : "outline-solid"}
         onClick={onToggleScorePanel}
         title={scorePanelVisible ? t("hideScores") : t("showScores")}
       >

@@ -1,0 +1,307 @@
+{
+  "timestamp": "2026-02-10T23:20:52.177Z",
+  "commit": "a40e701",
+  "branch": "main",
+  "scores": {
+    "quality": 3.2,
+    "maintainability": 10,
+    "dry": 9.7,
+    "tests": 0,
+    "overall": 5.7
+  },
+  "metrics": {
+    "quality": {
+      "unsafeJsonParse": {
+        "count": 4,
+        "locations": [
+          {
+            "file": "lib/services/QuizStore.ts",
+            "line": 133,
+            "context": "const data = JSON.parse(content);"
+          },
+          {
+            "file": "lib/services/QuizStore.ts",
+            "line": 196,
+            "context": "const parsed = sessionSchema.parse(JSON.parse(content));"
+          },
+          {
+            "file": "lib/services/WikipediaCacheService.ts",
+            "line": 84,
+            "context": "const summary = JSON.parse(row.summary) as string[];"
+          },
+          {
+            "file": "lib/utils/widgetStorage.ts",
+            "line": 67,
+            "context": "const parsed: StoredLayout = JSON.parse(stored);"
+          }
+        ]
+      },
+      "exposedErrors": {
+        "count": 26,
+        "locations": [
+          {
+            "file": "lib/services/OllamaSummarizerService.ts",
+            "line": 82,
+            "match": "String(error)",
+            "context": "`Failed to summarize: ${error instanceof Error ? error.message : String(error)}`"
+          },
+          {
+            "file": "lib/services/OllamaSummarizerService.ts",
+            "line": 191,
+            "match": "String(error)",
+            "context": "error: error instanceof Error ? error.message : String(error),"
+          },
+          {
+            "file": "lib/services/QuizPhaseManager.ts",
+            "line": 237,
+            "match": ".toString()",
+            "context": "const answer = option || text || value?.toString() || \"\";"
+          },
+          {
+            "file": "lib/services/SubVideoService.ts",
+            "line": 182,
+            "match": ".toString()",
+            "context": "\"-ss\", timestamp.toString(),"
+          },
+          {
+            "file": "lib/services/SubVideoService.ts",
+            "line": 193,
+            "match": ".toString()",
+            "context": "stderr += data.toString();"
+          },
+          {
+            "file": "lib/services/WebSocketHub.ts",
+            "line": 97,
+            "match": ".toString()",
+            "context": "this.handleMessage(clientId, data.toString());"
+          },
+          {
+            "file": "lib/services/YouTubeMetadataService.ts",
+            "line": 116,
+            "match": ".toString()",
+            "context": "const response = await fetch(url.toString());"
+          },
+          {
+            "file": "lib/services/llm/AnthropicProvider.ts",
+            "line": 46,
+            "match": "String(error)",
+            "context": "`Failed to summarize with Anthropic: ${error instanceof Error ? error.message : String(error)}`"
+          },
+          {
+            "file": "lib/services/llm/AnthropicProvider.ts",
+            "line": 89,
+            "match": "String(error)",
+            "context": "error: error instanceof Error ? error.message : String(error),"
+          },
+          {
+            "file": "lib/services/llm/OllamaProvider.ts",
+            "line": 46,
+            "match": "String(error)",
+            "context": "`Failed to summarize with Ollama: ${error instanceof Error ? error.message : String(error)}`"
+          }
+        ]
+      },
+      "asAnyCasts": {
+        "count": 4,
+        "locations": [
+          {
+            "file": "lib/services/SettingsStore.ts",
+            "line": 128,
+            "match": "as any",
+            "context": "while ((innerSchema as any)._def?.innerType) {"
+          },
+          {
+            "file": "lib/services/SettingsStore.ts",
+            "line": 130,
+            "match": "as any",
+            "context": "innerSchema = (innerSchema as any)._def.innerType;"
+          },
+          {
+            "file": "lib/services/SettingsStore.ts",
+            "line": 134,
+            "match": "as any",
+            "context": "const typeName = (innerSchema as any)._def?.typeName;"
+          },
+          {
+            "file": "lib/adapters/obs/OBSEventHandler.ts",
+            "line": 77,
+            "match": "as any",
+            "context": "}) as any);"
+          }
+        ]
+      },
+      "magicNumbers": {
+        "count": 9,
+        "locations": [
+          {
+            "file": "lib/services/DatabaseService.ts",
+            "line": 68,
+            "values": [
+              "920"
+            ],
+            "context": "definition: `TEXT NOT NULL DEFAULT '{\"x\":60,\"y\":920,\"scale\":1}'`,"
+          },
+          {
+            "file": "lib/services/DatabaseService.ts",
+            "line": 74,
+            "values": [
+              "960",
+              "540"
+            ],
+            "context": "definition: `TEXT NOT NULL DEFAULT '{\"x\":960,\"y\":540,\"scale\":1}'`,"
+          },
+          {
+            "file": "lib/services/DatabaseService.ts",
+            "line": 80,
+            "values": [
+              "960",
+              "540"
+            ],
+            "context": "definition: `TEXT NOT NULL DEFAULT '{\"x\":960,\"y\":540,\"scale\":1}'`,"
+          },
+          {
+            "file": "lib/services/DatabaseService.ts",
+            "line": 86,
+            "values": [
+              "200",
+              "200",
+              "600",
+              "500",
+              "800",
+              "450",
+              "1000",
+              "250",
+              "200",
+              "272727"
+            ],
+            "context": "definition: `TEXT DEFAULT '{\"timing\":{\"logoFadeDuration\":200,\"logoScaleDuration\""
+          },
+          {
+            "file": "lib/services/DatabaseService.ts",
+            "line": 346,
+            "values": [
+              "920"
+            ],
+            "context": "lowerThirdLayout TEXT NOT NULL DEFAULT '{\"x\":60,\"y\":920,\"scale\":1}',"
+          },
+          {
+            "file": "lib/services/DatabaseService.ts",
+            "line": 347,
+            "values": [
+              "200",
+              "200",
+              "600",
+              "500",
+              "800",
+              "450",
+              "1000",
+              "250",
+              "200",
+              "272727"
+            ],
+            "context": "lowerThirdAnimation TEXT DEFAULT '{\"timing\":{\"logoFadeDuration\":200,\"logoScaleDu"
+          },
+          {
+            "file": "lib/services/DatabaseService.ts",
+            "line": 350,
+            "values": [
+              "960",
+              "540"
+            ],
+            "context": "countdownLayout TEXT NOT NULL DEFAULT '{\"x\":960,\"y\":540,\"scale\":1}',"
+          },
+          {
+            "file": "lib/services/DatabaseService.ts",
+            "line": 351,
+            "values": [
+              "960",
+              "540"
+            ],
+            "context": "posterLayout TEXT NOT NULL DEFAULT '{\"x\":960,\"y\":540,\"scale\":1}',"
+          },
+          {
+            "file": "lib/services/DatabaseService.ts",
+            "line": 426,
+            "values": [
+              "604800"
+            ],
+            "context": "ttl INTEGER NOT NULL DEFAULT 604800,"
+          }
+        ]
+      }
+    },
+    "maintainability": {
+      "fileSizes": [
+        {
+          "file": "lib/services/twitch/TwitchOAuthManager.ts",
+          "lines": 769
+        },
+        {
+          "file": "lib/services/WikipediaResolverService.ts",
+          "lines": 634
+        },
+        {
+          "file": "lib/services/DatabaseService.ts",
+          "lines": 559
+        },
+        {
+          "file": "lib/services/SettingsService.ts",
+          "lines": 554
+        },
+        {
+          "file": "lib/services/TwitchService.ts",
+          "lines": 520
+        },
+        {
+          "file": "lib/services/WebSocketHub.ts",
+          "lines": 468
+        },
+        {
+          "file": "lib/services/twitch/TwitchAPIClient.ts",
+          "lines": 457
+        },
+        {
+          "file": "lib/services/WorkspaceService.ts",
+          "lines": 411
+        },
+        {
+          "file": "lib/services/QuizPhaseManager.ts",
+          "lines": 398
+        },
+        {
+          "file": "lib/services/SettingsStore.ts",
+          "lines": 386
+        }
+      ],
+      "avgServiceLines": 226,
+      "repositories": {
+        "extracted": 12,
+        "files": [
+          "BaseRepository.ts",
+          "ChatMessageRepository.ts",
+          "CueMessageRepository.ts",
+          "GuestRepository.ts",
+          "PanelColorRepository.ts",
+          "PosterRepository.ts",
+          "ProfileRepository.ts",
+          "SettingsRepository.ts",
+          "SingletonRepository.ts",
+          "TextPresetRepository.ts",
+          "ThemeRepository.ts",
+          "WorkspaceRepository.ts"
+        ]
+      }
+    },
+    "dry": {
+      "proxyHelper": {
+        "usingProxyHelper": 34,
+        "usingRawFetch": 1
+      },
+      "estimatedDuplicateLines": 40
+    },
+    "tests": {
+      "testFileCount": 53,
+      "coverage": null
+    }
+  }
+}

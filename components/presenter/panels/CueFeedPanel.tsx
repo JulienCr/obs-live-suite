@@ -45,7 +45,7 @@ export function CueFeedPanel({
     <div className="h-full flex flex-col">
       {/* Pinned Section */}
       {hasPinned && (
-        <div className="flex-shrink-0 border-b bg-muted/30">
+        <div className="shrink-0 border-b bg-muted/30">
           <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground">
             <Pin className="h-3 w-3" />
             <span>{t("labels.pinned")}</span>

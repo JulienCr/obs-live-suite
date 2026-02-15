@@ -187,7 +187,7 @@ export function QuizQuestionStage({
               <img
                 src={question.media}
                 alt={t("questionMedia")}
-                className="max-w-md rounded-lg shadow"
+                className="max-w-md rounded-lg shadow-sm"
               />
             </div>
           )}

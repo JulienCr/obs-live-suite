@@ -27,7 +27,7 @@ export function ChatEventMessage({ message, compact }: ChatEventMessageProps) {
       )}
     >
       <PlatformIcon platform={platform} size="sm" />
-      <eventConfig.Icon className={cn("flex-shrink-0", compact ? "w-3 h-3" : "w-4 h-4")} />
+      <eventConfig.Icon className={cn("shrink-0", compact ? "w-3 h-3" : "w-4 h-4")} />
       <span className="font-medium">{displayName}</span>
       <span className="text-muted-foreground">{eventConfig.text}</span>
       {eventConfig.detail && <span className="font-medium">{eventConfig.detail}</span>}

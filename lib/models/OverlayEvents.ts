@@ -199,7 +199,7 @@ export const posterShowPayloadSchema = z.object({
   posterId: z.string().uuid().optional(),
   fileUrl: z.string(),
   type: z.enum(["image", "video", "youtube"]).optional(),
-  transition: z.enum(["fade", "slide", "cut", "blur"]).default("fade"),
+  transition: z.enum(["fade", "slide", "cut", "blur-sm"]).default("fade"),
   duration: z.number().int().positive().optional(),
   side: z.enum(["left", "right"]).optional(),
   from: z.nativeEnum(EventSource).default(EventSource.REGIE),

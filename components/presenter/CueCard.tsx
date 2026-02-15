@@ -193,7 +193,7 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
 
             {/* Severity badge */}
             {SeverityIcon && (
-              <Badge variant={severity === CueSeverity.URGENT ? "destructive" : "outline"} className="text-xs">
+              <Badge variant={severity === CueSeverity.URGENT ? "destructive" : "outline-solid"} className="text-xs">
                 <SeverityIcon className="h-3 w-3 mr-1" />
                 {severity}
               </Badge>
@@ -271,7 +271,7 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
             <ChatMessageContent
               parts={message.questionPayload.parts}
               fallbackText={message.questionPayload.text}
-              className="break-words"
+              className="wrap-break-word"
             />
           </div>
         )}
@@ -293,7 +293,7 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
           >
             {/* Left column: Image (max 128px wide, auto height, supports various ratios) */}
             {message.contextPayload.imageUrl && (
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <img
                   src={message.contextPayload.imageUrl}
                   alt="Context"
@@ -415,7 +415,7 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
               {/* Show in overlay button for questions */}
               {isQuestion && onShowInOverlay && (
                 <Button
-                  variant={isCurrentlyDisplayed ? "default" : "outline"}
+                  variant={isCurrentlyDisplayed ? "default" : "outline-solid"}
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();

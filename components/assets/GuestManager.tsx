@@ -146,7 +146,7 @@ export function GuestManager() {
         renderItem={(guest) => (
           <>
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold overflow-hidden flex-shrink-0"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold overflow-hidden shrink-0"
               style={{ backgroundColor: guest.accentColor }}
             >
               {guest.avatarUrl ? (

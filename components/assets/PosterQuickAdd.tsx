@@ -479,7 +479,7 @@ export function PosterQuickAdd({
         <div className="border rounded-lg p-3 space-y-3">
           <div className="flex gap-3">
             {/* Thumbnail */}
-            <div className="w-24 h-24 rounded overflow-hidden bg-muted flex-shrink-0">
+            <div className="w-24 h-24 rounded overflow-hidden bg-muted shrink-0">
               {preview.type === "youtube" && preview.thumbnailUrl ? (
                 <img
                   src={preview.thumbnailUrl}

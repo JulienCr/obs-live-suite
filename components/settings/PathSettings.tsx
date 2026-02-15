@@ -126,7 +126,7 @@ export function PathSettings() {
                   key={key}
                   className="flex items-center gap-2 p-3 border rounded hover:bg-accent/50 transition-colors"
                 >
-                  <FolderOpen className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <FolderOpen className="w-4 h-4 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium text-muted-foreground mb-1">
                       {t(labelKeys[key])}
@@ -139,7 +139,7 @@ export function PathSettings() {
                     variant="ghost"
                     size="sm"
                     onClick={() => openFolder(path)}
-                    className="flex-shrink-0"
+                    className="shrink-0"
                   >
                     <ExternalLink className="w-4 h-4" />
                   </Button>

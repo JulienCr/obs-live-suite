@@ -32,7 +32,7 @@ interface PosterData {
 interface BigPicturePosterState {
   visible: boolean;
   current: PosterData | null;
-  transition: "fade" | "slide" | "cut" | "blur";
+  transition: "fade" | "slide" | "cut" | "blur-sm";
 }
 
 interface BigPicturePosterEvent {

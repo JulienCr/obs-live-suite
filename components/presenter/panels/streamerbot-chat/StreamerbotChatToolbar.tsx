@@ -12,7 +12,7 @@ import type { StreamerbotChatToolbarProps, SearchBarProps } from "./types";
 export function SearchBar({ searchTerm, onSearchChange }: SearchBarProps) {
   const t = useTranslations("presenter");
   return (
-    <div className="flex-shrink-0 px-2 py-1.5 border-b bg-muted/30">
+    <div className="shrink-0 px-2 py-1.5 border-b bg-muted/30">
       <Input
         type="search"
         placeholder={t("chat.searchPlaceholder")}
@@ -33,7 +33,7 @@ export function StreamerbotChatToolbar({
 }: StreamerbotChatToolbarProps) {
   const t = useTranslations("presenter");
   return (
-    <div className="flex-shrink-0 px-3 py-1 flex items-center justify-between border-b bg-muted/20">
+    <div className="shrink-0 px-3 py-1 flex items-center justify-between border-b bg-muted/20">
       <div className="flex items-center gap-2">
         <Switch
           id="autoscroll"

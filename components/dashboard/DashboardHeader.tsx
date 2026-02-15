@@ -82,7 +82,7 @@ export function DashboardHeader() {
   };
 
   return (
-    <header className="border-b bg-card h-[var(--header-height)]">
+    <header className="border-b bg-card h-(--header-height)">
       <div className="container mx-auto px-4 py-2">
         <div className="flex items-center justify-between gap-4">
           {/* Left: App Title + Mode Badge */}

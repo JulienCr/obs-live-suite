@@ -303,11 +303,11 @@ export function VideoTimeline({
         {/* In-point marker (yellow) */}
         {inPointMarker != null && (
           <div
-            className="absolute top-0 h-full z-[15] pointer-events-none"
+            className="absolute top-0 h-full z-15 pointer-events-none"
             style={{ left: `${timeToPercent(inPointMarker)}%` }}
           >
             {/* Triangle at top */}
-            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[8px] border-l-transparent border-r-transparent border-t-yellow-500" />
+            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-8 border-l-transparent border-r-transparent border-t-yellow-500" />
             {/* Vertical line */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-full bg-yellow-500" />
           </div>
@@ -316,11 +316,11 @@ export function VideoTimeline({
         {/* Out-point marker (red/orange) */}
         {outPointMarker != null && (
           <div
-            className="absolute top-0 h-full z-[15] pointer-events-none"
+            className="absolute top-0 h-full z-15 pointer-events-none"
             style={{ left: `${timeToPercent(outPointMarker)}%` }}
           >
             {/* Triangle at top */}
-            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[8px] border-l-transparent border-r-transparent border-t-orange-500" />
+            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-8 border-l-transparent border-r-transparent border-t-orange-500" />
             {/* Vertical line */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-full bg-orange-500" />
           </div>

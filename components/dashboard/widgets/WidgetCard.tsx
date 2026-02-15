@@ -86,7 +86,7 @@ export function WidgetCard({ widget, isLocked, onRemove, onResize, onChangeHeigh
         {!isLocked && (
           <div className="absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {/* Width controls */}
-            <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-sm border rounded-md p-0.5">
+            <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-xs border rounded-md p-0.5">
               {sizeOptions.map((option) => (
                 <Button
                   key={option.value}
@@ -102,7 +102,7 @@ export function WidgetCard({ widget, isLocked, onRemove, onResize, onChangeHeigh
             </div>
 
             {/* Height controls */}
-            <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-sm border rounded-md p-0.5">
+            <div className="flex items-center gap-0.5 bg-background/95 backdrop-blur-xs border rounded-md p-0.5">
               {heightOptions.map((option) => (
                 <Button
                   key={option.value}
@@ -121,7 +121,7 @@ export function WidgetCard({ widget, isLocked, onRemove, onResize, onChangeHeigh
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0 cursor-grab active:cursor-grabbing bg-background/95 backdrop-blur-sm border"
+              className="h-7 w-7 p-0 cursor-grab active:cursor-grabbing bg-background/95 backdrop-blur-xs border"
               {...attributes}
               {...listeners}
             >
@@ -132,7 +132,7 @@ export function WidgetCard({ widget, isLocked, onRemove, onResize, onChangeHeigh
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0 hover:bg-destructive hover:text-destructive-foreground bg-background/95 backdrop-blur-sm border"
+              className="h-7 w-7 p-0 hover:bg-destructive hover:text-destructive-foreground bg-background/95 backdrop-blur-xs border"
               onClick={() => onRemove(widget.id)}
               title="Remove widget"
             >

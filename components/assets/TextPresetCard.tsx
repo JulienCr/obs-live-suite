@@ -94,12 +94,12 @@ export function TextPresetCard({
             ...(onToggleEnabled ? [{
               icon: isEnabled ? PowerOff : Power,
               onClick: () => onToggleEnabled(preset),
-              variant: (isEnabled ? "outline" : "default") as "outline" | "default",
+              variant: (isEnabled ? "outline-solid" : "default") as "outline-solid" | "default",
               title: isEnabled ? t("disable") : t("enable"),
             }] : []),
             ...(onDelete ? [{ icon: Trash2, onClick: () => onDelete(preset), variant: "destructive" as const, title: t("delete") }] : []),
           ]}
-          className="!opacity-100"
+          className="opacity-100!"
         />
       </div>
     </div>

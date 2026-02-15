@@ -200,7 +200,7 @@ export function TextPresetManager() {
                   {(["left", "right", "center"] as const).map((s) => (
                     <Button
                       key={s}
-                      variant={formData.side === s ? "default" : "outline"}
+                      variant={formData.side === s ? "default" : "outline-solid"}
                       size="sm"
                       onClick={() => setFormData({ ...formData, side: s })}
                       className="flex-1"

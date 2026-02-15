@@ -114,7 +114,7 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
         <div className="flex items-center gap-4">
         {/* Avatar Preview */}
         <div
-          className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-semibold overflow-hidden flex-shrink-0 border-2"
+          className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-semibold overflow-hidden shrink-0 border-2"
           style={{ backgroundColor: accentColor, borderColor: accentColor }}
         >
           {previewUrl ? (
@@ -175,7 +175,7 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
             variant="outline"
             size="icon"
             onClick={handleRemove}
-            className="flex-shrink-0"
+            className="shrink-0"
             title={t("removeAvatar")}
           >
             <X className="w-4 h-4" />

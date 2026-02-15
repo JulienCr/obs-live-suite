@@ -42,7 +42,7 @@ export function TemplateSelector<T extends string>({
               className={cn(
                 "relative p-3 rounded-lg border-2 text-left transition-all",
                 "hover:border-primary/50 hover:bg-accent/50",
-                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                "focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2",
                 isSelected
                   ? "border-primary bg-accent"
                   : "border-border bg-background"

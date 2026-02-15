@@ -169,7 +169,7 @@ export function ChatMessagesSettings() {
                 className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg group"
               >
                 {/* Drag handle placeholder */}
-                <GripVertical className="h-4 w-4 mt-1 text-muted-foreground/50 cursor-grab flex-shrink-0" />
+                <GripVertical className="h-4 w-4 mt-1 text-muted-foreground/50 cursor-grab shrink-0" />
 
                 {editingIndex === index ? (
                   // Editing state
@@ -187,7 +187,7 @@ export function ChatMessagesSettings() {
                       value={editMessage}
                       onChange={(e) => setEditMessage(e.target.value.slice(0, CHAT_MESSAGES_CONFIG.MAX_MESSAGE_LENGTH))}
                       placeholder={t("messagePlaceholder")}
-                      className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
+                      className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
                       onKeyDown={(e) => {
                         if (e.key === "Escape") cancelEdit();
                       }}
@@ -208,11 +208,11 @@ export function ChatMessagesSettings() {
                   <>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">{msg.title}</div>
-                      <div className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap break-words">
+                      <div className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap wrap-break-word">
                         {msg.message}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                       <Button
                         size="icon"
                         variant="ghost"
@@ -269,7 +269,7 @@ export function ChatMessagesSettings() {
                 value={newMessageText}
                 onChange={(e) => setNewMessageText(e.target.value.slice(0, CHAT_MESSAGES_CONFIG.MAX_MESSAGE_LENGTH))}
                 placeholder={t("messagePlaceholder")}
-                className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
+                className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
               />
               <div className="flex justify-end">
                 <Button onClick={addMessage} disabled={!newTitle.trim() || !newMessageText.trim()}>
