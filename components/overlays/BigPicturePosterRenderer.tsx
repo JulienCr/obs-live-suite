@@ -53,6 +53,7 @@ export function BigPicturePosterRenderer() {
   const sendAckRef = useRef<(eventId: string, success?: boolean) => void>(() => {});
   const sendRef = useRef<(data: unknown) => void>(() => {});
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const cleanupTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Memoized send function to prevent effect re-runs
   const memoizedSend = useCallback((data: unknown) => sendRef.current(data), []);
@@ -186,7 +187,7 @@ export function BigPicturePosterRenderer() {
           setState((prev) => ({ ...prev, visible: false, current: null }));
 
           // Clean up refs after exit animation completes
-          setTimeout(() => {
+          cleanupTimeout.current = setTimeout(() => {
             if (playback.videoRef.current) {
               playback.videoRef.current.src = "";
               playback.videoRef.current.load();
@@ -296,6 +297,9 @@ export function BigPicturePosterRenderer() {
     return () => {
       if (hideTimeout.current) {
         clearTimeout(hideTimeout.current);
+      }
+      if (cleanupTimeout.current) {
+        clearTimeout(cleanupTimeout.current);
       }
     };
   }, []);

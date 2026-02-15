@@ -59,6 +59,7 @@ export function PosterRenderer() {
 
   // Timeout refs
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const cleanupTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Memoized send function to prevent effect re-runs
   const memoizedSend = useCallback((data: unknown) => sendRef.current(data), []);
@@ -221,7 +222,7 @@ export function PosterRenderer() {
         setState((prev) => ({ ...prev, visible: false, current: null }));
 
         // Clean up refs after exit animation completes
-        setTimeout(() => {
+        cleanupTimeout.current = setTimeout(() => {
           if (playback.videoRef.current) {
             playback.videoRef.current.src = '';
             playback.videoRef.current.load();
@@ -330,6 +331,9 @@ export function PosterRenderer() {
     return () => {
       if (hideTimeout.current) {
         clearTimeout(hideTimeout.current);
+      }
+      if (cleanupTimeout.current) {
+        clearTimeout(cleanupTimeout.current);
       }
     };
   }, []);

@@ -170,17 +170,6 @@ export function CountdownRenderer() {
     };
   }, [state.isRunning, state.seconds]);
 
-  console.log("[Countdown] Rendering with theme:", {
-    hasTheme: !!state.theme,
-    colors: state.theme?.colors,
-    font: state.theme?.font,
-    layout: state.theme?.layout,
-    style: state.style,
-    position: state.position,
-    format: state.format,
-    size: state.size,
-  });
-
   return (
     <OverlayMotionProvider>
       <AnimatePresence>

@@ -7,7 +7,7 @@ import {
   LowerThirdAnimationTheme,
   ColorScheme,
 } from "@/lib/models/Theme";
-import { LayoutConfig } from "@/components/theme-editor/inputs/PositionEditor";
+import type { LayoutConfig } from "@/components/theme-editor/inputs/PositionEditor";
 
 export const DEFAULT_FORM_DATA: Partial<CreateThemeInput> = {
   name: "",
@@ -121,7 +121,9 @@ function afterFormUpdate(
     }
     const timeout = setTimeout(() => {
       const current = get();
-      current._onOBSPreviewUpdate?.(current.formData);
+      if (current.enableOBSPreview) {
+        current._onOBSPreviewUpdate?.(current.formData);
+      }
     }, 300);
     set({ _updateTimeout: timeout });
   }
@@ -171,7 +173,15 @@ export const useThemeEditorStore = create<ThemeEditorState>((set, get) => ({
   },
 
   setEnableOBSPreview: (enabled) => {
-    set({ enableOBSPreview: enabled });
+    if (!enabled) {
+      const state = get();
+      if (state._updateTimeout) {
+        clearTimeout(state._updateTimeout);
+      }
+      set({ enableOBSPreview: enabled, _updateTimeout: null });
+    } else {
+      set({ enableOBSPreview: enabled });
+    }
   },
 
   updateColor: (key, value) => {
