@@ -71,7 +71,6 @@ export function DashboardShell() {
   } | undefined>(undefined);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
-  // Handle hydration
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -79,10 +78,8 @@ export function DashboardShell() {
   const applyLivePreset = useCallback(() => {
     if (!apiRef.current) return;
 
-    // Clear existing panels
     apiRef.current.clear();
 
-    // Main area with widget panels in tabs (default layout)
     const lowerThird = apiRef.current.addPanel({
       id: "lowerThird",
       component: "lowerThird",
@@ -117,7 +114,6 @@ export function DashboardShell() {
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
-    // Bottom panel for Macros and Event Log
     const macros = apiRef.current.addPanel({
       id: "macros",
       component: "macros",
@@ -144,10 +140,8 @@ export function DashboardShell() {
   const applyPrepPreset = useCallback(() => {
     if (!apiRef.current) return;
 
-    // Clear existing panels
     apiRef.current.clear();
 
-    // Grid layout - all panels visible
     const lowerThird = apiRef.current.addPanel({
       id: "lowerThird",
       component: "lowerThird",
@@ -195,10 +189,8 @@ export function DashboardShell() {
   const applyMinimalPreset = useCallback(() => {
     if (!apiRef.current) return;
 
-    // Clear existing panels
     apiRef.current.clear();
 
-    // Minimal layout - only Lower Third and Macros
     const lowerThird = apiRef.current.addPanel({
       id: "lowerThird",
       component: "lowerThird",
@@ -235,10 +227,8 @@ export function DashboardShell() {
     }
   }, [applyLivePreset, applyPrepPreset, applyMinimalPreset]);
 
-  // Enable keyboard shortcuts for layout presets and workspaces
   useKeyboardShortcuts(applyPreset, api, true, workspaceCallbacks);
 
-  // Callback for workspace store to apply a layout (panelColors applied separately via store)
   const applyLayout = useCallback((layoutJson: string, _panelColors: Record<string, string>) => {
     if (!apiRef.current) return;
     try {
@@ -249,7 +239,6 @@ export function DashboardShell() {
     }
   }, []);
 
-  // Get current layout as JSON
   const getLayoutJson = useCallback(() => {
     if (!apiRef.current) return null;
     try {
@@ -264,7 +253,6 @@ export function DashboardShell() {
     apiRef.current = event.api;
     setApi(event.api);
 
-    // Try to restore saved layout
     const saved = localStorage.getItem(LAYOUT_KEY);
     if (saved) {
       try {
@@ -275,8 +263,6 @@ export function DashboardShell() {
       }
     }
 
-    // Default layout: Main widgets area + Bottom panels
-    // Main area with widget panels in tabs
     const lowerThird = event.api.addPanel({
       id: "lowerThird",
       component: "lowerThird",
@@ -304,7 +290,6 @@ export function DashboardShell() {
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
-    // Bottom panel for Macros
     const macros = event.api.addPanel({
       id: "macros",
       component: "macros",
@@ -319,7 +304,6 @@ export function DashboardShell() {
       position: { referencePanel: macros, direction: "within" },
     });
 
-    // Set initial sizes for bottom panel (height in pixels)
     try {
       macros.api.setSize({ height: 250 });
     } catch (err) {
@@ -328,7 +312,6 @@ export function DashboardShell() {
     }
   }, []);
 
-  // Set up layout change listener to persist layout
   useEffect(() => {
     if (!apiRef.current) return;
 
@@ -344,7 +327,6 @@ export function DashboardShell() {
     return () => disposable.dispose();
   }, []);
 
-  // Initialize stores on mount
   const fetchPanelColors = usePanelColorsStore((s) => s.fetchColors);
   const initWorkspaces = useWorkspacesStore((s) => s.init);
   const setLayoutJsonGetter = useWorkspacesStore((s) => s.setLayoutJsonGetter);
@@ -356,7 +338,6 @@ export function DashboardShell() {
     initWorkspaces();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Connect workspace store with layout getter/applier
   useEffect(() => {
     setLayoutJsonGetter(getLayoutJson);
     setLayoutApplier(applyLayout);
@@ -367,7 +348,6 @@ export function DashboardShell() {
     [api, savePositionBeforeClose, getSavedPosition]
   );
 
-  // Expose callbacks for keyboard shortcuts
   useEffect(() => {
     setWorkspaceCallbacks({
       resetToDefault: () => {

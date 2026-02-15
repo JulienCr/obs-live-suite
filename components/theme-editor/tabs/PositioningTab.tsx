@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { PositionEditor } from "../inputs/PositionEditor";
-import { useThemeEditorStore } from "@/lib/stores";
+import { useThemeEditorStore, DEFAULT_FORM_DATA } from "@/lib/stores";
 import { useShallow } from "zustand/react/shallow";
 
 /**
@@ -46,21 +46,21 @@ export function PositioningTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <PositionEditor
           label="Lower Third"
-          value={lowerThirdLayout || { x: 60, y: 920, scale: 1 }}
+          value={lowerThirdLayout || DEFAULT_FORM_DATA.lowerThirdLayout!}
           onChange={updateLowerThirdLayout}
           onReset={resetLowerThirdLayout}
         />
 
         <PositionEditor
           label="Countdown"
-          value={countdownLayout || { x: 960, y: 540, scale: 1 }}
+          value={countdownLayout || DEFAULT_FORM_DATA.countdownLayout!}
           onChange={updateCountdownLayout}
           onReset={resetCountdownLayout}
         />
 
         <PositionEditor
           label="Poster"
-          value={posterLayout || { x: 960, y: 540, scale: 1 }}
+          value={posterLayout || DEFAULT_FORM_DATA.posterLayout!}
           onChange={updatePosterLayout}
           onReset={resetPosterLayout}
         />

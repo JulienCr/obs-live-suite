@@ -4,7 +4,7 @@ import { LowerThirdTemplate } from "@/lib/models/Theme";
 import { TemplateSelector } from "../inputs/TemplateSelector";
 import { FontEditor } from "../inputs/FontEditor";
 import { LowerThirdAnimationEditor } from "@/components/assets/LowerThirdAnimationEditor";
-import { useThemeEditorStore } from "@/lib/stores";
+import { useThemeEditorStore, DEFAULT_FORM_DATA } from "@/lib/stores";
 import { useShallow } from "zustand/react/shallow";
 
 const TEMPLATE_OPTIONS = [
@@ -62,8 +62,8 @@ export function LowerThirdTab() {
       <div className="pt-4 border-t">
         <FontEditor
           label="Lower Third Font"
-          value={lowerThirdFont || { family: "Inter, sans-serif", size: 28, weight: 700 }}
-          onChange={(font) => updateLowerThirdFont(font)}
+          value={lowerThirdFont || DEFAULT_FORM_DATA.lowerThirdFont!}
+          onChange={updateLowerThirdFont}
           onReset={resetLowerThirdFont}
         />
       </div>

@@ -47,7 +47,6 @@ export function OverlayCanvas({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [canvasSize, setCanvasSize] = useState({ width: 1920, height: 1080 });
 
-  // History management
   const {
     currentState,
     setState: setHistoryState,
@@ -60,7 +59,6 @@ export function OverlayCanvas({
     countdown: countdownLayout,
   });
 
-  // Update canvas size on mount and resize
   useEffect(() => {
     const updateSize = () => {
       if (canvasRef.current) {
@@ -73,7 +71,6 @@ export function OverlayCanvas({
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  // Calculate scale factor to match canvas display size
   const canvasScale = canvasSize.width / 1920;
 
   const handleMouseDown = (
@@ -84,7 +81,6 @@ export function OverlayCanvas({
     e.preventDefault();
     setDragging(target);
     
-    // Calculate offset from mouse to element top-left
     const canvasRect = canvasRef.current?.getBoundingClientRect();
     if (!canvasRect) return;
     
@@ -110,7 +106,6 @@ export function OverlayCanvas({
     let newX = (e.clientX - canvasRect.left) * scaleX - dragOffset.x;
     let newY = (e.clientY - canvasRect.top) * scaleY - dragOffset.y;
 
-    // Constrain to canvas bounds
     newX = Math.max(0, Math.min(1920, newX));
     newY = Math.max(0, Math.min(1080, newY));
 
@@ -123,7 +118,6 @@ export function OverlayCanvas({
 
   const handleMouseUp = () => {
     if (dragging) {
-      // Save to history when drag ends
       setHistoryState({
         lowerThird: lowerThirdLayout,
         countdown: countdownLayout,
@@ -136,7 +130,6 @@ export function OverlayCanvas({
     if (target === "lowerThird") {
       const newScale = Math.max(0.5, Math.min(2, lowerThirdLayout.scale + delta));
       onLowerThirdLayoutChange({ ...lowerThirdLayout, scale: newScale });
-      // Save to history immediately for scale changes
       setHistoryState({
         lowerThird: { ...lowerThirdLayout, scale: newScale },
         countdown: countdownLayout,
@@ -144,7 +137,6 @@ export function OverlayCanvas({
     } else if (target === "countdown") {
       const newScale = Math.max(0.5, Math.min(2, countdownLayout.scale + delta));
       onCountdownLayoutChange({ ...countdownLayout, scale: newScale });
-      // Save to history immediately for scale changes
       setHistoryState({
         lowerThird: lowerThirdLayout,
         countdown: { ...countdownLayout, scale: newScale },
@@ -152,7 +144,6 @@ export function OverlayCanvas({
     }
   };
 
-  // Apply history state changes
   useEffect(() => {
     if (currentState.lowerThird !== lowerThirdLayout) {
       onLowerThirdLayoutChange(currentState.lowerThird);
@@ -162,11 +153,6 @@ export function OverlayCanvas({
     }
   }, [currentState]);
 
-  // Convert 1920x1080 pixel coordinates to canvas percentages
-  // For lower third: Y coordinate from top, convert to bottom positioning
-  // In OBS: bottom = 1080 - Y, but with translateY(100%) the element shifts down by its height
-  // To match OBS appearance without translateY, we need to move it up
-  // Approximate element height: ~80px, so add that to bottom position
   const lowerThirdPos = {
     left: (lowerThirdLayout.x / 1920) * 100,
     bottom: ((1080 - lowerThirdLayout.y + 80) / 1080) * 100, // Add ~element height
@@ -251,7 +237,6 @@ export function OverlayCanvas({
               transformOrigin: "bottom left",
             }}
           >
-            {/* Use actual LowerThirdDisplay component */}
             <LowerThirdDisplay
               title="John Doe"
               subtitle="Software Engineer"
@@ -303,7 +288,6 @@ export function OverlayCanvas({
               transformOrigin: "center",
             }}
           >
-            {/* Use actual CountdownDisplay component */}
             <CountdownDisplay
               seconds={300}
               style={countdownStyle as "bold" | "corner" | "banner"}
@@ -361,4 +345,3 @@ export function OverlayCanvas({
     </OverlayMotionProvider>
   );
 }
-

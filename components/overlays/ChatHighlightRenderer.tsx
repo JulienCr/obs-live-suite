@@ -89,7 +89,6 @@ export function ChatHighlightRenderer() {
         break;
     }
 
-    // Send acknowledgment
     sendAckRef.current(data.id);
   }, []);
 
@@ -99,10 +98,8 @@ export function ChatHighlightRenderer() {
     { logPrefix: "ChatHighlight" }
   );
 
-  // Keep sendAck ref in sync
   sendAckRef.current = sendAck;
 
-  // Cleanup hide timeout on unmount
   useEffect(() => {
     return () => {
       if (hideTimeout.current) {

@@ -11,7 +11,6 @@ import { ColorScheme, FontConfig, LayoutConfig, LowerThirdAnimationTheme } from 
 import { waitForFont } from "@/lib/utils/fontLoader";
 import "./lower-third.css";
 
-// Standard broadcast width for consistent text wrapping calculations
 const BROADCAST_WIDTH = 1920;
 
 export interface LowerThirdDisplayProps {
@@ -60,7 +59,6 @@ export function LowerThirdDisplay({
   isPreview = false,
   viewportWidth: propViewportWidth,
 }: LowerThirdDisplayProps) {
-  // Animation state machine: idle -> logo -> flip -> bar -> text -> visible
   type AnimPhase = "idle" | "logo" | "flip" | "bar" | "text" | "visible";
   const [phase, setPhase] = useState<AnimPhase>("idle");
 
@@ -69,7 +67,6 @@ export function LowerThirdDisplay({
   const [wrapWidth, setWrapWidth] = useState(0);
   const [fontReady, setFontReady] = useState(false);
 
-  // Merge config with priority: animationConfig prop > theme.lowerThirdAnimation > defaults
   const themeAnimation = theme?.lowerThirdAnimation;
   
   const config = {
@@ -96,11 +93,9 @@ export function LowerThirdDisplay({
     },
   };
 
-  // Apply theme styles
   const layout = theme?.layout || { x: 60, y: 920, scale: 1 };
   const accentColor = theme?.colors.primary || propAccentColor || "#3b82f6";
   
-  // Use theme animation color overrides if available, otherwise use theme colors
   const backgroundColor = themeAnimation?.colors?.barBgColor || (theme 
     ? `rgba(${parseInt(theme.colors.surface.slice(1, 3), 16)}, ${parseInt(theme.colors.surface.slice(3, 5), 16)}, ${parseInt(theme.colors.surface.slice(5, 7), 16)}, 0.75)`
     : "rgba(15, 16, 20, 0.75)");
@@ -110,17 +105,11 @@ export function LowerThirdDisplay({
     ? `${theme.colors.text}BF` 
     : "rgba(255, 255, 255, 0.75)");
 
-  // Determine images
   const finalLogoImage = logoImage || DEFAULT_LOGO_IMAGE;
-  const finalAvatarImage = avatarImage || undefined; // Ensure empty string becomes undefined
+  const hasAvatar = !!avatarImage;
 
-  // Determine if there is an avatar to flip to
-  const hasAvatar = !!finalAvatarImage;
-
-  // Determine mode early - needed by animation state machine
   const isTextMode = contentType === "text" || !!body;
 
-  // Animation state machine: when animating starts, kick off the sequence
   useEffect(() => {
     if (!animating) {
       // Don't reset phase on exit: FM elements stay in their visible state
@@ -129,12 +118,8 @@ export function LowerThirdDisplay({
       return;
     }
 
-    // Reset and start the sequence
     setPhase("idle");
-    // Small initial delay to ensure DOM is ready, then advance to first phase
     const initTimeout = setTimeout(() => {
-      // In text mode, there's no avatar element to animate, so skip logo/flip
-      // and start directly at bar phase
       if (isTextMode) {
         setPhase("bar");
       } else {
@@ -145,7 +130,6 @@ export function LowerThirdDisplay({
     return () => clearTimeout(initTimeout);
   }, [animating, isTextMode]);
 
-  // Advance the state machine when each phase's animation completes
   const advancePhase = useCallback(() => {
     setPhase((current) => {
       switch (current) {
@@ -163,8 +147,6 @@ export function LowerThirdDisplay({
     });
   }, [hasAvatar]);
 
-  // The flip is a CSS transition (not Framer Motion), so we advance
-  // from "flip" to "bar" after the CSS transition duration elapses
   useEffect(() => {
     if (phase !== "flip") return;
     const timer = setTimeout(() => {
@@ -173,11 +155,9 @@ export function LowerThirdDisplay({
     return () => clearTimeout(timer);
   }, [phase, config.timing.flipDuration]);
 
-  // Generate CSS variables - memoized to prevent re-render flicker
   const freeTextMaxWidth = config.styles.freeTextMaxWidth?.[side] ?? (side === 'center' ? 90 : 65);
   const centeredBottomOffset = 80;
 
-  // Wrapper style with scale - separate from animated content
   const wrapperStyle = useMemo<React.CSSProperties>(() => {
     if (isPreview) {
       // Preview mode: use absolute positioning, NO layout.scale (preview container handles scaling)
@@ -191,15 +171,12 @@ export function LowerThirdDisplay({
         } : side === "right" ? {
           right: `${layout.x}px`,
           bottom: `${1080 - layout.y}px`,
-          // No transform scale in preview - the preview container scales everything
         } : {
           left: `${layout.x}px`,
           bottom: `${1080 - layout.y}px`,
-          // No transform scale in preview - the preview container scales everything
         }),
       };
     }
-    // Live overlay mode: use fixed positioning with layout scale
     return {
       position: 'fixed' as const,
       ...(side === "center" ? {
@@ -221,12 +198,8 @@ export function LowerThirdDisplay({
     };
   }, [isPreview, side, layout.scale, layout.x, layout.y, centeredBottomOffset]);
 
-  // Calculate CSS max-width in pixels based on broadcast width for consistency
-  // Divide by layout.scale so the final scaled width matches the target
-  // e.g., for center (90vw = 1728px) with scale 1.6: 1728/1.6 = 1080px base → 1080*1.6 = 1728px final
   const freeTextMaxWidthPx = (BROADCAST_WIDTH * freeTextMaxWidth) / 100 / layout.scale;
 
-  // Container style - no transform here, just CSS variables
   const containerStyle = useMemo(() => ({
     '--lt-timing-logo-fade': `${config.timing.logoFadeDuration}ms`,
     '--lt-timing-logo-scale': `${config.timing.logoScaleDuration}ms`,
@@ -268,7 +241,6 @@ export function LowerThirdDisplay({
   const baseFontWeight = theme?.font.weight || 700;
   const fontFamily = theme?.font.family || "sans-serif";
 
-  // Wait for custom font to load before calculating text wrapping
   useEffect(() => {
     const checkFont = async () => {
       if (!fontFamily || fontFamily === 'sans-serif') {
@@ -444,7 +416,6 @@ export function LowerThirdDisplay({
     lineHeight: 1.25,
   };
 
-  // Derived boolean states from phase for cleaner rendering
   const logoVisible = phase !== "idle";
   const flipped = hasAvatar && (phase === "flip" || phase === "bar" || phase === "text" || phase === "visible");
   const barVisible = phase === "bar" || phase === "text" || phase === "visible";
@@ -483,9 +454,9 @@ export function LowerThirdDisplay({
                 className={logoHasPadding ? "has-padding" : ""}
               />
             </div>
-            {finalAvatarImage && (
+            {avatarImage && (
               <div className="face back" style={{ border: avatarBorderStyle }}>
-                <img src={finalAvatarImage} alt={title || "Guest"} />
+                <img src={avatarImage} alt={title || "Guest"} />
               </div>
             )}
           </div>

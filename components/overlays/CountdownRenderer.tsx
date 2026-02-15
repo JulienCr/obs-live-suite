@@ -130,7 +130,6 @@ export function CountdownRenderer() {
         break;
     }
 
-    // Send acknowledgment for the event
     sendAckRef.current(data.id);
   }, []);
 
@@ -140,7 +139,6 @@ export function CountdownRenderer() {
     { logPrefix: "Countdown" }
   );
 
-  // Keep sendAckRef in sync with the hook's sendAck
   sendAckRef.current = sendAck;
 
   useEffect(() => {

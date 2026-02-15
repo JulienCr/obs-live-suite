@@ -12,7 +12,7 @@ import { ColorsTab } from "./tabs/ColorsTab";
 import { LowerThirdTab } from "./tabs/LowerThirdTab";
 import { CountdownTab } from "./tabs/CountdownTab";
 import { PositioningTab } from "./tabs/PositioningTab";
-import { useThemeEditorStore } from "@/lib/stores";
+import { useThemeEditorStore, DEFAULT_FORM_DATA } from "@/lib/stores";
 import { useShallow } from "zustand/react/shallow";
 import { useTranslations } from "next-intl";
 import { CreateThemeInput } from "@/lib/models/Theme";
@@ -100,15 +100,15 @@ export function ThemeEditor({ isCreating, onSave, onCancel }: ThemeEditorProps) 
         <div className="space-y-3">
           <div className="text-sm font-semibold">{t("livePreviewCanvas")}</div>
           <OverlayCanvas
-            lowerThirdColors={colors || { primary: "#3B82F6", accent: "#60A5FA", surface: "#1E293B", text: "#F8FAFC", success: "#10B981", warn: "#F59E0B" }}
-            lowerThirdFont={lowerThirdFont || { family: "Inter, sans-serif", size: 28, weight: 700 }}
-            lowerThirdLayout={lowerThirdLayout || { x: 60, y: 920, scale: 1 }}
+            lowerThirdColors={colors || DEFAULT_FORM_DATA.colors!}
+            lowerThirdFont={lowerThirdFont || DEFAULT_FORM_DATA.lowerThirdFont!}
+            lowerThirdLayout={lowerThirdLayout || DEFAULT_FORM_DATA.lowerThirdLayout!}
             lowerThirdAnimation={lowerThirdAnimation}
             onLowerThirdLayoutChange={updateLowerThirdLayout}
-            countdownColors={colors || { primary: "#3B82F6", accent: "#60A5FA", surface: "#1E293B", text: "#F8FAFC", success: "#10B981", warn: "#F59E0B" }}
-            countdownFont={countdownFont || { family: "Courier New, monospace", size: 80, weight: 900 }}
-            countdownStyle={countdownStyle || "bold"}
-            countdownLayout={countdownLayout || { x: 960, y: 540, scale: 1 }}
+            countdownColors={colors || DEFAULT_FORM_DATA.colors!}
+            countdownFont={countdownFont || DEFAULT_FORM_DATA.countdownFont!}
+            countdownStyle={countdownStyle || DEFAULT_FORM_DATA.countdownStyle!}
+            countdownLayout={countdownLayout || DEFAULT_FORM_DATA.countdownLayout!}
             onCountdownLayoutChange={updateCountdownLayout}
           />
         </div>

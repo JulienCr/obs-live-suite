@@ -20,3 +20,8 @@ export {
   type UseSubVideoPlaybackOptions,
   type UseSubVideoPlaybackReturn,
 } from "./useSubVideoPlayback";
+
+export {
+  handlePosterHide,
+  handlePosterPlaybackEvent,
+} from "./posterEventHandlers";

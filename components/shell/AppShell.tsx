@@ -19,11 +19,8 @@ export function AppShell({ children }: AppShellProps) {
   const isOverlayPage = pathname?.startsWith("/overlays");
   const isPresenterPage = pathname?.startsWith("/presenter");
 
-  // Enable global keyboard shortcuts ONLY on non-dashboard pages
-  // (DashboardShell handles shortcuts on dashboard to avoid duplicate listeners)
   useKeyboardShortcuts(undefined, undefined, !isDashboard);
 
-  // Sync mode with current route on initial load
   useEffect(() => {
     if (!pathname) return;
 

@@ -43,6 +43,17 @@ export interface ChatHighlightDisplayProps {
   isPreview?: boolean;
 }
 
+function getPositionBySide(side: "left" | "right" | "center"): React.CSSProperties {
+  switch (side) {
+    case "center":
+      return { left: "50%" };
+    case "right":
+      return { right: "60px" };
+    default:
+      return { left: "60px" };
+  }
+}
+
 /**
  * Pure display component for Chat Highlight overlay
  * Displays a chat message in a lower-third style bar
@@ -57,7 +68,6 @@ export function ChatHighlightDisplay({
   theme,
   isPreview = false,
 }: ChatHighlightDisplayProps) {
-  // Theme-based colors
   const backgroundColor = theme
     ? `rgba(${parseInt(theme.colors.surface.slice(1, 3), 16)}, ${parseInt(theme.colors.surface.slice(3, 5), 16)}, ${parseInt(theme.colors.surface.slice(5, 7), 16)}, 0.85)`
     : "rgba(15, 16, 20, 0.85)";
@@ -65,7 +75,6 @@ export function ChatHighlightDisplay({
   const textColor = theme?.colors.text || "#ffffff";
   const accentColor = theme?.colors.accent || "#9146FF"; // Twitch purple as default
 
-  // Username color: use metadata color, or role-based, or accent
   const usernameColor = metadata?.color || getUsernameRoleColor(metadata) || accentColor;
 
   const fontFamily = theme?.font.family || "Inter, sans-serif";
@@ -86,26 +95,8 @@ export function ChatHighlightDisplay({
   const containerStyle: React.CSSProperties = {
     ...cssVars,
     ...(isPreview
-      ? {
-          position: "relative" as const,
-        }
-      : {
-          position: "fixed" as const,
-          ...(side === "center"
-            ? {
-                left: "50%",
-                bottom: "80px",
-              }
-            : side === "right"
-              ? {
-                  right: "60px",
-                  bottom: "80px",
-                }
-              : {
-                  left: "60px",
-                  bottom: "80px",
-                }),
-        }),
+      ? { position: "relative" as const }
+      : { position: "fixed" as const, bottom: "80px", ...getPositionBySide(side) }),
   };
 
   return (

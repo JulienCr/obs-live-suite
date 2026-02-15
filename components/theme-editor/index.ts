@@ -4,7 +4,6 @@ export { ThemeEditor } from "./ThemeEditor";
 export { ThemeList } from "./ThemeList";
 export { ThemeCard } from "./ThemeCard";
 
-// Store (migrated from ThemeEditorContext)
 export { useThemeEditorStore } from "@/lib/stores";
 
 // Input components

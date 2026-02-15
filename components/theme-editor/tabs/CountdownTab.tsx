@@ -3,7 +3,7 @@
 import { CountdownStyle } from "@/lib/models/Theme";
 import { TemplateSelector } from "../inputs/TemplateSelector";
 import { FontEditor } from "../inputs/FontEditor";
-import { useThemeEditorStore } from "@/lib/stores";
+import { useThemeEditorStore, DEFAULT_FORM_DATA } from "@/lib/stores";
 import { useShallow } from "zustand/react/shallow";
 
 const STYLE_OPTIONS = [
@@ -52,8 +52,8 @@ export function CountdownTab() {
       <div className="pt-4 border-t">
         <FontEditor
           label="Countdown Font"
-          value={countdownFont || { family: "Courier New, monospace", size: 80, weight: 900 }}
-          onChange={(font) => updateCountdownFont(font)}
+          value={countdownFont || DEFAULT_FORM_DATA.countdownFont!}
+          onChange={updateCountdownFont}
           onReset={resetCountdownFont}
         />
       </div>

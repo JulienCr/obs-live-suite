@@ -183,4 +183,3 @@ export class ChannelManager {
     return this.getPresenterSubscribers() > 0;
   }
 }
-

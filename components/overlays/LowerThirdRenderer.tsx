@@ -51,9 +51,6 @@ interface LowerThirdState {
   theme?: ThemeData;
 }
 
-/**
- * WebSocket message payload for lower third events
- */
 interface LowerThirdEventData {
   type: string;
   payload?: LowerThirdShowPayload;
@@ -77,7 +74,6 @@ export function LowerThirdRenderer() {
   const visibilityTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const sendAckRef = useRef<(eventId: string) => void>(() => {});
 
-  // Clean up all timeouts on unmount
   useEffect(() => {
     return () => {
       if (hideTimeout.current) clearTimeout(hideTimeout.current);
@@ -86,7 +82,6 @@ export function LowerThirdRenderer() {
   }, []);
 
   const handleMessage = useCallback((data: LowerThirdEventData) => {
-    // Clear all pending timeouts to prevent race conditions
     if (hideTimeout.current) {
       clearTimeout(hideTimeout.current);
       hideTimeout.current = undefined;
@@ -152,7 +147,6 @@ export function LowerThirdRenderer() {
         break;
     }
 
-    // Send acknowledgment
     sendAckRef.current(data.id);
   }, []);
 
@@ -162,7 +156,6 @@ export function LowerThirdRenderer() {
     { logPrefix: "LowerThird" }
   );
 
-  // Keep ref up to date
   sendAckRef.current = sendAck;
 
   if (!state.visible) {

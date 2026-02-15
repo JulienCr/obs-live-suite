@@ -3,20 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { ColorPicker } from "../inputs/ColorPicker";
-import { useThemeEditorStore } from "@/lib/stores";
+import { useThemeEditorStore, DEFAULT_FORM_DATA } from "@/lib/stores";
 
 /**
  * Colors tab for theme editor
  */
 export function ColorsTab() {
-  const colors = useThemeEditorStore((s) => s.formData.colors) || {
-    primary: "#3B82F6",
-    accent: "#60A5FA",
-    surface: "#1E293B",
-    text: "#F8FAFC",
-    success: "#10B981",
-    warn: "#F59E0B",
-  };
+  const colors = useThemeEditorStore((s) => s.formData.colors) || DEFAULT_FORM_DATA.colors!;
   const updateColor = useThemeEditorStore((s) => s.updateColor);
   const resetColors = useThemeEditorStore((s) => s.resetColors);
 
