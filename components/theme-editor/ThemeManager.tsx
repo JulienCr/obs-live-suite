@@ -3,63 +3,12 @@
 import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Palette } from "lucide-react";
-import { Theme, CreateThemeInput, LowerThirdTemplate, CountdownStyle } from "@/lib/models/Theme";
+import { Theme, CreateThemeInput } from "@/lib/models/Theme";
 import { ThemeList } from "./ThemeList";
 import { ThemeEditor } from "./ThemeEditor";
-import { useThemeEditorStore } from "@/lib/stores";
+import { useThemeEditorStore, DEFAULT_FORM_DATA } from "@/lib/stores";
 import { apiPost } from "@/lib/utils/ClientFetch";
 import { useThemes, useProfiles } from "@/lib/queries";
-
-const DEFAULT_THEME_DATA: Partial<CreateThemeInput> = {
-  name: "",
-  colors: {
-    primary: "#3B82F6",
-    accent: "#60A5FA",
-    surface: "#1E293B",
-    text: "#F8FAFC",
-    success: "#10B981",
-    warn: "#F59E0B",
-  },
-  lowerThirdTemplate: LowerThirdTemplate.CLASSIC,
-  lowerThirdFont: {
-    family: "Inter, sans-serif",
-    size: 28,
-    weight: 700,
-  },
-  lowerThirdLayout: { x: 60, y: 920, scale: 1 },
-  lowerThirdAnimation: {
-    timing: {
-      logoFadeDuration: 200,
-      logoScaleDuration: 200,
-      flipDuration: 600,
-      flipDelay: 500,
-      barAppearDelay: 800,
-      barExpandDuration: 450,
-      textAppearDelay: 1000,
-      textFadeDuration: 250,
-    },
-    styles: {
-      barBorderRadius: 16,
-      barMinWidth: 200,
-      avatarBorderWidth: 4,
-      avatarBorderColor: '#272727',
-      freeTextMaxWidth: {
-        left: 65,
-        right: 65,
-        center: 90,
-      },
-    },
-  },
-  countdownStyle: CountdownStyle.BOLD,
-  countdownFont: {
-    family: "Courier New, monospace",
-    size: 80,
-    weight: 900,
-  },
-  countdownLayout: { x: 960, y: 540, scale: 1 },
-  posterLayout: { x: 960, y: 540, scale: 1 },
-  isGlobal: false,
-};
 
 /**
  * Refactored theme management component (orchestrator)
@@ -77,13 +26,13 @@ export function ThemeManager() {
 
   const [editingTheme, setEditingTheme] = useState<Theme | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [formData, setFormData] = useState<Partial<CreateThemeInput>>(DEFAULT_THEME_DATA);
+  const [formData, setFormData] = useState<Partial<CreateThemeInput>>(DEFAULT_FORM_DATA);
   const [error, setError] = useState<string | null>(null);
 
   const handleCreate = () => {
     setIsCreating(true);
     setEditingTheme(null);
-    setFormData(DEFAULT_THEME_DATA);
+    setFormData(DEFAULT_FORM_DATA);
   };
 
   const handleEdit = (theme: Theme) => {
@@ -95,7 +44,7 @@ export function ThemeManager() {
       lowerThirdTemplate: theme.lowerThirdTemplate,
       lowerThirdFont: theme.lowerThirdFont,
       lowerThirdLayout: theme.lowerThirdLayout || { x: 60, y: 920, scale: 1 },
-      lowerThirdAnimation: theme.lowerThirdAnimation || DEFAULT_THEME_DATA.lowerThirdAnimation,
+      lowerThirdAnimation: theme.lowerThirdAnimation || DEFAULT_FORM_DATA.lowerThirdAnimation,
       countdownStyle: theme.countdownStyle,
       countdownFont: theme.countdownFont,
       countdownLayout: theme.countdownLayout || { x: 960, y: 540, scale: 1 },

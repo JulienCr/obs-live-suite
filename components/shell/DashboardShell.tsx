@@ -161,7 +161,7 @@ export function DashboardShell() {
       position: { referencePanel: lowerThird, direction: "right" },
     });
 
-    const guests = apiRef.current.addPanel({
+    apiRef.current.addPanel({
       id: "guests",
       component: "guests",
       title: "panels.guests",
@@ -238,8 +238,8 @@ export function DashboardShell() {
   // Enable keyboard shortcuts for layout presets and workspaces
   useKeyboardShortcuts(applyPreset, api, true, workspaceCallbacks);
 
-  // Callback for WorkspacesProvider to apply a workspace layout
-  const applyLayout = useCallback((layoutJson: string, panelColors: Record<string, string>) => {
+  // Callback for workspace store to apply a layout (panelColors applied separately via store)
+  const applyLayout = useCallback((layoutJson: string, _panelColors: Record<string, string>) => {
     if (!apiRef.current) return;
     try {
       apiRef.current.fromJSON(JSON.parse(layoutJson));
@@ -283,21 +283,21 @@ export function DashboardShell() {
       title: "panels.lowerThird",
     });
 
-    const countdown = event.api.addPanel({
+    event.api.addPanel({
       id: "countdown",
       component: "countdown",
       title: "panels.countdown",
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
-    const guests = event.api.addPanel({
+    event.api.addPanel({
       id: "guests",
       component: "guests",
       title: "panels.guests",
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
-    const poster = event.api.addPanel({
+    event.api.addPanel({
       id: "poster",
       component: "poster",
       title: "panels.poster",
@@ -312,8 +312,7 @@ export function DashboardShell() {
       position: { referencePanel: lowerThird, direction: "below" },
     });
 
-    // Event Log next to Macros in bottom area
-    const eventLog = event.api.addPanel({
+    event.api.addPanel({
       id: "eventLog",
       component: "eventLog",
       title: "panels.eventLog",

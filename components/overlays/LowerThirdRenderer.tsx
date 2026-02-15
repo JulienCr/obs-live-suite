@@ -99,15 +99,6 @@ export function LowerThirdRenderer() {
     switch (data.type) {
       case "show":
         if (data.payload) {
-          console.log("[LowerThird] Received show payload:", data.payload);
-          console.log("[LowerThird] Has theme?", !!data.payload.theme);
-          if (data.payload.theme) {
-            console.log("[LowerThird] Theme data:", {
-              colors: data.payload.theme.colors,
-              font: data.payload.theme.font,
-              layout: data.payload.theme.layout,
-            });
-          }
           setState({
             visible: true,
             animating: true,
@@ -144,7 +135,6 @@ export function LowerThirdRenderer() {
         }, 500); // Wait for exit animation to complete
         break;
       case "update":
-        console.log("[LowerThird] Received update payload:", data.payload);
         setState((prev) => ({
           ...prev,
           ...data.payload,
@@ -178,13 +168,6 @@ export function LowerThirdRenderer() {
   if (!state.visible) {
     return null;
   }
-
-  console.log("[LowerThird] Rendering with theme:", {
-    hasTheme: !!state.theme,
-    colors: state.theme?.colors,
-    font: state.theme?.font,
-    layout: state.theme?.layout,
-  });
 
   return (
     <OverlayMotionProvider>

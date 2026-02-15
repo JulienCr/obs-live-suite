@@ -62,8 +62,6 @@ export function ChatHighlightRenderer() {
     switch (data.type) {
       case "show":
         if (data.payload) {
-          console.log("[ChatHighlight] Received show payload:", data.payload.displayName);
-
           setState({
             visible: true,
             messageId: data.payload.messageId,
@@ -77,21 +75,16 @@ export function ChatHighlightRenderer() {
             theme: data.payload.theme,
           });
 
-          // Auto-hide after duration (if duration > 0)
-          // duration=0 means auto-hide is disabled - stay visible until manual hide
-          const duration = data.payload.duration;
-          if (duration && duration > 0) {
+          // Auto-hide after duration; duration=0 or absent means stay visible until manual hide
+          if (data.payload.duration) {
             hideTimeout.current = setTimeout(() => {
-              // Set visible to false directly; AnimatePresence handles the exit animation
               setState((prev) => ({ ...prev, visible: false }));
-            }, duration * 1000);
+            }, data.payload.duration * 1000);
           }
-          // If duration is 0 or undefined/null, no auto-hide timeout is set
         }
         break;
 
       case "hide":
-        // Set visible to false directly; AnimatePresence handles the exit animation
         setState((prev) => ({ ...prev, visible: false }));
         break;
     }
@@ -106,10 +99,8 @@ export function ChatHighlightRenderer() {
     { logPrefix: "ChatHighlight" }
   );
 
-  // Keep sendAck ref updated to avoid stale closure in handleEvent
-  useEffect(() => {
-    sendAckRef.current = sendAck;
-  }, [sendAck]);
+  // Keep sendAck ref in sync
+  sendAckRef.current = sendAck;
 
   // Cleanup hide timeout on unmount
   useEffect(() => {

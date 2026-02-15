@@ -108,7 +108,7 @@ function afterFormUpdate(
   get: () => ThemeEditorState,
   set: (partial: Partial<ThemeEditorState>) => void,
   newFormData: Partial<CreateThemeInput>
-) {
+): void {
   const state = get();
   const isDirty =
     JSON.stringify(newFormData) !== JSON.stringify(state._initialData);
@@ -129,6 +129,40 @@ function afterFormUpdate(
   }
 }
 
+/** Clear any pending timeout before resetting state */
+function clearPendingTimeout(get: () => ThemeEditorState): void {
+  const state = get();
+  if (state._updateTimeout) {
+    clearTimeout(state._updateTimeout);
+  }
+}
+
+/** Merge a partial update into a nested formData field and trigger afterFormUpdate */
+function mergeField<K extends keyof CreateThemeInput>(
+  get: () => ThemeEditorState,
+  set: (partial: Partial<ThemeEditorState>) => void,
+  key: K,
+  updates: Partial<NonNullable<CreateThemeInput[K]>>
+): void {
+  const prev = get().formData;
+  const current = prev[key] as Record<string, unknown> | undefined;
+  afterFormUpdate(get, set, { ...prev, [key]: { ...current, ...updates } });
+}
+
+/** Reset one or more formData fields to their DEFAULT_FORM_DATA values */
+function resetFields(
+  get: () => ThemeEditorState,
+  set: (partial: Partial<ThemeEditorState>) => void,
+  ...keys: (keyof CreateThemeInput)[]
+): void {
+  const prev = get().formData;
+  const resets: Partial<CreateThemeInput> = {};
+  for (const key of keys) {
+    (resets as Record<string, unknown>)[key] = DEFAULT_FORM_DATA[key];
+  }
+  afterFormUpdate(get, set, { ...prev, ...resets });
+}
+
 export const useThemeEditorStore = create<ThemeEditorState>((set, get) => ({
   formData: DEFAULT_FORM_DATA,
   isDirty: false,
@@ -138,10 +172,7 @@ export const useThemeEditorStore = create<ThemeEditorState>((set, get) => ({
   _updateTimeout: null,
 
   init: (initialData, onOBSPreviewUpdate) => {
-    const state = get();
-    if (state._updateTimeout) {
-      clearTimeout(state._updateTimeout);
-    }
+    clearPendingTimeout(get);
     const data = initialData || DEFAULT_FORM_DATA;
     set({
       formData: data,
@@ -154,10 +185,7 @@ export const useThemeEditorStore = create<ThemeEditorState>((set, get) => ({
   },
 
   cleanup: () => {
-    const state = get();
-    if (state._updateTimeout) {
-      clearTimeout(state._updateTimeout);
-    }
+    clearPendingTimeout(get);
     set({
       formData: DEFAULT_FORM_DATA,
       isDirty: false,
@@ -174,156 +202,45 @@ export const useThemeEditorStore = create<ThemeEditorState>((set, get) => ({
 
   setEnableOBSPreview: (enabled) => {
     if (!enabled) {
-      const state = get();
-      if (state._updateTimeout) {
-        clearTimeout(state._updateTimeout);
-      }
-      set({ enableOBSPreview: enabled, _updateTimeout: null });
+      clearPendingTimeout(get);
+      set({ enableOBSPreview: false, _updateTimeout: null });
     } else {
-      set({ enableOBSPreview: enabled });
+      set({ enableOBSPreview: true });
     }
   },
 
   updateColor: (key, value) => {
     const prev = get().formData;
-    const newData = {
+    afterFormUpdate(get, set, {
       ...prev,
       colors: { ...prev.colors!, [key]: value },
-    };
-    afterFormUpdate(get, set, newData);
+    });
   },
 
-  updateLowerThirdFont: (updates) => {
-    const prev = get().formData;
-    const newData = {
-      ...prev,
-      lowerThirdFont: { ...prev.lowerThirdFont!, ...updates },
-    };
-    afterFormUpdate(get, set, newData);
-  },
-
-  updateCountdownFont: (updates) => {
-    const prev = get().formData;
-    const newData = {
-      ...prev,
-      countdownFont: { ...prev.countdownFont!, ...updates },
-    };
-    afterFormUpdate(get, set, newData);
-  },
-
-  updateLowerThirdLayout: (updates) => {
-    const prev = get().formData;
-    const newData = {
-      ...prev,
-      lowerThirdLayout: { ...prev.lowerThirdLayout!, ...updates },
-    };
-    afterFormUpdate(get, set, newData);
-  },
-
-  updateCountdownLayout: (updates) => {
-    const prev = get().formData;
-    const newData = {
-      ...prev,
-      countdownLayout: { ...prev.countdownLayout!, ...updates },
-    };
-    afterFormUpdate(get, set, newData);
-  },
-
-  updatePosterLayout: (updates) => {
-    const prev = get().formData;
-    const newData = {
-      ...prev,
-      posterLayout: { ...prev.posterLayout!, ...updates },
-    };
-    afterFormUpdate(get, set, newData);
-  },
-
-  updateLowerThirdAnimation: (updates) => {
-    const prev = get().formData;
-    const newData = {
-      ...prev,
-      lowerThirdAnimation: { ...prev.lowerThirdAnimation!, ...updates },
-    };
-    afterFormUpdate(get, set, newData);
-  },
+  updateLowerThirdFont: (updates) => mergeField(get, set, "lowerThirdFont", updates),
+  updateCountdownFont: (updates) => mergeField(get, set, "countdownFont", updates),
+  updateLowerThirdLayout: (updates) => mergeField(get, set, "lowerThirdLayout", updates),
+  updateCountdownLayout: (updates) => mergeField(get, set, "countdownLayout", updates),
+  updatePosterLayout: (updates) => mergeField(get, set, "posterLayout", updates),
+  updateLowerThirdAnimation: (updates) => mergeField(get, set, "lowerThirdAnimation", updates),
 
   updateTemplate: (template) => {
-    const prev = get().formData;
-    const newData = { ...prev, lowerThirdTemplate: template };
-    afterFormUpdate(get, set, newData);
+    afterFormUpdate(get, set, { ...get().formData, lowerThirdTemplate: template });
   },
 
   updateCountdownStyle: (style) => {
-    const prev = get().formData;
-    const newData = { ...prev, countdownStyle: style };
-    afterFormUpdate(get, set, newData);
+    afterFormUpdate(get, set, { ...get().formData, countdownStyle: style });
   },
 
   updateName: (name) => {
-    const prev = get().formData;
-    const newData = { ...prev, name };
-    afterFormUpdate(get, set, newData);
+    afterFormUpdate(get, set, { ...get().formData, name });
   },
 
-  resetColors: () => {
-    const prev = get().formData;
-    const newData = { ...prev, colors: DEFAULT_FORM_DATA.colors };
-    afterFormUpdate(get, set, newData);
-  },
-
-  resetLowerThirdFont: () => {
-    const prev = get().formData;
-    const newData = {
-      ...prev,
-      lowerThirdFont: DEFAULT_FORM_DATA.lowerThirdFont,
-    };
-    afterFormUpdate(get, set, newData);
-  },
-
-  resetCountdownFont: () => {
-    const prev = get().formData;
-    const newData = {
-      ...prev,
-      countdownFont: DEFAULT_FORM_DATA.countdownFont,
-    };
-    afterFormUpdate(get, set, newData);
-  },
-
-  resetLowerThirdLayout: () => {
-    const prev = get().formData;
-    const newData = {
-      ...prev,
-      lowerThirdLayout: DEFAULT_FORM_DATA.lowerThirdLayout,
-    };
-    afterFormUpdate(get, set, newData);
-  },
-
-  resetCountdownLayout: () => {
-    const prev = get().formData;
-    const newData = {
-      ...prev,
-      countdownLayout: DEFAULT_FORM_DATA.countdownLayout,
-    };
-    afterFormUpdate(get, set, newData);
-  },
-
-  resetPosterLayout: () => {
-    const prev = get().formData;
-    const newData = {
-      ...prev,
-      posterLayout: DEFAULT_FORM_DATA.posterLayout,
-    };
-    afterFormUpdate(get, set, newData);
-  },
-
-  resetAllLayouts: () => {
-    const prev = get().formData;
-    const newData = {
-      ...prev,
-      lowerThirdLayout: DEFAULT_FORM_DATA.lowerThirdLayout,
-      countdownLayout: DEFAULT_FORM_DATA.countdownLayout,
-      posterLayout: DEFAULT_FORM_DATA.posterLayout,
-    };
-    afterFormUpdate(get, set, newData);
-  },
+  resetColors: () => resetFields(get, set, "colors"),
+  resetLowerThirdFont: () => resetFields(get, set, "lowerThirdFont"),
+  resetCountdownFont: () => resetFields(get, set, "countdownFont"),
+  resetLowerThirdLayout: () => resetFields(get, set, "lowerThirdLayout"),
+  resetCountdownLayout: () => resetFields(get, set, "countdownLayout"),
+  resetPosterLayout: () => resetFields(get, set, "posterLayout"),
+  resetAllLayouts: () => resetFields(get, set, "lowerThirdLayout", "countdownLayout", "posterLayout"),
 }));

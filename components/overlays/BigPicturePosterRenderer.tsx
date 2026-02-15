@@ -286,11 +286,9 @@ export function BigPicturePosterRenderer() {
     { logPrefix: "BigPicturePoster" }
   );
 
-  // Keep refs updated for use in callbacks
-  useEffect(() => {
-    sendAckRef.current = sendAck;
-    sendRef.current = send;
-  }, [send, sendAck]);
+  // Keep refs in sync for use in callbacks
+  sendAckRef.current = sendAck;
+  sendRef.current = send;
 
   // Clean up timeouts on unmount
   useEffect(() => {

@@ -320,11 +320,9 @@ export function PosterRenderer() {
     { logPrefix: "Poster" }
   );
 
-  // Keep sendAck and send refs updated
-  useEffect(() => {
-    sendAckRef.current = sendAck;
-    sendRef.current = send;
-  }, [send, sendAck]);
+  // Keep sendAck and send refs in sync
+  sendAckRef.current = sendAck;
+  sendRef.current = send;
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -374,4 +372,3 @@ export function PosterRenderer() {
     </OverlayMotionProvider>
   );
 }
-

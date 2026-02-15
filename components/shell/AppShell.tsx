@@ -15,31 +15,24 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const { mode, setMode, isFullscreenMode } = useAppMode();
 
-  // Determine if we're on the dashboard page
-  const isOnDashboard = pathname === "/" || pathname === "/dashboard";
+  const isDashboard = pathname === "/" || pathname === "/dashboard";
+  const isOverlayPage = pathname?.startsWith("/overlays");
+  const isPresenterPage = pathname?.startsWith("/presenter");
 
   // Enable global keyboard shortcuts ONLY on non-dashboard pages
   // (DashboardShell handles shortcuts on dashboard to avoid duplicate listeners)
-  // Pass a flag to disable the hook on dashboard
-  useKeyboardShortcuts(undefined, undefined, !isOnDashboard);
+  useKeyboardShortcuts(undefined, undefined, !isDashboard);
 
   // Sync mode with current route on initial load
   useEffect(() => {
     if (!pathname) return;
 
-    // Determine mode based on route
-    const isLiveRoute = pathname === "/" || pathname === "/dashboard";
-
-    if (isLiveRoute && mode !== "LIVE") {
+    if (isDashboard && mode !== "LIVE") {
       setMode("LIVE");
-    } else if (!isLiveRoute && mode !== "ADMIN" && !pathname.startsWith("/overlays")) {
+    } else if (!isDashboard && mode !== "ADMIN" && !isOverlayPage) {
       setMode("ADMIN");
     }
   }, [pathname]); // Only run on pathname change, not on mode change to avoid loops
-
-  // Don't show header/sidebar on overlay pages (for OBS browser sources) or presenter page
-  const isOverlayPage = pathname?.startsWith("/overlays");
-  const isPresenterPage = pathname?.startsWith("/presenter");
 
   if (isOverlayPage || isPresenterPage) {
     return <>{children}</>;

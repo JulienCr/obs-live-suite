@@ -40,31 +40,30 @@ export function WorkspaceSelector() {
   const builtInWorkspaces = workspaces.filter((w) => w.isBuiltIn);
   const userWorkspaces = workspaces.filter((w) => !w.isBuiltIn);
 
-  function getDisplayName(): string {
-    if (currentWorkspace) {
-      return isModified ? `${currentWorkspace.name} *` : currentWorkspace.name;
-    }
-    return isModified ? t("custom") : t("noWorkspace");
+  let displayName: string;
+  if (currentWorkspace) {
+    displayName = isModified ? `${currentWorkspace.name} *` : currentWorkspace.name;
+  } else {
+    displayName = isModified ? t("custom") : t("noWorkspace");
   }
-  const displayName = getDisplayName();
 
-  const handleWorkspaceSelect = async (id: string) => {
+  async function handleWorkspaceSelect(id: string): Promise<void> {
     if (!canApplyLayout) return;
     try {
       await applyWorkspace(id);
     } catch (error) {
       console.error("Failed to apply workspace:", error);
     }
-  };
+  }
 
-  const handleResetToDefault = async () => {
+  async function handleResetToDefault(): Promise<void> {
     if (!canApplyLayout) return;
     try {
       await resetToDefault();
     } catch (error) {
       console.error("Failed to reset to default:", error);
     }
-  };
+  }
 
   // Don't show selector if workspaces haven't loaded yet
   if (isLoading) {
