@@ -235,7 +235,7 @@
   }
 }
 
-/* Panel Color Customization - Dynamic styles applied via PanelColorStyles component */
+/* Panel Color Customization - scheme classes applied via BasePanelWrapper and PanelTab */
 /* Base styles to ensure panel content uses CSS variable for background */
 [data-panel-id] {
   background-color: hsl(var(--background));

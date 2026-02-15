@@ -32,7 +32,7 @@ import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { LiveModeRail } from "./LiveModeRail";
 import { useAppMode } from "./AppModeContext";
-import { PanelColorStyles } from "./PanelColorStyles";
+import type { ColorScheme } from "@/lib/models/PanelColor";
 
 const LAYOUT_KEY = "obs-live-suite-dockview-layout";
 const PRESET_KEY = "obs-live-suite-layout-preset";
@@ -58,7 +58,17 @@ const tabComponents = {
   default: PanelTab,
 };
 
-export function DashboardShell() {
+interface DashboardShellProps {
+  initialColors: Record<string, { scheme: ColorScheme }>;
+}
+
+export function DashboardShell({ initialColors }: DashboardShellProps) {
+  const hydratedRef = useRef(false);
+  if (!hydratedRef.current && initialColors) {
+    usePanelColorsStore.getState().hydrate(initialColors);
+    hydratedRef.current = true;
+  }
+
   const { theme } = useTheme();
   const { mode, isFullscreenMode } = useAppMode();
   const [mounted, setMounted] = useState(false);
@@ -327,14 +337,12 @@ export function DashboardShell() {
     return () => disposable.dispose();
   }, []);
 
-  const fetchPanelColors = usePanelColorsStore((s) => s.fetchColors);
   const initWorkspaces = useWorkspacesStore((s) => s.init);
   const setLayoutJsonGetter = useWorkspacesStore((s) => s.setLayoutJsonGetter);
   const setLayoutApplier = useWorkspacesStore((s) => s.setLayoutApplier);
   const resetToDefault = useWorkspacesStore((s) => s.resetToDefault);
 
   useEffect(() => {
-    fetchPanelColors();
     initWorkspaces();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -364,7 +372,6 @@ export function DashboardShell() {
       <StoreWorkspaceSaveDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} />
       <LayoutPresetsProvider applyPreset={applyPreset}>
         <DockviewContext.Provider value={dockviewContextValue}>
-          <PanelColorStyles />
           <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--header-height))", width: "100%", display: "flex" }}>
             {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
             <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
