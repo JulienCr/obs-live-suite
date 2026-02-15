@@ -196,7 +196,7 @@
       "font": "Police",
       "fontSize": "Taille police",
       "fontWeight": "Épaisseur",
-      "shadow": "Ombre",
+      "shadow-sm": "Ombre",
       "presets": "Préréglages",
       "styles": {
         "bold": "Gras",

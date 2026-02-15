@@ -1,0 +1,105 @@
+{
+  "timestamp": "2026-02-11T12:00:00.000Z",
+  "commit": "48159db",
+  "branch": "main",
+  "scores": {
+    "quality": 3.5,
+    "maintainability": 9.0,
+    "dry": 9.5,
+    "tests": 7.5,
+    "overall": 7.4
+  },
+  "metrics": {
+    "codebase": {
+      "totalLines": 89069,
+      "typescriptLines": 54300,
+      "tsxLines": 41252,
+      "jsLines": 4405,
+      "cssLines": 1299,
+      "tsFiles": 366,
+      "tsxFiles": 255,
+      "jsFiles": 21,
+      "totalSourceFiles": 642,
+      "dependencies": 65,
+      "devDependencies": 36
+    },
+    "quality": {
+      "typescriptErrors": 0,
+      "lintErrors": 42,
+      "lintWarnings": 141,
+      "lintBreakdown": {
+        "noExplicitAny": 13,
+        "noUnescapedEntities": 21,
+        "rulesOfHooks": 4,
+        "noHtmlLinkForPages": 2,
+        "noEmptyObjectType": 1,
+        "noRequireImports": 1
+      },
+      "unsafeJsonParse": 38,
+      "asAnyCasts": 4,
+      "anyTypeUsage": 19,
+      "consoleLogCount": 148,
+      "alertUsage": 27,
+      "todoFixmeHack": 8,
+      "magicNumbers": 9
+    },
+    "maintainability": {
+      "largestSourceFile": {
+        "file": "components/assets/ThemeManager.tsx",
+        "lines": 1187
+      },
+      "largestServiceFile": {
+        "file": "lib/services/twitch/TwitchOAuthManager.ts",
+        "lines": 768
+      },
+      "avgServiceLines": 239,
+      "componentsOver500Lines": 8,
+      "componentsOver300Lines": 25,
+      "singletonServices": 41,
+      "repositories": 12
+    },
+    "dry": {
+      "proxyHelperAdoption": 39,
+      "rawFetchInApiRoutes": 3,
+      "errorHandlerAdoption": {
+        "withHandler": 76,
+        "withoutHandler": 18,
+        "totalRoutes": 94,
+        "adoptionPercent": 80.9
+      },
+      "dashboardCardsManualWebSocket": 2,
+      "overlayRendererDuplication": "5 renderers share sendAckRef/state/timeout pattern"
+    },
+    "tests": {
+      "testFileCount": 53,
+      "testCases": 958,
+      "testsPassing": 950,
+      "testsSkipped": 8,
+      "testSuitesPassing": 52,
+      "testSuitesSkipped": 1,
+      "coverage": null,
+      "workerLeakDetected": true
+    },
+    "safety": {
+      "apiRoutesWithoutValidation": 69,
+      "apiRoutesWithValidation": 25,
+      "hooksRulesViolations": 4,
+      "staleClosureIssues": 1,
+      "unimplementedEndpoints": 1,
+      "potentialRaceConditions": 2
+    },
+    "openIssues": {
+      "total": 21,
+      "byPriority": {
+        "high": 6,
+        "medium": 10,
+        "low": 5
+      },
+      "byType": {
+        "bug": 6,
+        "dryViolation": 8,
+        "codeQuality": 7
+      }
+    }
+  }
+}

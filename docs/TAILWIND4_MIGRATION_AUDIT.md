@@ -42,10 +42,10 @@ Tailwind v4 requires **Safari 16.4+, Chrome 111+, Firefox 128+**. It uses native
 
 ### 2.2 Ring Default Width Change
 
-- **v3**: `ring` produces a **3px** ring
-- **v4**: `ring` produces a **1px** ring
+- **v3**: `ring-3` produces a **3px** ring
+- **v4**: `ring-3` produces a **1px** ring
 
-**Impact**: MEDIUM. Found **40 occurrences** of `ring`-related classes across 28 files, and **22 occurrences** of `ring-ring` / `ring-offset-background` in 20 files (primarily shadcn/ui components). Most use explicit widths (`ring-2`), but any bare `ring` usage needs `ring-3` replacement.
+**Impact**: MEDIUM. Found **40 occurrences** of `ring-3`-related classes across 28 files, and **22 occurrences** of `ring-ring` / `ring-offset-background` in 20 files (primarily shadcn/ui components). Most use explicit widths (`ring-2`), but any bare `ring-3` usage needs `ring-3` replacement.
 
 ### 2.3 Border and Divide Default Colors
 
@@ -56,8 +56,8 @@ Tailwind v4 requires **Safari 16.4+, Chrome 111+, Firefox 128+**. It uses native
 
 ### 2.4 Shadow Changes
 
-- **v3**: `shadow` utilities use `rgba(0,0,0,...)` values
-- **v4**: `shadow` utilities use color-mix-based values in OKLCH
+- **v3**: `shadow-sm` utilities use `rgba(0,0,0,...)` values
+- **v4**: `shadow-sm` utilities use color-mix-based values in OKLCH
 
 **Impact**: LOW. Found 28 shadow usage sites. Visual differences will be subtle and may actually improve color accuracy.
 
@@ -66,8 +66,8 @@ Tailwind v4 requires **Safari 16.4+, Chrome 111+, Firefox 128+**. It uses native
 | v3 Utility | v4 Replacement | Project Usage |
 |---|---|---|
 | `bg-opacity-*` | `bg-color/opacity` syntax | **57 occurrences** of opacity-related patterns across 28 files -- the upgrade tool handles this automatically |
-| `flex-grow` / `flex-shrink` | `grow` / `shrink` | Needs scan -- likely used in shadcn components |
-| `decoration-slice` / `decoration-clone` | `box-decoration-slice` / `box-decoration-clone` | None found |
+| `grow` / `shrink` | `grow` / `shrink` | Needs scan -- likely used in shadcn components |
+| `box-decoration-slice` / `box-decoration-clone` | `box-decoration-slice` / `box-decoration-clone` | None found |
 
 ### 2.6 Container Utility Changes
 
@@ -379,7 +379,7 @@ The existing CSS variables use space-separated HSL values (e.g., `--primary: 221
 | `postcss.config.mjs` | 1 | Replace `tailwindcss` + `autoprefixer` with `@tailwindcss/postcss` |
 | `package.json` | 1 | Update/swap dependencies |
 | `lib/utils/cn.ts` | 0 | No change (tailwind-merge v3 has same API) |
-| shadcn/ui components | 0-34 | Potentially regenerate; ring-3 fixup if using bare `ring` |
+| shadcn/ui components | 0-34 | Potentially regenerate; ring-3 fixup if using bare `ring-3` |
 | Template files (`.tsx`) | ~10-20 | Rename deprecated utilities (automated by upgrade tool) |
 | Overlay CSS files | 0 | Plain CSS, no Tailwind directives |
 | Panel color schemes (`globals.css`) | 0 | Pure CSS variables, unaffected |
@@ -451,7 +451,7 @@ The existing CSS variables use space-separated HSL values (e.g., `--primary: 221
 
 | Risk | Mitigation |
 |---|---|
-| **Ring width regression**: Bare `ring` usage changes from 3px to 1px. Focus indicators may become invisible. | Search-and-replace `ring ` (with space) to `ring-3 ` across all `.tsx` files. |
+| **Ring width regression**: Bare `ring-3` usage changes from 3px to 1px. Focus indicators may become invisible. | Search-and-replace `ring-3 ` (with space) to `ring-3 ` across all `.tsx` files. |
 | **Border default color change**: Any `border` without explicit color will use `currentColor` instead of `gray-200`. | The global `@apply border-border` mitigates most cases, but inspect edge cases. |
 | **Snapshot tests**: Tests that assert on class names may fail if the upgrade tool renames classes. | Update test snapshots after migration. |
 | **tailwind-merge v3 edge cases**: New merge logic in v3 may resolve conflicts differently for some utility combinations. | Run full test suite; visually inspect components with dynamic class merging. |

@@ -43,7 +43,7 @@ function FilterButtons({
       {filters.map((f) => (
         <Button
           key={f.value}
-          variant={filter === f.value ? "default" : "outline"}
+          variant={filter === f.value ? "default" : "outline-solid"}
           size="sm"
           onClick={() => onFilterChange(f.value)}
           className="text-xs px-2 h-6"
@@ -202,7 +202,7 @@ export function EventLog() {
   return (
     <div className="flex flex-col h-full">
       {/* Header with filters and clear button */}
-      <div className="flex-shrink-0 space-y-2 pb-2">
+      <div className="shrink-0 space-y-2 pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {/* Connection indicator */}

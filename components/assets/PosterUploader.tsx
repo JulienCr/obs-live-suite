@@ -152,7 +152,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
           {/* Mode Selector */}
           <div className="flex gap-2">
             <Button
-              variant={mode === "file" ? "default" : "outline"}
+              variant={mode === "file" ? "default" : "outline-solid"}
               size="sm"
               onClick={() => setMode("file")}
             >
@@ -160,7 +160,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
               {t("uploadFile")}
             </Button>
             <Button
-              variant={mode === "youtube" ? "default" : "outline"}
+              variant={mode === "youtube" ? "default" : "outline-solid"}
               size="sm"
               onClick={() => setMode("youtube")}
             >

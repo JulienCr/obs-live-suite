@@ -121,7 +121,7 @@ export function ClipSection({
                 >
                   <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors group">
                     {/* Thumbnail */}
-                    <div className="w-24 h-14 rounded overflow-hidden bg-muted flex-shrink-0 relative">
+                    <div className="w-24 h-14 rounded overflow-hidden bg-muted shrink-0 relative">
                       {clip.thumbnailUrl ? (
                         <img
                           src={clip.thumbnailUrl}

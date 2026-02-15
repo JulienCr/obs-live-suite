@@ -132,14 +132,14 @@ export function QuestionList({ onEdit, onImport, onNewQuestion }: QuestionListPr
             placeholder={t("searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border rounded text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div>
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border rounded text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">{t("allTypes")}</option>
             {questionTypes.map(type => (

@@ -18,7 +18,7 @@ export const zoomConfigSchema = z.object({
   interval_ms: z.number().int().positive().default(300),
   steps: z.number().int().positive().default(20),
   cur_step: z.number().int().min(0).default(0),
-  effect: z.enum(["scale", "blur", "reveal"]).default("scale"),
+  effect: z.enum(["scale", "blur-sm", "reveal"]).default("scale"),
   easing: z.string().optional(),
 });
 

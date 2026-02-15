@@ -304,7 +304,7 @@ describe('PosterRenderer', () => {
   });
 
   it('should render poster layer for all transition types', async () => {
-    const transitions = ['fade', 'slide', 'cut', 'blur'] as const;
+    const transitions = ['fade', 'slide', 'cut', 'blur-sm'] as const;
 
     for (const transition of transitions) {
       const { unmount } = render(<PosterRenderer />);

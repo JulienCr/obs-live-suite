@@ -267,7 +267,7 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
         <div className="space-y-4">
         <div className="flex gap-2">
           <Button
-            variant={mode === "guest" ? "default" : "outline"}
+            variant={mode === "guest" ? "default" : "outline-solid"}
             size="sm"
             onClick={() => setMode("guest")}
             className="flex-1"
@@ -275,7 +275,7 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
             {t("guest")}
           </Button>
           <Button
-            variant={mode === "text" ? "default" : "outline"}
+            variant={mode === "text" ? "default" : "outline-solid"}
             size="sm"
             onClick={() => setMode("text")}
             className="flex-1"
@@ -373,7 +373,7 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
               value={markdown}
               onChange={(e) => setMarkdown(e.target.value)}
               placeholder={t("markdownPlaceholder")}
-              className="min-h-[120px] w-full rounded border border-input bg-background px-2.5 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="min-h-[120px] w-full rounded border border-input bg-background px-2.5 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               disabled={isWikipediaLoading || isSummarizing}
             />
             <p className="text-xs text-muted-foreground">
@@ -519,7 +519,7 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
 
         <div className="flex gap-2">
           <Button
-            variant={side === "left" ? "default" : "outline"}
+            variant={side === "left" ? "default" : "outline-solid"}
             size="sm"
             onClick={() => setSide("left")}
             className="flex-1"
@@ -527,7 +527,7 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
             {t("left")}
           </Button>
           <Button
-            variant={side === "right" ? "default" : "outline"}
+            variant={side === "right" ? "default" : "outline-solid"}
             size="sm"
             onClick={() => setSide("right")}
             className="flex-1"
@@ -535,7 +535,7 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
             {t("right")}
           </Button>
           <Button
-            variant={side === "center" ? "default" : "outline"}
+            variant={side === "center" ? "default" : "outline-solid"}
             size="sm"
             onClick={() => setSide("center")}
             className="flex-1"

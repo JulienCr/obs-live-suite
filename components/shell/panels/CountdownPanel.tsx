@@ -298,7 +298,7 @@ export function CountdownPanel(_props: IDockviewPanelProps) {
                 {positionPresets.map((preset) => (
                   <Button
                     key={preset.name}
-                    variant={position.x === preset.x && position.y === preset.y ? "default" : "outline"}
+                    variant={position.x === preset.x && position.y === preset.y ? "default" : "outline-solid"}
                     size="sm"
                     onClick={() => setPosition({ x: preset.x, y: preset.y })}
                     className="text-xs"

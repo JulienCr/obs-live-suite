@@ -150,7 +150,7 @@ export function TagInput({
       {/* Main input container */}
       <div
         className={cn(
-          "flex min-h-8 w-full flex-wrap gap-1.5 rounded border border-input bg-background px-2.5 py-1.5 text-xs ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+          "flex min-h-8 w-full flex-wrap gap-1.5 rounded border border-input bg-background px-2.5 py-1.5 text-xs ring-offset-background focus-within:outline-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
         )}
         onClick={() => inputRef.current?.focus()}
       >
@@ -188,7 +188,7 @@ export function TagInput({
             }
           }}
           placeholder={value.length === 0 ? placeholder : ""}
-          className="flex-1 min-w-[120px] bg-transparent outline-none placeholder:text-muted-foreground"
+          className="flex-1 min-w-[120px] bg-transparent outline-hidden placeholder:text-muted-foreground"
         />
       </div>
 

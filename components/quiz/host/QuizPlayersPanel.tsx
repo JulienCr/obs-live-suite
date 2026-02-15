@@ -168,7 +168,7 @@ export function QuizPlayersPanel({
         <h3 className="font-semibold text-sm mb-2">{t("viewerInput")}</h3>
         <Button
           size="sm"
-          variant={viewerInputEnabled ? "default" : "outline"}
+          variant={viewerInputEnabled ? "default" : "outline-solid"}
           onClick={onToggleViewerInput}
           className={cn(
             "w-full",

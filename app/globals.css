@@ -1,10 +1,70 @@
 /* Dockview styles */
-@import "dockview-react/dist/styles/dockview.css";
+@import 'dockview-react/dist/styles/dockview.css' layer(base);
 
-/* Tailwind - keep minimal utilities only */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+  max-width: 1400px;
+}
+
+@theme inline {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
 
 @layer base {
   :root {
@@ -54,7 +114,8 @@
   }
 }
 
-/* =============================================================================
+@layer utilities {
+  /* =============================================================================
    Panel Color Schemes
    Override Tailwind CSS variables within panel scope for form element theming
 
@@ -71,148 +132,149 @@
    - border: lighter (visible borders)
    ============================================================================= */
 
-/* Red scheme - Light mode */
-.panel-scheme-red {
-  --background: 0 60% 94%;
-  --card: 0 30% 99%;
-  --muted: 0 50% 88%;
-  --accent: 0 45% 92%;
-  --border: 0 40% 75%;
-  --input: 0 30% 99%;
-}
-.dark .panel-scheme-red {
-  --background: 0 35% 10%;
-  --card: 0 30% 15%;
-  --muted: 0 28% 18%;
-  --accent: 0 28% 20%;
-  --border: 0 25% 28%;
-  --input: 0 30% 15%;
-}
+  /* Red scheme - Light mode */
+  .panel-scheme-red {
+    --background: 0 60% 94%;
+    --card: 0 30% 99%;
+    --muted: 0 50% 88%;
+    --accent: 0 45% 92%;
+    --border: 0 40% 75%;
+    --input: 0 30% 99%;
+  }
+  .dark .panel-scheme-red {
+    --background: 0 35% 10%;
+    --card: 0 30% 15%;
+    --muted: 0 28% 18%;
+    --accent: 0 28% 20%;
+    --border: 0 25% 28%;
+    --input: 0 30% 15%;
+  }
 
-/* Blue scheme - Light mode */
-.panel-scheme-blue {
-  --background: 210 60% 94%;
-  --card: 210 30% 99%;
-  --muted: 210 50% 88%;
-  --accent: 210 45% 92%;
-  --border: 210 40% 75%;
-  --input: 210 30% 99%;
-}
-.dark .panel-scheme-blue {
-  --background: 210 35% 10%;
-  --card: 210 30% 15%;
-  --muted: 210 28% 18%;
-  --accent: 210 28% 20%;
-  --border: 210 25% 28%;
-  --input: 210 30% 15%;
-}
+  /* Blue scheme - Light mode */
+  .panel-scheme-blue {
+    --background: 210 60% 94%;
+    --card: 210 30% 99%;
+    --muted: 210 50% 88%;
+    --accent: 210 45% 92%;
+    --border: 210 40% 75%;
+    --input: 210 30% 99%;
+  }
+  .dark .panel-scheme-blue {
+    --background: 210 35% 10%;
+    --card: 210 30% 15%;
+    --muted: 210 28% 18%;
+    --accent: 210 28% 20%;
+    --border: 210 25% 28%;
+    --input: 210 30% 15%;
+  }
 
-/* Green scheme - Light mode */
-.panel-scheme-green {
-  --background: 140 45% 92%;
-  --card: 140 25% 99%;
-  --muted: 140 40% 85%;
-  --accent: 140 35% 90%;
-  --border: 140 35% 70%;
-  --input: 140 25% 99%;
-}
-.dark .panel-scheme-green {
-  --background: 140 28% 9%;
-  --card: 140 22% 14%;
-  --muted: 140 20% 17%;
-  --accent: 140 20% 19%;
-  --border: 140 18% 26%;
-  --input: 140 22% 14%;
-}
+  /* Green scheme - Light mode */
+  .panel-scheme-green {
+    --background: 140 45% 92%;
+    --card: 140 25% 99%;
+    --muted: 140 40% 85%;
+    --accent: 140 35% 90%;
+    --border: 140 35% 70%;
+    --input: 140 25% 99%;
+  }
+  .dark .panel-scheme-green {
+    --background: 140 28% 9%;
+    --card: 140 22% 14%;
+    --muted: 140 20% 17%;
+    --accent: 140 20% 19%;
+    --border: 140 18% 26%;
+    --input: 140 22% 14%;
+  }
 
-/* Yellow scheme - Light mode */
-.panel-scheme-yellow {
-  --background: 45 70% 92%;
-  --card: 45 40% 99%;
-  --muted: 45 60% 84%;
-  --accent: 45 55% 90%;
-  --border: 45 50% 68%;
-  --input: 45 40% 99%;
-}
-.dark .panel-scheme-yellow {
-  --background: 45 35% 9%;
-  --card: 45 28% 14%;
-  --muted: 45 25% 17%;
-  --accent: 45 25% 19%;
-  --border: 45 22% 26%;
-  --input: 45 28% 14%;
-}
+  /* Yellow scheme - Light mode */
+  .panel-scheme-yellow {
+    --background: 45 70% 92%;
+    --card: 45 40% 99%;
+    --muted: 45 60% 84%;
+    --accent: 45 55% 90%;
+    --border: 45 50% 68%;
+    --input: 45 40% 99%;
+  }
+  .dark .panel-scheme-yellow {
+    --background: 45 35% 9%;
+    --card: 45 28% 14%;
+    --muted: 45 25% 17%;
+    --accent: 45 25% 19%;
+    --border: 45 22% 26%;
+    --input: 45 28% 14%;
+  }
 
-/* Purple scheme - Light mode */
-.panel-scheme-purple {
-  --background: 270 45% 94%;
-  --card: 270 25% 99%;
-  --muted: 270 40% 88%;
-  --accent: 270 35% 92%;
-  --border: 270 30% 75%;
-  --input: 270 25% 99%;
-}
-.dark .panel-scheme-purple {
-  --background: 270 28% 11%;
-  --card: 270 22% 16%;
-  --muted: 270 20% 19%;
-  --accent: 270 20% 21%;
-  --border: 270 18% 28%;
-  --input: 270 22% 16%;
-}
+  /* Purple scheme - Light mode */
+  .panel-scheme-purple {
+    --background: 270 45% 94%;
+    --card: 270 25% 99%;
+    --muted: 270 40% 88%;
+    --accent: 270 35% 92%;
+    --border: 270 30% 75%;
+    --input: 270 25% 99%;
+  }
+  .dark .panel-scheme-purple {
+    --background: 270 28% 11%;
+    --card: 270 22% 16%;
+    --muted: 270 20% 19%;
+    --accent: 270 20% 21%;
+    --border: 270 18% 28%;
+    --input: 270 22% 16%;
+  }
 
-/* Orange scheme - Light mode */
-.panel-scheme-orange {
-  --background: 25 70% 92%;
-  --card: 25 40% 99%;
-  --muted: 25 60% 85%;
-  --accent: 25 55% 90%;
-  --border: 25 50% 68%;
-  --input: 25 40% 99%;
-}
-.dark .panel-scheme-orange {
-  --background: 25 35% 9%;
-  --card: 25 28% 14%;
-  --muted: 25 25% 17%;
-  --accent: 25 25% 19%;
-  --border: 25 22% 26%;
-  --input: 25 28% 14%;
-}
+  /* Orange scheme - Light mode */
+  .panel-scheme-orange {
+    --background: 25 70% 92%;
+    --card: 25 40% 99%;
+    --muted: 25 60% 85%;
+    --accent: 25 55% 90%;
+    --border: 25 50% 68%;
+    --input: 25 40% 99%;
+  }
+  .dark .panel-scheme-orange {
+    --background: 25 35% 9%;
+    --card: 25 28% 14%;
+    --muted: 25 25% 17%;
+    --accent: 25 25% 19%;
+    --border: 25 22% 26%;
+    --input: 25 28% 14%;
+  }
 
-/* Pink scheme - Light mode */
-.panel-scheme-pink {
-  --background: 330 55% 94%;
-  --card: 330 30% 99%;
-  --muted: 330 45% 88%;
-  --accent: 330 40% 92%;
-  --border: 330 35% 75%;
-  --input: 330 30% 99%;
-}
-.dark .panel-scheme-pink {
-  --background: 330 28% 11%;
-  --card: 330 22% 16%;
-  --muted: 330 20% 19%;
-  --accent: 330 20% 21%;
-  --border: 330 18% 28%;
-  --input: 330 22% 16%;
-}
+  /* Pink scheme - Light mode */
+  .panel-scheme-pink {
+    --background: 330 55% 94%;
+    --card: 330 30% 99%;
+    --muted: 330 45% 88%;
+    --accent: 330 40% 92%;
+    --border: 330 35% 75%;
+    --input: 330 30% 99%;
+  }
+  .dark .panel-scheme-pink {
+    --background: 330 28% 11%;
+    --card: 330 22% 16%;
+    --muted: 330 20% 19%;
+    --accent: 330 20% 21%;
+    --border: 330 18% 28%;
+    --input: 330 22% 16%;
+  }
 
-/* Cyan scheme - Light mode (hue 195 = more blue, less green) */
-.panel-scheme-cyan {
-  --background: 195 50% 92%;
-  --card: 195 30% 99%;
-  --muted: 195 45% 85%;
-  --accent: 195 40% 90%;
-  --border: 195 40% 70%;
-  --input: 195 30% 99%;
-}
-.dark .panel-scheme-cyan {
-  --background: 195 32% 9%;
-  --card: 195 25% 14%;
-  --muted: 195 22% 17%;
-  --accent: 195 22% 19%;
-  --border: 195 20% 26%;
-  --input: 195 25% 14%;
+  /* Cyan scheme - Light mode (hue 195 = more blue, less green) */
+  .panel-scheme-cyan {
+    --background: 195 50% 92%;
+    --card: 195 30% 99%;
+    --muted: 195 45% 85%;
+    --accent: 195 40% 90%;
+    --border: 195 40% 70%;
+    --input: 195 30% 99%;
+  }
+  .dark .panel-scheme-cyan {
+    --background: 195 32% 9%;
+    --card: 195 25% 14%;
+    --muted: 195 22% 17%;
+    --accent: 195 22% 19%;
+    --border: 195 20% 26%;
+    --input: 195 25% 14%;
+  }
 }
 
 @layer base {
@@ -235,7 +297,7 @@
   }
 }
 
-/* Panel Color Customization - Dynamic styles applied via PanelColorStyles component */
+/* Panel Color Customization - scheme classes applied via BasePanelWrapper and PanelTab */
 /* Base styles to ensure panel content uses CSS variable for background */
 [data-panel-id] {
   background-color: hsl(var(--background));

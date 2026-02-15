@@ -250,7 +250,7 @@ export function PluginSettings() {
       {/* Error message */}
       {error && (
         <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg flex items-start gap-2">
-          <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+          <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}

@@ -109,7 +109,7 @@ export function WorkspaceSaveDialog({ open, onOpenChange }: WorkspaceSaveDialogP
         <div className="grid gap-4 py-4">
           <div className="flex gap-4">
             <Button
-              variant={mode === "new" ? "default" : "outline"}
+              variant={mode === "new" ? "default" : "outline-solid"}
               size="sm"
               onClick={() => setMode("new")}
               className="flex-1"
@@ -117,7 +117,7 @@ export function WorkspaceSaveDialog({ open, onOpenChange }: WorkspaceSaveDialogP
               {t("saveDialog.createNew")}
             </Button>
             <Button
-              variant={mode === "overwrite" ? "default" : "outline"}
+              variant={mode === "overwrite" ? "default" : "outline-solid"}
               size="sm"
               onClick={() => setMode("overwrite")}
               className="flex-1"

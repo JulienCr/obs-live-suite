@@ -45,7 +45,7 @@ export function WidgetToolbar({
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant={isLocked ? "default" : "outline"}
+            variant={isLocked ? "default" : "outline-solid"}
             size="sm"
             onClick={onToggleLock}
             title={isLocked ? t("unlockToEdit") : t("lockToPrevent")}

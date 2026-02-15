@@ -332,7 +332,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
                 {positionPresets.map((preset) => (
                   <Button
                     key={preset.nameKey}
-                    variant={position.x === preset.x && position.y === preset.y ? "default" : "outline"}
+                    variant={position.x === preset.x && position.y === preset.y ? "default" : "outline-solid"}
                     size="sm"
                     onClick={() => handlePositionPreset(preset)}
                     className="text-xs"
@@ -434,7 +434,7 @@ export function CountdownCard({ size, className, settings }: CountdownCardProps 
                   checked={shadow}
                   onCheckedChange={(checked) => setShadow(checked === true)}
                 />
-                <Label htmlFor="shadow">{t("shadow")}</Label>
+                <Label htmlFor="shadow">{t("shadow-sm")}</Label>
               </div>
             </div>
           </div>

@@ -65,7 +65,7 @@ export function VdoNinjaPanel({ url }: VdoNinjaPanelProps) {
         <Button
           variant="secondary"
           size="icon"
-          className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+          className="h-8 w-8 bg-background/80 backdrop-blur-xs"
           onClick={handleRefresh}
           title={t("refresh")}
         >
@@ -74,7 +74,7 @@ export function VdoNinjaPanel({ url }: VdoNinjaPanelProps) {
         <Button
           variant="secondary"
           size="icon"
-          className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+          className="h-8 w-8 bg-background/80 backdrop-blur-xs"
           onClick={handleMuteToggle}
           title={isMuted ? t("unmute") : t("mute")}
         >
@@ -83,7 +83,7 @@ export function VdoNinjaPanel({ url }: VdoNinjaPanelProps) {
         <Button
           variant="secondary"
           size="icon"
-          className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+          className="h-8 w-8 bg-background/80 backdrop-blur-xs"
           onClick={handleOpenNewTab}
           title={t("openInNewTab")}
         >

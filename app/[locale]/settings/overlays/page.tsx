@@ -55,7 +55,7 @@ const overlays: Overlay[] = [
     features: [
       "Support images, vidéos, YouTube embeds",
       "Positionnement gauche/droite avec offset",
-      "Transitions: fade, slide, cut, blur",
+      "Transitions: fade, slide, cut, blur-sm",
       "Préservation ratio d'aspect",
     ],
   },
@@ -68,7 +68,7 @@ const overlays: Overlay[] = [
     features: [
       "Support images, vidéos, YouTube embeds",
       "Layout centré plein écran",
-      "Effets de transition: fade, slide, cut, blur",
+      "Effets de transition: fade, slide, cut, blur-sm",
       "Contrôles de lecture vidéo",
     ],
   },

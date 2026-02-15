@@ -97,12 +97,12 @@ export function GuestCard({
             ...(onToggleEnabled ? [{
               icon: isEnabled ? PowerOff : Power,
               onClick: () => onToggleEnabled(guest),
-              variant: isEnabled ? "outline" as const : "default" as const,
+              variant: isEnabled ? "outline-solid" as const : "default" as const,
               title: isEnabled ? t("disable") : t("enable"),
             }] : []),
             ...(onDelete ? [{ icon: Trash2, onClick: () => onDelete(guest), variant: "destructive" as const, title: t("delete") }] : []),
           ]}
-          className="!opacity-100"
+          className="opacity-100!"
         />
       </div>
     </div>

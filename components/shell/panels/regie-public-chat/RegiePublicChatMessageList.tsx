@@ -116,7 +116,7 @@ function ChatMessageRow({
       <div className="flex items-start gap-1.5">
         {/* Timestamp */}
         {preferences.showTimestamps && (
-          <span className="text-muted-foreground text-[10px] flex-shrink-0 pt-0.5">
+          <span className="text-muted-foreground text-[10px] shrink-0 pt-0.5">
             {formatTime(message.timestamp)}
           </span>
         )}
@@ -124,7 +124,7 @@ function ChatMessageRow({
         {/* Platform icon and Badges */}
         {(!message.metadata?.isReply ||
           (message.metadata?.badges && message.metadata.badges.length > 0)) && (
-          <div className="flex items-center gap-0.5 flex-shrink-0 pt-0.5">
+          <div className="flex items-center gap-0.5 shrink-0 pt-0.5">
             {!message.metadata?.isReply && (
               <PlatformIcon platform={message.platform} size="sm" />
             )}
@@ -144,7 +144,7 @@ function ChatMessageRow({
 
         {/* Username */}
         <span
-          className={cn("font-medium flex-shrink-0", usernameClass)}
+          className={cn("font-medium shrink-0", usernameClass)}
           style={
             message.metadata?.color && !highlights.role
               ? { color: message.metadata.color }
@@ -159,11 +159,11 @@ function ChatMessageRow({
           parts={message.parts}
           fallbackText={message.message}
           isMe={message.metadata?.isMe}
-          className="break-words min-w-0 flex-1"
+          className="wrap-break-word min-w-0 flex-1"
         />
 
         {/* Action buttons (visible on hover) */}
-        <div className="flex items-center gap-0.5 flex-shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0">
           {/* Show in Overlay button */}
           <Button
             variant="ghost"

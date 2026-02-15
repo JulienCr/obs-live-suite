@@ -88,7 +88,7 @@ function MessageEditButton({ item, onEdit, onDelete }: MessageEditButtonProps) {
         className="flex-1 justify-start h-auto py-1.5 px-2 text-sm"
         onClick={onEdit}
       >
-        <Pencil className="h-3 w-3 mr-2 flex-shrink-0" />
+        <Pencil className="h-3 w-3 mr-2 shrink-0" />
         <div className="flex flex-col items-start overflow-hidden">
           <span className="truncate w-full text-left">{item.title}</span>
           <span className="truncate w-full text-left text-xs text-muted-foreground">
@@ -126,9 +126,9 @@ function MessageSendButton({ item, connected, isSending, disabled, onSend }: Mes
     >
       <span className="truncate text-left">{item.title}</span>
       {isSending ? (
-        <Loader2 className="h-4 w-4 animate-spin ml-2 flex-shrink-0" />
+        <Loader2 className="h-4 w-4 animate-spin ml-2 shrink-0" />
       ) : (
-        <Send className="h-4 w-4 ml-2 flex-shrink-0" />
+        <Send className="h-4 w-4 ml-2 shrink-0" />
       )}
     </Button>
   );
@@ -432,7 +432,7 @@ export function ChatMessagesPanel(_props: IDockviewPanelProps) {
       {/* Not connected warning */}
       {!connected && !editMode && messages.length > 0 && (
         <div className="mt-3 flex items-center gap-2 p-2 bg-destructive/10 text-destructive rounded text-xs">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{t("connectFirst")}</span>
         </div>
       )}

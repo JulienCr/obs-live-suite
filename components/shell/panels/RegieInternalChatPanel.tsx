@@ -101,7 +101,7 @@ function RegieInternalChatContent() {
           return (
             <Button
               key={option.value}
-              variant={isActive ? "default" : "outline"}
+              variant={isActive ? "default" : "outline-solid"}
               size="sm"
               className="flex-1"
               onClick={() => setCueType(option.value)}
@@ -148,7 +148,7 @@ function RegieInternalChatContent() {
             {[30, 60, 120, 300].map((secs) => (
               <Button
                 key={secs}
-                variant={countdownSeconds === secs ? "default" : "outline"}
+                variant={countdownSeconds === secs ? "default" : "outline-solid"}
                 size="sm"
                 onClick={() => setCountdownSeconds(secs)}
               >
@@ -167,14 +167,14 @@ function RegieInternalChatContent() {
         onChange={(e) => setBody(e.target.value)}
         onKeyDown={handleKeyDown}
         rows={3}
-        className="flex-1 min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+        className="flex-1 min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
       />
 
       {/* Actions Row: Pin + Templates + Send */}
       <div className="flex gap-2 items-center">
         {/* Pin Toggle */}
         <Button
-          variant={pinned ? "default" : "outline"}
+          variant={pinned ? "default" : "outline-solid"}
           size="sm"
           onClick={() => setPinned(!pinned)}
           className={cn(pinned && "bg-primary")}

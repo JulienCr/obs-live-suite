@@ -117,7 +117,7 @@ export function PosterCard({
               : "opacity-0 group-hover:opacity-100"
           } transition-opacity`}
         >
-          <div className="bg-background/90 backdrop-blur-sm rounded-md p-1 shadow-md">
+          <div className="bg-background/90 backdrop-blur-xs rounded-md p-1 shadow-md">
             <Checkbox
               checked={isSelected}
               onCheckedChange={() => onToggleSelection(poster.id)}
@@ -196,7 +196,7 @@ export function PosterCard({
         {/* Type Badge Overlay */}
         <Badge
           variant="secondary"
-          className="absolute top-2 right-2 text-xs backdrop-blur-sm bg-background/80"
+          className="absolute top-2 right-2 text-xs backdrop-blur-xs bg-background/80"
         >
           {poster.type}
         </Badge>
@@ -238,7 +238,7 @@ export function PosterCard({
               icon: isEnabled ? PowerOff : Power,
               label: isEnabled ? "Disable" : "Enable",
               onClick: () => onToggleEnabled(poster),
-              variant: isEnabled ? "outline" as const : "default" as const,
+              variant: isEnabled ? "outline-solid" as const : "default" as const,
               title: isEnabled ? "Disable" : "Enable",
               className: "flex-1 h-8 text-xs",
             }] : []),

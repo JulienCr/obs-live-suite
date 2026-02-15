@@ -14,7 +14,7 @@ export function QuizScorePanel({ players, visible = true }: QuizScorePanelProps)
   if (!visible || !players || players.length === 0) return null;
 
   return (
-    <div className="absolute top-6 left-6 bg-black/80 backdrop-blur-sm rounded-lg p-3 min-w-[200px] border border-white/20">
+    <div className="absolute top-6 left-6 bg-black/80 backdrop-blur-xs rounded-lg p-3 min-w-[200px] border border-white/20">
       <h3 className="text-white text-sm font-bold mb-2 uppercase tracking-wide">Scores</h3>
       <div className="space-y-1">
         {players.map((p) => {

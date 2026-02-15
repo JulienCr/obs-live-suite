@@ -319,7 +319,7 @@ export function TwitchPanel(_props: IDockviewPanelProps) {
       {/* Error state */}
       {error && !loading && (
         <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg mb-4">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <AlertCircle className="h-4 w-4 shrink-0" />
           <span className="text-sm">{error}</span>
         </div>
       )}

@@ -84,7 +84,7 @@ export function StreamerbotChatHeader({
   const statusText = getStatusText(status, t, error?.message);
 
   return (
-    <div className="flex-shrink-0 h-10 px-3 flex items-center justify-between border-b bg-card">
+    <div className="shrink-0 h-10 px-3 flex items-center justify-between border-b bg-card">
       <div className="flex items-center gap-2">
         {/* Connection status */}
         <div className={cn("flex items-center gap-1.5", statusColor)}>

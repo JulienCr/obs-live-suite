@@ -143,7 +143,7 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
                       shortcut: index === 9 ? "0" : String(index + 1),
                     })}
                   >
-                    <div className="w-5 h-5 rounded flex items-center justify-center bg-primary/10 text-primary text-xs font-bold flex-shrink-0">
+                    <div className="w-5 h-5 rounded flex items-center justify-center bg-primary/10 text-primary text-xs font-bold shrink-0">
                       {index === 9 ? "0" : index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -156,11 +156,11 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
                     </div>
 
                     {isActive ? (
-                      <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 bg-green-500 rounded-full">
+                      <div className="shrink-0 flex items-center justify-center w-6 h-6 bg-green-500 rounded-full">
                         <Zap className="w-3 h-3 text-white fill-white" />
                       </div>
                     ) : (
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-6 w-6 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-6 w-6 flex items-center justify-center">
                         <Zap className="w-3 h-3 text-muted-foreground" />
                       </div>
                     )}

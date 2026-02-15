@@ -12,6 +12,7 @@ interface PanelColorsState {
   _initialized: boolean;
 
   // Actions
+  hydrate: (colors: Record<string, PanelColorEntry>) => void;
   fetchColors: () => Promise<void>;
   setScheme: (panelId: PanelId, scheme: ColorScheme) => Promise<void>;
   resetScheme: (panelId: PanelId) => Promise<void>;
@@ -21,6 +22,10 @@ export const usePanelColorsStore = create<PanelColorsState>((set, get) => ({
   colors: {},
   isLoading: true,
   _initialized: false,
+
+  hydrate: (colors) => {
+    set({ colors, _initialized: true, isLoading: false });
+  },
 
   fetchColors: async () => {
     if (get()._initialized) return;

@@ -10,7 +10,7 @@ export interface CardAction {
   label?: string;
   onClick?: () => void;
   href?: string;
-  variant?: "default" | "outline" | "destructive" | "ghost";
+  variant?: "default" | "outline-solid" | "destructive" | "ghost";
   title?: string;
   disabled?: boolean;
   className?: string;
@@ -41,7 +41,7 @@ export function CardActionBar({
     return (
       <Button
         key={index}
-        variant={action.variant ?? "outline"}
+        variant={action.variant ?? "outline-solid"}
         size="sm"
         onClick={action.onClick}
         title={action.title}

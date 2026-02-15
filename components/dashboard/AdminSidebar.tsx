@@ -146,7 +146,7 @@ export function AdminSidebar() {
                               : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                           )}
                         >
-                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          <Icon className="w-4 h-4 shrink-0" />
                           <span>{tItems(item.labelKey)}</span>
                         </Link>
                       );

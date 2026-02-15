@@ -40,7 +40,7 @@ interface PosterData {
 interface PosterState {
   visible: boolean;
   current: PosterData | null;
-  transition: "fade" | "slide" | "cut" | "blur";
+  transition: "fade" | "slide" | "cut" | "blur-sm";
   side: "left" | "right";
 }
 

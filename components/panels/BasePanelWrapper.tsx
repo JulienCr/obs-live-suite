@@ -43,8 +43,12 @@ export function BasePanelWrapper({
     ...style,
   };
 
+  const scheme = usePanelColorsStore((s) => s.colors[config.id]?.scheme);
+  const schemeClass = scheme && scheme !== "neutral" ? `panel-scheme-${scheme}` : "";
+  const combinedClassName = [schemeClass, className].filter(Boolean).join(" ") || undefined;
+
   const content = (
-    <div data-panel-id={config.id} style={containerStyle} className={className}>
+    <div data-panel-id={config.id} style={containerStyle} className={combinedClassName}>
       {children}
     </div>
   );

@@ -196,7 +196,7 @@
       "font": "Font",
       "fontSize": "Font Size",
       "fontWeight": "Weight",
-      "shadow": "Shadow",
+      "shadow-sm": "Shadow",
       "presets": "Presets",
       "styles": {
         "bold": "Bold",
