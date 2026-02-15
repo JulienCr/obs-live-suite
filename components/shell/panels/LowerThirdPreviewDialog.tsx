@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LowerThirdDisplay } from "@/components/overlays/LowerThirdDisplay";
+import { OverlayMotionProvider } from "@/components/overlays/OverlayMotionProvider";
 import { apiGet } from "@/lib/utils/ClientFetch";
 import { ColorScheme, FontConfig, LayoutConfig, LowerThirdAnimationTheme } from "@/lib/models/Theme";
 import { Loader2 } from "lucide-react";
@@ -32,7 +33,6 @@ interface ThemeData {
   lowerThirdAnimation?: LowerThirdAnimationTheme;
 }
 
-// Default theme for preview when no theme is configured
 const DEFAULT_PREVIEW_THEME: ThemeData = {
   colors: {
     primary: "#3b82f6",
@@ -92,7 +92,6 @@ export function LowerThirdPreviewDialog({
   const [previewScale, setPreviewScale] = useState(0.5);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Update scale using ResizeObserver for accurate measurement
   useEffect(() => {
     if (!open) return;
 
@@ -100,21 +99,17 @@ export function LowerThirdPreviewDialog({
     if (!container) return;
 
     const updateScale = (entries?: ResizeObserverEntry[]) => {
-      // Use ResizeObserver entry if available, otherwise measure directly
       const width = entries?.[0]?.contentRect.width ?? container.clientWidth;
-      // Scale to fit width perfectly (both container and content are 16:9)
       const scale = width / 1920;
       setPreviewScale(scale);
     };
 
-    // Use ResizeObserver for reliable size tracking
     const resizeObserver = new ResizeObserver(updateScale);
     resizeObserver.observe(container);
 
     return () => resizeObserver.disconnect();
   }, [open]);
 
-  // Fetch active theme when dialog opens
   useEffect(() => {
     if (!open) {
       setAnimating(false);
@@ -124,12 +119,10 @@ export function LowerThirdPreviewDialog({
     const fetchTheme = async () => {
       setLoading(true);
       try {
-        // Get all profiles and find the active one
         const profilesData = await apiGet<ProfilesResponse>("/api/profiles");
         const activeProfile = profilesData.profiles?.find(p => p.isActive);
 
         if (activeProfile?.themeId) {
-          // Get theme details
           const themeData = await apiGet<ThemeResponse>(`/api/themes/${activeProfile.themeId}`);
 
           if (themeData.theme) {
@@ -145,7 +138,6 @@ export function LowerThirdPreviewDialog({
         console.error("Failed to fetch theme for preview:", error);
       } finally {
         setLoading(false);
-        // Start animation after a short delay
         setTimeout(() => setAnimating(true), 100);
       }
     };
@@ -184,6 +176,7 @@ export function LowerThirdPreviewDialog({
                 overflow: "hidden",
               }}
             >
+              <OverlayMotionProvider>
               <div
                 className="origin-top-left"
                 style={{
@@ -206,6 +199,7 @@ export function LowerThirdPreviewDialog({
                   viewportWidth={1920}
                 />
               </div>
+              </OverlayMotionProvider>
             </div>
           )}
         </div>

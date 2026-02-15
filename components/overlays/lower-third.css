@@ -85,14 +85,8 @@
   margin: -8px;
 }
 
-.face.front {
-  opacity: 0;
-  transform: scale(1.6);
-  transition:
-    opacity var(--lt-timing-logo-fade) ease,
-    transform var(--lt-timing-logo-scale) ease;
-}
-
+/* Avatar opacity/scale animation is handled by Framer Motion on the parent m.div.
+   .face.front.visible keeps the face statically visible (no CSS transition needed). */
 .face.front.visible {
   opacity: 1;
   transform: scale(1);
@@ -110,6 +104,7 @@
 }
 
 /* ===== BAR ===== */
+/* Bar scaleX animation is handled by Framer Motion initial/animate props. */
 .bar {
   height: 80px;
   background: var(--lt-color-bar-bg);
@@ -120,8 +115,6 @@
   display: flex;
   align-items: center;
   transform-origin: left;
-  transform: scaleX(0);
-  transition: transform var(--lt-timing-bar-expand) cubic-bezier(0.16, 1, 0.3, 1);
   min-width: var(--lt-bar-min-width);
   overflow: hidden;
   z-index: 1;
@@ -136,11 +129,6 @@
   transform-origin: right;
 }
 
-/* Right position: text slides in from right */
-.lowerthird--right .text {
-  transform: translateX(10px);
-}
-
 /* Right position: allow container to shrink to content */
 .lowerthird--right.lowerthird--text {
   width: fit-content;
@@ -151,10 +139,6 @@
 .lowerthird--center.lowerthird--text {
   width: fit-content;
   align-items: center;
-}
-
-.bar.show {
-  transform: scaleX(1);
 }
 
 /* ===== TEXT MODE ===== */
@@ -173,7 +157,8 @@
   gap: 6px;
 }
 
-/* Image au-dessus de la barre (hors du container .bar) */
+/* Image au-dessus de la barre (hors du container .bar)
+   Opacity/transform animation handled by Framer Motion. */
 .lowerthird-media {
   width: 200px;
   height: 125px;
@@ -182,14 +167,6 @@
   flex-shrink: 0;
   background: rgba(0, 0, 0, 0.2);
   margin-bottom: 8px;
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.lowerthird-media.show {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .lowerthird-media img {
@@ -204,15 +181,7 @@
   white-space: normal;
 }
 
-.lowerthird-line {
-  opacity: 0;
-  transform: translateY(6px);
-}
-
-.text.show .lowerthird-line {
-  animation: lt-line-in var(--lt-timing-text-fade) ease forwards;
-  animation-delay: var(--lt-line-delay, 0ms);
-}
+/* Per-line opacity/transform animation handled by Framer Motion. */
 
 .lowerthird-markdown p {
   margin: 0;
@@ -240,29 +209,8 @@
   color: var(--lt-color-subtitle);
 }
 
-@keyframes lt-line-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-/* ===== TEXT ===== */
-.text {
-  opacity: 0;
-  transform: translateX(-10px);
-  transition:
-    opacity var(--lt-timing-text-fade) ease,
-    transform var(--lt-timing-text-slide) cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.text.show {
-  opacity: 1;
-  transform: none;
-}
+/* ===== TEXT =====
+   Opacity/transform animation handled by Framer Motion initial/animate props. */
 
 .name {
   font-size: 32px;

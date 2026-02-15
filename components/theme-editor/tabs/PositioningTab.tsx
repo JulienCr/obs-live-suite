@@ -3,22 +3,28 @@
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { PositionEditor } from "../inputs/PositionEditor";
-import { useThemeEditor } from "../ThemeEditorContext";
+import { useThemeEditorStore, DEFAULT_FORM_DATA } from "@/lib/stores";
+import { useShallow } from "zustand/react/shallow";
 
 /**
  * Positioning tab for theme editor
  */
 export function PositioningTab() {
-  const {
-    formData,
-    updateLowerThirdLayout,
-    updateCountdownLayout,
-    updatePosterLayout,
-    resetLowerThirdLayout,
-    resetCountdownLayout,
-    resetPosterLayout,
-    resetAllLayouts,
-  } = useThemeEditor();
+  const { lowerThirdLayout, countdownLayout, posterLayout } =
+    useThemeEditorStore(
+      useShallow((s) => ({
+        lowerThirdLayout: s.formData.lowerThirdLayout,
+        countdownLayout: s.formData.countdownLayout,
+        posterLayout: s.formData.posterLayout,
+      }))
+    );
+  const updateLowerThirdLayout = useThemeEditorStore((s) => s.updateLowerThirdLayout);
+  const updateCountdownLayout = useThemeEditorStore((s) => s.updateCountdownLayout);
+  const updatePosterLayout = useThemeEditorStore((s) => s.updatePosterLayout);
+  const resetLowerThirdLayout = useThemeEditorStore((s) => s.resetLowerThirdLayout);
+  const resetCountdownLayout = useThemeEditorStore((s) => s.resetCountdownLayout);
+  const resetPosterLayout = useThemeEditorStore((s) => s.resetPosterLayout);
+  const resetAllLayouts = useThemeEditorStore((s) => s.resetAllLayouts);
 
   return (
     <div className="space-y-6">
@@ -40,21 +46,21 @@ export function PositioningTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <PositionEditor
           label="Lower Third"
-          value={formData.lowerThirdLayout || { x: 60, y: 920, scale: 1 }}
+          value={lowerThirdLayout || DEFAULT_FORM_DATA.lowerThirdLayout!}
           onChange={updateLowerThirdLayout}
           onReset={resetLowerThirdLayout}
         />
 
         <PositionEditor
           label="Countdown"
-          value={formData.countdownLayout || { x: 960, y: 540, scale: 1 }}
+          value={countdownLayout || DEFAULT_FORM_DATA.countdownLayout!}
           onChange={updateCountdownLayout}
           onReset={resetCountdownLayout}
         />
 
         <PositionEditor
           label="Poster"
-          value={formData.posterLayout || { x: 960, y: 540, scale: 1 }}
+          value={posterLayout || DEFAULT_FORM_DATA.posterLayout!}
           onChange={updatePosterLayout}
           onReset={resetPosterLayout}
         />

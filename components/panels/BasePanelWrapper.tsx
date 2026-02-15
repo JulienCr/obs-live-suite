@@ -1,7 +1,7 @@
 "use client";
 
 import { PanelColorMenu } from "@/components/shell/PanelColorMenu";
-import { usePanelColorsSafe } from "@/components/shell/PanelColorsContext";
+import { usePanelColorsStore } from "@/lib/stores";
 import type { BasePanelWrapperProps } from "@/lib/panels/types";
 import type { PanelId } from "@/lib/models/PanelColor";
 
@@ -21,13 +21,13 @@ export function BasePanelWrapper({
   className,
   style,
 }: BasePanelWrapperProps): React.ReactElement {
-  const panelColors = usePanelColorsSafe();
+  const panelColorsInitialized = usePanelColorsStore((s) => s._initialized);
 
   // Determine if color menu should be enabled
   const showColorMenu =
     config.context === "dashboard" &&
     config.colorMenuEnabled !== false &&
-    panelColors !== null;
+    panelColorsInitialized;
 
   // Calculate padding: prop > config > context default
   const computedPadding =

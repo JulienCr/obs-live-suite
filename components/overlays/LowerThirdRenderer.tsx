@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { LowerThirdShowPayload, LowerThirdAnimationConfig } from "@/lib/models/OverlayEvents";
 import { LowerThirdDisplay } from "./LowerThirdDisplay";
+import { OverlayMotionProvider } from "./OverlayMotionProvider";
 import { LowerThirdAnimationTheme } from "@/lib/models/Theme";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 
@@ -50,9 +51,6 @@ interface LowerThirdState {
   theme?: ThemeData;
 }
 
-/**
- * WebSocket message payload for lower third events
- */
 interface LowerThirdEventData {
   type: string;
   payload?: LowerThirdShowPayload;
@@ -73,25 +71,29 @@ export function LowerThirdRenderer() {
   });
 
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const visibilityTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const sendAckRef = useRef<(eventId: string) => void>(() => {});
+
+  useEffect(() => {
+    return () => {
+      if (hideTimeout.current) clearTimeout(hideTimeout.current);
+      if (visibilityTimeout.current) clearTimeout(visibilityTimeout.current);
+    };
+  }, []);
 
   const handleMessage = useCallback((data: LowerThirdEventData) => {
     if (hideTimeout.current) {
       clearTimeout(hideTimeout.current);
+      hideTimeout.current = undefined;
+    }
+    if (visibilityTimeout.current) {
+      clearTimeout(visibilityTimeout.current);
+      visibilityTimeout.current = undefined;
     }
 
     switch (data.type) {
       case "show":
         if (data.payload) {
-          console.log("[LowerThird] Received show payload:", data.payload);
-          console.log("[LowerThird] Has theme?", !!data.payload.theme);
-          if (data.payload.theme) {
-            console.log("[LowerThird] Theme data:", {
-              colors: data.payload.theme.colors,
-              font: data.payload.theme.font,
-              layout: data.payload.theme.layout,
-            });
-          }
           setState({
             visible: true,
             animating: true,
@@ -114,21 +116,20 @@ export function LowerThirdRenderer() {
           if (data.payload.duration) {
             hideTimeout.current = setTimeout(() => {
               setState((prev) => ({ ...prev, animating: false }));
-              setTimeout(() => {
+              visibilityTimeout.current = setTimeout(() => {
                 setState((prev) => ({ ...prev, visible: false }));
-              }, 500); // Wait for animation to complete
+              }, 500); // Wait for exit animation to complete
             }, data.payload.duration * 1000);
           }
         }
         break;
       case "hide":
         setState((prev) => ({ ...prev, animating: false }));
-        setTimeout(() => {
+        visibilityTimeout.current = setTimeout(() => {
           setState((prev) => ({ ...prev, visible: false }));
-        }, 500); // Wait for animation to complete
+        }, 500); // Wait for exit animation to complete
         break;
       case "update":
-        console.log("[LowerThird] Received update payload:", data.payload);
         setState((prev) => ({
           ...prev,
           ...data.payload,
@@ -146,7 +147,6 @@ export function LowerThirdRenderer() {
         break;
     }
 
-    // Send acknowledgment
     sendAckRef.current(data.id);
   }, []);
 
@@ -156,42 +156,36 @@ export function LowerThirdRenderer() {
     { logPrefix: "LowerThird" }
   );
 
-  // Keep ref up to date
   sendAckRef.current = sendAck;
 
   if (!state.visible) {
     return null;
   }
 
-  console.log("[LowerThird] Rendering with theme:", {
-    hasTheme: !!state.theme,
-    colors: state.theme?.colors,
-    font: state.theme?.font,
-    layout: state.theme?.layout,
-  });
-
   return (
-    <LowerThirdDisplay
-      title={state.title}
-      subtitle={state.subtitle}
-      body={state.body}
-      contentType={state.contentType}
-      imageUrl={state.imageUrl}
-      imageAlt={state.imageAlt}
-      logoImage={state.logoImage}
-      avatarImage={state.avatarImage}
-      logoHasPadding={state.logoHasPadding}
-      accentColor={state.accentColor}
-      side={state.side}
-      theme={state.theme ? {
-        colors: state.theme.colors,
-        font: state.theme.font,
-        layout: state.theme.layout || { x: 60, y: 920, scale: 1 },
-        lowerThirdAnimation: state.theme.lowerThirdAnimation,
-      } : undefined}
-      animationConfig={state.animationConfig}
-      animating={state.animating}
-      isPreview={false}
-    />
+    <OverlayMotionProvider>
+      <LowerThirdDisplay
+        title={state.title}
+        subtitle={state.subtitle}
+        body={state.body}
+        contentType={state.contentType}
+        imageUrl={state.imageUrl}
+        imageAlt={state.imageAlt}
+        logoImage={state.logoImage}
+        avatarImage={state.avatarImage}
+        logoHasPadding={state.logoHasPadding}
+        accentColor={state.accentColor}
+        side={state.side}
+        theme={state.theme ? {
+          colors: state.theme.colors,
+          font: state.theme.font,
+          layout: state.theme.layout || { x: 60, y: 920, scale: 1 },
+          lowerThirdAnimation: state.theme.lowerThirdAnimation,
+        } : undefined}
+        animationConfig={state.animationConfig}
+        animating={state.animating}
+        isPreview={false}
+      />
+    </OverlayMotionProvider>
   );
 }

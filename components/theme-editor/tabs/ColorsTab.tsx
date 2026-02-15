@@ -3,22 +3,15 @@
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { ColorPicker } from "../inputs/ColorPicker";
-import { useThemeEditor } from "../ThemeEditorContext";
+import { useThemeEditorStore, DEFAULT_FORM_DATA } from "@/lib/stores";
 
 /**
  * Colors tab for theme editor
  */
 export function ColorsTab() {
-  const { formData, updateColor, resetColors } = useThemeEditor();
-
-  const colors = formData.colors || {
-    primary: "#3B82F6",
-    accent: "#60A5FA",
-    surface: "#1E293B",
-    text: "#F8FAFC",
-    success: "#10B981",
-    warn: "#F59E0B",
-  };
+  const colors = useThemeEditorStore((s) => s.formData.colors) || DEFAULT_FORM_DATA.colors!;
+  const updateColor = useThemeEditorStore((s) => s.updateColor);
+  const resetColors = useThemeEditorStore((s) => s.resetColors);
 
   const colorDescriptions: Record<string, string> = {
     primary: "Main brand color",

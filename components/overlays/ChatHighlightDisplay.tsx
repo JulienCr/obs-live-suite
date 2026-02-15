@@ -1,5 +1,6 @@
 "use client";
 
+import { m } from "framer-motion";
 import { ChatHighlightMessagePart } from "@/lib/models/OverlayEvents";
 import "./chat-highlight.css";
 
@@ -39,8 +40,18 @@ export interface ChatHighlightDisplayProps {
   metadata?: ChatHighlightMetadata;
   side?: "left" | "right" | "center";
   theme?: ChatHighlightTheme;
-  animating?: boolean;
   isPreview?: boolean;
+}
+
+function getPositionBySide(side: "left" | "right" | "center"): React.CSSProperties {
+  switch (side) {
+    case "center":
+      return { left: "50%" };
+    case "right":
+      return { right: "60px" };
+    default:
+      return { left: "60px" };
+  }
 }
 
 /**
@@ -55,10 +66,8 @@ export function ChatHighlightDisplay({
   metadata,
   side = "center",
   theme,
-  animating = true,
   isPreview = false,
 }: ChatHighlightDisplayProps) {
-  // Theme-based colors
   const backgroundColor = theme
     ? `rgba(${parseInt(theme.colors.surface.slice(1, 3), 16)}, ${parseInt(theme.colors.surface.slice(3, 5), 16)}, ${parseInt(theme.colors.surface.slice(5, 7), 16)}, 0.85)`
     : "rgba(15, 16, 20, 0.85)";
@@ -66,7 +75,6 @@ export function ChatHighlightDisplay({
   const textColor = theme?.colors.text || "#ffffff";
   const accentColor = theme?.colors.accent || "#9146FF"; // Twitch purple as default
 
-  // Username color: use metadata color, or role-based, or accent
   const usernameColor = metadata?.color || getUsernameRoleColor(metadata) || accentColor;
 
   const fontFamily = theme?.font.family || "Inter, sans-serif";
@@ -82,36 +90,23 @@ export function ChatHighlightDisplay({
     "--ch-font-weight": fontWeight,
   } as React.CSSProperties;
 
+  const isCenter = side === "center" && !isPreview;
+
   const containerStyle: React.CSSProperties = {
     ...cssVars,
     ...(isPreview
-      ? {
-          position: "relative" as const,
-        }
-      : {
-          position: "fixed" as const,
-          ...(side === "center"
-            ? {
-                left: "50%",
-                bottom: "80px",
-                transform: "translateX(-50%)",
-              }
-            : side === "right"
-              ? {
-                  right: "60px",
-                  bottom: "80px",
-                }
-              : {
-                  left: "60px",
-                  bottom: "80px",
-                }),
-        }),
+      ? { position: "relative" as const }
+      : { position: "fixed" as const, bottom: "80px", ...getPositionBySide(side) }),
   };
 
   return (
-    <div
-      className={`chat-highlight chat-highlight--${side} ${animating ? "chat-highlight--visible" : "chat-highlight--hidden"}`}
+    <m.div
+      className={`chat-highlight chat-highlight--${side}`}
       style={containerStyle}
+      initial={{ opacity: 0, y: 30, ...(isCenter && { x: "-50%" }) }}
+      animate={{ opacity: 1, y: 0, ...(isCenter && { x: "-50%" }) }}
+      exit={{ opacity: 0, y: 30, ...(isCenter && { x: "-50%" }) }}
+      transition={{ type: "tween", duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
     >
       <div className="chat-highlight__bar">
         {/* Header row: platform + badges + username */}
@@ -161,7 +156,7 @@ export function ChatHighlightDisplay({
           )}
         </div>
       </div>
-    </div>
+    </m.div>
   );
 }
 

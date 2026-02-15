@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, useLayoutEffect } from "react";
+import { useEffect, useState, useRef, useMemo, useLayoutEffect, useCallback } from "react";
+import { m } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
@@ -10,7 +11,6 @@ import { ColorScheme, FontConfig, LayoutConfig, LowerThirdAnimationTheme } from 
 import { waitForFont } from "@/lib/utils/fontLoader";
 import "./lower-third.css";
 
-// Standard broadcast width for consistent text wrapping calculations
 const BROADCAST_WIDTH = 1920;
 
 export interface LowerThirdDisplayProps {
@@ -59,18 +59,14 @@ export function LowerThirdDisplay({
   isPreview = false,
   viewportWidth: propViewportWidth,
 }: LowerThirdDisplayProps) {
-  const [logoVisible, setLogoVisible] = useState(false);
-  const [flipped, setFlipped] = useState(false);
-  const [barVisible, setBarVisible] = useState(false);
-  const [textVisible, setTextVisible] = useState(false);
-  
-  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+  type AnimPhase = "idle" | "logo" | "flip" | "bar" | "text" | "visible";
+  const [phase, setPhase] = useState<AnimPhase>("idle");
+
   const markdownRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [wrapWidth, setWrapWidth] = useState(0);
   const [fontReady, setFontReady] = useState(false);
 
-  // Merge config with priority: animationConfig prop > theme.lowerThirdAnimation > defaults
   const themeAnimation = theme?.lowerThirdAnimation;
   
   const config = {
@@ -97,11 +93,9 @@ export function LowerThirdDisplay({
     },
   };
 
-  // Apply theme styles
   const layout = theme?.layout || { x: 60, y: 920, scale: 1 };
   const accentColor = theme?.colors.primary || propAccentColor || "#3b82f6";
   
-  // Use theme animation color overrides if available, otherwise use theme colors
   const backgroundColor = themeAnimation?.colors?.barBgColor || (theme 
     ? `rgba(${parseInt(theme.colors.surface.slice(1, 3), 16)}, ${parseInt(theme.colors.surface.slice(3, 5), 16)}, ${parseInt(theme.colors.surface.slice(5, 7), 16)}, 0.75)`
     : "rgba(15, 16, 20, 0.75)");
@@ -111,72 +105,59 @@ export function LowerThirdDisplay({
     ? `${theme.colors.text}BF` 
     : "rgba(255, 255, 255, 0.75)");
 
-  // Determine images
   const finalLogoImage = logoImage || DEFAULT_LOGO_IMAGE;
-  const finalAvatarImage = avatarImage || undefined; // Ensure empty string becomes undefined
+  const hasAvatar = !!avatarImage;
 
-  // Animation sequence
+  const isTextMode = contentType === "text" || !!body;
+
   useEffect(() => {
-    // Clear any existing timeouts
-    timeoutsRef.current.forEach(clearTimeout);
-    timeoutsRef.current = [];
-
     if (!animating) {
-      // Ne rien faire - laisser le CSS gérer l'animation de sortie
-      // Les états seront reset quand une nouvelle animation d'entrée commence
+      // Don't reset phase on exit: FM elements stay in their visible state
+      // while CSS .animate-out keyframes handle the sequenced exit visual.
+      // Phase will be reset when a new show starts (animating=true).
       return;
     }
 
-    // Reset states
-    setLogoVisible(false);
-    setFlipped(false);
-    setBarVisible(false);
-    setTextVisible(false);
-
-    // Start animation sequence with a small initial delay to ensure DOM is ready
+    setPhase("idle");
     const initTimeout = setTimeout(() => {
-      // 1. Logo appears
-      setLogoVisible(true);
-
-      // Calculate timing based on whether we have an avatar to flip
-      const hasAvatar = !!finalAvatarImage;
-      const barDelay = hasAvatar ? config.timing.barAppearDelay : 300; // Quick delay if no flip
-      const textDelay = hasAvatar ? config.timing.textAppearDelay : 500;
-
-      // 2. Flip starts (only if avatar image is provided)
-      if (hasAvatar) {
-        const flipTimeout = setTimeout(() => {
-          setFlipped(true);
-        }, config.timing.flipDelay);
-        timeoutsRef.current.push(flipTimeout);
+      if (isTextMode) {
+        setPhase("bar");
+      } else {
+        setPhase("logo");
       }
-
-      // 3. Bar appears
-      const barTimeout = setTimeout(() => {
-        setBarVisible(true);
-      }, barDelay);
-
-      // 4. Text appears
-      const textTimeout = setTimeout(() => {
-        setTextVisible(true);
-      }, textDelay);
-
-      timeoutsRef.current.push(barTimeout, textTimeout);
     }, 50);
 
-    timeoutsRef.current.push(initTimeout);
+    return () => clearTimeout(initTimeout);
+  }, [animating, isTextMode]);
 
-    return () => {
-      timeoutsRef.current.forEach(clearTimeout);
-      timeoutsRef.current = [];
-    };
-  }, [animating, finalAvatarImage, config.timing.flipDelay, config.timing.barAppearDelay, config.timing.textAppearDelay]);
+  const advancePhase = useCallback(() => {
+    setPhase((current) => {
+      switch (current) {
+        case "logo":
+          return hasAvatar ? "flip" : "bar"; // Skip flip if no avatar
+        case "flip":
+          return "bar";
+        case "bar":
+          return "text";
+        case "text":
+          return "visible";
+        default:
+          return current;
+      }
+    });
+  }, [hasAvatar]);
 
-  // Generate CSS variables - memoized to prevent re-render flicker
+  useEffect(() => {
+    if (phase !== "flip") return;
+    const timer = setTimeout(() => {
+      setPhase("bar");
+    }, config.timing.flipDuration);
+    return () => clearTimeout(timer);
+  }, [phase, config.timing.flipDuration]);
+
   const freeTextMaxWidth = config.styles.freeTextMaxWidth?.[side] ?? (side === 'center' ? 90 : 65);
   const centeredBottomOffset = 80;
 
-  // Wrapper style with scale - separate from animated content
   const wrapperStyle = useMemo<React.CSSProperties>(() => {
     if (isPreview) {
       // Preview mode: use absolute positioning, NO layout.scale (preview container handles scaling)
@@ -190,15 +171,12 @@ export function LowerThirdDisplay({
         } : side === "right" ? {
           right: `${layout.x}px`,
           bottom: `${1080 - layout.y}px`,
-          // No transform scale in preview - the preview container scales everything
         } : {
           left: `${layout.x}px`,
           bottom: `${1080 - layout.y}px`,
-          // No transform scale in preview - the preview container scales everything
         }),
       };
     }
-    // Live overlay mode: use fixed positioning with layout scale
     return {
       position: 'fixed' as const,
       ...(side === "center" ? {
@@ -220,12 +198,8 @@ export function LowerThirdDisplay({
     };
   }, [isPreview, side, layout.scale, layout.x, layout.y, centeredBottomOffset]);
 
-  // Calculate CSS max-width in pixels based on broadcast width for consistency
-  // Divide by layout.scale so the final scaled width matches the target
-  // e.g., for center (90vw = 1728px) with scale 1.6: 1728/1.6 = 1080px base → 1080*1.6 = 1728px final
   const freeTextMaxWidthPx = (BROADCAST_WIDTH * freeTextMaxWidth) / 100 / layout.scale;
 
-  // Container style - no transform here, just CSS variables
   const containerStyle = useMemo(() => ({
     '--lt-timing-logo-fade': `${config.timing.logoFadeDuration}ms`,
     '--lt-timing-logo-scale': `${config.timing.logoScaleDuration}ms`,
@@ -262,13 +236,11 @@ export function LowerThirdDisplay({
   } : {};
 
   const avatarBorderStyle = `${config.styles.avatarBorderWidth}px solid ${config.styles.avatarBorderColor}`;
-  const isTextMode = contentType === "text" || !!body;
   const markdownSource = body || title || "";
   const baseFontSize = theme?.font.size || 32;
   const baseFontWeight = theme?.font.weight || 700;
   const fontFamily = theme?.font.family || "sans-serif";
 
-  // Wait for custom font to load before calculating text wrapping
   useEffect(() => {
     const checkFont = async () => {
       if (!fontFamily || fontFamily === 'sans-serif') {
@@ -444,6 +416,11 @@ export function LowerThirdDisplay({
     lineHeight: 1.25,
   };
 
+  const logoVisible = phase !== "idle";
+  const flipped = hasAvatar && (phase === "flip" || phase === "bar" || phase === "text" || phase === "visible");
+  const barVisible = phase === "bar" || phase === "text" || phase === "visible";
+  const textVisible = phase === "text" || phase === "visible";
+
   return (
     <div style={wrapperStyle}>
       <div
@@ -451,44 +428,111 @@ export function LowerThirdDisplay({
         style={containerStyle}
       >
       {!isTextMode && (
-        <div className={`avatar ${flipped ? "flip" : ""}`}>
+        <m.div
+          className={`avatar ${flipped ? "flip" : ""}`}
+          initial={{ opacity: 0, scale: 1.6 }}
+          animate={logoVisible
+            ? { opacity: 1, scale: 1 }
+            : { opacity: 0, scale: 1.6 }
+          }
+          transition={{
+            opacity: { duration: config.timing.logoFadeDuration / 1000 },
+            scale: { duration: config.timing.logoScaleDuration / 1000 },
+          }}
+          onAnimationComplete={() => {
+            // Only advance from logo phase when animation finishes
+            if (phase === "logo") {
+              advancePhase();
+            }
+          }}
+        >
           <div className="avatar-inner">
-            <div className={`face front ${logoVisible ? "visible" : ""}`}>
-              <img 
-                src={finalLogoImage} 
-                alt="Logo" 
+            <div className="face front visible">
+              <img
+                src={finalLogoImage}
+                alt="Logo"
                 className={logoHasPadding ? "has-padding" : ""}
               />
             </div>
-            {finalAvatarImage && (
+            {avatarImage && (
               <div className="face back" style={{ border: avatarBorderStyle }}>
-                <img src={finalAvatarImage} alt={title || "Guest"} />
+                <img src={avatarImage} alt={title || "Guest"} />
               </div>
             )}
           </div>
-        </div>
+        </m.div>
       )}
 
       {isTextMode && imageUrl && (
-        <div className={`lowerthird-media ${barVisible ? "show" : ""}`}>
+        <m.div
+          className="lowerthird-media"
+          initial={{ opacity: 0, y: 10 }}
+          animate={barVisible
+            ? { opacity: 1, y: 0 }
+            : { opacity: 0, y: 10 }
+          }
+          transition={{ duration: 0.3 }}
+        >
           <img src={imageUrl} alt={imageAlt || "Lower third image"} />
-        </div>
+        </m.div>
       )}
 
-      <div className={`bar ${barVisible ? "show" : ""}`}>
-        <div className={`text ${textVisible ? "show" : ""}`}>
+      <m.div
+        className="bar"
+        initial={{ scaleX: 0 }}
+        animate={barVisible
+          ? { scaleX: 1 }
+          : { scaleX: 0 }
+        }
+        transition={{
+          duration: config.timing.barExpandDuration / 1000,
+          ease: [0.16, 1, 0.3, 1],
+        }}
+        onAnimationComplete={() => {
+          // Advance from bar to text phase when bar expansion finishes
+          if (phase === "bar") {
+            advancePhase();
+          }
+        }}
+      >
+        <m.div
+          className="text"
+          initial={{ opacity: 0, x: side === "right" ? 10 : -10 }}
+          animate={textVisible
+            ? { opacity: 1, x: 0 }
+            : { opacity: 0, x: side === "right" ? 10 : -10 }
+          }
+          transition={{
+            opacity: { duration: config.timing.textFadeDuration / 1000 },
+            x: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+          }}
+          onAnimationComplete={() => {
+            // Advance from text to visible phase when text animation finishes
+            if (phase === "text") {
+              advancePhase();
+            }
+          }}
+        >
           {isTextMode ? (
             <div className="lowerthird-markdown" ref={markdownRef} style={markdownStyle}>
               {wrappedLines.map((line, index) => (
-                <div
+                <m.div
                   key={`line-${index}`}
                   className="lowerthird-line"
-                  style={{ "--lt-line-delay": `${index * 140}ms` } as React.CSSProperties}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={textVisible
+                    ? { opacity: 1, y: 0 }
+                    : { opacity: 0, y: 6 }
+                  }
+                  transition={{
+                    duration: config.timing.textFadeDuration / 1000,
+                    delay: index * 0.14,
+                  }}
                 >
                   <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                     {line || " "}
                   </ReactMarkdown>
-                </div>
+                </m.div>
               ))}
             </div>
           ) : (
@@ -499,8 +543,8 @@ export function LowerThirdDisplay({
               )}
             </>
           )}
-        </div>
-      </div>
+        </m.div>
+      </m.div>
     </div>
     </div>
   );

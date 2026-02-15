@@ -18,29 +18,20 @@ import {
   Settings2,
   Layout,
 } from "lucide-react";
-import { useWorkspacesSafe } from "./WorkspacesContext";
+import { useWorkspacesStore } from "@/lib/stores";
 import { WorkspaceSaveDialog } from "./WorkspaceSaveDialog";
 import { WorkspaceManagerDialog } from "./WorkspaceManagerDialog";
 import { WorkspaceListItem } from "./WorkspaceListItem";
 
 export function WorkspaceSelector() {
   const t = useTranslations("dashboard.workspaces");
-  const workspacesContext = useWorkspacesSafe();
-
-  // If we're outside the WorkspacesProvider, don't render anything
-  if (!workspacesContext) {
-    return null;
-  }
-
-  const {
-    workspaces,
-    currentWorkspaceId,
-    isModified,
-    isLoading,
-    isReady,
-    applyWorkspace,
-    resetToDefault,
-  } = workspacesContext;
+  const workspaces = useWorkspacesStore((s) => s.workspaces);
+  const currentWorkspaceId = useWorkspacesStore((s) => s.currentWorkspaceId);
+  const isModified = useWorkspacesStore((s) => s.isModified);
+  const isLoading = useWorkspacesStore((s) => s.isLoading);
+  const isReady = useWorkspacesStore((s) => s.isReady);
+  const applyWorkspace = useWorkspacesStore((s) => s.applyWorkspace);
+  const resetToDefault = useWorkspacesStore((s) => s.resetToDefault);
 
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [managerDialogOpen, setManagerDialogOpen] = useState(false);
@@ -49,31 +40,30 @@ export function WorkspaceSelector() {
   const builtInWorkspaces = workspaces.filter((w) => w.isBuiltIn);
   const userWorkspaces = workspaces.filter((w) => !w.isBuiltIn);
 
-  function getDisplayName(): string {
-    if (currentWorkspace) {
-      return isModified ? `${currentWorkspace.name} *` : currentWorkspace.name;
-    }
-    return isModified ? t("custom") : t("noWorkspace");
+  let displayName: string;
+  if (currentWorkspace) {
+    displayName = isModified ? `${currentWorkspace.name} *` : currentWorkspace.name;
+  } else {
+    displayName = isModified ? t("custom") : t("noWorkspace");
   }
-  const displayName = getDisplayName();
 
-  const handleWorkspaceSelect = async (id: string) => {
+  async function handleWorkspaceSelect(id: string): Promise<void> {
     if (!canApplyLayout) return;
     try {
       await applyWorkspace(id);
     } catch (error) {
       console.error("Failed to apply workspace:", error);
     }
-  };
+  }
 
-  const handleResetToDefault = async () => {
+  async function handleResetToDefault(): Promise<void> {
     if (!canApplyLayout) return;
     try {
       await resetToDefault();
     } catch (error) {
       console.error("Failed to reset to default:", error);
     }
-  };
+  }
 
   // Don't show selector if workspaces haven't loaded yet
   if (isLoading) {

@@ -35,6 +35,7 @@ export class WebSocketHub {
   private heartbeatInterval?: NodeJS.Timeout;
   private startAttempted: boolean;
   private onPresenterJoinCallback?: (clientId: string, role: PresenterRole) => void;
+  private onAckCallback?: (ack: { eventId: string; channel: string; success: boolean; error?: string }) => void;
 
   private constructor() {
     this.wss = null;
@@ -209,6 +210,14 @@ export class WebSocketHub {
 
         case "ack":
           this.logger.debug(`Received ack from ${clientId}`);
+          if (this.onAckCallback && message.eventId && message.channel) {
+            this.onAckCallback({
+              eventId: message.eventId,
+              channel: message.channel,
+              success: message.success !== false,
+              error: message.error,
+            });
+          }
           break;
 
         case "state":
@@ -327,6 +336,13 @@ export class WebSocketHub {
   }
 
   // ==================== PRESENTER METHODS ====================
+
+  /**
+   * Set callback for ack events (used by ChannelManager to clear pending ack timeouts)
+   */
+  setOnAckCallback(callback: (ack: { eventId: string; channel: string; success: boolean; error?: string }) => void): void {
+    this.onAckCallback = callback;
+  }
 
   /**
    * Set callback for presenter join events (used by backend to send replay)
@@ -464,4 +480,3 @@ export class WebSocketHub {
     }
   }
 }
-

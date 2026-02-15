@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import {
   DockviewReact,
   DockviewReadyEvent,
@@ -27,12 +27,11 @@ import { ChatMessagesPanel } from "./panels/ChatMessagesPanel";
 import { TextPresetsPanel } from "./panels/TextPresetsPanel";
 import { DockviewContext, usePanelPositions } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
-import { WorkspacesProvider, useWorkspaces } from "./WorkspacesContext";
+import { usePanelColorsStore, useWorkspacesStore } from "@/lib/stores";
 import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { LiveModeRail } from "./LiveModeRail";
 import { useAppMode } from "./AppModeContext";
-import { PanelColorsProvider, usePanelColors } from "./PanelColorsContext";
 import { PanelColorStyles } from "./PanelColorStyles";
 
 const LAYOUT_KEY = "obs-live-suite-dockview-layout";
@@ -70,8 +69,8 @@ export function DashboardShell() {
     resetToDefault: () => void;
     openSaveDialog: () => void;
   } | undefined>(undefined);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
-  // Handle hydration
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -79,10 +78,8 @@ export function DashboardShell() {
   const applyLivePreset = useCallback(() => {
     if (!apiRef.current) return;
 
-    // Clear existing panels
     apiRef.current.clear();
 
-    // Main area with widget panels in tabs (default layout)
     const lowerThird = apiRef.current.addPanel({
       id: "lowerThird",
       component: "lowerThird",
@@ -117,7 +114,6 @@ export function DashboardShell() {
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
-    // Bottom panel for Macros and Event Log
     const macros = apiRef.current.addPanel({
       id: "macros",
       component: "macros",
@@ -144,10 +140,8 @@ export function DashboardShell() {
   const applyPrepPreset = useCallback(() => {
     if (!apiRef.current) return;
 
-    // Clear existing panels
     apiRef.current.clear();
 
-    // Grid layout - all panels visible
     const lowerThird = apiRef.current.addPanel({
       id: "lowerThird",
       component: "lowerThird",
@@ -161,7 +155,7 @@ export function DashboardShell() {
       position: { referencePanel: lowerThird, direction: "right" },
     });
 
-    const guests = apiRef.current.addPanel({
+    apiRef.current.addPanel({
       id: "guests",
       component: "guests",
       title: "panels.guests",
@@ -195,10 +189,8 @@ export function DashboardShell() {
   const applyMinimalPreset = useCallback(() => {
     if (!apiRef.current) return;
 
-    // Clear existing panels
     apiRef.current.clear();
 
-    // Minimal layout - only Lower Third and Macros
     const lowerThird = apiRef.current.addPanel({
       id: "lowerThird",
       component: "lowerThird",
@@ -235,11 +227,9 @@ export function DashboardShell() {
     }
   }, [applyLivePreset, applyPrepPreset, applyMinimalPreset]);
 
-  // Enable keyboard shortcuts for layout presets and workspaces
   useKeyboardShortcuts(applyPreset, api, true, workspaceCallbacks);
 
-  // Callback for WorkspacesProvider to apply a workspace layout
-  const applyLayout = useCallback((layoutJson: string, panelColors: Record<string, string>) => {
+  const applyLayout = useCallback((layoutJson: string, _panelColors: Record<string, string>) => {
     if (!apiRef.current) return;
     try {
       apiRef.current.fromJSON(JSON.parse(layoutJson));
@@ -249,7 +239,6 @@ export function DashboardShell() {
     }
   }, []);
 
-  // Get current layout as JSON
   const getLayoutJson = useCallback(() => {
     if (!apiRef.current) return null;
     try {
@@ -264,7 +253,6 @@ export function DashboardShell() {
     apiRef.current = event.api;
     setApi(event.api);
 
-    // Try to restore saved layout
     const saved = localStorage.getItem(LAYOUT_KEY);
     if (saved) {
       try {
@@ -275,36 +263,33 @@ export function DashboardShell() {
       }
     }
 
-    // Default layout: Main widgets area + Bottom panels
-    // Main area with widget panels in tabs
     const lowerThird = event.api.addPanel({
       id: "lowerThird",
       component: "lowerThird",
       title: "panels.lowerThird",
     });
 
-    const countdown = event.api.addPanel({
+    event.api.addPanel({
       id: "countdown",
       component: "countdown",
       title: "panels.countdown",
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
-    const guests = event.api.addPanel({
+    event.api.addPanel({
       id: "guests",
       component: "guests",
       title: "panels.guests",
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
-    const poster = event.api.addPanel({
+    event.api.addPanel({
       id: "poster",
       component: "poster",
       title: "panels.poster",
       position: { referencePanel: lowerThird, direction: "within" },
     });
 
-    // Bottom panel for Macros
     const macros = event.api.addPanel({
       id: "macros",
       component: "macros",
@@ -312,15 +297,13 @@ export function DashboardShell() {
       position: { referencePanel: lowerThird, direction: "below" },
     });
 
-    // Event Log next to Macros in bottom area
-    const eventLog = event.api.addPanel({
+    event.api.addPanel({
       id: "eventLog",
       component: "eventLog",
       title: "panels.eventLog",
       position: { referencePanel: macros, direction: "within" },
     });
 
-    // Set initial sizes for bottom panel (height in pixels)
     try {
       macros.api.setSize({ height: 250 });
     } catch (err) {
@@ -329,7 +312,6 @@ export function DashboardShell() {
     }
   }, []);
 
-  // Set up layout change listener to persist layout
   useEffect(() => {
     if (!apiRef.current) return;
 
@@ -345,51 +327,29 @@ export function DashboardShell() {
     return () => disposable.dispose();
   }, []);
 
-  return (
-    <PanelColorsProvider>
-        <WorkspacesInitializer getLayoutJson={getLayoutJson} applyLayout={applyLayout} onCallbacksReady={setWorkspaceCallbacks} />
-        <LayoutPresetsProvider applyPreset={applyPreset}>
-          <DockviewContext.Provider value={{ api, savePositionBeforeClose, getSavedPosition }}>
-            <PanelColorStyles />
-            <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--header-height))", width: "100%", display: "flex" }}>
-              {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
-              <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
-                <DockviewReact
-                  components={components}
-                  tabComponents={tabComponents}
-                  defaultTabComponent={PanelTab}
-                  onReady={onReady}
-                  theme={!mounted || theme === "dark" ? themeDark : themeLight}
-                />
-              </div>
-            </div>
-          </DockviewContext.Provider>
-        </LayoutPresetsProvider>
-    </PanelColorsProvider>
-  );
-}
+  const fetchPanelColors = usePanelColorsStore((s) => s.fetchColors);
+  const initWorkspaces = useWorkspacesStore((s) => s.init);
+  const setLayoutJsonGetter = useWorkspacesStore((s) => s.setLayoutJsonGetter);
+  const setLayoutApplier = useWorkspacesStore((s) => s.setLayoutApplier);
+  const resetToDefault = useWorkspacesStore((s) => s.resetToDefault);
 
-// Helper component to connect workspace context with layout getter/applier and expose callbacks
-function WorkspacesInitializer({
-  getLayoutJson,
-  applyLayout,
-  onCallbacksReady,
-}: {
-  getLayoutJson: () => string | null;
-  applyLayout: (layoutJson: string, panelColors: Record<string, string>) => void;
-  onCallbacksReady: (callbacks: { resetToDefault: () => void; openSaveDialog: () => void }) => void;
-}) {
-  const { setLayoutJsonGetter, setLayoutApplier, resetToDefault } = useWorkspaces();
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  useEffect(() => {
+    fetchPanelColors();
+    initWorkspaces();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setLayoutJsonGetter(getLayoutJson);
     setLayoutApplier(applyLayout);
   }, [getLayoutJson, applyLayout, setLayoutJsonGetter, setLayoutApplier]);
 
-  // Expose callbacks for keyboard shortcuts
+  const dockviewContextValue = useMemo(
+    () => ({ api, savePositionBeforeClose, getSavedPosition }),
+    [api, savePositionBeforeClose, getSavedPosition]
+  );
+
   useEffect(() => {
-    onCallbacksReady({
+    setWorkspaceCallbacks({
       resetToDefault: () => {
         resetToDefault().catch(console.error);
       },
@@ -397,12 +357,35 @@ function WorkspacesInitializer({
         setSaveDialogOpen(true);
       },
     });
-  }, [resetToDefault, onCallbacksReady]);
+  }, [resetToDefault]);
 
-  // Import the dialog component dynamically to avoid issues
+  return (
+    <>
+      <StoreWorkspaceSaveDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} />
+      <LayoutPresetsProvider applyPreset={applyPreset}>
+        <DockviewContext.Provider value={dockviewContextValue}>
+          <PanelColorStyles />
+          <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--header-height))", width: "100%", display: "flex" }}>
+            {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
+            <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+              <DockviewReact
+                components={components}
+                tabComponents={tabComponents}
+                defaultTabComponent={PanelTab}
+                onReady={onReady}
+                theme={!mounted || theme === "dark" ? themeDark : themeLight}
+              />
+            </div>
+          </div>
+        </DockviewContext.Provider>
+      </LayoutPresetsProvider>
+    </>
+  );
+}
+
+/** Lazy-loaded workspace save dialog triggered by keyboard shortcuts */
+function StoreWorkspaceSaveDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  if (!open) return null;
   const WorkspaceSaveDialogLazy = require("./WorkspaceSaveDialog").WorkspaceSaveDialog;
-
-  return saveDialogOpen ? (
-    <WorkspaceSaveDialogLazy open={saveDialogOpen} onOpenChange={setSaveDialogOpen} />
-  ) : null;
+  return <WorkspaceSaveDialogLazy open={open} onOpenChange={onOpenChange} />;
 }

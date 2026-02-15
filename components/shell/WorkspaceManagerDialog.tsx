@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useWorkspaces } from "./WorkspacesContext";
+import { useWorkspacesStore } from "@/lib/stores";
 import { apiPut } from "@/lib/utils/ClientFetch";
 import { WorkspaceListItemFull } from "./WorkspaceListItem";
 
@@ -34,14 +34,12 @@ export function WorkspaceManagerDialog({
   onOpenChange,
 }: WorkspaceManagerDialogProps) {
   const t = useTranslations("dashboard.workspaces");
-  const {
-    workspaces,
-    currentWorkspaceId,
-    setAsDefault,
-    deleteWorkspace,
-    refreshWorkspaces,
-    applyWorkspace,
-  } = useWorkspaces();
+  const workspaces = useWorkspacesStore((s) => s.workspaces);
+  const currentWorkspaceId = useWorkspacesStore((s) => s.currentWorkspaceId);
+  const setAsDefault = useWorkspacesStore((s) => s.setAsDefault);
+  const deleteWorkspace = useWorkspacesStore((s) => s.deleteWorkspace);
+  const refreshWorkspaces = useWorkspacesStore((s) => s.refreshWorkspaces);
+  const applyWorkspace = useWorkspacesStore((s) => s.applyWorkspace);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");

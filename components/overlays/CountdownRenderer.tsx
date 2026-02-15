@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { AnimatePresence } from "framer-motion";
 import { CountdownDisplay } from "./CountdownDisplay";
+import { OverlayMotionProvider } from "./OverlayMotionProvider";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import "./countdown.css";
 
@@ -72,14 +74,15 @@ export function CountdownRenderer() {
   const sendAckRef = useRef<(eventId: string, success?: boolean) => void>(() => {});
 
   const handleMessage = useCallback((data: CountdownEvent) => {
+    const resolvedStyle = (data.payload?.style || data.payload?.theme?.style || "bold") as CountdownState["style"];
+
     switch (data.type) {
       case "set":
-        const themeStyle = data.payload?.style || data.payload?.theme?.style || "bold";
         setState((prev) => ({
           ...prev,
           seconds: data.payload?.seconds ?? 0,
           visible: true,
-          style: themeStyle as "bold" | "corner" | "banner",
+          style: resolvedStyle,
           position: data.payload?.position,
           format: data.payload?.format || "mm:ss",
           size: data.payload?.size,
@@ -105,10 +108,9 @@ export function CountdownRenderer() {
         }));
         break;
       case "update":
-        const updateThemeStyle = data.payload?.style || data.payload?.theme?.style || "bold";
         setState((prev) => ({
           ...prev,
-          style: updateThemeStyle as "bold" | "corner" | "banner",
+          style: resolvedStyle,
           position: data.payload?.position || prev.position,
           format: data.payload?.format || prev.format,
           size: data.payload?.size || prev.size,
@@ -128,7 +130,6 @@ export function CountdownRenderer() {
         break;
     }
 
-    // Send acknowledgment for the event
     sendAckRef.current(data.id);
   }, []);
 
@@ -138,10 +139,7 @@ export function CountdownRenderer() {
     { logPrefix: "Countdown" }
   );
 
-  // Keep sendAckRef in sync with the hook's sendAck
-  useEffect(() => {
-    sendAckRef.current = sendAck;
-  }, [sendAck]);
+  sendAckRef.current = sendAck;
 
   useEffect(() => {
     if (state.isRunning && state.seconds > 0) {
@@ -168,31 +166,22 @@ export function CountdownRenderer() {
     };
   }, [state.isRunning, state.seconds]);
 
-  if (!state.visible) {
-    return null;
-  }
-
-  console.log("[Countdown] Rendering with theme:", {
-    hasTheme: !!state.theme,
-    colors: state.theme?.colors,
-    font: state.theme?.font,
-    layout: state.theme?.layout,
-    style: state.style,
-    position: state.position,
-    format: state.format,
-    size: state.size,
-  });
-
   return (
-    <CountdownDisplay
-      seconds={state.seconds}
-      style={state.style}
-      position={state.position}
-      format={state.format}
-      size={state.size}
-      theme={state.theme}
-      isPreview={false}
-    />
+    <OverlayMotionProvider>
+      <AnimatePresence>
+        {state.visible && (
+          <CountdownDisplay
+            key="countdown"
+            seconds={state.seconds}
+            style={state.style}
+            position={state.position}
+            format={state.format}
+            size={state.size}
+            theme={state.theme}
+            isPreview={false}
+          />
+        )}
+      </AnimatePresence>
+    </OverlayMotionProvider>
   );
 }
-

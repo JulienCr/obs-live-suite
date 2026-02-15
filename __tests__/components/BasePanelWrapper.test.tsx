@@ -5,16 +5,21 @@ import { render, screen } from '@testing-library/react';
 import { BasePanelWrapper } from '@/components/panels/BasePanelWrapper';
 import type { PanelConfig } from '@/lib/panels/types';
 
-// Mock PanelColorsContext
-const mockPanelColors = {
+// Mock the panel colors store
+const mockStoreState = {
   colors: {},
+  isLoading: false,
+  _initialized: true,
+  fetchColors: jest.fn(),
   setScheme: jest.fn(),
   resetScheme: jest.fn(),
-  isLoading: false,
 };
 
-jest.mock('@/components/shell/PanelColorsContext', () => ({
-  usePanelColorsSafe: jest.fn(() => mockPanelColors),
+jest.mock('@/lib/stores', () => ({
+  usePanelColorsStore: jest.fn((selector?: (state: typeof mockStoreState) => unknown) => {
+    if (selector) return selector(mockStoreState);
+    return mockStoreState;
+  }),
 }));
 
 // Mock PanelColorMenu to verify it's rendered or not
@@ -26,16 +31,20 @@ jest.mock('@/components/shell/PanelColorMenu', () => ({
   ),
 }));
 
-// Import the mocked hook to control its return value
-import { usePanelColorsSafe } from '@/components/shell/PanelColorsContext';
+// Import the mocked store to control its return value
+import { usePanelColorsStore } from '@/lib/stores';
 
-const mockedUsePanelColorsSafe = usePanelColorsSafe as jest.MockedFunction<typeof usePanelColorsSafe>;
+const mockedUsePanelColorsStore = usePanelColorsStore as jest.MockedFunction<typeof usePanelColorsStore>;
 
 describe('BasePanelWrapper', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Default: panel colors available
-    mockedUsePanelColorsSafe.mockReturnValue(mockPanelColors);
+    // Default: panel colors initialized (dashboard context)
+    mockStoreState._initialized = true;
+    mockedUsePanelColorsStore.mockImplementation((selector?: (state: typeof mockStoreState) => unknown) => {
+      if (selector) return selector(mockStoreState);
+      return mockStoreState;
+    });
   });
 
   describe('renders children correctly', () => {
@@ -168,8 +177,12 @@ describe('BasePanelWrapper', () => {
       expect(screen.queryByTestId('panel-color-menu')).not.toBeInTheDocument();
     });
 
-    it('should NOT wrap with PanelColorMenu when panelColors is null', () => {
-      mockedUsePanelColorsSafe.mockReturnValue(null);
+    it('should NOT wrap with PanelColorMenu when store is not initialized', () => {
+      mockStoreState._initialized = false;
+      mockedUsePanelColorsStore.mockImplementation((selector?: (state: typeof mockStoreState) => unknown) => {
+        if (selector) return selector(mockStoreState);
+        return mockStoreState;
+      });
 
       const config: PanelConfig = {
         id: 'dashboard-panel',

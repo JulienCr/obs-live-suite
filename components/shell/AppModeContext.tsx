@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 
 export type AppMode = "LIVE" | "ADMIN";
 
@@ -29,13 +29,18 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const setMode = (newMode: AppMode) => {
+  const setMode = useCallback((newMode: AppMode) => {
     setModeState(newMode);
     localStorage.setItem(MODE_STORAGE_KEY, newMode);
-  };
+  }, []);
+
+  const value = useMemo<AppModeContextValue>(
+    () => ({ mode, setMode, isOnAir, setIsOnAir, isFullscreenMode, setIsFullscreenMode }),
+    [mode, setMode, isOnAir, isFullscreenMode]
+  );
 
   return (
-    <AppModeContext.Provider value={{ mode, setMode, isOnAir, setIsOnAir, isFullscreenMode, setIsFullscreenMode }}>
+    <AppModeContext.Provider value={value}>
       {children}
     </AppModeContext.Provider>
   );

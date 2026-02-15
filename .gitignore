@@ -78,3 +78,4 @@ server/static/vdoninja/*
 server/static/
 .grepai/
 _local/
+.worktrees/

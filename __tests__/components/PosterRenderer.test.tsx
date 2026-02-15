@@ -1,5 +1,29 @@
 /** @jest-environment jsdom */
+import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+
+// Mock framer-motion to bypass animation lifecycle in jsdom
+jest.mock('framer-motion', () => {
+  const actual = jest.requireActual('framer-motion');
+  return {
+    ...actual,
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    LazyMotion: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    m: {
+      div: React.forwardRef(({ children, ...props }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>, ref: React.Ref<HTMLDivElement>) => {
+        // Filter out framer-motion-specific props
+        const htmlProps: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(props)) {
+          if (!['initial', 'animate', 'exit', 'transition', 'variants', 'onAnimationComplete', 'whileHover', 'whileTap', 'layout'].includes(key)) {
+            htmlProps[key] = value;
+          }
+        }
+        return <div ref={ref} {...htmlProps}>{children}</div>;
+      }),
+    },
+  };
+});
+
 import { PosterRenderer } from '@/components/overlays/PosterRenderer';
 import {
   setupWebSocketMock,
@@ -84,7 +108,9 @@ describe('PosterRenderer', () => {
 
   it('should render nothing initially', () => {
     const { container } = render(<PosterRenderer />);
-    expect(container.firstChild).toBeNull();
+    // The poster-container wrapper is always rendered for AnimatePresence,
+    // but no poster content (img/video) should be visible
+    expect(screen.queryByAltText('Poster')).not.toBeInTheDocument();
   });
 
   it('should connect to WebSocket on mount', () => {
@@ -238,7 +264,8 @@ describe('PosterRenderer', () => {
       },
     });
 
-    jest.runAllTimers();
+    // Advance timers to allow Framer Motion exit animation to complete
+    jest.advanceTimersByTime(1000);
 
     await waitFor(() => {
       expect(screen.queryByAltText('Poster')).not.toBeInTheDocument();
@@ -268,15 +295,15 @@ describe('PosterRenderer', () => {
       expect(screen.getByAltText('Poster')).toBeInTheDocument();
     });
 
-    // Fast-forward 3 seconds + fade out time
+    // Fast-forward 3 seconds (duration) + exit animation time
     jest.advanceTimersByTime(4000);
 
     await waitFor(() => {
       expect(screen.queryByAltText('Poster')).not.toBeInTheDocument();
-    });
+    }, { timeout: 2000 });
   });
 
-  it('should apply correct transition class', async () => {
+  it('should render poster layer for all transition types', async () => {
     const transitions = ['fade', 'slide', 'cut', 'blur'] as const;
 
     for (const transition of transitions) {
@@ -300,8 +327,9 @@ describe('PosterRenderer', () => {
       jest.runAllTimers();
 
       await waitFor(() => {
+        // Framer Motion handles transitions via inline styles instead of CSS classes
         const poster = document.querySelector('.poster-layer');
-        expect(poster).toHaveClass(`poster-transition-${transition}`);
+        expect(poster).toBeInTheDocument();
       });
 
       unmount();
@@ -391,6 +419,8 @@ describe('PosterRenderer', () => {
     });
 
     // Second poster before first duration expires
+    // AnimatePresence mode="wait" means the new poster replaces the old one
+    // via exit animation then enter animation
     ws?.simulateMessage({
       channel: 'poster',
       data: {
@@ -403,18 +433,18 @@ describe('PosterRenderer', () => {
       },
     });
 
-    jest.runAllTimers();
+    // Advance timers to allow exit animation to complete and new poster to enter
+    jest.advanceTimersByTime(2000);
 
     await waitFor(() => {
       const img = screen.getByAltText('Poster');
       expect(img).toHaveAttribute('src', '/second.jpg');
     });
 
-    // First poster should not hide after its original duration
+    // Second poster has no duration, so it should remain visible
     jest.advanceTimersByTime(10000);
     await waitFor(() => {
       expect(screen.getByAltText('Poster')).toBeInTheDocument();
     });
   });
 });
-

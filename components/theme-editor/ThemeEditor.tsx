@@ -12,7 +12,8 @@ import { ColorsTab } from "./tabs/ColorsTab";
 import { LowerThirdTab } from "./tabs/LowerThirdTab";
 import { CountdownTab } from "./tabs/CountdownTab";
 import { PositioningTab } from "./tabs/PositioningTab";
-import { useThemeEditor } from "./ThemeEditorContext";
+import { useThemeEditorStore, DEFAULT_FORM_DATA } from "@/lib/stores";
+import { useShallow } from "zustand/react/shallow";
 import { useTranslations } from "next-intl";
 import { CreateThemeInput } from "@/lib/models/Theme";
 
@@ -28,16 +29,33 @@ interface ThemeEditorProps {
 export function ThemeEditor({ isCreating, onSave, onCancel }: ThemeEditorProps) {
   const t = useTranslations("themeEditor");
   const {
-    formData,
-    updateName,
-    updateLowerThirdLayout,
-    updateCountdownLayout,
-    updatePosterLayout,
-    enableOBSPreview,
-  } = useThemeEditor();
+    name,
+    colors,
+    lowerThirdFont,
+    lowerThirdLayout,
+    lowerThirdAnimation,
+    countdownFont,
+    countdownStyle,
+    countdownLayout,
+  } = useThemeEditorStore(
+    useShallow((s) => ({
+      name: s.formData.name,
+      colors: s.formData.colors,
+      lowerThirdFont: s.formData.lowerThirdFont,
+      lowerThirdLayout: s.formData.lowerThirdLayout,
+      lowerThirdAnimation: s.formData.lowerThirdAnimation,
+      countdownFont: s.formData.countdownFont,
+      countdownStyle: s.formData.countdownStyle,
+      countdownLayout: s.formData.countdownLayout,
+    }))
+  );
+  const updateName = useThemeEditorStore((s) => s.updateName);
+  const updateLowerThirdLayout = useThemeEditorStore((s) => s.updateLowerThirdLayout);
+  const updateCountdownLayout = useThemeEditorStore((s) => s.updateCountdownLayout);
+  const enableOBSPreview = useThemeEditorStore((s) => s.enableOBSPreview);
 
   const handleSave = () => {
-    onSave(formData);
+    onSave(useThemeEditorStore.getState().formData);
   };
 
   return (
@@ -70,7 +88,7 @@ export function ThemeEditor({ isCreating, onSave, onCancel }: ThemeEditorProps) 
           <Label htmlFor="theme-name">{t("themeName")}</Label>
           <Input
             id="theme-name"
-            value={formData.name || ""}
+            value={name || ""}
             onChange={(e) => updateName(e.target.value)}
             placeholder={t("themeNamePlaceholder")}
           />
@@ -82,15 +100,15 @@ export function ThemeEditor({ isCreating, onSave, onCancel }: ThemeEditorProps) 
         <div className="space-y-3">
           <div className="text-sm font-semibold">{t("livePreviewCanvas")}</div>
           <OverlayCanvas
-            lowerThirdColors={formData.colors || { primary: "#3B82F6", accent: "#60A5FA", surface: "#1E293B", text: "#F8FAFC", success: "#10B981", warn: "#F59E0B" }}
-            lowerThirdFont={formData.lowerThirdFont || { family: "Inter, sans-serif", size: 28, weight: 700 }}
-            lowerThirdLayout={formData.lowerThirdLayout || { x: 60, y: 920, scale: 1 }}
-            lowerThirdAnimation={formData.lowerThirdAnimation}
+            lowerThirdColors={colors || DEFAULT_FORM_DATA.colors!}
+            lowerThirdFont={lowerThirdFont || DEFAULT_FORM_DATA.lowerThirdFont!}
+            lowerThirdLayout={lowerThirdLayout || DEFAULT_FORM_DATA.lowerThirdLayout!}
+            lowerThirdAnimation={lowerThirdAnimation}
             onLowerThirdLayoutChange={updateLowerThirdLayout}
-            countdownColors={formData.colors || { primary: "#3B82F6", accent: "#60A5FA", surface: "#1E293B", text: "#F8FAFC", success: "#10B981", warn: "#F59E0B" }}
-            countdownFont={formData.countdownFont || { family: "Courier New, monospace", size: 80, weight: 900 }}
-            countdownStyle={formData.countdownStyle || "bold"}
-            countdownLayout={formData.countdownLayout || { x: 960, y: 540, scale: 1 }}
+            countdownColors={colors || DEFAULT_FORM_DATA.colors!}
+            countdownFont={countdownFont || DEFAULT_FORM_DATA.countdownFont!}
+            countdownStyle={countdownStyle || DEFAULT_FORM_DATA.countdownStyle!}
+            countdownLayout={countdownLayout || DEFAULT_FORM_DATA.countdownLayout!}
             onCountdownLayoutChange={updateCountdownLayout}
           />
         </div>

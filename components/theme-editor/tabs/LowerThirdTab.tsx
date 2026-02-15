@@ -4,7 +4,8 @@ import { LowerThirdTemplate } from "@/lib/models/Theme";
 import { TemplateSelector } from "../inputs/TemplateSelector";
 import { FontEditor } from "../inputs/FontEditor";
 import { LowerThirdAnimationEditor } from "@/components/assets/LowerThirdAnimationEditor";
-import { useThemeEditor } from "../ThemeEditorContext";
+import { useThemeEditorStore, DEFAULT_FORM_DATA } from "@/lib/stores";
+import { useShallow } from "zustand/react/shallow";
 
 const TEMPLATE_OPTIONS = [
   {
@@ -33,20 +34,26 @@ const TEMPLATE_OPTIONS = [
  * Lower Third tab for theme editor
  */
 export function LowerThirdTab() {
-  const {
-    formData,
-    updateTemplate,
-    updateLowerThirdFont,
-    updateLowerThirdAnimation,
-    resetLowerThirdFont,
-  } = useThemeEditor();
+  const { lowerThirdTemplate, lowerThirdFont, lowerThirdAnimation, colors } =
+    useThemeEditorStore(
+      useShallow((s) => ({
+        lowerThirdTemplate: s.formData.lowerThirdTemplate,
+        lowerThirdFont: s.formData.lowerThirdFont,
+        lowerThirdAnimation: s.formData.lowerThirdAnimation,
+        colors: s.formData.colors,
+      }))
+    );
+  const updateTemplate = useThemeEditorStore((s) => s.updateTemplate);
+  const updateLowerThirdFont = useThemeEditorStore((s) => s.updateLowerThirdFont);
+  const updateLowerThirdAnimation = useThemeEditorStore((s) => s.updateLowerThirdAnimation);
+  const resetLowerThirdFont = useThemeEditorStore((s) => s.resetLowerThirdFont);
 
   return (
     <div className="space-y-6">
       <div>
         <TemplateSelector
           label="Lower Third Template"
-          value={formData.lowerThirdTemplate || LowerThirdTemplate.CLASSIC}
+          value={lowerThirdTemplate || LowerThirdTemplate.CLASSIC}
           onChange={updateTemplate}
           options={TEMPLATE_OPTIONS}
         />
@@ -55,17 +62,17 @@ export function LowerThirdTab() {
       <div className="pt-4 border-t">
         <FontEditor
           label="Lower Third Font"
-          value={formData.lowerThirdFont || { family: "Inter, sans-serif", size: 28, weight: 700 }}
-          onChange={(font) => updateLowerThirdFont(font)}
+          value={lowerThirdFont || DEFAULT_FORM_DATA.lowerThirdFont!}
+          onChange={updateLowerThirdFont}
           onReset={resetLowerThirdFont}
         />
       </div>
 
-      {formData.lowerThirdAnimation && formData.colors && (
+      {lowerThirdAnimation && colors && (
         <div className="pt-4 border-t">
           <LowerThirdAnimationEditor
-            value={formData.lowerThirdAnimation}
-            themeColors={formData.colors}
+            value={lowerThirdAnimation}
+            themeColors={colors}
             onChange={updateLowerThirdAnimation}
           />
         </div>
