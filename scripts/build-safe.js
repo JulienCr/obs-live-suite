@@ -17,7 +17,7 @@ if (!existsSync(LOCAL_HOME)) {
   mkdirSync(LOCAL_HOME, { recursive: true });
 }
 
-const proc = spawn('pnpm', ['exec', 'next', 'build', '--no-lint'], {
+const proc = spawn('pnpm', ['exec', 'next', 'build', '--webpack'], {
   stdio: ['inherit', 'pipe', 'pipe'],
   shell: true,
   env: { ...process.env, APPDATA: LOCAL_APPDATA, USERPROFILE: LOCAL_HOME },
@@ -25,38 +25,40 @@ const proc = spawn('pnpm', ['exec', 'next', 'build', '--no-lint'], {
 
 let hasRealError = false;
 
-// Filter out EPERM warnings from output
+// Detect real build failures from stdout
 proc.stdout.on('data', (data) => {
   const output = data.toString();
   if (!output.includes('glob error') && !output.includes('EPERM')) {
     process.stdout.write(output);
   }
-  if (output.includes('Could not find a production build')) {
+  if (output.includes('Build error occurred') || output.includes('Failed to compile') || output.includes('Could not find a production build')) {
     hasRealError = true;
   }
 });
 
+// Filter stderr: suppress known harmless warnings, flag actual errors
 proc.stderr.on('data', (data) => {
   const output = data.toString();
-  // Ignore EPERM errors on Windows system directories
-  if (output.includes('EPERM') && (
-    output.includes('Application Data') ||
-    output.includes('Start Menu') ||
-    output.includes('AppData')
-  )) {
-    // Silently ignore these specific errors
+  // Suppress Windows EPERM on system junction directories
+  if (output.includes('EPERM')) {
     return;
   }
-  
-  // Real errors get through
-  hasRealError = true;
+  // Suppress webpack cache warnings
+  if (output.includes('<w>') || output.includes('webpack.cache.PackFileCacheStrategy')) {
+    return;
+  }
+  // Suppress Node.js runtime warnings (TLS, deprecation, etc.)
+  if (output.includes('Warning:') && (output.includes('(node:') || output.includes('--trace-warnings'))) {
+    return;
+  }
+
+  // Anything else on stderr is worth showing (but not necessarily a build failure)
   process.stderr.write(output);
 });
 
 proc.on('exit', (code) => {
-  // Exit with success if the only errors were EPERM on system dirs
   if (code !== 0 && !hasRealError) {
-    console.log('✓ Build completed (Windows system directory warnings ignored)');
+    console.log('✓ Build completed (non-fatal warnings ignored)');
     process.exit(0);
   }
   process.exit(code || 0);

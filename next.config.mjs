@@ -22,11 +22,8 @@ const nextConfig = {
     'https://localhost:3000',
   ],
   images: {
-    domains: ['localhost'],
     unoptimized: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
+    remotePatterns: [{ protocol: 'https', hostname: 'localhost' }],
   },
   typescript: {
     ignoreBuildErrors: true,
@@ -35,62 +32,6 @@ const nextConfig = {
   outputFileTracingRoot: __dirname,
   outputFileTracingExcludes: {
     '*': ['**/Application Data/**', '**/AppData/**']
-  },
-  turbopack: {
-    // Configure module resolution aliases
-    resolveAlias: {
-      // Turbopack will respect path mappings from tsconfig.json automatically
-      // Add custom aliases here if needed
-    },
-    // Configure custom file extensions for resolution
-    resolveExtensions: [
-      '.tsx',
-      '.ts',
-      '.jsx',
-      '.js',
-      '.mjs',
-      '.json',
-    ],
-    // Configure webpack loaders (if needed in the future)
-    rules: {
-      // Example: '*.svg': {
-      //   loaders: ['@svgr/webpack'],
-      //   as: '*.js',
-      // },
-    },
-  },
-  webpack: (config, { isServer, dev, webpack }) => {
-    // Handle better-sqlite3 native module
-    if (isServer) {
-      config.externals.push('better-sqlite3');
-    } else {
-      // Client-side: Ignore Node.js modules and add polyfills
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        path: false,
-        crypto: 'crypto-browserify',
-        stream: 'stream-browserify',
-        buffer: 'buffer',
-      };
-
-      // Provide Buffer and process globals for browser
-      config.plugins.push(
-        new webpack.ProvidePlugin({
-          Buffer: ['buffer', 'Buffer'],
-          process: 'process/browser',
-        })
-      );
-    }
-
-    // Suppress EPERM errors during build on Windows
-    const originalEmit = config.infrastructureLogging?.level ? config.infrastructureLogging : {};
-    config.infrastructureLogging = {
-      ...originalEmit,
-      level: 'error',
-    };
-
-    return config;
   },
 };
 
