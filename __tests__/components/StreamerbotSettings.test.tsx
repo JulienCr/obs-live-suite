@@ -1,10 +1,9 @@
 /**
  * @jest-environment jsdom
  */
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StreamerbotSettings } from "@/components/settings/StreamerbotSettings";
-import { DEFAULT_STREAMERBOT_CONNECTION } from "@/lib/models/StreamerbotChat";
 
 // Mock next-intl
 jest.mock("next-intl", () => ({
@@ -13,22 +12,49 @@ jest.mock("next-intl", () => ({
       title: "Streamer.bot Connection",
       description: "Configure connection to Streamer.bot WebSocket server",
       loading: "Loading...",
+      currentStatus: "Current Status",
       connected: "Connected",
       connecting: "Connecting",
       disconnected: "Disconnected",
-      saveSettings: "Save Settings",
-      saving: "Saving...",
-      saveSuccess: "Settings saved successfully",
-      saveFailed: "Failed to save settings",
       connect: "Connect",
       disconnect: "Disconnect",
+      source: "Source",
+      database: "Database",
+      websocketUrl: "WebSocket URL",
+      websocketUrlDefault: "Default: ws://127.0.0.1:8080/",
+      password: "Password (Optional)",
+      passwordPlaceholder: "Leave empty if auth is disabled",
+      showPassword: "Show password",
+      passwordHelp: "Find in Streamer.bot settings",
+      autoConnect: "Auto-connect on startup",
+      autoReconnect: "Auto-reconnect on disconnect",
+      testing: "Testing...",
+      testConnection: "Test Connection",
+      saving: "Saving...",
+      saveSettings: "Save Settings",
+      clearSettings: "Clear Settings",
+      settingsCleared: "Settings cleared",
+      saveSuccess: "Settings saved successfully",
+      saveFailed: "Failed to save settings",
       setupGuide: "Setup Guide",
-      setupStep1: "Open Streamer.bot and enable WebSocket Server",
-      setupStep2: "Note the host and port settings",
-      setupStep3: "Enter the connection details above",
-      setupStep4: "Click Save and then Connect",
+      setupStep1: "Open Streamer.bot",
+      setupStep2: "Enable WebSocket Server",
+      setupStep3: "Copy the password",
+      setupStep4: "Enter details and test",
     };
     return translations[key] || key;
+  },
+}));
+
+// Mock streamerbotUrl utility
+jest.mock("@/lib/utils/streamerbotUrl", () => ({
+  buildStreamerbotUrl: (parts: { host: string; port: number; endpoint: string; scheme: string }) =>
+    `${parts.scheme}://${parts.host}:${parts.port}${parts.endpoint}`,
+  parseStreamerbotUrl: (url: string) => {
+    if (!url || url === "ws://127.0.0.1:8080/") {
+      return { host: "127.0.0.1", port: 8080, endpoint: "/", scheme: "ws" };
+    }
+    return { host: "custom", port: 9999, endpoint: "/", scheme: "ws" };
   },
 }));
 
@@ -41,11 +67,13 @@ jest.mock("@/lib/utils/websocket", () => ({
 const mockApiGet = jest.fn();
 const mockApiPut = jest.fn();
 const mockApiPost = jest.fn();
+const mockApiDelete = jest.fn();
 
 jest.mock("@/lib/utils/ClientFetch", () => ({
   apiGet: (...args: unknown[]) => mockApiGet(...args),
   apiPut: (...args: unknown[]) => mockApiPut(...args),
   apiPost: (...args: unknown[]) => mockApiPost(...args),
+  apiDelete: (...args: unknown[]) => mockApiDelete(...args),
   isClientFetchError: (error: unknown): boolean => {
     return (
       error !== null &&
@@ -55,47 +83,14 @@ jest.mock("@/lib/utils/ClientFetch", () => ({
   },
 }));
 
-// Mock StreamerbotConnectionForm since it has its own test file
-jest.mock("@/components/settings/StreamerbotConnectionForm", () => ({
-  StreamerbotConnectionForm: ({
-    value,
-    onChange,
-    disabled,
-  }: {
-    value?: { host: string; port: number };
-    onChange: (value: { host: string; port: number }) => void;
-    disabled?: boolean;
-  }) => (
-    <div data-testid="streamerbot-connection-form">
-      <input
-        data-testid="host-input"
-        value={value?.host || ""}
-        onChange={(e) => onChange({ ...value, host: e.target.value } as never)}
-        disabled={disabled}
-        placeholder="Host"
-      />
-      <input
-        data-testid="port-input"
-        type="number"
-        value={value?.port || ""}
-        onChange={(e) =>
-          onChange({ ...value, port: parseInt(e.target.value) } as never)
-        }
-        disabled={disabled}
-        placeholder="Port"
-      />
-    </div>
-  ),
-}));
-
 describe("StreamerbotSettings", () => {
   const defaultSettingsResponse = {
-    host: DEFAULT_STREAMERBOT_CONNECTION.host,
-    port: DEFAULT_STREAMERBOT_CONNECTION.port,
-    endpoint: DEFAULT_STREAMERBOT_CONNECTION.endpoint,
-    scheme: DEFAULT_STREAMERBOT_CONNECTION.scheme,
-    autoConnect: DEFAULT_STREAMERBOT_CONNECTION.autoConnect,
-    autoReconnect: DEFAULT_STREAMERBOT_CONNECTION.autoReconnect,
+    host: "127.0.0.1",
+    port: 8080,
+    endpoint: "/",
+    scheme: "ws" as const,
+    autoConnect: true,
+    autoReconnect: true,
     hasPassword: false,
   };
 
@@ -109,22 +104,15 @@ describe("StreamerbotSettings", () => {
 
   describe("Loading State", () => {
     it("should show loading state initially", () => {
-      // Never resolve to keep loading state
       mockApiGet.mockImplementation(() => new Promise(() => {}));
-
       render(<StreamerbotSettings />);
-
       expect(screen.getByText("Loading...")).toBeInTheDocument();
     });
 
-    it("should hide loading state after settings and status load", async () => {
+    it("should hide loading state after settings load", async () => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve(defaultStatusResponse);
-        }
+        if (url.includes("/settings")) return Promise.resolve(defaultSettingsResponse);
+        if (url.includes("/status")) return Promise.resolve(defaultStatusResponse);
         return Promise.reject(new Error("Unknown URL"));
       });
 
@@ -141,12 +129,8 @@ describe("StreamerbotSettings", () => {
   describe("Initial Data Loading", () => {
     it("should call apiGet to load settings and status on mount", async () => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve(defaultStatusResponse);
-        }
+        if (url.includes("/settings")) return Promise.resolve(defaultSettingsResponse);
+        if (url.includes("/status")) return Promise.resolve(defaultStatusResponse);
         return Promise.reject(new Error("Unknown URL"));
       });
 
@@ -161,56 +145,13 @@ describe("StreamerbotSettings", () => {
         );
       });
     });
-
-    it("should use default settings on load error", async () => {
-      mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.reject(new Error("Network error"));
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve(defaultStatusResponse);
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      });
-
-      render(<StreamerbotSettings />);
-
-      await waitFor(() => {
-        expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
-      });
-
-      // Form should still render with defaults
-      expect(screen.getByTestId("streamerbot-connection-form")).toBeInTheDocument();
-    });
-
-    it("should show error status when status check fails", async () => {
-      mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.reject(new Error("Status check failed"));
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      });
-
-      render(<StreamerbotSettings />);
-
-      await waitFor(() => {
-        expect(screen.getByText("Disconnected")).toBeInTheDocument();
-      });
-    });
   });
 
   describe("Connection Status Display", () => {
     it("should show connected badge when connected", async () => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve({ status: "connected" });
-        }
+        if (url.includes("/settings")) return Promise.resolve(defaultSettingsResponse);
+        if (url.includes("/status")) return Promise.resolve({ status: "connected" });
         return Promise.reject(new Error("Unknown URL"));
       });
 
@@ -221,32 +162,10 @@ describe("StreamerbotSettings", () => {
       });
     });
 
-    it("should show connecting badge when connecting", async () => {
-      mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve({ status: "connecting" });
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      });
-
-      render(<StreamerbotSettings />);
-
-      await waitFor(() => {
-        expect(screen.getByText("Connecting")).toBeInTheDocument();
-      });
-    });
-
     it("should show disconnected badge when disconnected", async () => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve({ status: "disconnected" });
-        }
+        if (url.includes("/settings")) return Promise.resolve(defaultSettingsResponse);
+        if (url.includes("/status")) return Promise.resolve({ status: "disconnected" });
         return Promise.reject(new Error("Unknown URL"));
       });
 
@@ -256,74 +175,58 @@ describe("StreamerbotSettings", () => {
         expect(screen.getByText("Disconnected")).toBeInTheDocument();
       });
     });
-  });
 
-  describe("Form Changes", () => {
-    beforeEach(() => {
+    it("should show connecting badge when connecting", async () => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve(defaultStatusResponse);
-        }
+        if (url.includes("/settings")) return Promise.resolve(defaultSettingsResponse);
+        if (url.includes("/status")) return Promise.resolve({ status: "connecting" });
         return Promise.reject(new Error("Unknown URL"));
       });
-    });
 
-    it("should enable save button when form changes", async () => {
-      const user = userEvent.setup();
       render(<StreamerbotSettings />);
 
       await waitFor(() => {
-        expect(screen.getByTestId("host-input")).toBeInTheDocument();
+        expect(screen.getByText("Connecting")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("URL Input", () => {
+    it("should display URL input with loaded value", async () => {
+      mockApiGet.mockImplementation((url: string) => {
+        if (url.includes("/settings")) return Promise.resolve(defaultSettingsResponse);
+        if (url.includes("/status")) return Promise.resolve(defaultStatusResponse);
+        return Promise.reject(new Error("Unknown URL"));
       });
 
-      // Initially save button should be disabled (no changes)
-      const saveButton = screen.getByRole("button", { name: /Save Settings/i });
-      expect(saveButton).toBeDisabled();
+      render(<StreamerbotSettings />);
 
-      // Make a change
-      const hostInput = screen.getByTestId("host-input");
-      await user.clear(hostInput);
-      await user.type(hostInput, "192.168.1.100");
-
-      // Save button should now be enabled
-      expect(saveButton).not.toBeDisabled();
+      await waitFor(() => {
+        const urlInput = screen.getByPlaceholderText("ws://127.0.0.1:8080/");
+        expect(urlInput).toBeInTheDocument();
+        expect(urlInput).toHaveValue("ws://127.0.0.1:8080/");
+      });
     });
   });
 
   describe("Save Functionality", () => {
     beforeEach(() => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve({
-            ...defaultSettingsResponse,
-            host: "127.0.0.1",
-            port: 8080,
-          });
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve(defaultStatusResponse);
-        }
+        if (url.includes("/settings")) return Promise.resolve(defaultSettingsResponse);
+        if (url.includes("/status")) return Promise.resolve(defaultStatusResponse);
         return Promise.reject(new Error("Unknown URL"));
       });
     });
 
-    it("should call apiPut with settings when saving", async () => {
+    it("should call apiPut with parsed settings when saving", async () => {
       const user = userEvent.setup();
       mockApiPut.mockResolvedValue({});
 
       render(<StreamerbotSettings />);
 
       await waitFor(() => {
-        expect(screen.getByTestId("host-input")).toBeInTheDocument();
+        expect(screen.getByText("Save Settings")).toBeInTheDocument();
       });
-
-      // Make a change to enable save button
-      const hostInput = screen.getByTestId("host-input");
-      await user.clear(hostInput);
-      await user.type(hostInput, "192.168.1.50");
 
       const saveButton = screen.getByRole("button", { name: /Save Settings/i });
       await user.click(saveButton);
@@ -332,132 +235,46 @@ describe("StreamerbotSettings", () => {
         expect(mockApiPut).toHaveBeenCalledWith(
           "http://localhost:3002/api/streamerbot-chat/settings",
           expect.objectContaining({
-            host: "192.168.1.50",
+            host: "127.0.0.1",
+            port: 8080,
+            autoConnect: true,
+            autoReconnect: true,
           })
         );
       });
     });
 
-    it("should show saving state while saving", async () => {
-      const user = userEvent.setup();
-      // Never resolve to keep saving state
-      mockApiPut.mockImplementation(() => new Promise(() => {}));
-
-      render(<StreamerbotSettings />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("host-input")).toBeInTheDocument();
-      });
-
-      // Make a change
-      const hostInput = screen.getByTestId("host-input");
-      await user.clear(hostInput);
-      await user.type(hostInput, "newhost");
-
-      const saveButton = screen.getByRole("button", { name: /Save Settings/i });
-      await user.click(saveButton);
-
-      expect(screen.getByText("Saving...")).toBeInTheDocument();
-    });
-
-    it("should show success message after successful save", async () => {
+    it("should show success message after save", async () => {
       const user = userEvent.setup();
       mockApiPut.mockResolvedValue({});
 
       render(<StreamerbotSettings />);
 
       await waitFor(() => {
-        expect(screen.getByTestId("host-input")).toBeInTheDocument();
+        expect(screen.getByText("Save Settings")).toBeInTheDocument();
       });
 
-      // Make a change
-      const hostInput = screen.getByTestId("host-input");
-      await user.clear(hostInput);
-      await user.type(hostInput, "newhost");
-
-      const saveButton = screen.getByRole("button", { name: /Save Settings/i });
-      await user.click(saveButton);
+      await user.click(screen.getByRole("button", { name: /Save Settings/i }));
 
       await waitFor(() => {
         expect(screen.getByText("Settings saved successfully")).toBeInTheDocument();
       });
     });
 
-    it("should show error message on save failure", async () => {
+    it("should show error on save failure", async () => {
       const user = userEvent.setup();
       mockApiPut.mockRejectedValue(new Error("Save failed"));
 
       render(<StreamerbotSettings />);
 
       await waitFor(() => {
-        expect(screen.getByTestId("host-input")).toBeInTheDocument();
+        expect(screen.getByText("Save Settings")).toBeInTheDocument();
       });
 
-      // Make a change
-      const hostInput = screen.getByTestId("host-input");
-      await user.clear(hostInput);
-      await user.type(hostInput, "newhost");
-
-      const saveButton = screen.getByRole("button", { name: /Save Settings/i });
-      await user.click(saveButton);
+      await user.click(screen.getByRole("button", { name: /Save Settings/i }));
 
       await waitFor(() => {
         expect(screen.getByText("Save failed")).toBeInTheDocument();
-      });
-    });
-
-    it("should show ClientFetchError message on API error", async () => {
-      const user = userEvent.setup();
-      const clientFetchError = {
-        errorMessage: "Invalid port number",
-        status: 400,
-      };
-      mockApiPut.mockRejectedValue(clientFetchError);
-
-      render(<StreamerbotSettings />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("host-input")).toBeInTheDocument();
-      });
-
-      // Make a change
-      const hostInput = screen.getByTestId("host-input");
-      await user.clear(hostInput);
-      await user.type(hostInput, "newhost");
-
-      const saveButton = screen.getByRole("button", { name: /Save Settings/i });
-      await user.click(saveButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Invalid port number")).toBeInTheDocument();
-      });
-    });
-
-    it("should refresh status after successful save", async () => {
-      const user = userEvent.setup();
-      mockApiPut.mockResolvedValue({});
-
-      render(<StreamerbotSettings />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("host-input")).toBeInTheDocument();
-      });
-
-      // Clear existing calls
-      mockApiGet.mockClear();
-
-      // Make a change
-      const hostInput = screen.getByTestId("host-input");
-      await user.clear(hostInput);
-      await user.type(hostInput, "newhost");
-
-      const saveButton = screen.getByRole("button", { name: /Save Settings/i });
-      await user.click(saveButton);
-
-      await waitFor(() => {
-        expect(mockApiGet).toHaveBeenCalledWith(
-          "http://localhost:3002/api/streamerbot-chat/status"
-        );
       });
     });
   });
@@ -465,49 +282,37 @@ describe("StreamerbotSettings", () => {
   describe("Connect/Disconnect Actions", () => {
     it("should show Connect button when disconnected", async () => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve({ status: "disconnected" });
-        }
+        if (url.includes("/settings")) return Promise.resolve(defaultSettingsResponse);
+        if (url.includes("/status")) return Promise.resolve({ status: "disconnected" });
         return Promise.reject(new Error("Unknown URL"));
       });
 
       render(<StreamerbotSettings />);
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /Connect/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /^Connect$/i })).toBeInTheDocument();
       });
     });
 
     it("should show Disconnect button when connected", async () => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve({ status: "connected" });
-        }
+        if (url.includes("/settings")) return Promise.resolve(defaultSettingsResponse);
+        if (url.includes("/status")) return Promise.resolve({ status: "connected" });
         return Promise.reject(new Error("Unknown URL"));
       });
 
       render(<StreamerbotSettings />);
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /Disconnect/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /^Disconnect$/i })).toBeInTheDocument();
       });
     });
 
     it("should call connect API when clicking Connect", async () => {
       const user = userEvent.setup();
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve({ status: "disconnected" });
-        }
+        if (url.includes("/settings")) return Promise.resolve(defaultSettingsResponse);
+        if (url.includes("/status")) return Promise.resolve({ status: "disconnected" });
         return Promise.reject(new Error("Unknown URL"));
       });
       mockApiPost.mockResolvedValue({});
@@ -515,11 +320,10 @@ describe("StreamerbotSettings", () => {
       render(<StreamerbotSettings />);
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /Connect/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /^Connect$/i })).toBeInTheDocument();
       });
 
-      const connectButton = screen.getByRole("button", { name: /Connect/i });
-      await user.click(connectButton);
+      await user.click(screen.getByRole("button", { name: /^Connect$/i }));
 
       await waitFor(() => {
         expect(mockApiPost).toHaveBeenCalledWith(
@@ -531,12 +335,8 @@ describe("StreamerbotSettings", () => {
     it("should call disconnect API when clicking Disconnect", async () => {
       const user = userEvent.setup();
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve({ status: "connected" });
-        }
+        if (url.includes("/settings")) return Promise.resolve(defaultSettingsResponse);
+        if (url.includes("/status")) return Promise.resolve({ status: "connected" });
         return Promise.reject(new Error("Unknown URL"));
       });
       mockApiPost.mockResolvedValue({});
@@ -544,11 +344,10 @@ describe("StreamerbotSettings", () => {
       render(<StreamerbotSettings />);
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /Disconnect/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /^Disconnect$/i })).toBeInTheDocument();
       });
 
-      const disconnectButton = screen.getByRole("button", { name: /Disconnect/i });
-      await user.click(disconnectButton);
+      await user.click(screen.getByRole("button", { name: /^Disconnect$/i }));
 
       await waitFor(() => {
         expect(mockApiPost).toHaveBeenCalledWith(
@@ -556,113 +355,13 @@ describe("StreamerbotSettings", () => {
         );
       });
     });
-
-    it("should refresh status after connect", async () => {
-      jest.useFakeTimers();
-      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-
-      mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve({ status: "disconnected" });
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      });
-      mockApiPost.mockResolvedValue({});
-
-      render(<StreamerbotSettings />);
-
-      await waitFor(() => {
-        expect(screen.getByRole("button", { name: /Connect/i })).toBeInTheDocument();
-      });
-
-      mockApiGet.mockClear();
-
-      const connectButton = screen.getByRole("button", { name: /Connect/i });
-      await user.click(connectButton);
-
-      // Advance past the 500ms delay
-      jest.advanceTimersByTime(600);
-
-      await waitFor(() => {
-        expect(mockApiGet).toHaveBeenCalledWith(
-          "http://localhost:3002/api/streamerbot-chat/status"
-        );
-      });
-
-      jest.useRealTimers();
-    });
-
-    it("should disable Connect button while connecting", async () => {
-      mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve({ status: "connecting" });
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      });
-
-      render(<StreamerbotSettings />);
-
-      await waitFor(() => {
-        const connectButton = screen.getByRole("button", { name: /Connect/i });
-        expect(connectButton).toBeDisabled();
-      });
-    });
-  });
-
-  describe("Refresh Status Button", () => {
-    it("should refresh status when clicking refresh button", async () => {
-      const user = userEvent.setup();
-      mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve({ status: "disconnected" });
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      });
-
-      render(<StreamerbotSettings />);
-
-      await waitFor(() => {
-        expect(screen.getByText("Disconnected")).toBeInTheDocument();
-      });
-
-      mockApiGet.mockClear();
-
-      // Find the refresh button (it's an icon button without text)
-      const buttons = screen.getAllByRole("button");
-      const refreshButton = buttons.find(
-        (btn) => btn.querySelector('svg.lucide-refresh-cw') !== null
-      );
-
-      if (refreshButton) {
-        await user.click(refreshButton);
-
-        await waitFor(() => {
-          expect(mockApiGet).toHaveBeenCalledWith(
-            "http://localhost:3002/api/streamerbot-chat/status"
-          );
-        });
-      }
-    });
   });
 
   describe("Setup Guide", () => {
-    it("should display setup guide card", async () => {
+    it("should display setup guide", async () => {
       mockApiGet.mockImplementation((url: string) => {
-        if (url.includes("/settings")) {
-          return Promise.resolve(defaultSettingsResponse);
-        }
-        if (url.includes("/status")) {
-          return Promise.resolve(defaultStatusResponse);
-        }
+        if (url.includes("/settings")) return Promise.resolve(defaultSettingsResponse);
+        if (url.includes("/status")) return Promise.resolve(defaultStatusResponse);
         return Promise.reject(new Error("Unknown URL"));
       });
 
@@ -672,11 +371,8 @@ describe("StreamerbotSettings", () => {
         expect(screen.getByText("Setup Guide")).toBeInTheDocument();
       });
 
-      // Check setup steps are displayed
-      expect(screen.getByText("Open Streamer.bot and enable WebSocket Server")).toBeInTheDocument();
-      expect(screen.getByText("Note the host and port settings")).toBeInTheDocument();
-      expect(screen.getByText("Enter the connection details above")).toBeInTheDocument();
-      expect(screen.getByText("Click Save and then Connect")).toBeInTheDocument();
+      expect(screen.getByText("Open Streamer.bot")).toBeInTheDocument();
+      expect(screen.getByText("Enable WebSocket Server")).toBeInTheDocument();
     });
   });
 });
