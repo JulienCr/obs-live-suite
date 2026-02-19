@@ -68,7 +68,9 @@
 
 @layer base {
   :root {
-    --header-height: 57px;
+    --topbar-height: 40px;
+    --sidebar-width-collapsed: 48px;
+    --sidebar-width-expanded: 220px;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;

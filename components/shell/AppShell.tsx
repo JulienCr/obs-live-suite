@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useAppMode } from "./AppModeContext";
-import { DashboardHeader } from "../dashboard/DashboardHeader";
-import { AdminSidebar } from "../dashboard/AdminSidebar";
+import { AppSidebar } from "./AppSidebar";
+import { ContentTopBar } from "./ContentTopBar";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 
 interface AppShellProps {
@@ -35,13 +35,11 @@ export function AppShell({ children }: AppShellProps) {
     return <>{children}</>;
   }
 
-  const showSidebar = mode === "ADMIN" && !isFullscreenMode;
-
   return (
-    <div className="min-h-screen flex flex-col">
-      {!isFullscreenMode && <DashboardHeader />}
-      <div className="flex flex-1 overflow-hidden">
-        {showSidebar && <AdminSidebar />}
+    <div className="min-h-screen flex">
+      {!isFullscreenMode && <AppSidebar />}
+      <div className="flex-1 flex flex-col min-w-0">
+        {!isFullscreenMode && <ContentTopBar />}
         <main className="flex-1 overflow-auto">
           {children}
         </main>

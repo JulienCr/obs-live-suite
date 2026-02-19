@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export default function LocaleLoading() {
   return (
-    <div className="flex items-center justify-center h-[calc(100vh-var(--header-height))]">
+    <div className="flex items-center justify-center h-[calc(100vh-var(--topbar-height))]">
       <div className="flex flex-col items-center gap-4">
         <Skeleton className="h-8 w-8 rounded-full" />
         <Skeleton className="h-4 w-32" />

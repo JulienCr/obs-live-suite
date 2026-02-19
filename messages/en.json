@@ -1450,5 +1450,14 @@
       "userBanned": "User banned",
       "failed": "Moderation action failed"
     }
+  },
+  "sidebar": {
+    "onAir": "ON AIR",
+    "offAir": "OFF AIR",
+    "obsDisconnected": "OBS",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "twitch": "Twitch",
+    "streamerbot": "Streamer.bot"
   }
 }

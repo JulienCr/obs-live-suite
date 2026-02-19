@@ -51,6 +51,11 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.themes.all, "detail", id] as const,
   },
 
+  twitch: {
+    all: ["twitch"] as const,
+    authStatus: () => [...queryKeys.twitch.all, "authStatus"] as const,
+  },
+
   settings: {
     all: ["settings"] as const,
     byCategory: (category: string) =>

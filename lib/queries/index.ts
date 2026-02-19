@@ -43,3 +43,5 @@ export type {
 
 export { useThemes } from "./useThemes";
 export type { ThemeSummary } from "./useThemes";
+
+export { useTwitchAuthStatus } from "./useTwitchAuthStatus";

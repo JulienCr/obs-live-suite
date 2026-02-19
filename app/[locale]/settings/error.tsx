@@ -21,7 +21,7 @@ export default function SettingsError({
   }, [error]);
 
   return (
-    <div className="flex items-center justify-center h-[calc(100vh-var(--header-height))] p-6">
+    <div className="flex items-center justify-center h-[calc(100vh-var(--topbar-height))] p-6">
       <Alert variant="destructive" className="max-w-md">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Settings Error</AlertTitle>

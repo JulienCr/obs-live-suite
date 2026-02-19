@@ -18,8 +18,10 @@ router.get("/status", async (req, res) => {
   try {
     const gateway = StreamerbotGateway.getInstance();
     const status = gateway.getStreamerbotStatus();
+    const settingsService = SettingsService.getInstance();
+    const isConfigured = settingsService.isStreamerbotAutoConnectEnabled() || status.status !== "disconnected";
 
-    res.json(status);
+    res.json({ ...status, isConfigured });
   } catch (error) {
     expressError(res, error, "Failed to get Streamerbot status", { context: "[StreamerbotAPI]" });
   }

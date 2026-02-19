@@ -25,12 +25,11 @@ import { RegiePublicChatPanel } from "./panels/RegiePublicChatPanel";
 import { TwitchPanel } from "./panels/TwitchPanel";
 import { ChatMessagesPanel } from "./panels/ChatMessagesPanel";
 import { TextPresetsPanel } from "./panels/TextPresetsPanel";
-import { DockviewContext, usePanelPositions } from "./DockviewContext";
+import { DockviewContext } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
-import { usePanelColorsStore, useWorkspacesStore } from "@/lib/stores";
+import { usePanelColorsStore, useWorkspacesStore, useDockviewStore } from "@/lib/stores";
 import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
-import { LiveModeRail } from "./LiveModeRail";
 import { useAppMode } from "./AppModeContext";
 import type { ColorScheme } from "@/lib/models/PanelColor";
 
@@ -70,11 +69,12 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
   }
 
   const { theme } = useTheme();
-  const { mode, isFullscreenMode } = useAppMode();
+  const { isFullscreenMode } = useAppMode();
   const [mounted, setMounted] = useState(false);
   const apiRef = useRef<DockviewReadyEvent["api"] | null>(null);
   const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);
-  const { savePositionBeforeClose, getSavedPosition } = usePanelPositions(api);
+  const savePositionBeforeClose = useDockviewStore((s) => s.savePositionBeforeClose);
+  const getSavedPosition = useDockviewStore((s) => s.getSavedPosition);
   const [workspaceCallbacks, setWorkspaceCallbacks] = useState<{
     resetToDefault: () => void;
     openSaveDialog: () => void;
@@ -83,6 +83,9 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
 
   useEffect(() => {
     setMounted(true);
+    return () => {
+      useDockviewStore.getState().clearApi();
+    };
   }, []);
 
   const applyLivePreset = useCallback(() => {
@@ -262,6 +265,7 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
   const onReady = useCallback((event: DockviewReadyEvent) => {
     apiRef.current = event.api;
     setApi(event.api);
+    useDockviewStore.getState().setApi(event.api);
 
     const saved = localStorage.getItem(LAYOUT_KEY);
     if (saved) {
@@ -372,8 +376,7 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
       <StoreWorkspaceSaveDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} />
       <LayoutPresetsProvider applyPreset={applyPreset}>
         <DockviewContext.Provider value={dockviewContextValue}>
-          <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--header-height))", width: "100%", display: "flex" }}>
-            {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
+          <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--topbar-height))", width: "100%", display: "flex" }}>
             <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
               <DockviewReact
                 components={components}
