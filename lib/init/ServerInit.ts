@@ -3,6 +3,7 @@ import { OBSConnectionManager } from "../adapters/obs/OBSConnectionManager";
 import { OBSStateManager } from "../adapters/obs/OBSStateManager";
 import { DatabaseService } from "../services/DatabaseService";
 import { ThemeService } from "../services/ThemeService";
+import { SettingsService } from "../services/SettingsService";
 
 import { WorkspaceService } from "../services/WorkspaceService";
 import { Logger } from "../utils/Logger";
@@ -90,6 +91,12 @@ export class ServerInit {
    */
   private async initializeOBS(): Promise<void> {
     try {
+      const settingsService = SettingsService.getInstance();
+      if (!settingsService.isOBSAutoConnectEnabled()) {
+        this.logger.info("OBS auto-connect disabled");
+        return;
+      }
+
       const connectionManager = OBSConnectionManager.getInstance();
       const stateManager = OBSStateManager.getInstance();
 

@@ -22,6 +22,8 @@ export const GET = withSimpleErrorHandler(async () => {
     url: settings.url,
     password: settings.password || "",
     hasPassword: !!settings.password,
+    autoConnect: settings.autoConnect,
+    autoReconnect: settings.autoReconnect,
     sourceIsDatabase: settingsService.hasOBSSettingsInDatabase(),
   };
 
@@ -34,7 +36,7 @@ export const GET = withSimpleErrorHandler(async () => {
  */
 export const POST = withSimpleErrorHandler(async (request: Request) => {
   const body = await request.json();
-  const { url, password, testOnly } = body;
+  const { url, password, autoConnect, autoReconnect, testOnly } = body;
 
   if (!url) {
     return ApiResponses.badRequest("URL is required");
@@ -52,7 +54,12 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
     // If not test-only, save settings
     if (!testOnly) {
       const settingsService = SettingsService.getInstance();
-      settingsService.saveOBSSettings({ url, password: password || undefined });
+      settingsService.saveOBSSettings({
+        url,
+        password: password || undefined,
+        ...(autoConnect !== undefined && { autoConnect }),
+        ...(autoReconnect !== undefined && { autoReconnect }),
+      });
 
       // Refresh OBS state after successful connection
       const stateManager = OBSStateManager.getInstance();

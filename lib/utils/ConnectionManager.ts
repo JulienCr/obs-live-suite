@@ -182,9 +182,21 @@ export abstract class ConnectionManager {
   }
 
   /**
+   * Whether auto-reconnect is allowed. Override in subclasses to check settings.
+   */
+  protected shouldAutoReconnect(): boolean {
+    return true;
+  }
+
+  /**
    * Schedule a reconnection attempt with exponential backoff.
    */
   protected scheduleReconnect(): void {
+    if (!this.shouldAutoReconnect()) {
+      this.logger.info("Auto-reconnect disabled, skipping reconnection");
+      return;
+    }
+
     if (this.reconnectTimer) {
       return; // Already scheduled
     }

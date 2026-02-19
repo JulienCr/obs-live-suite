@@ -255,12 +255,17 @@ class BackendServer {
       this.wsHub.start();
       this.logger.info("✓ WebSocket hub started");
 
-      // 3. Connect to OBS
+      // 3. Connect to OBS (if auto-connect enabled)
       try {
-        await this.obsManager.connect();
-        const stateManager = OBSStateManager.getInstance();
-        await stateManager.refreshState();
-        this.logger.info("✓ OBS connected");
+        const settingsService = SettingsService.getInstance();
+        if (settingsService.isOBSAutoConnectEnabled()) {
+          await this.obsManager.connect();
+          const stateManager = OBSStateManager.getInstance();
+          await stateManager.refreshState();
+          this.logger.info("✓ OBS connected");
+        } else {
+          this.logger.info("OBS auto-connect disabled");
+        }
       } catch (error) {
         this.logger.warn("OBS connection failed (will retry)", error);
       }

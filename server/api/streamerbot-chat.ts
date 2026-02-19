@@ -121,7 +121,7 @@ router.post("/send", async (req, res) => {
  */
 router.put("/settings", async (req, res) => {
   try {
-    const { host, port, endpoint, scheme, password } = req.body;
+    const { host, port, endpoint, scheme, password, autoConnect, autoReconnect } = req.body;
     const settingsService = SettingsService.getInstance();
     const gateway = StreamerbotGateway.getInstance();
 
@@ -132,6 +132,8 @@ router.put("/settings", async (req, res) => {
     if (endpoint !== undefined) settings.endpoint = endpoint;
     if (scheme !== undefined) settings.scheme = scheme;
     if (password !== undefined) settings.password = password;
+    if (autoConnect !== undefined) settings.autoConnect = autoConnect;
+    if (autoReconnect !== undefined) settings.autoReconnect = autoReconnect;
 
     // Save to database
     settingsService.saveStreamerbotSettings(settings);
@@ -145,6 +147,28 @@ router.put("/settings", async (req, res) => {
     res.json({ success: true, message: "Settings updated" });
   } catch (error) {
     expressError(res, error, "Failed to update settings", { context: "[StreamerbotAPI]" });
+  }
+});
+
+/**
+ * DELETE /api/streamerbot-chat/settings
+ * Clear Streamerbot settings and reset to defaults
+ */
+router.delete("/settings", async (req, res) => {
+  try {
+    const settingsService = SettingsService.getInstance();
+    const gateway = StreamerbotGateway.getInstance();
+
+    // Disconnect if connected
+    if (gateway.isConnected()) {
+      await gateway.disconnect();
+    }
+
+    settingsService.clearStreamerbotSettings();
+
+    res.json({ success: true, message: "Settings cleared" });
+  } catch (error) {
+    expressError(res, error, "Failed to clear settings", { context: "[StreamerbotAPI]" });
   }
 });
 

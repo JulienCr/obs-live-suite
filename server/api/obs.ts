@@ -26,6 +26,31 @@ router.get("/status", obsHandler(async (req, res) => {
 }, "Failed to get OBS status"));
 
 /**
+ * POST /api/obs/connect
+ * Connect to OBS
+ */
+router.post("/connect", obsHandler(async (req, res) => {
+  const obsManager = OBSConnectionManager.getInstance();
+  await obsManager.connect();
+
+  const stateManager = OBSStateManager.getInstance();
+  await stateManager.refreshState();
+
+  res.json({ success: true, message: "Connected to OBS" });
+}, "OBS connect failed"));
+
+/**
+ * POST /api/obs/disconnect
+ * Disconnect from OBS
+ */
+router.post("/disconnect", obsHandler(async (req, res) => {
+  const obsManager = OBSConnectionManager.getInstance();
+  await obsManager.disconnect();
+
+  res.json({ success: true, message: "Disconnected from OBS" });
+}, "OBS disconnect failed"));
+
+/**
  * POST /api/obs/reconnect
  * Manually trigger OBS reconnection
  */

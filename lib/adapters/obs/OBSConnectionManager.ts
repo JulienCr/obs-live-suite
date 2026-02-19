@@ -54,6 +54,13 @@ export class OBSConnectionManager extends ConnectionManager {
   }
 
   /**
+   * Check if auto-reconnect is enabled in settings.
+   */
+  protected override shouldAutoReconnect(): boolean {
+    return this.settingsService.getOBSSettings().autoReconnect;
+  }
+
+  /**
    * Connect to OBS WebSocket using stored settings
    */
   override async connect(): Promise<void> {

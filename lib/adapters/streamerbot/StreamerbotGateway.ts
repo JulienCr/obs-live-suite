@@ -75,6 +75,13 @@ export class StreamerbotGateway extends ConnectionManager {
   }
 
   /**
+   * Check if auto-reconnect is enabled in settings.
+   */
+  protected override shouldAutoReconnect(): boolean {
+    return this.settingsService.getStreamerbotSettings().autoReconnect;
+  }
+
+  /**
    * Setup Streamer.bot event listeners (for chat/events only)
    */
   private setupEventListeners(): void {
