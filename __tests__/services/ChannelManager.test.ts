@@ -28,6 +28,7 @@ jest.mock('@/lib/services/WebSocketHub', () => ({
     getInstance: jest.fn(() => ({
       broadcast: mockBroadcast,
       getChannelSubscribers: mockGetChannelSubscribers,
+      setOnAckCallback: jest.fn(),
     })),
   },
 }));
