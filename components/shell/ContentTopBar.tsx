@@ -9,11 +9,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Maximize, Minimize, Loader2, ChevronDown, Check, MonitorOff } from "lucide-react";
+import { Maximize, Minimize, Loader2, Check, MonitorOff, FolderOpen } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAppMode } from "@/components/shell/AppModeContext";
 import { HeaderOverflowMenu } from "@/components/dashboard/HeaderOverflowMenu";
 import { WorkspaceSelector } from "@/components/shell/WorkspaceSelector";
+import { TopBarSelect } from "@/components/shell/TopBarSelect";
 import { useProfiles, useOBSStatus } from "@/lib/queries";
 
 export function ContentTopBar() {
@@ -45,7 +46,7 @@ export function ContentTopBar() {
     });
 
   return (
-    <header className="flex items-center h-10 px-3 gap-2 border-b bg-card shrink-0">
+    <header className="flex items-center h-10 pr-2 gap-2 border-b bg-card shrink-0">
       {/* Workspace Selector */}
       <WorkspaceSelector />
 
@@ -53,18 +54,11 @@ export function ContentTopBar() {
       {profiles.length > 0 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 gap-2 text-xs"
+            <TopBarSelect
+              icon={isActivating ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <FolderOpen className="w-4 h-4 shrink-0" />}
+              label={activeProfile ? activeProfile.name : t("noProfile")}
               disabled={isActivating}
-            >
-              {isActivating ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : null}
-              {activeProfile ? activeProfile.name : t("noProfile")}
-              <ChevronDown className="w-3 h-3" />
-            </Button>
+            />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
             {profiles.map((profile) => (

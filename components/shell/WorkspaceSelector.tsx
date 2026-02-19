@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,12 +11,12 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import {
-  ChevronDown,
   Save,
   RotateCcw,
   Settings2,
   Layout,
 } from "lucide-react";
+import { TopBarSelect } from "./TopBarSelect";
 import { useWorkspacesStore } from "@/lib/stores";
 import { WorkspaceSaveDialog } from "./WorkspaceSaveDialog";
 import { WorkspaceManagerDialog } from "./WorkspaceManagerDialog";
@@ -68,10 +67,11 @@ export function WorkspaceSelector() {
   // Don't show selector if workspaces haven't loaded yet
   if (isLoading) {
     return (
-      <Button variant="outline" size="sm" className="h-9 gap-2 text-sm" disabled>
-        <Layout className="w-4 h-4" />
-        {t("loading")}
-      </Button>
+      <TopBarSelect
+        icon={<Layout className="w-4 h-4 shrink-0" />}
+        label={t("loading")}
+        disabled
+      />
     );
   }
 
@@ -82,15 +82,10 @@ export function WorkspaceSelector() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 gap-2 text-sm max-w-[200px]"
-          >
-            <Layout className="w-4 h-4 shrink-0" />
-            <span className="truncate">{displayName}</span>
-            <ChevronDown className="w-3 h-3 shrink-0" />
-          </Button>
+          <TopBarSelect
+            icon={<Layout className="w-4 h-4 shrink-0" />}
+            label={displayName}
+          />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
           {/* Built-in Workspaces */}
