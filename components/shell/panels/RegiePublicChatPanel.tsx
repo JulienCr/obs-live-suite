@@ -12,11 +12,12 @@ import { StreamerbotChatToolbar, SearchBar } from "@/components/presenter/panels
 import { RegiePublicChatMessageList } from "./regie-public-chat/RegiePublicChatMessageList";
 import type { ChatMessage } from "@/lib/models/StreamerbotChat";
 import { DEFAULT_STREAMERBOT_CONNECTION } from "@/lib/models/StreamerbotChat";
-import type { ModerationAction } from "./regie-public-chat/types";
+import { type ModerationAction, StreamerbotConnectionStatus } from "./regie-public-chat/types";
 import { CueType, CueFrom, CueAction } from "@/lib/models/Cue";
 import { useToast } from "@/hooks/use-toast";
 import { apiPost } from "@/lib/utils/ClientFetch";
 import { useChatHighlightSync } from "@/hooks/useChatHighlightSync";
+import { ChatMessageInput } from "@/components/presenter/chat/ChatMessageInput";
 
 /**
  * Regie Public Chat Panel - Streamerbot chat with highlight functionality
@@ -62,6 +63,8 @@ function RegiePublicChatContent() {
     error,
     connect,
     disconnect,
+    sendMessage,
+    canSendMessages,
   } = useStreamerbotClient({
     settings: DEFAULT_STREAMERBOT_CONNECTION, // Backend manages actual settings
     onMessage: addMessage,
@@ -257,6 +260,15 @@ function RegiePublicChatContent() {
         onModerate={handleModerate}
         moderateLoadingId={moderateLoadingId}
       />
+
+      {/* Message input */}
+      {canSendMessages && (
+        <ChatMessageInput
+          onSend={sendMessage}
+          disabled={status !== StreamerbotConnectionStatus.CONNECTED}
+          placeholder={t("chat.sendPlaceholder")}
+        />
+      )}
     </div>
   );
 }
