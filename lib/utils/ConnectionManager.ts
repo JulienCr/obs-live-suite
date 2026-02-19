@@ -56,6 +56,7 @@ export abstract class ConnectionManager {
   protected maxReconnectAttempts: number;
   protected baseReconnectDelay: number;
   protected currentError?: ConnectionError;
+  protected intentionalDisconnect = false;
 
   protected constructor(options: ConnectionManagerOptions) {
     this.logger = new Logger(options.loggerName);
@@ -107,6 +108,8 @@ export abstract class ConnectionManager {
    * Handles status transitions and error handling.
    */
   async connect(): Promise<void> {
+    this.intentionalDisconnect = false;
+
     if (this.status === ConnectionStatus.CONNECTED) {
       this.logger.info("Disconnecting existing connection");
       await this.disconnect();
@@ -144,6 +147,7 @@ export abstract class ConnectionManager {
    */
   async disconnect(): Promise<void> {
     this.cancelReconnect();
+    this.intentionalDisconnect = true;
 
     if (this.status === ConnectionStatus.CONNECTED) {
       await this.doDisconnect();
@@ -159,7 +163,9 @@ export abstract class ConnectionManager {
   protected handleConnectionClosed(): void {
     this.status = ConnectionStatus.DISCONNECTED;
     this.onDisconnected();
-    this.scheduleReconnect();
+    if (!this.intentionalDisconnect) {
+      this.scheduleReconnect();
+    }
   }
 
   /**
@@ -170,7 +176,9 @@ export abstract class ConnectionManager {
     this.status = ConnectionStatus.ERROR;
     this.currentError = error;
     this.onError(error);
-    this.scheduleReconnect();
+    if (!this.intentionalDisconnect) {
+      this.scheduleReconnect();
+    }
   }
 
   /**
