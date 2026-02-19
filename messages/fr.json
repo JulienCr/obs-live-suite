@@ -25,7 +25,13 @@
       "onAir": "ON AIR",
       "noProfile": "Aucun profil",
       "fullscreen": "Plein écran",
-      "exitFullscreen": "Quitter le plein écran"
+      "exitFullscreen": "Quitter le plein écran",
+      "switchToAdmin": "Passer en mode ADMIN",
+      "switchToLive": "Passer en mode LIVE",
+      "onAirDialogTitle": "Vous êtes actuellement ON AIR",
+      "onAirDialogDescription": "Passer en mode ADMIN vous éloignera de la surface de contrôle en direct. Êtes-vous sûr de vouloir continuer ?",
+      "stayInLive": "Rester en mode LIVE",
+      "switchToAdminConfirm": "Passer en ADMIN"
     },
     "commandPalette": {
       "placeholder": "Tapez une commande ou recherchez... (Cmd/Ctrl+P)",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
 import { Radio, Maximize, Loader2, ChevronDown, Check } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAppMode } from "@/components/shell/AppModeContext";
@@ -20,7 +32,9 @@ import { useOBSStatus, useProfiles } from "@/lib/queries";
 
 export function DashboardHeader() {
   const t = useTranslations("dashboard.header");
-  const { mode, setIsOnAir, isFullscreenMode, setIsFullscreenMode } = useAppMode();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { mode, setMode, setIsOnAir, isOnAir: appIsOnAir, isFullscreenMode, setIsFullscreenMode } = useAppMode();
 
   // OBS status with polling
   const {
@@ -40,6 +54,8 @@ export function DashboardHeader() {
 
   const [isConnecting, setIsConnecting] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showModeConfirmation, setShowModeConfirmation] = useState(false);
+  const [pendingMode, setPendingMode] = useState<"LIVE" | "ADMIN" | null>(null);
 
   // Sync isOnAir to app mode context
   useEffect(() => {
@@ -72,6 +88,41 @@ export function DashboardHeader() {
     setIsFullscreenMode(!isFullscreenMode);
   };
 
+  const handleModeToggle = () => {
+    const targetMode = mode === "LIVE" ? "ADMIN" : "LIVE";
+
+    if (appIsOnAir && mode === "LIVE") {
+      setPendingMode(targetMode);
+      setShowModeConfirmation(true);
+    } else {
+      switchMode(targetMode);
+    }
+  };
+
+  const switchMode = (targetMode: "LIVE" | "ADMIN") => {
+    if (targetMode === "LIVE") {
+      if (pathname !== "/dashboard" && pathname !== "/") {
+        router.push("/dashboard");
+      } else {
+        setMode(targetMode);
+      }
+    } else {
+      if (pathname === "/dashboard" || pathname === "/") {
+        router.push("/settings/general");
+      } else {
+        setMode(targetMode);
+      }
+    }
+  };
+
+  const confirmModeSwitch = () => {
+    if (pendingMode) {
+      switchMode(pendingMode);
+      setPendingMode(null);
+    }
+    setShowModeConfirmation(false);
+  };
+
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("en-US", {
       hour12: false,
@@ -82,18 +133,13 @@ export function DashboardHeader() {
   };
 
   return (
+    <>
     <header className="border-b bg-card h-(--header-height)">
       <div className="container mx-auto px-4 py-2">
         <div className="flex items-center justify-between gap-4">
-          {/* Left: App Title + Mode Badge */}
+          {/* Left: App Title */}
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold">OBS Live Suite</h1>
-            <Badge
-              variant={mode === "LIVE" ? "default" : "secondary"}
-              className="text-xs px-2 py-1 font-medium"
-            >
-              {mode}
-            </Badge>
           </div>
 
           {/* Center-Left: OBS Connection State */}
@@ -187,6 +233,20 @@ export function DashboardHeader() {
               {formatTime(currentTime)}
             </div>
 
+            {/* Mode Toggle */}
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-medium ${mode === "LIVE" ? "text-foreground" : "text-muted-foreground"}`}>
+                LIVE
+              </span>
+              <Switch
+                checked={mode === "ADMIN"}
+                onCheckedChange={handleModeToggle}
+              />
+              <span className={`text-xs font-medium ${mode === "ADMIN" ? "text-foreground" : "text-muted-foreground"}`}>
+                ADMIN
+              </span>
+            </div>
+
             {/* Fullscreen Toggle */}
             <Button
               variant="ghost"
@@ -207,6 +267,26 @@ export function DashboardHeader() {
         </div>
       </div>
     </header>
+
+    <AlertDialog open={showModeConfirmation} onOpenChange={setShowModeConfirmation}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t("onAirDialogTitle")}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {t("onAirDialogDescription")}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => { setPendingMode(null); setShowModeConfirmation(false); }}>
+            {t("stayInLive")}
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={confirmModeSwitch}>
+            {t("switchToAdminConfirm")}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 

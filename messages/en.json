@@ -25,7 +25,13 @@
       "onAir": "ON AIR",
       "noProfile": "No Profile",
       "fullscreen": "Fullscreen",
-      "exitFullscreen": "Exit Fullscreen"
+      "exitFullscreen": "Exit Fullscreen",
+      "switchToAdmin": "Switch to ADMIN Mode",
+      "switchToLive": "Switch to LIVE Mode",
+      "onAirDialogTitle": "You are currently ON AIR",
+      "onAirDialogDescription": "Switching to ADMIN mode will navigate away from the live control surface. Are you sure you want to continue?",
+      "stayInLive": "Stay in LIVE Mode",
+      "switchToAdminConfirm": "Switch to ADMIN"
     },
     "commandPalette": {
       "placeholder": "Type a command or search... (Cmd/Ctrl+P)",
