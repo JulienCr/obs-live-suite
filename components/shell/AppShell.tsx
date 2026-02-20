@@ -38,7 +38,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="h-screen flex overflow-hidden">
       {!isFullscreenMode && <AppSidebar />}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 shadow-[-4px_0_12px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_12px_-2px_rgba(0,0,0,0.4)] z-10">
         {!isFullscreenMode && <ContentTopBar />}
         <main className="flex-1 overflow-auto">
           {children}
