@@ -46,7 +46,7 @@ export function ContentTopBar() {
     });
 
   return (
-    <header className="flex items-center h-10 pr-2 gap-2 border-b bg-card shrink-0">
+    <header className="flex items-center h-10 pr-2 gap-2 border-b shrink-0" style={{ backgroundColor: "hsl(var(--sidebar-accent))" }}>
       {/* Workspace Selector */}
       <WorkspaceSelector />
 

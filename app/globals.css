@@ -71,6 +71,7 @@
     --topbar-height: 40px;
     --sidebar-width-collapsed: 48px;
     --sidebar-width-expanded: 220px;
+    --sidebar-accent: 210 40% 93%;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -94,6 +95,7 @@
   }
 
   .dark {
+    --sidebar-accent: 217.2 32.6% 21%;
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;

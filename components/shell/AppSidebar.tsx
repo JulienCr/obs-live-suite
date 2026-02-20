@@ -356,7 +356,7 @@ export function AppSidebar() {
   return (
     <>
       <aside
-        className="relative border-r bg-card flex flex-col h-full transition-all duration-200 overflow-hidden"
+        className="relative border-r bg-muted flex flex-col h-full transition-all duration-200 overflow-hidden"
         style={{ width: isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -473,7 +473,7 @@ export function AppSidebar() {
                       disabled
                         ? "text-muted-foreground/40 cursor-not-allowed"
                         : isVisible
-                          ? "bg-accent text-accent-foreground"
+                          ? "[background-color:hsl(var(--sidebar-accent))] text-accent-foreground"
                           : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                     )}
                     title={isExpanded ? undefined : label}
@@ -531,7 +531,7 @@ export function AppSidebar() {
                               className={cn(
                                 "flex items-center gap-3 px-2 py-2 text-sm rounded-md transition-colors",
                                 active
-                                  ? "bg-accent text-accent-foreground border-l-2 border-primary"
+                                  ? "[background-color:hsl(var(--sidebar-accent))] text-accent-foreground border-l-2 border-primary"
                                   : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                               )}
                               title={isExpanded ? undefined : label}
