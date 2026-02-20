@@ -423,34 +423,30 @@ export function AppSidebar() {
         </div>
 
         {/* ============================== MODE TOGGLE ============================== */}
-        {isExpanded ? (
-          <div className="shrink-0 border-t border-b px-2 py-2">
-            <div className="flex items-center justify-center gap-2">
-              <span
-                className={cn(
-                  "text-xs font-medium",
-                  mode === "LIVE" ? "text-foreground" : "text-muted-foreground"
-                )}
-              >
-                LIVE
-              </span>
-              <Switch
-                checked={mode === "ADMIN"}
-                onCheckedChange={handleModeToggle}
-              />
-              <span
-                className={cn(
-                  "text-xs font-medium",
-                  mode === "ADMIN" ? "text-foreground" : "text-muted-foreground"
-                )}
-              >
-                ADMIN
-              </span>
-            </div>
+        <div className="shrink-0 border-t border-b px-2 h-9 flex items-center">
+          <div className={cn("flex items-center justify-center gap-2 w-full", !isExpanded && "invisible")}>
+            <span
+              className={cn(
+                "text-xs font-medium",
+                mode === "LIVE" ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
+              LIVE
+            </span>
+            <Switch
+              checked={mode === "ADMIN"}
+              onCheckedChange={handleModeToggle}
+            />
+            <span
+              className={cn(
+                "text-xs font-medium",
+                mode === "ADMIN" ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
+              ADMIN
+            </span>
           </div>
-        ) : (
-          <div className="shrink-0 border-t" />
-        )}
+        </div>
 
         {/* ============================== NAV ZONE ============================== */}
         <nav className="flex-1 overflow-y-auto py-2">
@@ -469,7 +465,7 @@ export function AppSidebar() {
                     onClick={() => handlePanelToggle(panel.id, panel.component, panel.labelKey)}
                     disabled={disabled}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 transition-colors relative",
+                      "w-full flex items-center gap-3 px-3 h-10 transition-colors relative",
                       disabled
                         ? "text-muted-foreground/40 cursor-not-allowed"
                         : isVisible
@@ -616,7 +612,7 @@ function OBSStatusIndicator({
   tSidebar: ReturnType<typeof useTranslations>;
 }) {
   const containerClass = cn(
-    "flex items-center py-1.5 rounded-md",
+    "flex items-center h-6 rounded-md",
     isExpanded ? "gap-2 px-2" : "justify-center"
   );
 
@@ -684,7 +680,7 @@ function ConnectionIndicator({
     <Link
       href={href}
       className={cn(
-        "flex items-center py-1.5 rounded-md text-sm hover:bg-accent/50 transition-colors",
+        "flex items-center h-6 rounded-md text-sm hover:bg-accent/50 transition-colors",
         isExpanded ? "gap-2 px-2" : "justify-center"
       )}
       title={isExpanded ? undefined : label}
