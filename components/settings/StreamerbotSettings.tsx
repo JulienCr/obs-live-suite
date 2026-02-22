@@ -23,7 +23,7 @@ import {
   parseStreamerbotUrl,
 } from "@/lib/utils/streamerbotUrl";
 import { getBackendUrl } from "@/lib/utils/websocket";
-import { apiGet, apiPut, apiPost, apiDelete, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { apiGet, apiPut, apiPost, apiDelete, extractErrorMessage } from "@/lib/utils/ClientFetch";
 
 interface StreamerbotSettingsResponse {
   host: string;
@@ -49,18 +49,13 @@ interface StreamerbotConfig {
   autoReconnect: boolean;
 }
 
-function extractErrorMessage(error: unknown, fallback: string): string {
-  if (isClientFetchError(error)) return error.errorMessage;
-  if (error instanceof Error) return error.message;
-  return fallback;
-}
-
 /**
  * Settings page component for managing global Streamer.bot connection settings.
  * Normalized layout matching OBS settings screen.
  */
 export function StreamerbotSettings() {
   const t = useTranslations("settings.streamerbot");
+  const backendApi = `${getBackendUrl()}/api/streamerbot-chat`;
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -88,9 +83,8 @@ export function StreamerbotSettings() {
 
   const loadSettings = async () => {
     try {
-      const backendUrl = getBackendUrl();
       const data = await apiGet<StreamerbotSettingsResponse>(
-        `${backendUrl}/api/streamerbot-chat/settings`
+        `${backendApi}/settings`
       );
 
       setConfig({
@@ -115,9 +109,8 @@ export function StreamerbotSettings() {
 
   const fetchStatus = async () => {
     try {
-      const backendUrl = getBackendUrl();
       const status = await apiGet<StreamerbotStatusResponse>(
-        `${backendUrl}/api/streamerbot-chat/status`
+        `${backendApi}/status`
       );
       setConnectionStatus(status);
     } catch (error) {
@@ -134,11 +127,10 @@ export function StreamerbotSettings() {
     setTestResult(null);
 
     try {
-      const backendUrl = getBackendUrl();
       const parts = parseStreamerbotUrl(config.url);
 
       const result = await apiPost<{ success: boolean; message: string }>(
-        `${backendUrl}/api/streamerbot-chat/test`,
+        `${backendApi}/test`,
         {
           ...parts,
           password: config.password || undefined,
@@ -165,10 +157,9 @@ export function StreamerbotSettings() {
     setTestResult(null);
 
     try {
-      const backendUrl = getBackendUrl();
       const parts = parseStreamerbotUrl(config.url);
 
-      await apiPut(`${backendUrl}/api/streamerbot-chat/settings`, {
+      await apiPut(`${backendApi}/settings`, {
         ...parts,
         password: config.password || undefined,
         autoConnect: config.autoConnect,
@@ -192,8 +183,7 @@ export function StreamerbotSettings() {
 
   const handleConnect = async () => {
     try {
-      const backendUrl = getBackendUrl();
-      await apiPost(`${backendUrl}/api/streamerbot-chat/connect`);
+      await apiPost(`${backendApi}/connect`);
       await new Promise((resolve) => setTimeout(resolve, 500));
       fetchStatus();
     } catch (error) {
@@ -208,8 +198,7 @@ export function StreamerbotSettings() {
 
   const handleDisconnect = async () => {
     try {
-      const backendUrl = getBackendUrl();
-      await apiPost(`${backendUrl}/api/streamerbot-chat/disconnect`);
+      await apiPost(`${backendApi}/disconnect`);
       fetchStatus();
     } catch (error) {
       console.error("Failed to disconnect:", error);
@@ -223,8 +212,7 @@ export function StreamerbotSettings() {
 
   const handleClear = async () => {
     try {
-      const backendUrl = getBackendUrl();
-      await apiDelete(`${backendUrl}/api/streamerbot-chat/settings`);
+      await apiDelete(`${backendApi}/settings`);
       await loadSettings();
       setTestResult({
         success: true,

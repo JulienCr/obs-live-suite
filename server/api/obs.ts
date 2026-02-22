@@ -62,43 +62,29 @@ router.post("/reconnect", obsHandler(async (req, res) => {
   res.json({ success: true, message: "Reconnecting to OBS..." });
 }, "OBS reconnect failed"));
 
-/**
- * POST /api/obs/stream
- * Start/stop streaming
- */
-router.post("/stream", obsHandler(async (req, res) => {
-  const { action } = req.body;
-  const connectionManager = OBSConnectionManager.getInstance();
+const OBS_START_STOP_COMMANDS = {
+  stream: { start: "StartStream", stop: "StopStream" },
+  record: { start: "StartRecord", stop: "StopRecord" },
+} as const;
 
-  if (action === "start") {
-    await connectionManager.getOBS().call("StartStream");
-  } else if (action === "stop") {
-    await connectionManager.getOBS().call("StopStream");
-  } else {
-    return res.status(400).json({ error: "Invalid action. Use 'start' or 'stop'" });
-  }
+function createStartStopHandler(type: keyof typeof OBS_START_STOP_COMMANDS) {
+  const commands = OBS_START_STOP_COMMANDS[type];
+  return obsHandler(async (req, res) => {
+    const { action } = req.body;
 
-  res.json({ success: true });
-}, "Stream control failed"));
+    if (action !== "start" && action !== "stop") {
+      return res.status(400).json({ error: "Invalid action. Use 'start' or 'stop'" });
+    }
 
-/**
- * POST /api/obs/record
- * Start/stop recording
- */
-router.post("/record", obsHandler(async (req, res) => {
-  const { action } = req.body;
-  const connectionManager = OBSConnectionManager.getInstance();
+    const obs = OBSConnectionManager.getInstance().getOBS();
+    await obs.call(commands[action]);
 
-  if (action === "start") {
-    await connectionManager.getOBS().call("StartRecord");
-  } else if (action === "stop") {
-    await connectionManager.getOBS().call("StopRecord");
-  } else {
-    return res.status(400).json({ error: "Invalid action. Use 'start' or 'stop'" });
-  }
+    res.json({ success: true });
+  }, `${type} control failed`);
+}
 
-  res.json({ success: true });
-}, "Record control failed"));
+router.post("/stream", createStartStopHandler("stream"));
+router.post("/record", createStartStopHandler("record"));
 
 /**
  * POST /api/obs/scene

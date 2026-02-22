@@ -2,12 +2,8 @@ import OBSWebSocket from "obs-websocket-js";
 import { SettingsService } from "../../services/SettingsService";
 import {
   ConnectionManager,
-  ConnectionStatus,
   ConnectionError,
 } from "../../utils/ConnectionManager";
-
-// Re-export ConnectionStatus for backwards compatibility
-export { ConnectionStatus } from "../../utils/ConnectionManager";
 
 /**
  * OBSConnectionManager handles connection lifecycle and reconnection

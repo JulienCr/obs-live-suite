@@ -75,10 +75,6 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
   const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);
   const savePositionBeforeClose = useDockviewStore((s) => s.savePositionBeforeClose);
   const getSavedPosition = useDockviewStore((s) => s.getSavedPosition);
-  const [workspaceCallbacks, setWorkspaceCallbacks] = useState<{
-    resetToDefault: () => void;
-    openSaveDialog: () => void;
-  } | undefined>(undefined);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -240,6 +236,16 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
     }
   }, [applyLivePreset, applyPrepPreset, applyMinimalPreset]);
 
+  const initWorkspaces = useWorkspacesStore((s) => s.init);
+  const setLayoutJsonGetter = useWorkspacesStore((s) => s.setLayoutJsonGetter);
+  const setLayoutApplier = useWorkspacesStore((s) => s.setLayoutApplier);
+  const resetToDefault = useWorkspacesStore((s) => s.resetToDefault);
+
+  const workspaceCallbacks = useMemo(() => ({
+    resetToDefault: () => { resetToDefault().catch(console.error); },
+    openSaveDialog: () => { setSaveDialogOpen(true); },
+  }), [resetToDefault]);
+
   useKeyboardShortcuts(applyPreset, api, true, workspaceCallbacks);
 
   const applyLayout = useCallback((layoutJson: string, _panelColors: Record<string, string>) => {
@@ -344,11 +350,6 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
     return () => disposable.dispose();
   }, []);
 
-  const initWorkspaces = useWorkspacesStore((s) => s.init);
-  const setLayoutJsonGetter = useWorkspacesStore((s) => s.setLayoutJsonGetter);
-  const setLayoutApplier = useWorkspacesStore((s) => s.setLayoutApplier);
-  const resetToDefault = useWorkspacesStore((s) => s.resetToDefault);
-
   useEffect(() => {
     initWorkspaces();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -362,17 +363,6 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
     () => ({ api, savePositionBeforeClose, getSavedPosition }),
     [api, savePositionBeforeClose, getSavedPosition]
   );
-
-  useEffect(() => {
-    setWorkspaceCallbacks({
-      resetToDefault: () => {
-        resetToDefault().catch(console.error);
-      },
-      openSaveDialog: () => {
-        setSaveDialogOpen(true);
-      },
-    });
-  }, [resetToDefault]);
 
   return (
     <>

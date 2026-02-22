@@ -369,6 +369,16 @@ export function isClientFetchError(error: unknown): error is ClientFetchError {
 }
 
 /**
+ * Extract a user-facing error message from an unknown error.
+ * Prefers ClientFetchError.errorMessage, then Error.message, then the fallback.
+ */
+export function extractErrorMessage(error: unknown, fallback: string): string {
+  if (isClientFetchError(error)) return error.errorMessage;
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
+/**
  * Re-export TimeoutError for convenience.
  */
 export { TimeoutError } from "./fetchWithTimeout";

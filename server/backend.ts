@@ -3,7 +3,6 @@
  * Standalone Backend Server
  * Runs WebSocket hub and OBS connection independently from Next.js
  * Exposes HTTP API for Next.js to publish messages
- * Updated: Added countdown UPDATE action support
  */
 
 // Load environment variables from .env file
@@ -201,13 +200,15 @@ class BackendServer {
       // 1. Initialize database
       DatabaseService.getInstance();
       this.logger.info("✓ Database initialized");
+
       // 2. Start WebSocket Hub
       this.wsHub.start();
       this.logger.info("✓ WebSocket hub started");
 
+      const settingsService = SettingsService.getInstance();
+
       // 3. Connect to OBS (if auto-connect enabled)
       try {
-        const settingsService = SettingsService.getInstance();
         if (settingsService.isOBSAutoConnectEnabled()) {
           await this.obsManager.connect();
           const stateManager = OBSStateManager.getInstance();
@@ -222,7 +223,6 @@ class BackendServer {
 
       // 4. Auto-connect to Streamerbot if enabled
       try {
-        const settingsService = SettingsService.getInstance();
         if (settingsService.isStreamerbotAutoConnectEnabled()) {
           await this.streamerbotGateway.connect();
           this.logger.info("✓ Streamerbot gateway connected");
@@ -235,9 +235,7 @@ class BackendServer {
 
       // 5. Start Twitch integration polling
       try {
-        const settingsService = SettingsService.getInstance();
         if (settingsService.isTwitchEnabled()) {
-          // Wait for OAuth initialization to complete before checking availability
           await this.twitchService.ensureInitialized();
           this.twitchService.startPolling();
           this.logger.info("✓ Twitch polling started");

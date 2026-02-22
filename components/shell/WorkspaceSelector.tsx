@@ -47,7 +47,7 @@ export function WorkspaceSelector() {
   }
 
   async function handleWorkspaceSelect(id: string): Promise<void> {
-    if (!canApplyLayout) return;
+    if (!isReady) return;
     try {
       await applyWorkspace(id);
     } catch (error) {
@@ -56,7 +56,7 @@ export function WorkspaceSelector() {
   }
 
   async function handleResetToDefault(): Promise<void> {
-    if (!canApplyLayout) return;
+    if (!isReady) return;
     try {
       await resetToDefault();
     } catch (error) {
@@ -74,9 +74,6 @@ export function WorkspaceSelector() {
       />
     );
   }
-
-  // Disable layout actions when not on dashboard (isReady is false)
-  const canApplyLayout = isReady;
 
   return (
     <>
@@ -99,7 +96,7 @@ export function WorkspaceSelector() {
                   key={workspace.id}
                   onClick={() => handleWorkspaceSelect(workspace.id)}
                   className="flex items-center justify-between"
-                  disabled={!canApplyLayout}
+                  disabled={!isReady}
                 >
                   <WorkspaceListItem
                     workspace={workspace}
@@ -123,7 +120,7 @@ export function WorkspaceSelector() {
                   key={workspace.id}
                   onClick={() => handleWorkspaceSelect(workspace.id)}
                   className="flex items-center justify-between"
-                  disabled={!canApplyLayout}
+                  disabled={!isReady}
                 >
                   <WorkspaceListItem
                     workspace={workspace}
@@ -137,11 +134,11 @@ export function WorkspaceSelector() {
 
           {/* Actions */}
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setSaveDialogOpen(true)} disabled={!canApplyLayout}>
+          <DropdownMenuItem onClick={() => setSaveDialogOpen(true)} disabled={!isReady}>
             <Save className="w-4 h-4 mr-2" />
             {t("save")}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleResetToDefault} disabled={!canApplyLayout}>
+          <DropdownMenuItem onClick={handleResetToDefault} disabled={!isReady}>
             <RotateCcw className="w-4 h-4 mr-2" />
             {t("reset")}
           </DropdownMenuItem>

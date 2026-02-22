@@ -233,18 +233,17 @@ export class SettingsService {
    * Save OBS WebSocket settings to database
    */
   saveOBSSettings(settings: Partial<OBSSettings>): void {
-    const toSave: Record<string, unknown> = {};
-    if (settings.url !== undefined) toSave.url = settings.url;
-    if (settings.password !== undefined) toSave.password = settings.password || undefined;
-    if (settings.autoConnect !== undefined) toSave.autoConnect = settings.autoConnect;
-    if (settings.autoReconnect !== undefined) toSave.autoReconnect = settings.autoReconnect;
+    // Normalize empty password to undefined so SettingsStore clears it
+    const toSave = { ...settings };
+    if (toSave.password === "") {
+      toSave.password = undefined;
+    }
 
     this.obsStore.set(toSave);
 
-    // If password is explicitly empty, clear it from database
-    if (settings.password === "" || settings.password === undefined) {
-      const dbKey = "obs.websocket.password";
-      this.db.deleteSetting(dbKey);
+    // Ensure empty password is fully cleared from database
+    if (!settings.password) {
+      this.db.deleteSetting("obs.websocket.password");
     }
 
     this.logger.info("OBS settings saved to database");

@@ -44,7 +44,6 @@ function RegiePublicChatContent() {
 
   // Message management
   const {
-    messages,
     addMessage,
     clearMessages,
     filteredMessages,

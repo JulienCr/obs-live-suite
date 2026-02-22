@@ -23,7 +23,7 @@ import {
   apiGet,
   apiPost,
   apiDelete,
-  isClientFetchError,
+  extractErrorMessage,
 } from "@/lib/utils/ClientFetch";
 
 interface OBSConfig {
@@ -51,12 +51,6 @@ interface OBSSaveResponse {
   error?: string;
   obsVersion?: string;
   obsWebSocketVersion?: string;
-}
-
-function extractErrorMessage(error: unknown, fallback: string): string {
-  if (isClientFetchError(error)) return error.errorMessage;
-  if (error instanceof Error) return error.message;
-  return fallback;
 }
 
 /**
