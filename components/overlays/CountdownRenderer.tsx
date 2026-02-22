@@ -142,29 +142,26 @@ export function CountdownRenderer() {
   sendAckRef.current = sendAck;
 
   useEffect(() => {
-    if (state.isRunning && state.seconds > 0) {
-      intervalRef.current = setInterval(() => {
-        setState((prev) => {
-          const newSeconds = prev.seconds - 1;
-          if (newSeconds <= 0) {
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current);
-            }
-            return { ...prev, seconds: 0, isRunning: false, visible: false };
-          }
-          return { ...prev, seconds: newSeconds };
-        });
-      }, 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+    if (!state.isRunning) {
+      return;
     }
+
+    intervalRef.current = setInterval(() => {
+      setState((prev) => {
+        if (prev.seconds <= 1) {
+          clearInterval(intervalRef.current);
+          return { ...prev, seconds: 0, isRunning: false, visible: false };
+        }
+        return { ...prev, seconds: prev.seconds - 1 };
+      });
+    }, 1000);
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [state.isRunning, state.seconds]);
+  }, [state.isRunning]);
 
   return (
     <OverlayMotionProvider>

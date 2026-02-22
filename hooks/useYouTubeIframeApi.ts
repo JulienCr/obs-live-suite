@@ -140,13 +140,21 @@ export function useYouTubeIframeApi(
 
   // --- iframe onLoad handler with triple-retry ---
 
+  const iframeLoadTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
+
   const handleIframeLoad = useCallback(() => {
+    // Clear any pending retry timeouts from a previous load
+    for (const t of iframeLoadTimeoutsRef.current) {
+      clearTimeout(t);
+    }
+    iframeLoadTimeoutsRef.current = [];
+
     isSubscribedRef.current = false;
     setIsSubscribed(false);
     // Triple retry: 0ms, 500ms, 1500ms
     sendListening();
-    setTimeout(sendListening, 500);
-    setTimeout(sendListening, 1500);
+    iframeLoadTimeoutsRef.current.push(setTimeout(sendListening, 500));
+    iframeLoadTimeoutsRef.current.push(setTimeout(sendListening, 1500));
   }, [sendListening]);
 
   // --- postMessage listener + polling ---
@@ -200,6 +208,11 @@ export function useYouTubeIframeApi(
     return () => {
       window.removeEventListener("message", handleMessage);
       clearInterval(interval);
+      // Clear any pending handleIframeLoad retry timeouts
+      for (const t of iframeLoadTimeoutsRef.current) {
+        clearTimeout(t);
+      }
+      iframeLoadTimeoutsRef.current = [];
     };
   }, [enabled, pollingInterval, sendListening]);
 
