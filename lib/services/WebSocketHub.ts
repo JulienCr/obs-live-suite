@@ -36,6 +36,7 @@ export class WebSocketHub {
   private startAttempted: boolean;
   private onPresenterJoinCallback?: (clientId: string, role: PresenterRole) => void;
   private onAckCallback?: (ack: { eventId: string; channel: string; success: boolean; error?: string }) => void;
+  private onClientDisconnectCallback?: (clientId: string, channels: Set<string>) => void;
 
   private constructor() {
     this.wss = null;
@@ -345,6 +346,13 @@ export class WebSocketHub {
   }
 
   /**
+   * Set callback for client disconnect events (used by ChannelManager to clear orphaned pending acks)
+   */
+  setOnClientDisconnectCallback(callback: (clientId: string, channels: Set<string>) => void): void {
+    this.onClientDisconnectCallback = callback;
+  }
+
+  /**
    * Set callback for presenter join events (used by backend to send replay)
    */
   setOnPresenterJoinCallback(callback: (clientId: string, role: PresenterRole) => void): void {
@@ -471,11 +479,18 @@ export class WebSocketHub {
   }
 
   /**
-   * Handle client disconnect - clean up presenter presence
+   * Handle client disconnect - clean up pending acks and presenter presence
    */
   private handleClientDisconnect(clientId: string): void {
     const client = this.clients.get(clientId);
-    if (client?.isPresenter) {
+    if (!client) return;
+
+    // Notify ChannelManager to clear orphaned pending acks before removing the client
+    if (this.onClientDisconnectCallback) {
+      this.onClientDisconnectCallback(clientId, client.channels);
+    }
+
+    if (client.isPresenter) {
       this.handleLeavePresenter(clientId);
     }
   }

@@ -21,6 +21,7 @@ jest.mock('crypto', () => ({
 // Create mock functions for WebSocketHub
 const mockBroadcast = jest.fn();
 const mockGetChannelSubscribers = jest.fn();
+let capturedDisconnectCallback: ((clientId: string, channels: Set<string>) => void) | null = null;
 
 // Mock WebSocketHub
 jest.mock('@/lib/services/WebSocketHub', () => ({
@@ -29,6 +30,9 @@ jest.mock('@/lib/services/WebSocketHub', () => ({
       broadcast: mockBroadcast,
       getChannelSubscribers: mockGetChannelSubscribers,
       setOnAckCallback: jest.fn(),
+      setOnClientDisconnectCallback: jest.fn((cb: (clientId: string, channels: Set<string>) => void) => {
+        capturedDisconnectCallback = cb;
+      }),
     })),
   },
 }));
@@ -43,6 +47,7 @@ describe('ChannelManager', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.clearAllMocks();
+    capturedDisconnectCallback = null;
     mockGetChannelSubscribers.mockReturnValue(5);
   });
 
@@ -472,6 +477,76 @@ describe('ChannelManager', () => {
     });
   });
 
+  describe('Pending Ack Cleanup on Client Disconnect', () => {
+    beforeEach(() => {
+      // Reset singleton to ensure disconnect callback is captured fresh
+      (ChannelManager as unknown as { instance: ChannelManager | undefined }).instance = undefined;
+      capturedDisconnectCallback = null;
+      ChannelManager.getInstance();
+    });
+
+    it('should register disconnect callback with WebSocketHub', () => {
+      expect(capturedDisconnectCallback).not.toBeNull();
+    });
+
+    it('should clear pending acks for channels with no remaining subscribers', async () => {
+      const channelManager = ChannelManager.getInstance();
+      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+
+      await channelManager.publish(OverlayChannel.LOWER, 'show', {});
+
+      // After disconnect, the channel has 0 subscribers
+      mockGetChannelSubscribers.mockReturnValue(0);
+
+      expect(capturedDisconnectCallback).not.toBeNull();
+      capturedDisconnectCallback!('client-123', new Set([OverlayChannel.LOWER]));
+
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+      clearTimeoutSpy.mockRestore();
+    });
+
+    it('should NOT clear pending acks if channel still has subscribers', async () => {
+      const channelManager = ChannelManager.getInstance();
+      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+
+      await channelManager.publish(OverlayChannel.LOWER, 'show', {});
+
+      // After disconnect, the channel still has 2 subscribers
+      mockGetChannelSubscribers.mockReturnValue(2);
+
+      capturedDisconnectCallback!('client-123', new Set([OverlayChannel.LOWER]));
+
+      expect(clearTimeoutSpy).not.toHaveBeenCalled();
+      clearTimeoutSpy.mockRestore();
+    });
+
+    it('should only clear acks for affected channels, not unrelated ones', async () => {
+      const channelManager = ChannelManager.getInstance();
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { randomUUID } = require('crypto');
+
+      // Publish events to two different channels with distinct UUIDs
+      (randomUUID as jest.Mock).mockReturnValueOnce('uuid-lower');
+      await channelManager.publish(OverlayChannel.LOWER, 'show', {});
+      (randomUUID as jest.Mock).mockReturnValueOnce('uuid-countdown');
+      await channelManager.publish(OverlayChannel.COUNTDOWN, 'start', {});
+
+      // Client only subscribed to LOWER, LOWER loses its last subscriber
+      mockGetChannelSubscribers.mockImplementation((channel: string) => {
+        if (channel === OverlayChannel.LOWER) return 0;
+        if (channel === OverlayChannel.COUNTDOWN) return 1;
+        return 0;
+      });
+
+      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+      capturedDisconnectCallback!('client-123', new Set([OverlayChannel.LOWER]));
+
+      // Only 1 ack cleared (LOWER), not the COUNTDOWN one
+      expect(clearTimeoutSpy).toHaveBeenCalledTimes(1);
+      clearTimeoutSpy.mockRestore();
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle publishing to channel with no subscribers', async () => {
       const channelManager = ChannelManager.getInstance();
@@ -521,7 +596,5 @@ describe('ChannelManager', () => {
 
       expect(mockBroadcast).toHaveBeenCalledTimes(10);
     });
-
   });
 });
-
