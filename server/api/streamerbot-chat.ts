@@ -5,7 +5,7 @@ import { Router } from "express";
 import { StreamerbotGateway } from "../../lib/adapters/streamerbot/StreamerbotGateway";
 import { SettingsService } from "../../lib/services/SettingsService";
 import { ChatMessageRepository } from "../../lib/repositories/ChatMessageRepository";
-import { chatPlatformSchema } from "../../lib/models/StreamerbotChat";
+import { chatPlatformSchema, streamerbotConnectionSchema } from "../../lib/models/StreamerbotChat";
 import { expressError } from "../../lib/utils/apiError";
 
 const router = Router();
@@ -18,8 +18,10 @@ router.get("/status", async (req, res) => {
   try {
     const gateway = StreamerbotGateway.getInstance();
     const status = gateway.getStreamerbotStatus();
+    const settingsService = SettingsService.getInstance();
+    const isConfigured = settingsService.isStreamerbotAutoConnectEnabled() || status.status !== "disconnected";
 
-    res.json(status);
+    res.json({ ...status, isConfigured });
   } catch (error) {
     expressError(res, error, "Failed to get Streamerbot status", { context: "[StreamerbotAPI]" });
   }
@@ -116,25 +118,85 @@ router.post("/send", async (req, res) => {
 });
 
 /**
+ * POST /api/streamerbot-chat/test
+ * Test connection without persisting settings
+ */
+router.post("/test", async (req, res) => {
+  try {
+    const parsed = streamerbotConnectionSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid settings", details: parsed.error.message });
+    }
+
+    const settingsService = SettingsService.getInstance();
+    const gateway = StreamerbotGateway.getInstance();
+
+    // Save current settings to restore after test
+    const originalSettings = settingsService.getStreamerbotSettings();
+
+    // Temporarily save test settings
+    settingsService.saveStreamerbotSettings(parsed.data);
+
+    // Disconnect if connected
+    const wasConnected = gateway.isConnected();
+    if (wasConnected) {
+      await gateway.disconnect();
+    }
+
+    try {
+      // Try connecting with new settings
+      await gateway.connect();
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const status = gateway.getStreamerbotStatus();
+      const success = status.status === "connected";
+
+      // Disconnect after test
+      await gateway.disconnect();
+
+      // Restore original settings
+      settingsService.saveStreamerbotSettings(originalSettings);
+
+      // Reconnect with original settings if was connected
+      if (wasConnected) {
+        await gateway.connect();
+      }
+
+      if (success) {
+        res.json({ success: true, message: `Connected to ${parsed.data.host || "server"}:${parsed.data.port || 8080}` });
+      } else {
+        res.json({ success: false, message: status.error?.message || "Connection failed" });
+      }
+    } catch (testError) {
+      // Restore original settings on failure
+      settingsService.saveStreamerbotSettings(originalSettings);
+      if (wasConnected) {
+        try { await gateway.connect(); } catch { /* best effort */ }
+      }
+      throw testError;
+    }
+  } catch (error) {
+    expressError(res, error, "Connection test failed", { context: "[StreamerbotAPI]" });
+  }
+});
+
+/**
  * PUT /api/streamerbot-chat/settings
  * Update Streamerbot connection settings
  */
 router.put("/settings", async (req, res) => {
   try {
-    const { host, port, endpoint, scheme, password } = req.body;
+    // Validate input with Zod schema (partial for partial updates)
+    const parsed = streamerbotConnectionSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid settings", details: parsed.error.message });
+    }
+
     const settingsService = SettingsService.getInstance();
     const gateway = StreamerbotGateway.getInstance();
 
-    // Build settings object
-    const settings: any = {};
-    if (host !== undefined) settings.host = host;
-    if (port !== undefined) settings.port = port;
-    if (endpoint !== undefined) settings.endpoint = endpoint;
-    if (scheme !== undefined) settings.scheme = scheme;
-    if (password !== undefined) settings.password = password;
-
     // Save to database
-    settingsService.saveStreamerbotSettings(settings);
+    settingsService.saveStreamerbotSettings(parsed.data);
 
     // If currently connected, reconnect with new settings
     if (gateway.isConnected()) {
@@ -145,6 +207,28 @@ router.put("/settings", async (req, res) => {
     res.json({ success: true, message: "Settings updated" });
   } catch (error) {
     expressError(res, error, "Failed to update settings", { context: "[StreamerbotAPI]" });
+  }
+});
+
+/**
+ * DELETE /api/streamerbot-chat/settings
+ * Clear Streamerbot settings and reset to defaults
+ */
+router.delete("/settings", async (req, res) => {
+  try {
+    const settingsService = SettingsService.getInstance();
+    const gateway = StreamerbotGateway.getInstance();
+
+    // Disconnect if connected
+    if (gateway.isConnected()) {
+      await gateway.disconnect();
+    }
+
+    settingsService.clearStreamerbotSettings();
+
+    res.json({ success: true, message: "Settings cleared" });
+  } catch (error) {
+    expressError(res, error, "Failed to clear settings", { context: "[StreamerbotAPI]" });
   }
 });
 

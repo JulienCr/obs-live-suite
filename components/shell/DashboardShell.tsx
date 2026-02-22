@@ -25,12 +25,11 @@ import { RegiePublicChatPanel } from "./panels/RegiePublicChatPanel";
 import { TwitchPanel } from "./panels/TwitchPanel";
 import { ChatMessagesPanel } from "./panels/ChatMessagesPanel";
 import { TextPresetsPanel } from "./panels/TextPresetsPanel";
-import { DockviewContext, usePanelPositions } from "./DockviewContext";
+import { DockviewContext } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
-import { usePanelColorsStore, useWorkspacesStore } from "@/lib/stores";
+import { usePanelColorsStore, useWorkspacesStore, useDockviewStore } from "@/lib/stores";
 import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
-import { LiveModeRail } from "./LiveModeRail";
 import { useAppMode } from "./AppModeContext";
 import type { ColorScheme } from "@/lib/models/PanelColor";
 
@@ -70,19 +69,19 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
   }
 
   const { theme } = useTheme();
-  const { mode, isFullscreenMode } = useAppMode();
+  const { isFullscreenMode } = useAppMode();
   const [mounted, setMounted] = useState(false);
   const apiRef = useRef<DockviewReadyEvent["api"] | null>(null);
   const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);
-  const { savePositionBeforeClose, getSavedPosition } = usePanelPositions(api);
-  const [workspaceCallbacks, setWorkspaceCallbacks] = useState<{
-    resetToDefault: () => void;
-    openSaveDialog: () => void;
-  } | undefined>(undefined);
+  const savePositionBeforeClose = useDockviewStore((s) => s.savePositionBeforeClose);
+  const getSavedPosition = useDockviewStore((s) => s.getSavedPosition);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    return () => {
+      useDockviewStore.getState().clearApi();
+    };
   }, []);
 
   const applyLivePreset = useCallback(() => {
@@ -237,6 +236,16 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
     }
   }, [applyLivePreset, applyPrepPreset, applyMinimalPreset]);
 
+  const initWorkspaces = useWorkspacesStore((s) => s.init);
+  const setLayoutJsonGetter = useWorkspacesStore((s) => s.setLayoutJsonGetter);
+  const setLayoutApplier = useWorkspacesStore((s) => s.setLayoutApplier);
+  const resetToDefault = useWorkspacesStore((s) => s.resetToDefault);
+
+  const workspaceCallbacks = useMemo(() => ({
+    resetToDefault: () => { resetToDefault().catch(console.error); },
+    openSaveDialog: () => { setSaveDialogOpen(true); },
+  }), [resetToDefault]);
+
   useKeyboardShortcuts(applyPreset, api, true, workspaceCallbacks);
 
   const applyLayout = useCallback((layoutJson: string, _panelColors: Record<string, string>) => {
@@ -262,6 +271,10 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
   const onReady = useCallback((event: DockviewReadyEvent) => {
     apiRef.current = event.api;
     setApi(event.api);
+    useDockviewStore.getState().setApi(event.api);
+
+    event.api.onDidAddPanel(() => useDockviewStore.getState().incrementLayoutVersion());
+    event.api.onDidRemovePanel(() => useDockviewStore.getState().incrementLayoutVersion());
 
     const saved = localStorage.getItem(LAYOUT_KEY);
     if (saved) {
@@ -337,11 +350,6 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
     return () => disposable.dispose();
   }, []);
 
-  const initWorkspaces = useWorkspacesStore((s) => s.init);
-  const setLayoutJsonGetter = useWorkspacesStore((s) => s.setLayoutJsonGetter);
-  const setLayoutApplier = useWorkspacesStore((s) => s.setLayoutApplier);
-  const resetToDefault = useWorkspacesStore((s) => s.resetToDefault);
-
   useEffect(() => {
     initWorkspaces();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -356,24 +364,12 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
     [api, savePositionBeforeClose, getSavedPosition]
   );
 
-  useEffect(() => {
-    setWorkspaceCallbacks({
-      resetToDefault: () => {
-        resetToDefault().catch(console.error);
-      },
-      openSaveDialog: () => {
-        setSaveDialogOpen(true);
-      },
-    });
-  }, [resetToDefault]);
-
   return (
     <>
       <StoreWorkspaceSaveDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} />
       <LayoutPresetsProvider applyPreset={applyPreset}>
         <DockviewContext.Provider value={dockviewContextValue}>
-          <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--header-height))", width: "100%", display: "flex" }}>
-            {mode === "LIVE" && !isFullscreenMode && <LiveModeRail />}
+          <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--topbar-height))", width: "100%", display: "flex" }}>
             <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
               <DockviewReact
                 components={components}

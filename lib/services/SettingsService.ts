@@ -21,6 +21,8 @@ import type { ChatPredefinedMessage } from "../models/ChatMessages";
 export const OBSSettingsSchema = z.object({
   url: z.string().default("ws://127.0.0.1:4455"),
   password: z.string().optional(),
+  autoConnect: z.boolean().default(true),
+  autoReconnect: z.boolean().default(true),
 });
 
 export type OBSSettings = z.infer<typeof OBSSettingsSchema>;
@@ -118,6 +120,8 @@ export class SettingsService {
         keyMapping: {
           url: "websocket.url",
           password: "websocket.password",
+          autoConnect: "autoConnect",
+          autoReconnect: "autoReconnect",
         },
         fallbackProvider: (key) => {
           if (key === "url") return config.obsWebSocketUrl;
@@ -228,20 +232,28 @@ export class SettingsService {
   /**
    * Save OBS WebSocket settings to database
    */
-  saveOBSSettings(settings: OBSSettings): void {
-    this.obsStore.set({
-      url: settings.url,
-      // Only set password if provided, otherwise clear it
-      password: settings.password || undefined,
-    });
+  saveOBSSettings(settings: Partial<OBSSettings>): void {
+    // Normalize empty password to undefined so SettingsStore clears it
+    const toSave = { ...settings };
+    if (toSave.password === "") {
+      toSave.password = undefined;
+    }
 
-    // If password is explicitly empty, clear it from database
+    this.obsStore.set(toSave);
+
+    // Ensure empty password is fully cleared from database
     if (!settings.password) {
-      const dbKey = "obs.websocket.password";
-      this.db.deleteSetting(dbKey);
+      this.db.deleteSetting("obs.websocket.password");
     }
 
     this.logger.info("OBS settings saved to database");
+  }
+
+  /**
+   * Check if OBS auto-connect is enabled
+   */
+  isOBSAutoConnectEnabled(): boolean {
+    return this.obsStore.getField("autoConnect");
   }
 
   /**

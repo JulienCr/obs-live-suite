@@ -25,7 +25,13 @@
       "onAir": "ON AIR",
       "noProfile": "Aucun profil",
       "fullscreen": "Plein écran",
-      "exitFullscreen": "Quitter le plein écran"
+      "exitFullscreen": "Quitter le plein écran",
+      "switchToAdmin": "Passer en mode ADMIN",
+      "switchToLive": "Passer en mode LIVE",
+      "onAirDialogTitle": "Vous êtes actuellement ON AIR",
+      "onAirDialogDescription": "Passer en mode ADMIN vous éloignera de la surface de contrôle en direct. Êtes-vous sûr de vouloir continuer ?",
+      "stayInLive": "Rester en mode LIVE",
+      "switchToAdminConfirm": "Passer en ADMIN"
     },
     "commandPalette": {
       "placeholder": "Tapez une commande ou recherchez... (Cmd/Ctrl+P)",
@@ -422,6 +428,11 @@
       "passwordPlaceholder": "Entrez le mot de passe OBS WebSocket",
       "showPassword": "Afficher le mot de passe",
       "passwordHelp": "Trouvez-le dans OBS: Outils → Paramètres obs-websocket → Afficher les infos de connexion",
+      "autoConnect": "Connexion automatique au démarrage",
+      "autoReconnect": "Reconnexion automatique en cas de déconnexion",
+      "connect": "Connecter",
+      "disconnect": "Déconnecter",
+      "connecting": "Connexion en cours...",
       "testing": "Test en cours...",
       "testConnection": "Tester la connexion",
       "saving": "Enregistrement...",
@@ -437,26 +448,44 @@
       "setupStep4": "Notez le port du serveur (par défaut: 4455) et le mot de passe (si activé)",
       "setupStep5": "Entrez les détails de connexion ci-dessus et testez",
       "configPriority": "Priorité de configuration :",
-      "configPriorityDesc": "Les paramètres enregistrés ici ont priorité sur le fichier .env. Utilisez « Effacer et utiliser .env » pour revenir aux variables d'environnement."
+      "statusUnavailable": "Statut indisponible",
+      "configPriorityDesc": "Les paramètres enregistrés ici ont priorité sur le fichier .env. Utilisez « Effacer et utiliser .env » pour revenir aux variables d'environnement.",
+      "loadError": "Impossible de charger les paramètres. Les valeurs affichées sont les valeurs par défaut et peuvent ne pas refléter votre configuration."
     },
     "streamerbot": {
       "title": "Connexion Streamer.bot",
-      "description": "Configurer la connexion au serveur WebSocket Streamer.bot pour l'integration chat",
-      "loading": "Chargement des parametres...",
-      "connected": "Connecte",
+      "description": "Configurer la connexion au serveur WebSocket Streamer.bot pour l'intégration chat",
+      "loading": "Chargement des paramètres...",
+      "currentStatus": "Statut actuel",
+      "connected": "Connecté",
       "connecting": "Connexion en cours...",
-      "disconnected": "Deconnecte",
+      "disconnected": "Déconnecté",
       "connect": "Connecter",
-      "disconnect": "Deconnecter",
+      "disconnect": "Déconnecter",
+      "source": "Source",
+      "database": "Base de données",
+      "websocketUrl": "URL WebSocket",
+      "websocketUrlDefault": "Par défaut : ws://127.0.0.1:8080/ (Streamer.bot par défaut)",
+      "password": "Mot de passe (Optionnel)",
+      "passwordPlaceholder": "Laisser vide si l'authentification est désactivée",
+      "showPassword": "Afficher le mot de passe",
+      "passwordHelp": "Trouvez-le dans Streamer.bot : Servers/Clients → WebSocket Server → Authentication",
+      "autoConnect": "Connexion automatique au démarrage",
+      "autoReconnect": "Reconnexion automatique en cas de déconnexion",
+      "testing": "Test en cours...",
+      "testConnection": "Tester la connexion",
       "saving": "Enregistrement...",
-      "saveSettings": "Enregistrer les parametres",
-      "saveSuccess": "Parametres enregistres avec succes !",
-      "saveFailed": "Echec de l'enregistrement des parametres",
+      "saveSettings": "Enregistrer les paramètres",
+      "clearSettings": "Effacer les paramètres",
+      "settingsCleared": "Paramètres effacés, valeurs par défaut utilisées.",
+      "saveSuccess": "Paramètres enregistrés avec succès !",
+      "saveFailed": "Échec de l'enregistrement des paramètres",
       "setupGuide": "Guide d'installation",
       "setupStep1": "Ouvrez Streamer.bot et allez dans Servers/Clients -> WebSocket Server",
-      "setupStep2": "Activez le serveur WebSocket et notez l'Hote, le Port et l'Endpoint",
-      "setupStep3": "Si l'authentification est activee, copiez le mot de passe",
-      "setupStep4": "Entrez les details de connexion ci-dessus et testez la connexion"
+      "setupStep2": "Activez le serveur WebSocket et notez l'URL (hôte:port)",
+      "setupStep3": "Si l'authentification est activée, copiez le mot de passe",
+      "setupStep4": "Entrez les détails de connexion ci-dessus et testez la connexion",
+      "loadError": "Impossible de charger les paramètres. Les valeurs affichées sont les valeurs par défaut et peuvent ne pas refléter votre configuration."
     },
     "rooms": {
       "title": "Salles de présentateur",
@@ -1425,5 +1454,14 @@
       "userBanned": "Utilisateur banni",
       "failed": "Échec de l'action de modération"
     }
+  },
+  "sidebar": {
+    "onAir": "ON AIR",
+    "offAir": "OFF AIR",
+    "obsDisconnected": "OBS",
+    "collapse": "Réduire le panneau latéral",
+    "expand": "Développer le panneau latéral",
+    "twitch": "Twitch",
+    "streamerbot": "Streamer.bot"
   }
 }

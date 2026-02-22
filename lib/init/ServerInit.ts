@@ -3,6 +3,7 @@ import { OBSConnectionManager } from "../adapters/obs/OBSConnectionManager";
 import { OBSStateManager } from "../adapters/obs/OBSStateManager";
 import { DatabaseService } from "../services/DatabaseService";
 import { ThemeService } from "../services/ThemeService";
+import { SettingsService } from "../services/SettingsService";
 
 import { WorkspaceService } from "../services/WorkspaceService";
 import { Logger } from "../utils/Logger";
@@ -56,9 +57,6 @@ export class ServerInit {
       await themeService.initializeDefaultThemes();
       this.logger.info("✓ Default themes initialized");
 
-      // Note: Room system was removed - presenter now uses a single channel
-      // See ChannelManager for the presenter channel configuration
-
       // Initialize built-in workspaces
       const workspaceService = WorkspaceService.getInstance();
       workspaceService.initializeBuiltInWorkspaces();
@@ -90,6 +88,12 @@ export class ServerInit {
    */
   private async initializeOBS(): Promise<void> {
     try {
+      const settingsService = SettingsService.getInstance();
+      if (!settingsService.isOBSAutoConnectEnabled()) {
+        this.logger.info("OBS auto-connect disabled");
+        return;
+      }
+
       const connectionManager = OBSConnectionManager.getInstance();
       const stateManager = OBSStateManager.getInstance();
 

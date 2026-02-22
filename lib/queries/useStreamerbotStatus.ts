@@ -14,6 +14,7 @@ interface StreamerbotStatusResponse {
   status: StreamerbotConnectionStatus;
   error?: StreamerbotConnectionError;
   lastEventTime?: number;
+  isConfigured?: boolean;
 }
 
 export interface UseStreamerbotStatusOptions {
@@ -39,6 +40,7 @@ export function useStreamerbotStatus(options: UseStreamerbotStatusOptions = {}) 
     status: query.data?.status,
     error: query.data?.error?.message ?? null,
     lastEventTime,
+    isConfigured: query.data?.isConfigured ?? false,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     refetch: query.refetch,

@@ -118,7 +118,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"%CLAUDE_PROJECT_DIR%\\.claude\\hooks\\post-tool-call.py\""
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-call.py\""
           }
         ]
       }

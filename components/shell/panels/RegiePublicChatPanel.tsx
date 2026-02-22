@@ -12,11 +12,12 @@ import { StreamerbotChatToolbar, SearchBar } from "@/components/presenter/panels
 import { RegiePublicChatMessageList } from "./regie-public-chat/RegiePublicChatMessageList";
 import type { ChatMessage } from "@/lib/models/StreamerbotChat";
 import { DEFAULT_STREAMERBOT_CONNECTION } from "@/lib/models/StreamerbotChat";
-import type { ModerationAction } from "./regie-public-chat/types";
+import { type ModerationAction, StreamerbotConnectionStatus } from "./regie-public-chat/types";
 import { CueType, CueFrom, CueAction } from "@/lib/models/Cue";
 import { useToast } from "@/hooks/use-toast";
-import { apiPost } from "@/lib/utils/ClientFetch";
+import { apiPost, apiDelete } from "@/lib/utils/ClientFetch";
 import { useChatHighlightSync } from "@/hooks/useChatHighlightSync";
+import { ChatMessageInput } from "@/components/presenter/chat/ChatMessageInput";
 
 /**
  * Regie Public Chat Panel - Streamerbot chat with highlight functionality
@@ -43,7 +44,6 @@ function RegiePublicChatContent() {
 
   // Message management
   const {
-    messages,
     addMessage,
     clearMessages,
     filteredMessages,
@@ -62,6 +62,8 @@ function RegiePublicChatContent() {
     error,
     connect,
     disconnect,
+    sendMessage,
+    canSendMessages,
   } = useStreamerbotClient({
     settings: DEFAULT_STREAMERBOT_CONNECTION, // Backend manages actual settings
     onMessage: addMessage,
@@ -177,31 +179,28 @@ function RegiePublicChatContent() {
       try {
         const baseUrl = "/api/twitch/moderation";
 
-        if (action === "delete") {
-          const msgId = message.metadata?.twitchMsgId;
-          if (!msgId) throw new Error("Missing Twitch message ID");
-          await fetch(`${baseUrl}/message?messageId=${msgId}`, {
-            method: "DELETE",
-          });
-          toast({ title: t("moderation.messageDeleted") });
-        } else if (action === "timeout") {
-          const userId = message.metadata?.twitchUserId;
-          if (!userId) throw new Error("Missing Twitch user ID");
-          await fetch(`${baseUrl}/timeout`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId, duration: duration || 600 }),
-          });
-          toast({ title: t("moderation.userTimedOut") });
-        } else if (action === "ban") {
-          const userId = message.metadata?.twitchUserId;
-          if (!userId) throw new Error("Missing Twitch user ID");
-          await fetch(`${baseUrl}/ban`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId }),
-          });
-          toast({ title: t("moderation.userBanned") });
+        switch (action) {
+          case "delete": {
+            const msgId = message.metadata?.twitchMsgId;
+            if (!msgId) throw new Error("Missing Twitch message ID");
+            await apiDelete(`${baseUrl}/message?messageId=${msgId}`);
+            toast({ title: t("moderation.messageDeleted") });
+            break;
+          }
+          case "timeout": {
+            const userId = message.metadata?.twitchUserId;
+            if (!userId) throw new Error("Missing Twitch user ID");
+            await apiPost(`${baseUrl}/timeout`, { userId, duration: duration || 600 });
+            toast({ title: t("moderation.userTimedOut") });
+            break;
+          }
+          case "ban": {
+            const userId = message.metadata?.twitchUserId;
+            if (!userId) throw new Error("Missing Twitch user ID");
+            await apiPost(`${baseUrl}/ban`, { userId });
+            toast({ title: t("moderation.userBanned") });
+            break;
+          }
         }
       } catch (error) {
         toast({
@@ -257,6 +256,15 @@ function RegiePublicChatContent() {
         onModerate={handleModerate}
         moderateLoadingId={moderateLoadingId}
       />
+
+      {/* Message input */}
+      {canSendMessages && (
+        <ChatMessageInput
+          onSend={sendMessage}
+          disabled={status !== StreamerbotConnectionStatus.CONNECTED}
+          placeholder={t("chat.sendPlaceholder")}
+        />
+      )}
     </div>
   );
 }

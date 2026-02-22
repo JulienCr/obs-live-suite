@@ -8,18 +8,36 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, XCircle, Loader2, TestTube } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import {
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  TestTube,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+} from "lucide-react";
 import { getBackendUrl } from "@/lib/utils/websocket";
-import { apiGet, apiPost, apiDelete, isClientFetchError } from "@/lib/utils/ClientFetch";
+import {
+  apiGet,
+  apiPost,
+  apiDelete,
+  extractErrorMessage,
+} from "@/lib/utils/ClientFetch";
 
 interface OBSConfig {
   url: string;
   password: string;
+  autoConnect: boolean;
+  autoReconnect: boolean;
 }
 
 interface OBSSettingsResponse {
   url?: string;
   password?: string;
+  autoConnect?: boolean;
+  autoReconnect?: boolean;
   sourceIsDatabase?: boolean;
 }
 
@@ -43,8 +61,11 @@ export function OBSSettings() {
   const [config, setConfig] = useState<OBSConfig>({
     url: "ws://localhost:4455",
     password: "",
+    autoConnect: true,
+    autoReconnect: true,
   });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [sourceIsDatabase, setSourceIsDatabase] = useState(false);
@@ -58,6 +79,7 @@ export function OBSSettings() {
     connected: boolean;
     currentScene?: string;
   } | null>(null);
+  const [statusError, setStatusError] = useState(false);
 
   // Load current configuration
   useEffect(() => {
@@ -70,11 +92,15 @@ export function OBSSettings() {
       const data = await apiGet<OBSSettingsResponse>("/api/settings/obs");
       setConfig({
         url: data.url || "ws://localhost:4455",
-        password: data.password || "", // Load password to show current value
+        password: data.password || "",
+        autoConnect: data.autoConnect ?? true,
+        autoReconnect: data.autoReconnect ?? true,
       });
       setSourceIsDatabase(data.sourceIsDatabase || false);
+      setLoadError(false);
     } catch (error) {
       console.error("Failed to load OBS settings:", error);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -82,13 +108,18 @@ export function OBSSettings() {
 
   const fetchStatus = async () => {
     try {
-      const data = await apiGet<OBSStatusResponse>(`${getBackendUrl()}/api/obs/status`);
+      const data = await apiGet<OBSStatusResponse>(
+        `${getBackendUrl()}/api/obs/status`
+      );
       setCurrentStatus({
         connected: data.connected,
         currentScene: data.currentScene,
       });
+      setStatusError(false);
     } catch (error) {
       console.error("Failed to fetch OBS status:", error);
+      setCurrentStatus(null);
+      setStatusError(true);
     }
   };
 
@@ -100,7 +131,7 @@ export function OBSSettings() {
       const data = await apiPost<OBSSaveResponse>("/api/settings/obs", {
         url: config.url,
         password: config.password || undefined,
-        testOnly: true, // Don't save, just test
+        testOnly: true,
       });
 
       if (data.success) {
@@ -117,17 +148,10 @@ export function OBSSettings() {
         });
       }
     } catch (error) {
-      if (isClientFetchError(error)) {
-        setTestResult({
-          success: false,
-          message: error.errorMessage,
-        });
-      } else {
-        setTestResult({
-          success: false,
-          message: error instanceof Error ? error.message : "Connection failed",
-        });
-      }
+      setTestResult({
+        success: false,
+        message: extractErrorMessage(error, "Connection failed"),
+      });
     } finally {
       setTesting(false);
     }
@@ -141,7 +165,9 @@ export function OBSSettings() {
       const data = await apiPost<OBSSaveResponse>("/api/settings/obs", {
         url: config.url,
         password: config.password || undefined,
-        testOnly: false, // Save settings
+        autoConnect: config.autoConnect,
+        autoReconnect: config.autoReconnect,
+        testOnly: false,
       });
 
       if (data.success) {
@@ -159,19 +185,41 @@ export function OBSSettings() {
         });
       }
     } catch (error) {
-      if (isClientFetchError(error)) {
-        setTestResult({
-          success: false,
-          message: error.errorMessage,
-        });
-      } else {
-        setTestResult({
-          success: false,
-          message: error instanceof Error ? error.message : "Failed to save settings",
-        });
-      }
+      setTestResult({
+        success: false,
+        message: extractErrorMessage(error, "Failed to save settings"),
+      });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConnect = async () => {
+    try {
+      await apiPost(`${getBackendUrl()}/api/obs/connect`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    } catch (error) {
+      console.error("Failed to connect to OBS:", error);
+      setTestResult({
+        success: false,
+        message: extractErrorMessage(error, "Failed to connect to OBS"),
+      });
+    } finally {
+      fetchStatus();
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await apiPost(`${getBackendUrl()}/api/obs/disconnect`);
+    } catch (error) {
+      console.error("Failed to disconnect from OBS:", error);
+      setTestResult({
+        success: false,
+        message: extractErrorMessage(error, "Failed to disconnect from OBS"),
+      });
+    } finally {
+      fetchStatus();
     }
   };
 
@@ -187,9 +235,10 @@ export function OBSSettings() {
       });
       fetchStatus();
     } catch (error) {
+      console.error("Failed to clear OBS settings:", error);
       setTestResult({
         success: false,
-        message: "Failed to clear settings",
+        message: extractErrorMessage(error, "Failed to clear settings"),
       });
     }
   };
@@ -203,29 +252,23 @@ export function OBSSettings() {
     );
   }
 
+  const isConnected = currentStatus?.connected === true;
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold mb-2">{t("title")}</h2>
-        <p className="text-sm text-muted-foreground">
-          {t("description")}
-        </p>
+        <p className="text-sm text-muted-foreground">{t("description")}</p>
       </div>
 
       {/* Current Status */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-medium">{t("currentStatus")}:</span>
-        {currentStatus?.connected ? (
-          <Badge variant="default" className="flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" />
-            {t("connected")}
-          </Badge>
-        ) : (
-          <Badge variant="destructive" className="flex items-center gap-1">
-            <XCircle className="w-3 h-3" />
-            {t("disconnected")}
-          </Badge>
-        )}
+        <OBSConnectionStatusBadge
+          statusError={statusError}
+          isConnected={isConnected}
+          t={t}
+        />
         {currentStatus?.currentScene && (
           <span className="text-sm text-muted-foreground">
             {t("scene")}: {currentStatus.currentScene}
@@ -234,7 +277,24 @@ export function OBSSettings() {
         <Badge variant="outline" className="ml-auto">
           {t("source")}: {sourceIsDatabase ? t("database") : t("envFile")}
         </Badge>
+        <Button
+          onClick={fetchStatus}
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+        >
+          <RefreshCw className="w-3 h-3" />
+        </Button>
       </div>
+
+      {loadError && (
+        <Alert variant="destructive">
+          <AlertDescription className="flex items-center gap-2">
+            <XCircle className="w-4 h-4" />
+            {t("loadError")}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* WebSocket URL */}
       <div className="space-y-2">
@@ -274,9 +334,35 @@ export function OBSSettings() {
             {t("showPassword")}
           </label>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {t("passwordHelp")}
-        </p>
+        <p className="text-xs text-muted-foreground">{t("passwordHelp")}</p>
+      </div>
+
+      {/* Toggles */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="obs-autoConnect" className="cursor-pointer">
+            {t("autoConnect")}
+          </Label>
+          <Switch
+            id="obs-autoConnect"
+            checked={config.autoConnect}
+            onCheckedChange={(checked) =>
+              setConfig({ ...config, autoConnect: checked })
+            }
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="obs-autoReconnect" className="cursor-pointer">
+            {t("autoReconnect")}
+          </Label>
+          <Switch
+            id="obs-autoReconnect"
+            checked={config.autoReconnect}
+            onCheckedChange={(checked) =>
+              setConfig({ ...config, autoReconnect: checked })
+            }
+          />
+        </div>
       </div>
 
       {/* Test Result */}
@@ -315,7 +401,11 @@ export function OBSSettings() {
             </>
           )}
         </Button>
-        <Button onClick={handleSave} disabled={testing || saving} variant="default">
+        <Button
+          onClick={handleSave}
+          disabled={testing || saving}
+          variant="default"
+        >
           {saving ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -325,8 +415,33 @@ export function OBSSettings() {
             t("saveSettings")
           )}
         </Button>
+
+        {isConnected ? (
+          <Button
+            onClick={handleDisconnect}
+            variant="outline"
+            disabled={testing || saving}
+          >
+            <WifiOff className="w-4 h-4 mr-2" />
+            {t("disconnect")}
+          </Button>
+        ) : (
+          <Button
+            onClick={handleConnect}
+            variant="outline"
+            disabled={testing || saving}
+          >
+            <Wifi className="w-4 h-4 mr-2" />
+            {t("connect")}
+          </Button>
+        )}
+
         {sourceIsDatabase && (
-          <Button onClick={handleClearSettings} variant="outline" disabled={testing || saving}>
+          <Button
+            onClick={handleClearSettings}
+            variant="outline"
+            disabled={testing || saving}
+          >
             {t("clearUseEnv")}
           </Button>
         )}
@@ -347,9 +462,7 @@ export function OBSSettings() {
           </div>
           <div>
             <strong>{t("configPriority")}</strong>
-            <p className="mt-1">
-              {t("configPriorityDesc")}
-            </p>
+            <p className="mt-1">{t("configPriorityDesc")}</p>
           </div>
         </AlertDescription>
       </Alert>
@@ -357,3 +470,37 @@ export function OBSSettings() {
   );
 }
 
+function OBSConnectionStatusBadge({
+  statusError,
+  isConnected,
+  t,
+}: {
+  statusError: boolean;
+  isConnected: boolean;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  if (statusError) {
+    return (
+      <Badge variant="outline" className="flex items-center gap-1 text-muted-foreground">
+        <RefreshCw className="w-3 h-3" />
+        {t("statusUnavailable")}
+      </Badge>
+    );
+  }
+
+  if (isConnected) {
+    return (
+      <Badge variant="default" className="flex items-center gap-1">
+        <CheckCircle2 className="w-3 h-3" />
+        {t("connected")}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge variant="destructive" className="flex items-center gap-1">
+      <XCircle className="w-3 h-3" />
+      {t("disconnected")}
+    </Badge>
+  );
+}

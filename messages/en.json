@@ -25,7 +25,13 @@
       "onAir": "ON AIR",
       "noProfile": "No Profile",
       "fullscreen": "Fullscreen",
-      "exitFullscreen": "Exit Fullscreen"
+      "exitFullscreen": "Exit Fullscreen",
+      "switchToAdmin": "Switch to ADMIN Mode",
+      "switchToLive": "Switch to LIVE Mode",
+      "onAirDialogTitle": "You are currently ON AIR",
+      "onAirDialogDescription": "Switching to ADMIN mode will navigate away from the live control surface. Are you sure you want to continue?",
+      "stayInLive": "Stay in LIVE Mode",
+      "switchToAdminConfirm": "Switch to ADMIN"
     },
     "commandPalette": {
       "placeholder": "Type a command or search... (Cmd/Ctrl+P)",
@@ -422,6 +428,11 @@
       "passwordPlaceholder": "Enter OBS WebSocket password",
       "showPassword": "Show password",
       "passwordHelp": "Find in OBS: Tools → obs-websocket Settings → Show Connect Info",
+      "autoConnect": "Auto-connect on startup",
+      "autoReconnect": "Auto-reconnect on disconnect",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "connecting": "Connecting...",
       "testing": "Testing...",
       "testConnection": "Test Connection",
       "saving": "Saving...",
@@ -437,26 +448,44 @@
       "setupStep4": "Note the Server Port (default: 4455) and Password (if enabled)",
       "setupStep5": "Enter the connection details above and test",
       "configPriority": "Configuration Priority:",
-      "configPriorityDesc": "Settings saved here take priority over .env file. Use \"Clear & Use .env\" to revert to environment variables."
+      "statusUnavailable": "Status unavailable",
+      "configPriorityDesc": "Settings saved here take priority over .env file. Use \"Clear & Use .env\" to revert to environment variables.",
+      "loadError": "Failed to load settings from server. Values shown are defaults and may not reflect your actual configuration."
     },
     "streamerbot": {
       "title": "Streamer.bot Connection",
       "description": "Configure connection to Streamer.bot WebSocket server for chat integration",
       "loading": "Loading settings...",
+      "currentStatus": "Current Status",
       "connected": "Connected",
       "connecting": "Connecting...",
       "disconnected": "Disconnected",
       "connect": "Connect",
       "disconnect": "Disconnect",
+      "source": "Source",
+      "database": "Database",
+      "websocketUrl": "WebSocket URL",
+      "websocketUrlDefault": "Default: ws://127.0.0.1:8080/ (Streamer.bot default)",
+      "password": "Password (Optional)",
+      "passwordPlaceholder": "Leave empty if auth is disabled",
+      "showPassword": "Show password",
+      "passwordHelp": "Find in Streamer.bot: Servers/Clients → WebSocket Server → Authentication",
+      "autoConnect": "Auto-connect on startup",
+      "autoReconnect": "Auto-reconnect on disconnect",
+      "testing": "Testing...",
+      "testConnection": "Test Connection",
       "saving": "Saving...",
       "saveSettings": "Save Settings",
+      "clearSettings": "Clear Settings",
+      "settingsCleared": "Settings cleared, using defaults.",
       "saveSuccess": "Settings saved successfully!",
       "saveFailed": "Failed to save settings",
       "setupGuide": "Setup Guide",
       "setupStep1": "Open Streamer.bot and go to Servers/Clients -> WebSocket Server",
-      "setupStep2": "Enable the WebSocket Server and note the Host, Port, and Endpoint",
+      "setupStep2": "Enable the WebSocket Server and note the URL (host:port)",
       "setupStep3": "If authentication is enabled, copy the password",
-      "setupStep4": "Enter the connection details above and test the connection"
+      "setupStep4": "Enter the connection details above and test the connection",
+      "loadError": "Failed to load settings from server. Values shown are defaults and may not reflect your actual configuration."
     },
     "rooms": {
       "title": "Presenter Rooms",
@@ -1424,5 +1453,14 @@
       "userBanned": "User banned",
       "failed": "Moderation action failed"
     }
+  },
+  "sidebar": {
+    "onAir": "ON AIR",
+    "offAir": "OFF AIR",
+    "obsDisconnected": "OBS",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "twitch": "Twitch",
+    "streamerbot": "Streamer.bot"
   }
 }

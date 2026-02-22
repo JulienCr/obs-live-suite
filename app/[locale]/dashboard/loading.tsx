@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export default function DashboardLoading() {
   return (
-    <div className="h-[calc(100vh-var(--header-height))] w-full p-2">
+    <div className="h-[calc(100vh-var(--topbar-height))] w-full p-2">
       <div className="flex flex-col h-full gap-2">
         {/* Main panels area */}
         <div className="flex-1 flex gap-2">

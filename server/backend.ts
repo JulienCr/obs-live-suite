@@ -3,7 +3,6 @@
  * Standalone Backend Server
  * Runs WebSocket hub and OBS connection independently from Next.js
  * Exposes HTTP API for Next.js to publish messages
- * Updated: Added countdown UPDATE action support
  */
 
 // Load environment variables from .env file
@@ -24,7 +23,6 @@ import { SettingsService } from "../lib/services/SettingsService";
 import { TwitchService } from "../lib/services/TwitchService";
 import { Logger } from "../lib/utils/Logger";
 import { PathManager } from "../lib/config/PathManager";
-import { AppConfig } from "../lib/config/AppConfig";
 import quizRouter from "./api/quiz";
 import quizBotRouter from "./api/quiz-bot";
 import presenterSettingsRouter from "./api/presenter-settings";
@@ -32,6 +30,7 @@ import cueRouter from "./api/cue";
 import streamerbotChatRouter from "./api/streamerbot-chat";
 import chatMessagesRouter from "./api/chat-messages";
 import overlaysRouter from "./api/overlays";
+import obsRouter from "./api/obs";
 import twitchRouter from "./api/twitch";
 import { APP_PORT, BACKEND_PORT, WS_PORT } from "../lib/config/urls";
 import { createServerWithFallback } from "../lib/utils/CertificateManager";
@@ -73,59 +72,8 @@ class BackendServer {
   }
 
   private setupApiRoutes(): void {
-    // OBS Status
-    this.app.get('/api/obs/status', async (req, res) => {
-      try {
-        const state = OBSStateManager.getInstance().getState();
-        res.json({
-          connected: this.obsManager.isConnected(),
-          ...state,
-        });
-      } catch (error) {
-        expressError(res, error, "Failed to get OBS status", { context: "[BackendOBS]" });
-      }
-    });
-
-    // OBS Reconnect
-    this.app.post('/api/obs/reconnect', async (req, res) => {
-      try {
-        await this.obsManager.disconnect();
-        await this.obsManager.connect();
-        res.json({ success: true });
-      } catch (error) {
-        expressError(res, error, "OBS reconnect failed", { context: "[BackendOBS]" });
-      }
-    });
-
-    // OBS Stream Control
-    this.app.post('/api/obs/stream', async (req, res) => {
-      try {
-        const { action } = req.body;
-        if (action === "start") {
-          await this.obsManager.getOBS().call("StartStream");
-        } else if (action === "stop") {
-          await this.obsManager.getOBS().call("StopStream");
-        }
-        res.json({ success: true });
-      } catch (error) {
-        expressError(res, error, "Stream control failed", { context: "[BackendOBS]" });
-      }
-    });
-
-    // OBS Record Control
-    this.app.post('/api/obs/record', async (req, res) => {
-      try {
-        const { action } = req.body;
-        if (action === "start") {
-          await this.obsManager.getOBS().call("StartRecord");
-        } else if (action === "stop") {
-          await this.obsManager.getOBS().call("StopRecord");
-        }
-        res.json({ success: true });
-      } catch (error) {
-        expressError(res, error, "Record control failed", { context: "[BackendOBS]" });
-      }
-    });
+    // OBS API (status, connect, disconnect, reconnect, stream, record, scene, source)
+    this.app.use('/api/obs', obsRouter);
 
     // Quiz API
     this.app.use('/api/quiz', quizRouter);
@@ -251,23 +199,29 @@ class BackendServer {
       // 1. Initialize database
       DatabaseService.getInstance();
       this.logger.info("✓ Database initialized");
+
       // 2. Start WebSocket Hub
       this.wsHub.start();
       this.logger.info("✓ WebSocket hub started");
 
-      // 3. Connect to OBS
+      const settingsService = SettingsService.getInstance();
+
+      // 3. Connect to OBS (if auto-connect enabled)
       try {
-        await this.obsManager.connect();
-        const stateManager = OBSStateManager.getInstance();
-        await stateManager.refreshState();
-        this.logger.info("✓ OBS connected");
+        if (settingsService.isOBSAutoConnectEnabled()) {
+          await this.obsManager.connect();
+          const stateManager = OBSStateManager.getInstance();
+          await stateManager.refreshState();
+          this.logger.info("✓ OBS connected");
+        } else {
+          this.logger.info("OBS auto-connect disabled");
+        }
       } catch (error) {
         this.logger.warn("OBS connection failed (will retry)", error);
       }
 
       // 4. Auto-connect to Streamerbot if enabled
       try {
-        const settingsService = SettingsService.getInstance();
         if (settingsService.isStreamerbotAutoConnectEnabled()) {
           await this.streamerbotGateway.connect();
           this.logger.info("✓ Streamerbot gateway connected");
@@ -280,9 +234,7 @@ class BackendServer {
 
       // 5. Start Twitch integration polling
       try {
-        const settingsService = SettingsService.getInstance();
         if (settingsService.isTwitchEnabled()) {
-          // Wait for OAuth initialization to complete before checking availability
           await this.twitchService.ensureInitialized();
           this.twitchService.startPolling();
           this.logger.info("✓ Twitch polling started");
@@ -362,7 +314,6 @@ server.start().then(() => {
   console.log("\n✓ Backend server is running");
   console.log(`  - WebSocket: ws://localhost:${WS_PORT}`);
   console.log(`  - HTTP API: http://localhost:${BACKEND_PORT}`);
-  console.log("  - OBS: Connected");
   console.log("");
 }).catch((error) => {
   console.error("✗ Failed to start backend server:", error);

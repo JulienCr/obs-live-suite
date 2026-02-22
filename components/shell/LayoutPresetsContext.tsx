@@ -27,3 +27,8 @@ export function useLayoutPresets() {
   }
   return context;
 }
+
+/** Returns layout presets if within provider, or null otherwise. */
+export function useOptionalLayoutPresets(): LayoutPresetsContextValue | null {
+  return useContext(LayoutPresetsContext);
+}
