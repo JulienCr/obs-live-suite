@@ -13,42 +13,65 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Loader2, CheckCircle, XCircle, RefreshCw, Trash2 } from "lucide-react";
+import { useSettings } from "@/lib/hooks/useSettings";
 import { apiGet, apiPost, apiDelete, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 type LLMProvider = "ollama" | "openai" | "anthropic";
 
 interface LLMSettings {
   llm_provider: LLMProvider;
-  
+
   // Ollama
   ollama_url?: string;
   ollama_model?: string;
-  
+
   // OpenAI
   openai_api_key?: string;
   openai_model?: string;
-  
+
   // Anthropic
   anthropic_api_key?: string;
   anthropic_model?: string;
 }
 
+interface LLMSettingsResponse {
+  settings: Partial<LLMSettings>;
+}
+
+const INITIAL_STATE: LLMSettings = {
+  llm_provider: "ollama",
+  ollama_url: "http://localhost:11434",
+  ollama_model: "mistral:latest",
+  openai_model: "gpt-5-mini",
+  anthropic_model: "claude-3-5-sonnet-20241022",
+};
+
 /**
  * LLMSettings - Configuration for AI summarization providers
  */
 export function OllamaSettings() {
-  const [settings, setSettings] = useState<LLMSettings>({
-    llm_provider: "ollama",
-    ollama_url: "http://localhost:11434",
-    ollama_model: "mistral:latest",
-    openai_model: "gpt-5-mini",
-    anthropic_model: "claude-3-5-sonnet-20241022",
+  const {
+    data: settings,
+    setData: setSettings,
+    loading,
+    saving: isSaving,
+    saveResult,
+    save: handleSave,
+  } = useSettings<LLMSettingsResponse, LLMSettings>({
+    endpoint: "/api/settings/integrations",
+    initialState: INITIAL_STATE,
+    fromResponse: (res) => ({
+      ...INITIAL_STATE,
+      ...res.settings,
+    }),
+    successMessage: "Settings saved successfully",
+    errorMessage: "Failed to save settings",
   });
 
   const [isTesting, setIsTesting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [testResult, setTestResult] = useState<{
@@ -57,34 +80,12 @@ export function OllamaSettings() {
   } | null>(null);
   const [isClearingCache, setIsClearingCache] = useState(false);
 
-  // Load current settings from database
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
   // Load available models when provider changes
   useEffect(() => {
     if (settings.llm_provider) {
       loadAvailableModels();
     }
   }, [settings.llm_provider]);
-
-  const loadSettings = async () => {
-    try {
-      const data = await apiGet<{ settings: Partial<LLMSettings> }>("/api/settings/integrations");
-      setSettings(prev => ({
-        ...prev,
-        ...data.settings,
-      }));
-    } catch (error) {
-      console.error("Failed to load settings:", error);
-      if (isClientFetchError(error)) {
-        toast.error(error.errorMessage);
-      } else {
-        toast.error("Failed to load settings");
-      }
-    }
-  };
 
   const loadAvailableModels = async () => {
     setIsLoadingModels(true);
@@ -130,23 +131,6 @@ export function OllamaSettings() {
     }
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await apiPost("/api/settings/integrations", settings);
-      toast.success("Settings saved successfully");
-    } catch (error) {
-      console.error("Failed to save settings:", error);
-      if (isClientFetchError(error)) {
-        toast.error(error.errorMessage);
-      } else {
-        toast.error(error instanceof Error ? error.message : "Failed to save settings");
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleClearCache = async () => {
     if (!confirm("Clear all Wikipedia cache? This cannot be undone.")) {
       return;
@@ -167,6 +151,15 @@ export function OllamaSettings() {
       setIsClearingCache(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -210,7 +203,7 @@ export function OllamaSettings() {
       {/* Provider-specific settings */}
       <Tabs value={settings.llm_provider} className="w-full">
         <TabsList className="hidden" />
-        
+
         {/* Ollama Settings */}
         <TabsContent value="ollama" className="space-y-4">
           <Card>
@@ -459,6 +452,20 @@ export function OllamaSettings() {
           )}
         </Button>
       </div>
+
+      {/* Save Result */}
+      {saveResult && (
+        <Alert variant={saveResult.success ? "default" : "destructive"}>
+          <AlertDescription className="flex items-center gap-2">
+            {saveResult.success ? (
+              <CheckCircle className="h-4 w-4" />
+            ) : (
+              <XCircle className="h-4 w-4" />
+            )}
+            {saveResult.message}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Cache Management */}
       <Card>

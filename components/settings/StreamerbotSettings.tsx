@@ -23,6 +23,7 @@ import {
   parseStreamerbotUrl,
 } from "@/lib/utils/streamerbotUrl";
 import { getBackendUrl } from "@/lib/utils/websocket";
+import { useSettings } from "@/lib/hooks/useSettings";
 import { apiGet, apiPut, apiPost, apiDelete, extractErrorMessage } from "@/lib/utils/ClientFetch";
 
 interface StreamerbotSettingsResponse {
@@ -57,17 +58,37 @@ export function StreamerbotSettings() {
   const t = useTranslations("settings.streamerbot");
   const backendApi = `${getBackendUrl()}/api/streamerbot-chat`;
 
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const {
+    data: config,
+    setData: setConfig,
+    loading,
+    saveResult: loadResult,
+    reload,
+  } = useSettings<StreamerbotSettingsResponse, StreamerbotConfig>({
+    endpoint: `${backendApi}/settings`,
+    initialState: {
+      url: "ws://127.0.0.1:8080/",
+      password: "",
+      autoConnect: true,
+      autoReconnect: true,
+    },
+    fromResponse: (data) => ({
+      url: buildStreamerbotUrl({
+        host: data.host,
+        port: data.port,
+        endpoint: data.endpoint,
+        scheme: data.scheme,
+      }),
+      password: "",
+      autoConnect: data.autoConnect ?? true,
+      autoReconnect: data.autoReconnect ?? true,
+    }),
+    loadErrorMessage: t("loadError"),
+  });
+
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [config, setConfig] = useState<StreamerbotConfig>({
-    url: "ws://127.0.0.1:8080/",
-    password: "",
-    autoConnect: true,
-    autoReconnect: true,
-  });
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
@@ -75,37 +96,10 @@ export function StreamerbotSettings() {
   const [connectionStatus, setConnectionStatus] =
     useState<StreamerbotStatusResponse | null>(null);
 
-  // Load current settings and status on mount
+  // Fetch connection status on mount
   useEffect(() => {
-    loadSettings();
     fetchStatus();
   }, []);
-
-  const loadSettings = async () => {
-    try {
-      const data = await apiGet<StreamerbotSettingsResponse>(
-        `${backendApi}/settings`
-      );
-
-      setConfig({
-        url: buildStreamerbotUrl({
-          host: data.host,
-          port: data.port,
-          endpoint: data.endpoint,
-          scheme: data.scheme,
-        }),
-        password: "",
-        autoConnect: data.autoConnect ?? true,
-        autoReconnect: data.autoReconnect ?? true,
-      });
-      setLoadError(false);
-    } catch (error) {
-      console.error("Failed to load Streamer.bot settings:", error);
-      setLoadError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchStatus = async () => {
     try {
@@ -213,7 +207,7 @@ export function StreamerbotSettings() {
   const handleClear = async () => {
     try {
       await apiDelete(`${backendApi}/settings`);
-      await loadSettings();
+      await reload();
       setTestResult({
         success: true,
         message: t("settingsCleared"),
@@ -268,11 +262,11 @@ export function StreamerbotSettings() {
         </Button>
       </div>
 
-      {loadError && (
+      {loadResult && !loadResult.success && (
         <Alert variant="destructive">
           <AlertDescription className="flex items-center gap-2">
             <XCircle className="w-4 h-4" />
-            {t("loadError")}
+            {loadResult.message}
           </AlertDescription>
         </Alert>
       )}

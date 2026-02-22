@@ -19,6 +19,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { getBackendUrl } from "@/lib/utils/websocket";
+import { useSettings } from "@/lib/hooks/useSettings";
 import {
   apiGet,
   apiPost,
@@ -26,11 +27,12 @@ import {
   extractErrorMessage,
 } from "@/lib/utils/ClientFetch";
 
-interface OBSConfig {
+interface OBSSettingsState {
   url: string;
   password: string;
   autoConnect: boolean;
   autoReconnect: boolean;
+  sourceIsDatabase: boolean;
 }
 
 interface OBSSettingsResponse {
@@ -53,22 +55,41 @@ interface OBSSaveResponse {
   obsWebSocketVersion?: string;
 }
 
+const OBS_INITIAL_STATE: OBSSettingsState = {
+  url: "ws://localhost:4455",
+  password: "",
+  autoConnect: true,
+  autoReconnect: true,
+  sourceIsDatabase: false,
+};
+
 /**
  * OBS WebSocket connection settings
  */
 export function OBSSettings() {
   const t = useTranslations("settings.obs");
-  const [config, setConfig] = useState<OBSConfig>({
-    url: "ws://localhost:4455",
-    password: "",
-    autoConnect: true,
-    autoReconnect: true,
+
+  const {
+    data: config,
+    setData: setConfig,
+    loading,
+    saveResult: loadResult,
+    reload,
+  } = useSettings<OBSSettingsResponse, OBSSettingsState>({
+    endpoint: "/api/settings/obs",
+    initialState: OBS_INITIAL_STATE,
+    fromResponse: (data) => ({
+      url: data.url || "ws://localhost:4455",
+      password: data.password || "",
+      autoConnect: data.autoConnect ?? true,
+      autoReconnect: data.autoReconnect ?? true,
+      sourceIsDatabase: data.sourceIsDatabase || false,
+    }),
+    loadErrorMessage: t("loadError"),
   });
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [sourceIsDatabase, setSourceIsDatabase] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
@@ -81,30 +102,10 @@ export function OBSSettings() {
   } | null>(null);
   const [statusError, setStatusError] = useState(false);
 
-  // Load current configuration
+  // Fetch OBS connection status on mount
   useEffect(() => {
-    loadSettings();
     fetchStatus();
   }, []);
-
-  const loadSettings = async () => {
-    try {
-      const data = await apiGet<OBSSettingsResponse>("/api/settings/obs");
-      setConfig({
-        url: data.url || "ws://localhost:4455",
-        password: data.password || "",
-        autoConnect: data.autoConnect ?? true,
-        autoReconnect: data.autoReconnect ?? true,
-      });
-      setSourceIsDatabase(data.sourceIsDatabase || false);
-      setLoadError(false);
-    } catch (error) {
-      console.error("Failed to load OBS settings:", error);
-      setLoadError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchStatus = async () => {
     try {
@@ -176,7 +177,7 @@ export function OBSSettings() {
           message: "Settings saved and connected successfully!",
           obsVersion: `${data.obsVersion} (WebSocket ${data.obsWebSocketVersion})`,
         });
-        setSourceIsDatabase(true);
+        setConfig(prev => ({ ...prev, sourceIsDatabase: true }));
         fetchStatus();
       } else {
         setTestResult({
@@ -228,7 +229,7 @@ export function OBSSettings() {
 
     try {
       await apiDelete("/api/settings/obs");
-      await loadSettings();
+      await reload();
       setTestResult({
         success: true,
         message: "Settings cleared. Using .env configuration.",
@@ -275,7 +276,7 @@ export function OBSSettings() {
           </span>
         )}
         <Badge variant="outline" className="ml-auto">
-          {t("source")}: {sourceIsDatabase ? t("database") : t("envFile")}
+          {t("source")}: {config.sourceIsDatabase ? t("database") : t("envFile")}
         </Badge>
         <Button
           onClick={fetchStatus}
@@ -287,11 +288,11 @@ export function OBSSettings() {
         </Button>
       </div>
 
-      {loadError && (
+      {loadResult && !loadResult.success && (
         <Alert variant="destructive">
           <AlertDescription className="flex items-center gap-2">
             <XCircle className="w-4 h-4" />
-            {t("loadError")}
+            {loadResult.message}
           </AlertDescription>
         </Alert>
       )}
@@ -436,7 +437,7 @@ export function OBSSettings() {
           </Button>
         )}
 
-        {sourceIsDatabase && (
+        {config.sourceIsDatabase && (
           <Button
             onClick={handleClearSettings}
             variant="outline"
