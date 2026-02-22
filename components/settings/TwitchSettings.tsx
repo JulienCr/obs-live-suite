@@ -21,6 +21,7 @@ import {
   Shield,
 } from "lucide-react";
 import { apiGet, apiPost, apiDelete, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { useSettings } from "@/lib/hooks/useSettings";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import type { TwitchAuthStatus } from "@/lib/models/TwitchAuth";
 import { TWITCH_OAUTH_SCOPES } from "@/lib/models/TwitchAuth";
@@ -41,6 +42,22 @@ interface TwitchAuthEvent {
   data: unknown;
 }
 
+interface TwitchSettingsState {
+  clientId: string;
+  clientSecret: string;
+  clientSecretMasked: string;
+  hasCredentials: boolean;
+  authStatus: TwitchAuthStatus | null;
+}
+
+const TWITCH_INITIAL_STATE: TwitchSettingsState = {
+  clientId: "",
+  clientSecret: "",
+  clientSecretMasked: "",
+  hasCredentials: false,
+  authStatus: null,
+};
+
 /**
  * TwitchSettings - Configure Twitch OAuth integration
  */
@@ -49,17 +66,27 @@ export function TwitchSettings() {
   const tCommon = useTranslations("common");
   const searchParams = useSearchParams();
 
-  // State
-  const [clientId, setClientId] = useState("");
-  const [clientSecret, setClientSecret] = useState("");
-  const [clientSecretMasked, setClientSecretMasked] = useState("");
+  const {
+    data,
+    setData,
+    loading,
+    reload,
+  } = useSettings<TwitchSettingsResponse, TwitchSettingsState>({
+    endpoint: "/api/settings/twitch",
+    initialState: TWITCH_INITIAL_STATE,
+    fromResponse: (res) => ({
+      clientId: res.clientId || "",
+      clientSecret: res.clientSecretSet ? "" : "",
+      clientSecretMasked: res.clientSecretMasked || "",
+      hasCredentials: res.hasCredentials,
+      authStatus: res.authStatus,
+    }),
+  });
+
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
-  const [authStatus, setAuthStatus] = useState<TwitchAuthStatus | null>(null);
-  const [hasCredentials, setHasCredentials] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;
     message: string;
@@ -68,9 +95,9 @@ export function TwitchSettings() {
   // Handle WebSocket auth events
   const handleAuthEvent = useCallback((event: TwitchAuthEvent) => {
     if (event.type === "auth-status") {
-      setAuthStatus(event.data as TwitchAuthStatus);
+      setData(prev => ({ ...prev, authStatus: event.data as TwitchAuthStatus }));
     }
-  }, []);
+  }, [setData]);
 
   useWebSocketChannel<TwitchAuthEvent>("twitch-auth", handleAuthEvent, {
     logPrefix: "TwitchSettings",
@@ -97,44 +124,14 @@ export function TwitchSettings() {
     }
   }, [searchParams, t]);
 
-  // Load settings
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    try {
-      setLoading(true);
-      const data = await apiGet<TwitchSettingsResponse>("/api/settings/twitch");
-
-      setClientId(data.clientId || "");
-      setClientSecretMasked(data.clientSecretMasked || "");
-      setHasCredentials(data.hasCredentials);
-      setAuthStatus(data.authStatus);
-
-      // Clear secret field if already set (don't show the actual secret)
-      if (data.clientSecretSet) {
-        setClientSecret("");
-      }
-    } catch (error) {
-      console.error("Failed to load Twitch settings:", error);
-      setResult({
-        success: false,
-        message: isClientFetchError(error) ? error.errorMessage : "Failed to load settings",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSaveCredentials = async () => {
-    if (!clientId.trim()) {
+    if (!data.clientId.trim()) {
       setResult({ success: false, message: t("clientIdRequired") });
       return;
     }
 
     // Only require secret if not already set
-    if (!clientSecret.trim() && !clientSecretMasked) {
+    if (!data.clientSecret.trim() && !data.clientSecretMasked) {
       setResult({ success: false, message: t("clientSecretRequired") });
       return;
     }
@@ -145,11 +142,11 @@ export function TwitchSettings() {
 
       // Only send secret if user entered a new one
       const payload: { clientId: string; clientSecret?: string } = {
-        clientId: clientId.trim(),
+        clientId: data.clientId.trim(),
       };
 
-      if (clientSecret.trim()) {
-        payload.clientSecret = clientSecret.trim();
+      if (data.clientSecret.trim()) {
+        payload.clientSecret = data.clientSecret.trim();
       }
 
       await apiPost("/api/settings/twitch", payload);
@@ -160,7 +157,7 @@ export function TwitchSettings() {
       });
 
       // Reload to get updated state
-      await loadSettings();
+      await reload();
     } catch (error) {
       setResult({
         success: false,
@@ -213,7 +210,7 @@ export function TwitchSettings() {
         message: t("disconnected"),
       });
 
-      await loadSettings();
+      await reload();
     } catch (error) {
       setResult({
         success: false,
@@ -229,11 +226,7 @@ export function TwitchSettings() {
 
     try {
       await apiDelete("/api/settings/twitch");
-      setClientId("");
-      setClientSecret("");
-      setClientSecretMasked("");
-      setHasCredentials(false);
-      setAuthStatus(null);
+      setData(TWITCH_INITIAL_STATE);
       setResult({
         success: true,
         message: t("settingsCleared"),
@@ -261,7 +254,7 @@ export function TwitchSettings() {
     return `${minutes}m`;
   };
 
-  const isConnected = authStatus?.state === "authorized";
+  const isConnected = data.authStatus?.state === "authorized";
 
   if (loading) {
     return (
@@ -299,14 +292,14 @@ export function TwitchSettings() {
           </div>
         </CardHeader>
         <CardContent>
-          {isConnected && authStatus?.user && (
+          {isConnected && data.authStatus?.user && (
             <div className="space-y-3">
               {/* User info */}
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                {authStatus.user.profileImageUrl ? (
+                {data.authStatus.user.profileImageUrl ? (
                   <img
-                    src={authStatus.user.profileImageUrl}
-                    alt={authStatus.user.displayName}
+                    src={data.authStatus.user.profileImageUrl}
+                    alt={data.authStatus.user.displayName}
                     className="w-10 h-10 rounded-full"
                   />
                 ) : (
@@ -315,8 +308,8 @@ export function TwitchSettings() {
                   </div>
                 )}
                 <div>
-                  <div className="font-medium">{authStatus.user.displayName}</div>
-                  <div className="text-sm text-muted-foreground">@{authStatus.user.login}</div>
+                  <div className="font-medium">{data.authStatus.user.displayName}</div>
+                  <div className="text-sm text-muted-foreground">@{data.authStatus.user.login}</div>
                 </div>
               </div>
 
@@ -327,7 +320,7 @@ export function TwitchSettings() {
                   {t("autoRefreshActive")}
                 </span>
                 <span className="text-muted-foreground">
-                  • {t("tokenExpires")} {formatExpiryTime(authStatus.expiresAt)}
+                  • {t("tokenExpires")} {formatExpiryTime(data.authStatus.expiresAt)}
                 </span>
               </div>
 
@@ -337,7 +330,7 @@ export function TwitchSettings() {
                 <div>
                   <div className="text-muted-foreground mb-1">{t("grantedScopes")}:</div>
                   <div className="flex flex-wrap gap-1">
-                    {authStatus.scopes?.map((scope) => (
+                    {data.authStatus.scopes?.map((scope) => (
                       <Badge key={scope} variant="outline" className="text-xs">
                         {scope}
                       </Badge>
@@ -372,7 +365,7 @@ export function TwitchSettings() {
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">{t("notConnectedDesc")}</p>
 
-              {hasCredentials ? (
+              {data.hasCredentials ? (
                 <Button
                   onClick={handleConnect}
                   disabled={connecting}
@@ -412,8 +405,8 @@ export function TwitchSettings() {
               id="client-id"
               type="text"
               placeholder={t("clientIdPlaceholder")}
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
+              value={data.clientId}
+              onChange={(e) => setData(prev => ({ ...prev, clientId: e.target.value }))}
             />
           </div>
 
@@ -423,9 +416,9 @@ export function TwitchSettings() {
             <Input
               id="client-secret"
               type={showPassword ? "text" : "password"}
-              placeholder={clientSecretMasked || t("clientSecretPlaceholder")}
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
+              placeholder={data.clientSecretMasked || t("clientSecretPlaceholder")}
+              value={data.clientSecret}
+              onChange={(e) => setData(prev => ({ ...prev, clientSecret: e.target.value }))}
             />
             <div className="flex items-center gap-2">
               <Checkbox
@@ -437,7 +430,7 @@ export function TwitchSettings() {
                 {t("showSecret")}
               </label>
             </div>
-            {clientSecretMasked && !clientSecret && (
+            {data.clientSecretMasked && !data.clientSecret && (
               <p className="text-xs text-muted-foreground">{t("secretAlreadySet")}</p>
             )}
           </div>
@@ -468,7 +461,7 @@ export function TwitchSettings() {
                 tCommon("save")
               )}
             </Button>
-            {hasCredentials && (
+            {data.hasCredentials && (
               <Button variant="outline" onClick={handleClearSettings}>
                 {t("clearCredentials")}
               </Button>
