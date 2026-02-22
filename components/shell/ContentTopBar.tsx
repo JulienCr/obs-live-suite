@@ -17,6 +17,15 @@ import { WorkspaceSelector } from "@/components/shell/WorkspaceSelector";
 import { TopBarSelect } from "@/components/shell/TopBarSelect";
 import { useProfiles, useOBSStatus } from "@/lib/queries";
 
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString("en-US", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 export function ContentTopBar() {
   const t = useTranslations("dashboard.header");
   const { isFullscreenMode, setIsFullscreenMode } = useAppMode();
@@ -36,14 +45,6 @@ export function ContentTopBar() {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
-
-  const formatTime = (date: Date) =>
-    date.toLocaleTimeString("en-US", {
-      hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
 
   return (
     <header className="flex items-center h-10 pr-2 gap-2 border-b shrink-0" style={{ backgroundColor: "hsl(var(--topbar))" }}>
@@ -80,16 +81,15 @@ export function ContentTopBar() {
       <div className="flex-1" />
 
       {/* OBS Scene */}
-      {obsConnected ? (
-        currentScene && (
-          <div className="text-xs text-muted-foreground px-2 truncate max-w-[200px]">
-            Scene: {currentScene}
-          </div>
-        )
-      ) : (
+      {!obsConnected && (
         <div className="flex items-center gap-1 text-xs text-destructive px-2">
           <MonitorOff className="w-3 h-3" />
           <span>OBS</span>
+        </div>
+      )}
+      {obsConnected && currentScene && (
+        <div className="text-xs text-muted-foreground px-2 truncate max-w-[200px]">
+          Scene: {currentScene}
         </div>
       )}
 

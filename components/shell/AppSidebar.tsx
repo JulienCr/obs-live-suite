@@ -60,37 +60,39 @@ import { useDockviewStore } from "@/lib/stores";
 
 const SIDEBAR_EXPANDED_KEY = "obs-live-suite-sidebar-expanded";
 const COLLAPSED_SECTIONS_KEY = "obs-live-suite-collapsed-sections";
-const SIDEBAR_WIDTH_COLLAPSED = 48;
-const SIDEBAR_WIDTH_EXPANDED = 220;
+
+// CSS custom properties defined in globals.css
+const SIDEBAR_WIDTH_COLLAPSED = "var(--sidebar-width-collapsed)";
+const SIDEBAR_WIDTH_EXPANDED = "var(--sidebar-width-expanded)";
+
+const TRUNCATE_CLASS = "whitespace-nowrap overflow-hidden text-ellipsis";
 
 // ---------------------------------------------------------------------------
-// LIVE mode panels (same as LiveModeRail)
+// LIVE mode panels
 // ---------------------------------------------------------------------------
 
 interface PanelItem {
   id: string;
-  labelKey: string;
   icon: React.ElementType;
-  component: string;
 }
 
 const PANELS: PanelItem[] = [
-  { id: "lowerThird", labelKey: "lowerThird", icon: Type, component: "lowerThird" },
-  { id: "countdown", labelKey: "countdown", icon: Timer, component: "countdown" },
-  { id: "guests", labelKey: "guests", icon: Users, component: "guests" },
-  { id: "textPresets", labelKey: "textPresets", icon: BookText, component: "textPresets" },
-  { id: "poster", labelKey: "poster", icon: Image, component: "poster" },
-  { id: "macros", labelKey: "macros", icon: Command, component: "macros" },
-  { id: "eventLog", labelKey: "eventLog", icon: FileText, component: "eventLog" },
-  { id: "regieInternalChat", labelKey: "regieInternalChat", icon: MessageSquare, component: "regieInternalChat" },
-  { id: "regieInternalChatView", labelKey: "regieInternalChatView", icon: Inbox, component: "regieInternalChatView" },
-  { id: "regiePublicChat", labelKey: "regiePublicChat", icon: MessagesSquare, component: "regiePublicChat" },
-  { id: "twitch", labelKey: "twitch", icon: Radio, component: "twitch" },
-  { id: "chatMessages", labelKey: "chatMessages", icon: Send, component: "chatMessages" },
+  { id: "lowerThird", icon: Type },
+  { id: "countdown", icon: Timer },
+  { id: "guests", icon: Users },
+  { id: "textPresets", icon: BookText },
+  { id: "poster", icon: Image },
+  { id: "macros", icon: Command },
+  { id: "eventLog", icon: FileText },
+  { id: "regieInternalChat", icon: MessageSquare },
+  { id: "regieInternalChatView", icon: Inbox },
+  { id: "regiePublicChat", icon: MessagesSquare },
+  { id: "twitch", icon: Radio },
+  { id: "chatMessages", icon: Send },
 ];
 
 // ---------------------------------------------------------------------------
-// ADMIN mode navigation sections (same as AdminSidebar)
+// ADMIN mode navigation sections
 // ---------------------------------------------------------------------------
 
 interface NavItem {
@@ -264,7 +266,7 @@ export function AppSidebar() {
   // ---------------------------------------------------------------------------
 
   const handlePanelToggle = useCallback(
-    (panelId: string, component: string, labelKey: string) => {
+    (panelId: string) => {
       if (!dockviewApi) return;
 
       const panel = dockviewApi.getPanel(panelId);
@@ -272,36 +274,37 @@ export function AppSidebar() {
       if (panel) {
         savePositionBeforeClose(panelId);
         panel.api.close();
-      } else {
-        const saved = getSavedPosition(panelId);
-        let position: Parameters<typeof dockviewApi.addPanel>[0]["position"];
-
-        if (saved?.siblingPanelId) {
-          const sibling = dockviewApi.getPanel(saved.siblingPanelId);
-          if (sibling) {
-            position = {
-              referencePanel: saved.siblingPanelId,
-              direction: "within",
-              index: saved.tabIndex,
-            };
-          }
-        } else if (saved?.neighborPanelId) {
-          const neighbor = dockviewApi.getPanel(saved.neighborPanelId);
-          if (neighbor) {
-            position = {
-              referencePanel: saved.neighborPanelId,
-              direction: saved.direction || "right",
-            };
-          }
-        }
-
-        dockviewApi.addPanel({
-          id: panelId,
-          component,
-          title: tPanels(labelKey),
-          position,
-        });
+        return;
       }
+
+      const saved = getSavedPosition(panelId);
+      let position: Parameters<typeof dockviewApi.addPanel>[0]["position"];
+
+      if (saved?.siblingPanelId) {
+        const sibling = dockviewApi.getPanel(saved.siblingPanelId);
+        if (sibling) {
+          position = {
+            referencePanel: saved.siblingPanelId,
+            direction: "within",
+            index: saved.tabIndex,
+          };
+        }
+      } else if (saved?.neighborPanelId) {
+        const neighbor = dockviewApi.getPanel(saved.neighborPanelId);
+        if (neighbor) {
+          position = {
+            referencePanel: saved.neighborPanelId,
+            direction: saved.direction || "right",
+          };
+        }
+      }
+
+      dockviewApi.addPanel({
+        id: panelId,
+        component: panelId,
+        title: tPanels(panelId),
+        position,
+      });
     },
     [dockviewApi, savePositionBeforeClose, getSavedPosition, tPanels]
   );
@@ -366,7 +369,7 @@ export function AppSidebar() {
           {/* Logo + collapse toggle */}
           <div className="flex items-center justify-between h-8">
             {isExpanded ? (
-              <span className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis pl-1">
+              <span className={cn("text-sm font-semibold pl-1", TRUNCATE_CLASS)}>
                 OBS Live Suite
               </span>
             ) : (
@@ -456,21 +459,19 @@ export function AppSidebar() {
               {PANELS.map((panel) => {
                 const Icon = panel.icon;
                 const isVisible = isPanelVisible(panel.id);
-                const label = tPanels(panel.labelKey);
+                const label = tPanels(panel.id);
                 const disabled = !dockviewApi;
 
                 return (
                   <button
                     key={panel.id}
-                    onClick={() => handlePanelToggle(panel.id, panel.component, panel.labelKey)}
+                    onClick={() => handlePanelToggle(panel.id)}
                     disabled={disabled}
                     className={cn(
                       "w-full flex items-center gap-3 px-3 h-10 transition-colors relative",
-                      disabled
-                        ? "text-muted-foreground/40 cursor-not-allowed"
-                        : isVisible
-                          ? "[background-color:hsl(var(--sidebar-accent))] text-accent-foreground"
-                          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                      disabled && "text-muted-foreground/40 cursor-not-allowed",
+                      !disabled && isVisible && "[background-color:hsl(var(--sidebar-accent))] text-accent-foreground",
+                      !disabled && !isVisible && "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                     )}
                     title={isExpanded ? undefined : label}
                   >
@@ -479,7 +480,7 @@ export function AppSidebar() {
                     )}
                     <Icon className="w-5 h-5 shrink-0" />
                     {isExpanded && (
-                      <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                      <span className={cn("text-sm font-medium", TRUNCATE_CLASS)}>
                         {label}
                       </span>
                     )}
@@ -534,7 +535,7 @@ export function AppSidebar() {
                             >
                               <Icon className="w-4 h-4 shrink-0" />
                               {isExpanded && (
-                                <span className="whitespace-nowrap overflow-hidden text-ellipsis">
+                                <span className={TRUNCATE_CLASS}>
                                   {label}
                                 </span>
                               )}
@@ -559,7 +560,7 @@ export function AppSidebar() {
           >
             <HelpCircle className="w-4 h-4 shrink-0" />
             {isExpanded && (
-              <span className="whitespace-nowrap overflow-hidden text-ellipsis">
+              <span className={TRUNCATE_CLASS}>
                 {tItems("helpSupport")}
               </span>
             )}
@@ -625,7 +626,7 @@ function OBSStatusIndicator({
       >
         <div className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
         {isExpanded && (
-          <span className="text-xs text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+          <span className={cn("text-xs text-muted-foreground", TRUNCATE_CLASS)}>
             {tSidebar("obsDisconnected")}
           </span>
         )}
@@ -656,7 +657,7 @@ function OBSStatusIndicator({
     >
       <div className="w-2.5 h-2.5 rounded-full bg-gray-400 shrink-0" />
       {isExpanded && (
-        <span className="text-xs text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+        <span className={cn("text-xs text-muted-foreground", TRUNCATE_CLASS)}>
           {tSidebar("offAir")}
         </span>
       )}
@@ -692,7 +693,7 @@ function ConnectionIndicator({
         )}
       />
       {isExpanded && (
-        <span className="text-xs text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+        <span className={cn("text-xs text-muted-foreground", TRUNCATE_CLASS)}>
           {label}
         </span>
       )}

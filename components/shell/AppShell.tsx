@@ -16,8 +16,8 @@ export function AppShell({ children }: AppShellProps) {
   const { mode, setMode, isFullscreenMode } = useAppMode();
 
   const isDashboard = pathname === "/" || pathname === "/dashboard";
-  const isOverlayPage = pathname?.startsWith("/overlays");
-  const isPresenterPage = pathname?.startsWith("/presenter");
+  const isOverlayPage = pathname?.startsWith("/overlays") ?? false;
+  const isPresenterPage = pathname?.startsWith("/presenter") ?? false;
 
   useKeyboardShortcuts(undefined, undefined, !isDashboard);
 
@@ -35,10 +35,12 @@ export function AppShell({ children }: AppShellProps) {
     return <>{children}</>;
   }
 
+  const contentShadow = "shadow-[-4px_0_12px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_12px_-2px_rgba(0,0,0,0.4)]";
+
   return (
     <div className="h-screen flex overflow-hidden">
       {!isFullscreenMode && <AppSidebar />}
-      <div className="flex-1 flex flex-col min-w-0 shadow-[-4px_0_12px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_12px_-2px_rgba(0,0,0,0.4)] z-10">
+      <div className={`flex-1 flex flex-col min-w-0 z-10 ${contentShadow}`}>
         {!isFullscreenMode && <ContentTopBar />}
         <main className="flex-1 overflow-auto">
           {children}
