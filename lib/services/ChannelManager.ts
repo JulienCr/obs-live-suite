@@ -10,13 +10,21 @@ import { WEBSOCKET } from "../config/Constants";
 const PRESENTER_CHANNEL = "presenter";
 
 /**
+ * Pending ack entry with its associated channel
+ */
+interface PendingAck {
+  timeout: NodeJS.Timeout;
+  channel: string;
+}
+
+/**
  * ChannelManager provides pub/sub functionality for overlay channels
  */
 export class ChannelManager {
   private static instance: ChannelManager;
   private wsHub: WebSocketHub;
   private logger: Logger;
-  private pendingAcks: Map<string, NodeJS.Timeout>;
+  private pendingAcks: Map<string, PendingAck>;
 
   private constructor() {
     this.wsHub = WebSocketHub.getInstance();
@@ -32,6 +40,11 @@ export class ChannelManager {
         error: ack.error,
         timestamp: Date.now(),
       });
+    });
+
+    // Register disconnect callback to clear orphaned pending acks
+    this.wsHub.setOnClientDisconnectCallback((_clientId, channels) => {
+      this.clearOrphanedAcks(channels);
     });
   }
 
@@ -96,12 +109,12 @@ export class ChannelManager {
    * Handle acknowledgment from overlay
    */
   handleAck(ackEvent: AckEvent): void {
-    const timeout = this.pendingAcks.get(ackEvent.eventId);
+    const pending = this.pendingAcks.get(ackEvent.eventId);
 
-    if (timeout) {
-      clearTimeout(timeout);
+    if (pending) {
+      clearTimeout(pending.timeout);
       this.pendingAcks.delete(ackEvent.eventId);
-      
+
       if (ackEvent.success) {
         this.logger.debug(`Received ack for event ${ackEvent.eventId}`);
       } else {
@@ -119,7 +132,7 @@ export class ChannelManager {
       this.logger.warn(`No ack received for event ${eventId} on channel ${channel}`);
     }, WEBSOCKET.ACK_TIMEOUT_MS);
 
-    this.pendingAcks.set(eventId, timeout);
+    this.pendingAcks.set(eventId, { timeout, channel });
   }
 
   /**
@@ -140,9 +153,23 @@ export class ChannelManager {
    * Clear all pending acknowledgments
    */
   clearPendingAcks(): void {
-    this.pendingAcks.forEach((timeout) => clearTimeout(timeout));
+    this.pendingAcks.forEach((pending) => clearTimeout(pending.timeout));
     this.pendingAcks.clear();
     this.logger.debug("Cleared all pending acks");
+  }
+
+  /**
+   * Clear pending acks for channels that have no remaining subscribers.
+   * Called when a client disconnects to prevent zombie timers.
+   */
+  private clearOrphanedAcks(disconnectedChannels: Set<string>): void {
+    for (const [eventId, pending] of this.pendingAcks) {
+      if (disconnectedChannels.has(pending.channel) && this.wsHub.getChannelSubscribers(pending.channel) === 0) {
+        clearTimeout(pending.timeout);
+        this.pendingAcks.delete(eventId);
+        this.logger.debug(`Cleared orphaned pending ack ${eventId} for channel ${pending.channel}`);
+      }
+    }
   }
 
   // ==================== PRESENTER METHODS ====================
