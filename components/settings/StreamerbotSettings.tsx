@@ -49,6 +49,12 @@ interface StreamerbotConfig {
   autoReconnect: boolean;
 }
 
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (isClientFetchError(error)) return error.errorMessage;
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
 /**
  * Settings page component for managing global Streamer.bot connection settings.
  * Normalized layout matching OBS settings screen.
@@ -57,6 +63,7 @@ export function StreamerbotSettings() {
   const t = useTranslations("settings.streamerbot");
 
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -97,8 +104,10 @@ export function StreamerbotSettings() {
         autoConnect: data.autoConnect ?? true,
         autoReconnect: data.autoReconnect ?? true,
       });
+      setLoadError(false);
     } catch (error) {
       console.error("Failed to load Streamer.bot settings:", error);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -128,45 +137,23 @@ export function StreamerbotSettings() {
       const backendUrl = getBackendUrl();
       const parts = parseStreamerbotUrl(config.url);
 
-      // Save settings temporarily for testing
-      await apiPut(`${backendUrl}/api/streamerbot-chat/settings`, {
-        ...parts,
-        password: config.password || undefined,
-        autoConnect: config.autoConnect,
-        autoReconnect: config.autoReconnect,
-      });
-
-      // Try to connect
-      await apiPost(`${backendUrl}/api/streamerbot-chat/connect`);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Check status
-      const status = await apiGet<StreamerbotStatusResponse>(
-        `${backendUrl}/api/streamerbot-chat/status`
+      const result = await apiPost<{ success: boolean; message: string }>(
+        `${backendUrl}/api/streamerbot-chat/test`,
+        {
+          ...parts,
+          password: config.password || undefined,
+        }
       );
 
-      if (status.status === "connected") {
-        setTestResult({
-          success: true,
-          message: `Connected to ${parts.host}:${parts.port}`,
-        });
-        // Disconnect after successful test
-        await apiPost(`${backendUrl}/api/streamerbot-chat/disconnect`);
-      } else {
-        setTestResult({
-          success: false,
-          message:
-            status.error?.message ||
-            `Failed to connect to ${parts.host}:${parts.port}`,
-        });
-      }
+      setTestResult({
+        success: result.success,
+        message: result.message,
+      });
     } catch (error) {
-      const message = isClientFetchError(error)
-        ? error.errorMessage
-        : error instanceof Error
-          ? error.message
-          : "Connection failed";
-      setTestResult({ success: false, message });
+      setTestResult({
+        success: false,
+        message: extractErrorMessage(error, "Connection failed"),
+      });
     } finally {
       setTesting(false);
       fetchStatus();
@@ -194,12 +181,10 @@ export function StreamerbotSettings() {
       });
       fetchStatus();
     } catch (error) {
-      const message = isClientFetchError(error)
-        ? error.errorMessage
-        : error instanceof Error
-          ? error.message
-          : t("saveFailed");
-      setTestResult({ success: false, message });
+      setTestResult({
+        success: false,
+        message: extractErrorMessage(error, t("saveFailed")),
+      });
     } finally {
       setSaving(false);
     }
@@ -213,6 +198,10 @@ export function StreamerbotSettings() {
       fetchStatus();
     } catch (error) {
       console.error("Failed to connect:", error);
+      setTestResult({
+        success: false,
+        message: extractErrorMessage(error, "Failed to connect"),
+      });
       fetchStatus();
     }
   };
@@ -224,6 +213,10 @@ export function StreamerbotSettings() {
       fetchStatus();
     } catch (error) {
       console.error("Failed to disconnect:", error);
+      setTestResult({
+        success: false,
+        message: extractErrorMessage(error, "Failed to disconnect"),
+      });
       fetchStatus();
     }
   };
@@ -239,9 +232,10 @@ export function StreamerbotSettings() {
       });
       fetchStatus();
     } catch (error) {
+      console.error("Failed to clear Streamer.bot settings:", error);
       setTestResult({
         success: false,
-        message: t("saveFailed"),
+        message: extractErrorMessage(error, t("saveFailed")),
       });
     }
   };
@@ -268,22 +262,11 @@ export function StreamerbotSettings() {
       {/* Current Status */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-medium">{t("currentStatus")}:</span>
-        {isConnected ? (
-          <Badge variant="default" className="flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" />
-            {t("connected")}
-          </Badge>
-        ) : isConnecting ? (
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            {t("connecting")}
-          </Badge>
-        ) : (
-          <Badge variant="destructive" className="flex items-center gap-1">
-            <XCircle className="w-3 h-3" />
-            {t("disconnected")}
-          </Badge>
-        )}
+        <ConnectionStatusBadge
+          isConnected={isConnected}
+          isConnecting={isConnecting}
+          t={t}
+        />
         <Badge variant="outline" className="ml-auto">
           {t("source")}: {t("database")}
         </Badge>
@@ -296,6 +279,15 @@ export function StreamerbotSettings() {
           <RefreshCw className="w-3 h-3" />
         </Button>
       </div>
+
+      {loadError && (
+        <Alert variant="destructive">
+          <AlertDescription className="flex items-center gap-2">
+            <XCircle className="w-4 h-4" />
+            {t("loadError")}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* WebSocket URL */}
       <div className="space-y-2">
@@ -458,5 +450,40 @@ export function StreamerbotSettings() {
         </AlertDescription>
       </Alert>
     </div>
+  );
+}
+
+function ConnectionStatusBadge({
+  isConnected,
+  isConnecting,
+  t,
+}: {
+  isConnected: boolean;
+  isConnecting: boolean;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  if (isConnected) {
+    return (
+      <Badge variant="default" className="flex items-center gap-1">
+        <CheckCircle2 className="w-3 h-3" />
+        {t("connected")}
+      </Badge>
+    );
+  }
+
+  if (isConnecting) {
+    return (
+      <Badge variant="secondary" className="flex items-center gap-1">
+        <Loader2 className="w-3 h-3 animate-spin" />
+        {t("connecting")}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge variant="destructive" className="flex items-center gap-1">
+      <XCircle className="w-3 h-3" />
+      {t("disconnected")}
+    </Badge>
   );
 }

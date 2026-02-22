@@ -75,7 +75,7 @@ export function WorkspaceSelector() {
     );
   }
 
-  // If not on dashboard (isReady false), still show selector but disable layout actions
+  // Disable layout actions when not on dashboard (isReady is false)
   const canApplyLayout = isReady;
 
   return (

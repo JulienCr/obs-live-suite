@@ -448,7 +448,9 @@
       "setupStep4": "Note the Server Port (default: 4455) and Password (if enabled)",
       "setupStep5": "Enter the connection details above and test",
       "configPriority": "Configuration Priority:",
-      "configPriorityDesc": "Settings saved here take priority over .env file. Use \"Clear & Use .env\" to revert to environment variables."
+      "statusUnavailable": "Status unavailable",
+      "configPriorityDesc": "Settings saved here take priority over .env file. Use \"Clear & Use .env\" to revert to environment variables.",
+      "loadError": "Failed to load settings from server. Values shown are defaults and may not reflect your actual configuration."
     },
     "streamerbot": {
       "title": "Streamer.bot Connection",
@@ -482,7 +484,8 @@
       "setupStep1": "Open Streamer.bot and go to Servers/Clients -> WebSocket Server",
       "setupStep2": "Enable the WebSocket Server and note the URL (host:port)",
       "setupStep3": "If authentication is enabled, copy the password",
-      "setupStep4": "Enter the connection details above and test the connection"
+      "setupStep4": "Enter the connection details above and test the connection",
+      "loadError": "Failed to load settings from server. Values shown are defaults and may not reflect your actual configuration."
     },
     "rooms": {
       "title": "Presenter Rooms",

@@ -448,7 +448,9 @@
       "setupStep4": "Notez le port du serveur (par défaut: 4455) et le mot de passe (si activé)",
       "setupStep5": "Entrez les détails de connexion ci-dessus et testez",
       "configPriority": "Priorité de configuration :",
-      "configPriorityDesc": "Les paramètres enregistrés ici ont priorité sur le fichier .env. Utilisez « Effacer et utiliser .env » pour revenir aux variables d'environnement."
+      "statusUnavailable": "Statut indisponible",
+      "configPriorityDesc": "Les paramètres enregistrés ici ont priorité sur le fichier .env. Utilisez « Effacer et utiliser .env » pour revenir aux variables d'environnement.",
+      "loadError": "Impossible de charger les paramètres. Les valeurs affichées sont les valeurs par défaut et peuvent ne pas refléter votre configuration."
     },
     "streamerbot": {
       "title": "Connexion Streamer.bot",
@@ -482,7 +484,8 @@
       "setupStep1": "Ouvrez Streamer.bot et allez dans Servers/Clients -> WebSocket Server",
       "setupStep2": "Activez le serveur WebSocket et notez l'URL (hôte:port)",
       "setupStep3": "Si l'authentification est activée, copiez le mot de passe",
-      "setupStep4": "Entrez les détails de connexion ci-dessus et testez la connexion"
+      "setupStep4": "Entrez les détails de connexion ci-dessus et testez la connexion",
+      "loadError": "Impossible de charger les paramètres. Les valeurs affichées sont les valeurs par défaut et peuvent ne pas refléter votre configuration."
     },
     "rooms": {
       "title": "Salles de présentateur",

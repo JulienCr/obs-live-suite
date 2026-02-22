@@ -86,12 +86,23 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
  */
 export const DELETE = withSimpleErrorHandler(async () => {
   const settingsService = SettingsService.getInstance();
+
+  // Clear settings
   settingsService.clearOBSSettings();
 
-  // Reconnect with environment variables
   const connectionManager = OBSConnectionManager.getInstance();
   await connectionManager.disconnect();
-  await connectionManager.connect();
+
+  try {
+    await connectionManager.connect();
+  } catch {
+    // Settings cleared successfully, but reconnect with env settings failed
+    return ApiResponses.ok({
+      success: true,
+      message:
+        "Settings cleared. Reconnection with .env settings failed (will auto-retry).",
+    });
+  }
 
   return ApiResponses.ok({
     success: true,

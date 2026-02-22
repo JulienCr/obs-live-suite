@@ -53,6 +53,12 @@ interface OBSSaveResponse {
   obsWebSocketVersion?: string;
 }
 
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (isClientFetchError(error)) return error.errorMessage;
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
 /**
  * OBS WebSocket connection settings
  */
@@ -65,6 +71,7 @@ export function OBSSettings() {
     autoReconnect: true,
   });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [sourceIsDatabase, setSourceIsDatabase] = useState(false);
@@ -78,6 +85,7 @@ export function OBSSettings() {
     connected: boolean;
     currentScene?: string;
   } | null>(null);
+  const [statusError, setStatusError] = useState(false);
 
   // Load current configuration
   useEffect(() => {
@@ -95,8 +103,10 @@ export function OBSSettings() {
         autoReconnect: data.autoReconnect ?? true,
       });
       setSourceIsDatabase(data.sourceIsDatabase || false);
+      setLoadError(false);
     } catch (error) {
       console.error("Failed to load OBS settings:", error);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -111,8 +121,11 @@ export function OBSSettings() {
         connected: data.connected,
         currentScene: data.currentScene,
       });
+      setStatusError(false);
     } catch (error) {
       console.error("Failed to fetch OBS status:", error);
+      setCurrentStatus(null);
+      setStatusError(true);
     }
   };
 
@@ -141,18 +154,10 @@ export function OBSSettings() {
         });
       }
     } catch (error) {
-      if (isClientFetchError(error)) {
-        setTestResult({
-          success: false,
-          message: error.errorMessage,
-        });
-      } else {
-        setTestResult({
-          success: false,
-          message:
-            error instanceof Error ? error.message : "Connection failed",
-        });
-      }
+      setTestResult({
+        success: false,
+        message: extractErrorMessage(error, "Connection failed"),
+      });
     } finally {
       setTesting(false);
     }
@@ -186,20 +191,10 @@ export function OBSSettings() {
         });
       }
     } catch (error) {
-      if (isClientFetchError(error)) {
-        setTestResult({
-          success: false,
-          message: error.errorMessage,
-        });
-      } else {
-        setTestResult({
-          success: false,
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to save settings",
-        });
-      }
+      setTestResult({
+        success: false,
+        message: extractErrorMessage(error, "Failed to save settings"),
+      });
     } finally {
       setSaving(false);
     }
@@ -208,9 +203,14 @@ export function OBSSettings() {
   const handleConnect = async () => {
     try {
       await apiPost(`${getBackendUrl()}/api/obs/connect`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
       fetchStatus();
     } catch (error) {
       console.error("Failed to connect to OBS:", error);
+      setTestResult({
+        success: false,
+        message: extractErrorMessage(error, "Failed to connect to OBS"),
+      });
       fetchStatus();
     }
   };
@@ -221,6 +221,10 @@ export function OBSSettings() {
       fetchStatus();
     } catch (error) {
       console.error("Failed to disconnect from OBS:", error);
+      setTestResult({
+        success: false,
+        message: extractErrorMessage(error, "Failed to disconnect from OBS"),
+      });
       fetchStatus();
     }
   };
@@ -237,9 +241,10 @@ export function OBSSettings() {
       });
       fetchStatus();
     } catch (error) {
+      console.error("Failed to clear OBS settings:", error);
       setTestResult({
         success: false,
-        message: "Failed to clear settings",
+        message: extractErrorMessage(error, "Failed to clear settings"),
       });
     }
   };
@@ -265,7 +270,12 @@ export function OBSSettings() {
       {/* Current Status */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-medium">{t("currentStatus")}:</span>
-        {isConnected ? (
+        {statusError ? (
+          <Badge variant="outline" className="flex items-center gap-1 text-muted-foreground">
+            <RefreshCw className="w-3 h-3" />
+            {t("statusUnavailable")}
+          </Badge>
+        ) : isConnected ? (
           <Badge variant="default" className="flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3" />
             {t("connected")}
@@ -293,6 +303,15 @@ export function OBSSettings() {
           <RefreshCw className="w-3 h-3" />
         </Button>
       </div>
+
+      {loadError && (
+        <Alert variant="destructive">
+          <AlertDescription className="flex items-center gap-2">
+            <XCircle className="w-4 h-4" />
+            {t("loadError")}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* WebSocket URL */}
       <div className="space-y-2">

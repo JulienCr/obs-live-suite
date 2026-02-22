@@ -55,25 +55,21 @@ export function parseStreamerbotUrl(url: string): StreamerbotUrlParts {
     httpUrl = "http://" + trimmed;
   }
 
-  try {
-    const parsed = new URL(httpUrl);
-    const host = parsed.hostname || DEFAULTS.host;
-    const endpoint = parsed.pathname || DEFAULTS.endpoint;
+  const parsed = new URL(httpUrl);
+  const host = parsed.hostname || DEFAULTS.host;
+  const endpoint = parsed.pathname || DEFAULTS.endpoint;
 
-    // URL constructor strips default ports (80 for http, 443 for https).
-    // Extract port from the original URL string when parsed.port is empty.
-    let port = DEFAULTS.port;
-    if (parsed.port) {
-      port = parseInt(parsed.port, 10);
-    } else {
-      const portMatch = trimmed.match(/:(\d+)(\/|$)/);
-      if (portMatch) {
-        port = parseInt(portMatch[1], 10);
-      }
+  // URL constructor strips default ports (80 for http, 443 for https).
+  // Extract port from the original URL string when parsed.port is empty.
+  let port = DEFAULTS.port;
+  if (parsed.port) {
+    port = parseInt(parsed.port, 10);
+  } else {
+    const portMatch = trimmed.match(/:(\d+)(\/|$)/);
+    if (portMatch) {
+      port = parseInt(portMatch[1], 10);
     }
-
-    return { host, port, endpoint, scheme };
-  } catch {
-    return { ...DEFAULTS };
   }
+
+  return { host, port, endpoint, scheme };
 }

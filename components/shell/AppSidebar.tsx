@@ -190,6 +190,7 @@ export function AppSidebar() {
 
   // Dockview store (null on non-dashboard pages)
   const dockviewApi = useDockviewStore((s) => s.api);
+  const _layoutVersion = useDockviewStore((s) => s.layoutVersion);
   const savePositionBeforeClose = useDockviewStore((s) => s.savePositionBeforeClose);
   const getSavedPosition = useDockviewStore((s) => s.getSavedPosition);
 
@@ -310,9 +311,8 @@ export function AppSidebar() {
   );
 
   const isPanelVisible = useCallback(
-    (panelId: string) => {
-      if (!dockviewApi) return false;
-      return !!dockviewApi.getPanel(panelId);
+    (panelId: string): boolean => {
+      return dockviewApi?.getPanel(panelId) != null;
     },
     [dockviewApi]
   );
@@ -348,7 +348,7 @@ export function AppSidebar() {
   }, []);
 
   const isActive = useCallback(
-    (href: string) => pathname.startsWith(href),
+    (href: string): boolean => pathname.startsWith(href),
     [pathname]
   );
 
@@ -612,7 +612,7 @@ function OBSStatusIndicator({
   isExpanded: boolean;
   tSidebar: ReturnType<typeof useTranslations>;
 }) {
-  const containerClass = cn(
+  const baseClass = cn(
     "flex items-center h-6 rounded-md",
     isExpanded ? "gap-2 px-2" : "justify-center"
   );
@@ -621,10 +621,10 @@ function OBSStatusIndicator({
     return (
       <Link
         href="/settings/obs"
-        className={cn(containerClass, "text-sm hover:bg-accent/50 transition-colors")}
+        className={cn(baseClass, "text-sm hover:bg-accent/50 transition-colors")}
         title={isExpanded ? undefined : tSidebar("obsDisconnected")}
       >
-        <div className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+        <StatusDot color="bg-red-500" />
         {isExpanded && (
           <span className={cn("text-xs text-muted-foreground", TRUNCATE_CLASS)}>
             {tSidebar("obsDisconnected")}
@@ -636,11 +636,8 @@ function OBSStatusIndicator({
 
   if (isOnAir) {
     return (
-      <div
-        className={containerClass}
-        title={isExpanded ? undefined : tSidebar("onAir")}
-      >
-        <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+      <div className={baseClass} title={isExpanded ? undefined : tSidebar("onAir")}>
+        <StatusDot color="bg-red-500" pulse />
         {isExpanded && (
           <span className="text-xs font-bold text-red-500 animate-pulse whitespace-nowrap">
             {tSidebar("onAir")}
@@ -651,17 +648,21 @@ function OBSStatusIndicator({
   }
 
   return (
-    <div
-      className={containerClass}
-      title={isExpanded ? undefined : tSidebar("offAir")}
-    >
-      <div className="w-2.5 h-2.5 rounded-full bg-gray-400 shrink-0" />
+    <div className={baseClass} title={isExpanded ? undefined : tSidebar("offAir")}>
+      <StatusDot color="bg-gray-400" />
       {isExpanded && (
         <span className={cn("text-xs text-muted-foreground", TRUNCATE_CLASS)}>
           {tSidebar("offAir")}
         </span>
       )}
     </div>
+  );
+}
+
+/** Small colored circle indicator */
+function StatusDot({ color, pulse }: { color: string; pulse?: boolean }) {
+  return (
+    <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", color, pulse && "animate-pulse")} />
   );
 }
 
@@ -686,12 +687,7 @@ function ConnectionIndicator({
       )}
       title={isExpanded ? undefined : label}
     >
-      <div
-        className={cn(
-          "w-2.5 h-2.5 rounded-full shrink-0",
-          isConnected ? "bg-green-500" : "bg-red-500"
-        )}
-      />
+      <StatusDot color={isConnected ? "bg-green-500" : "bg-red-500"} />
       {isExpanded && (
         <span className={cn("text-xs text-muted-foreground", TRUNCATE_CLASS)}>
           {label}

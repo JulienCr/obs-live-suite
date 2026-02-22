@@ -61,13 +61,8 @@ describe("streamerbotUrl", () => {
       });
     });
 
-    it("should return defaults for invalid URL", () => {
-      expect(parseStreamerbotUrl("not a valid url:::")).toEqual({
-        host: "127.0.0.1",
-        port: 8080,
-        endpoint: "/",
-        scheme: "ws",
-      });
+    it("should throw for invalid URL", () => {
+      expect(() => parseStreamerbotUrl("not a valid url:::")).toThrow();
     });
 
     it("should default port to 8080 when not specified", () => {

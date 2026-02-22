@@ -267,6 +267,9 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
     setApi(event.api);
     useDockviewStore.getState().setApi(event.api);
 
+    event.api.onDidAddPanel(() => useDockviewStore.getState().incrementLayoutVersion());
+    event.api.onDidRemovePanel(() => useDockviewStore.getState().incrementLayoutVersion());
+
     const saved = localStorage.getItem(LAYOUT_KEY);
     if (saved) {
       try {

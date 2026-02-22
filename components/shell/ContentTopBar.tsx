@@ -56,8 +56,12 @@ export function ContentTopBar() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <TopBarSelect
-              icon={isActivating ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <FolderOpen className="w-4 h-4 shrink-0" />}
-              label={activeProfile ? activeProfile.name : t("noProfile")}
+              icon={
+                isActivating
+                  ? <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  : <FolderOpen className="w-4 h-4 shrink-0" />
+              }
+              label={activeProfile?.name ?? t("noProfile")}
               disabled={isActivating}
             />
           </DropdownMenuTrigger>

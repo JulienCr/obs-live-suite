@@ -180,31 +180,41 @@ function RegiePublicChatContent() {
       try {
         const baseUrl = "/api/twitch/moderation";
 
-        if (action === "delete") {
-          const msgId = message.metadata?.twitchMsgId;
-          if (!msgId) throw new Error("Missing Twitch message ID");
-          await fetch(`${baseUrl}/message?messageId=${msgId}`, {
-            method: "DELETE",
-          });
-          toast({ title: t("moderation.messageDeleted") });
-        } else if (action === "timeout") {
-          const userId = message.metadata?.twitchUserId;
-          if (!userId) throw new Error("Missing Twitch user ID");
-          await fetch(`${baseUrl}/timeout`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId, duration: duration || 600 }),
-          });
-          toast({ title: t("moderation.userTimedOut") });
-        } else if (action === "ban") {
-          const userId = message.metadata?.twitchUserId;
-          if (!userId) throw new Error("Missing Twitch user ID");
-          await fetch(`${baseUrl}/ban`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId }),
-          });
-          toast({ title: t("moderation.userBanned") });
+        switch (action) {
+          case "delete": {
+            const msgId = message.metadata?.twitchMsgId;
+            if (!msgId) throw new Error("Missing Twitch message ID");
+            const res = await fetch(`${baseUrl}/message?messageId=${msgId}`, {
+              method: "DELETE",
+            });
+            if (!res.ok) throw new Error(`Failed (${res.status})`);
+            toast({ title: t("moderation.messageDeleted") });
+            break;
+          }
+          case "timeout": {
+            const userId = message.metadata?.twitchUserId;
+            if (!userId) throw new Error("Missing Twitch user ID");
+            const res = await fetch(`${baseUrl}/timeout`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId, duration: duration || 600 }),
+            });
+            if (!res.ok) throw new Error(`Failed (${res.status})`);
+            toast({ title: t("moderation.userTimedOut") });
+            break;
+          }
+          case "ban": {
+            const userId = message.metadata?.twitchUserId;
+            if (!userId) throw new Error("Missing Twitch user ID");
+            const res = await fetch(`${baseUrl}/ban`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId }),
+            });
+            if (!res.ok) throw new Error(`Failed (${res.status})`);
+            toast({ title: t("moderation.userBanned") });
+            break;
+          }
         }
       } catch (error) {
         toast({

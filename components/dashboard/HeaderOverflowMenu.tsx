@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Keyboard, HelpCircle, Info, Layout } from "lucide-react";
 import { useAppMode } from "@/components/shell/AppModeContext";
-import { useLayoutPresets } from "@/components/shell/LayoutPresetsContext";
+import { useOptionalLayoutPresets } from "@/components/shell/LayoutPresetsContext";
 
 export function HeaderOverflowMenu() {
   const router = useRouter();
@@ -21,13 +21,7 @@ export function HeaderOverflowMenu() {
   const t = useTranslations("dashboard.overflowMenu");
   const { mode } = useAppMode();
 
-  // Try to get layout presets (may not be available on non-dashboard pages)
-  let layoutPresets: ReturnType<typeof useLayoutPresets> | null = null;
-  try {
-    layoutPresets = useLayoutPresets();
-  } catch {
-    // Not in dashboard context, that's fine
-  }
+  const layoutPresets = useOptionalLayoutPresets();
 
   const isOnDashboard = pathname === "/" || pathname === "/dashboard";
 

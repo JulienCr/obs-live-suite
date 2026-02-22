@@ -32,6 +32,7 @@ import cueRouter from "./api/cue";
 import streamerbotChatRouter from "./api/streamerbot-chat";
 import chatMessagesRouter from "./api/chat-messages";
 import overlaysRouter from "./api/overlays";
+import obsRouter from "./api/obs";
 import twitchRouter from "./api/twitch";
 import { APP_PORT, BACKEND_PORT, WS_PORT } from "../lib/config/urls";
 import { createServerWithFallback } from "../lib/utils/CertificateManager";
@@ -73,59 +74,8 @@ class BackendServer {
   }
 
   private setupApiRoutes(): void {
-    // OBS Status
-    this.app.get('/api/obs/status', async (req, res) => {
-      try {
-        const state = OBSStateManager.getInstance().getState();
-        res.json({
-          connected: this.obsManager.isConnected(),
-          ...state,
-        });
-      } catch (error) {
-        expressError(res, error, "Failed to get OBS status", { context: "[BackendOBS]" });
-      }
-    });
-
-    // OBS Reconnect
-    this.app.post('/api/obs/reconnect', async (req, res) => {
-      try {
-        await this.obsManager.disconnect();
-        await this.obsManager.connect();
-        res.json({ success: true });
-      } catch (error) {
-        expressError(res, error, "OBS reconnect failed", { context: "[BackendOBS]" });
-      }
-    });
-
-    // OBS Stream Control
-    this.app.post('/api/obs/stream', async (req, res) => {
-      try {
-        const { action } = req.body;
-        if (action === "start") {
-          await this.obsManager.getOBS().call("StartStream");
-        } else if (action === "stop") {
-          await this.obsManager.getOBS().call("StopStream");
-        }
-        res.json({ success: true });
-      } catch (error) {
-        expressError(res, error, "Stream control failed", { context: "[BackendOBS]" });
-      }
-    });
-
-    // OBS Record Control
-    this.app.post('/api/obs/record', async (req, res) => {
-      try {
-        const { action } = req.body;
-        if (action === "start") {
-          await this.obsManager.getOBS().call("StartRecord");
-        } else if (action === "stop") {
-          await this.obsManager.getOBS().call("StopRecord");
-        }
-        res.json({ success: true });
-      } catch (error) {
-        expressError(res, error, "Record control failed", { context: "[BackendOBS]" });
-      }
-    });
+    // OBS API (status, connect, disconnect, reconnect, stream, record, scene, source)
+    this.app.use('/api/obs', obsRouter);
 
     // Quiz API
     this.app.use('/api/quiz', quizRouter);
@@ -367,7 +317,6 @@ server.start().then(() => {
   console.log("\n✓ Backend server is running");
   console.log(`  - WebSocket: ws://localhost:${WS_PORT}`);
   console.log(`  - HTTP API: http://localhost:${BACKEND_PORT}`);
-  console.log("  - OBS: Connected");
   console.log("");
 }).catch((error) => {
   console.error("✗ Failed to start backend server:", error);

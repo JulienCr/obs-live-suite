@@ -11,6 +11,8 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
+const CONTENT_SHADOW = "shadow-[-4px_0_12px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_12px_-2px_rgba(0,0,0,0.4)]";
+
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const { mode, setMode, isFullscreenMode } = useAppMode();
@@ -35,12 +37,10 @@ export function AppShell({ children }: AppShellProps) {
     return <>{children}</>;
   }
 
-  const contentShadow = "shadow-[-4px_0_12px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_12px_-2px_rgba(0,0,0,0.4)]";
-
   return (
     <div className="h-screen flex overflow-hidden">
       {!isFullscreenMode && <AppSidebar />}
-      <div className={`flex-1 flex flex-col min-w-0 z-10 ${contentShadow}`}>
+      <div className={`flex-1 flex flex-col min-w-0 z-10 ${CONTENT_SHADOW}`}>
         {!isFullscreenMode && <ContentTopBar />}
         <main className="flex-1 overflow-auto">
           {children}

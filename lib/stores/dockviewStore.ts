@@ -11,9 +11,11 @@ interface PanelPosition {
 interface DockviewStoreState {
   api: DockviewApi | null;
   _positions: Record<string, PanelPosition>;
+  layoutVersion: number;
 
   setApi: (api: DockviewApi) => void;
   clearApi: () => void;
+  incrementLayoutVersion: () => void;
   savePositionBeforeClose: (panelId: string) => void;
   getSavedPosition: (panelId: string) => PanelPosition | undefined;
 }
@@ -21,10 +23,13 @@ interface DockviewStoreState {
 export const useDockviewStore = create<DockviewStoreState>((set, get) => ({
   api: null,
   _positions: {},
+  layoutVersion: 0,
 
   setApi: (api) => set({ api }),
 
   clearApi: () => set({ api: null }),
+
+  incrementLayoutVersion: () => set((s) => ({ layoutVersion: s.layoutVersion + 1 })),
 
   savePositionBeforeClose: (panelId: string) => {
     const { api } = get();
