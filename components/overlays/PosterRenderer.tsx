@@ -60,6 +60,7 @@ export function PosterRenderer() {
 
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const cleanupTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const showVersionRef = useRef(0);
 
   const memoizedSend = useCallback((data: unknown) => sendRef.current(data), []);
 
@@ -139,8 +140,12 @@ export function PosterRenderer() {
           chapters.setChapters(data.payload.chapters || []);
 
           const capturedStartTime = data.payload.startTime;
+          const thisShowVersion = ++showVersionRef.current;
 
           detectAspectRatio(data.payload.fileUrl, mediaType).then((aspectRatio) => {
+            // Discard stale result if a newer show event arrived while detecting
+            if (showVersionRef.current !== thisShowVersion) return;
+
             const newPoster: PosterData = {
               fileUrl: data.payload!.fileUrl,
               type: mediaType,
