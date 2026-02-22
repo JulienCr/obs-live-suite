@@ -185,13 +185,13 @@ export function StreamerbotSettings() {
     try {
       await apiPost(`${backendApi}/connect`);
       await new Promise((resolve) => setTimeout(resolve, 500));
-      fetchStatus();
     } catch (error) {
       console.error("Failed to connect:", error);
       setTestResult({
         success: false,
         message: extractErrorMessage(error, "Failed to connect"),
       });
+    } finally {
       fetchStatus();
     }
   };
@@ -199,13 +199,13 @@ export function StreamerbotSettings() {
   const handleDisconnect = async () => {
     try {
       await apiPost(`${backendApi}/disconnect`);
-      fetchStatus();
     } catch (error) {
       console.error("Failed to disconnect:", error);
       setTestResult({
         success: false,
         message: extractErrorMessage(error, "Failed to disconnect"),
       });
+    } finally {
       fetchStatus();
     }
   };

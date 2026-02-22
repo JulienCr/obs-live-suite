@@ -227,18 +227,13 @@ export function AppSidebar() {
 
   const switchMode = useCallback(
     (targetMode: "LIVE" | "ADMIN") => {
-      if (targetMode === "LIVE") {
-        if (pathname !== "/dashboard" && pathname !== "/") {
-          router.push("/dashboard");
-        } else {
-          setMode(targetMode);
-        }
+      const isDashboard = pathname === "/dashboard" || pathname === "/";
+      if (targetMode === "LIVE" && !isDashboard) {
+        router.push("/dashboard");
+      } else if (targetMode === "ADMIN" && isDashboard) {
+        router.push("/settings/general");
       } else {
-        if (pathname === "/dashboard" || pathname === "/") {
-          router.push("/settings/general");
-        } else {
-          setMode(targetMode);
-        }
+        setMode(targetMode);
       }
     },
     [pathname, router, setMode]
@@ -281,23 +276,17 @@ export function AppSidebar() {
       const saved = getSavedPosition(panelId);
       let position: Parameters<typeof dockviewApi.addPanel>[0]["position"];
 
-      if (saved?.siblingPanelId) {
-        const sibling = dockviewApi.getPanel(saved.siblingPanelId);
-        if (sibling) {
-          position = {
-            referencePanel: saved.siblingPanelId,
-            direction: "within",
-            index: saved.tabIndex,
-          };
-        }
-      } else if (saved?.neighborPanelId) {
-        const neighbor = dockviewApi.getPanel(saved.neighborPanelId);
-        if (neighbor) {
-          position = {
-            referencePanel: saved.neighborPanelId,
-            direction: saved.direction || "right",
-          };
-        }
+      if (saved?.siblingPanelId && dockviewApi.getPanel(saved.siblingPanelId)) {
+        position = {
+          referencePanel: saved.siblingPanelId,
+          direction: "within",
+          index: saved.tabIndex,
+        };
+      } else if (saved?.neighborPanelId && dockviewApi.getPanel(saved.neighborPanelId)) {
+        position = {
+          referencePanel: saved.neighborPanelId,
+          direction: saved.direction || "right",
+        };
       }
 
       dockviewApi.addPanel({

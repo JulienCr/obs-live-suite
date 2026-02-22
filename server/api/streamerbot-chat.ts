@@ -163,8 +163,7 @@ router.post("/test", async (req, res) => {
       }
 
       if (success) {
-        const parts = parsed.data;
-        res.json({ success: true, message: `Connected to ${parts.host || "server"}:${parts.port || 8080}` });
+        res.json({ success: true, message: `Connected to ${parsed.data.host || "server"}:${parsed.data.port || 8080}` });
       } else {
         res.json({ success: false, message: status.error?.message || "Connection failed" });
       }

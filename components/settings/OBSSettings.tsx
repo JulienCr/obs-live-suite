@@ -198,13 +198,13 @@ export function OBSSettings() {
     try {
       await apiPost(`${getBackendUrl()}/api/obs/connect`);
       await new Promise((resolve) => setTimeout(resolve, 500));
-      fetchStatus();
     } catch (error) {
       console.error("Failed to connect to OBS:", error);
       setTestResult({
         success: false,
         message: extractErrorMessage(error, "Failed to connect to OBS"),
       });
+    } finally {
       fetchStatus();
     }
   };
@@ -212,13 +212,13 @@ export function OBSSettings() {
   const handleDisconnect = async () => {
     try {
       await apiPost(`${getBackendUrl()}/api/obs/disconnect`);
-      fetchStatus();
     } catch (error) {
       console.error("Failed to disconnect from OBS:", error);
       setTestResult({
         success: false,
         message: extractErrorMessage(error, "Failed to disconnect from OBS"),
       });
+    } finally {
       fetchStatus();
     }
   };
@@ -264,22 +264,11 @@ export function OBSSettings() {
       {/* Current Status */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-medium">{t("currentStatus")}:</span>
-        {statusError ? (
-          <Badge variant="outline" className="flex items-center gap-1 text-muted-foreground">
-            <RefreshCw className="w-3 h-3" />
-            {t("statusUnavailable")}
-          </Badge>
-        ) : isConnected ? (
-          <Badge variant="default" className="flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" />
-            {t("connected")}
-          </Badge>
-        ) : (
-          <Badge variant="destructive" className="flex items-center gap-1">
-            <XCircle className="w-3 h-3" />
-            {t("disconnected")}
-          </Badge>
-        )}
+        <OBSConnectionStatusBadge
+          statusError={statusError}
+          isConnected={isConnected}
+          t={t}
+        />
         {currentStatus?.currentScene && (
           <span className="text-sm text-muted-foreground">
             {t("scene")}: {currentStatus.currentScene}
@@ -478,5 +467,40 @@ export function OBSSettings() {
         </AlertDescription>
       </Alert>
     </div>
+  );
+}
+
+function OBSConnectionStatusBadge({
+  statusError,
+  isConnected,
+  t,
+}: {
+  statusError: boolean;
+  isConnected: boolean;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  if (statusError) {
+    return (
+      <Badge variant="outline" className="flex items-center gap-1 text-muted-foreground">
+        <RefreshCw className="w-3 h-3" />
+        {t("statusUnavailable")}
+      </Badge>
+    );
+  }
+
+  if (isConnected) {
+    return (
+      <Badge variant="default" className="flex items-center gap-1">
+        <CheckCircle2 className="w-3 h-3" />
+        {t("connected")}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge variant="destructive" className="flex items-center gap-1">
+      <XCircle className="w-3 h-3" />
+      {t("disconnected")}
+    </Badge>
   );
 }

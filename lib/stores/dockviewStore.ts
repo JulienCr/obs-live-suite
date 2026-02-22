@@ -49,19 +49,16 @@ export const useDockviewStore = create<DockviewStoreState>((set, get) => ({
     if (siblings.length > 0) {
       position = {
         siblingPanelId: siblings[0].id,
-        tabIndex: tabIndex >= 0 ? tabIndex : 0,
+        tabIndex: Math.max(tabIndex, 0),
       };
     } else {
-      const allPanels = api.panels.filter((p) => p.id !== panelId);
-      if (allPanels.length > 0) {
-        position = {
-          tabIndex: 0,
-          neighborPanelId: allPanels[0].id,
-          direction: "right",
-        };
-      } else {
-        return;
-      }
+      const neighbor = api.panels.find((p) => p.id !== panelId);
+      if (!neighbor) return;
+      position = {
+        tabIndex: 0,
+        neighborPanelId: neighbor.id,
+        direction: "right",
+      };
     }
 
     set((state) => ({

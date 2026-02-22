@@ -70,7 +70,7 @@ const OBS_START_STOP_COMMANDS = {
 function createStartStopHandler(type: keyof typeof OBS_START_STOP_COMMANDS) {
   const commands = OBS_START_STOP_COMMANDS[type];
   return obsHandler(async (req, res) => {
-    const { action } = req.body;
+    const action: string | undefined = req.body.action;
 
     if (action !== "start" && action !== "stop") {
       return res.status(400).json({ error: "Invalid action. Use 'start' or 'stop'" });

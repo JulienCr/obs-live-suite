@@ -23,7 +23,6 @@ import { SettingsService } from "../lib/services/SettingsService";
 import { TwitchService } from "../lib/services/TwitchService";
 import { Logger } from "../lib/utils/Logger";
 import { PathManager } from "../lib/config/PathManager";
-import { AppConfig } from "../lib/config/AppConfig";
 import quizRouter from "./api/quiz";
 import quizBotRouter from "./api/quiz-bot";
 import presenterSettingsRouter from "./api/presenter-settings";

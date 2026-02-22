@@ -15,7 +15,7 @@ import { DEFAULT_STREAMERBOT_CONNECTION } from "@/lib/models/StreamerbotChat";
 import { type ModerationAction, StreamerbotConnectionStatus } from "./regie-public-chat/types";
 import { CueType, CueFrom, CueAction } from "@/lib/models/Cue";
 import { useToast } from "@/hooks/use-toast";
-import { apiPost } from "@/lib/utils/ClientFetch";
+import { apiPost, apiDelete } from "@/lib/utils/ClientFetch";
 import { useChatHighlightSync } from "@/hooks/useChatHighlightSync";
 import { ChatMessageInput } from "@/components/presenter/chat/ChatMessageInput";
 
@@ -183,34 +183,21 @@ function RegiePublicChatContent() {
           case "delete": {
             const msgId = message.metadata?.twitchMsgId;
             if (!msgId) throw new Error("Missing Twitch message ID");
-            const res = await fetch(`${baseUrl}/message?messageId=${msgId}`, {
-              method: "DELETE",
-            });
-            if (!res.ok) throw new Error(`Failed (${res.status})`);
+            await apiDelete(`${baseUrl}/message?messageId=${msgId}`);
             toast({ title: t("moderation.messageDeleted") });
             break;
           }
           case "timeout": {
             const userId = message.metadata?.twitchUserId;
             if (!userId) throw new Error("Missing Twitch user ID");
-            const res = await fetch(`${baseUrl}/timeout`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ userId, duration: duration || 600 }),
-            });
-            if (!res.ok) throw new Error(`Failed (${res.status})`);
+            await apiPost(`${baseUrl}/timeout`, { userId, duration: duration || 600 });
             toast({ title: t("moderation.userTimedOut") });
             break;
           }
           case "ban": {
             const userId = message.metadata?.twitchUserId;
             if (!userId) throw new Error("Missing Twitch user ID");
-            const res = await fetch(`${baseUrl}/ban`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ userId }),
-            });
-            if (!res.ok) throw new Error(`Failed (${res.status})`);
+            await apiPost(`${baseUrl}/ban`, { userId });
             toast({ title: t("moderation.userBanned") });
             break;
           }
