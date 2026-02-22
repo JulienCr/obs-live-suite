@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Zap, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { getWebSocketUrl } from "@/lib/utils/websocket";
 import { apiPost } from "@/lib/utils/ClientFetch";
 import { sendChatMessage } from "@/lib/utils/chatMessaging";
 import { useGuests, useOverlaySettings, type Guest } from "@/lib/queries";
+import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 
 interface GuestsCardProps {
   className?: string;
@@ -25,96 +25,36 @@ export function GuestsCard({ className }: GuestsCardProps = {}) {
 
   const [activeGuestId, setActiveGuestId] = useState<string | null>(null);
   const { lowerThirdDuration } = useOverlaySettings();
-  const wsRef = useRef<WebSocket | null>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // WebSocket connection to track active lower third
-  useEffect(() => {
-    let reconnectTimeout: NodeJS.Timeout;
-    let isUnmounted = false;
+  const handleLowerMessage = useCallback((data: Record<string, unknown>) => {
+    // Clear any existing hide timeout
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
 
-    const connectWebSocket = () => {
-      if (isUnmounted) return;
+    // Track when a guest lower third is shown or hidden
+    const payload = data.payload as Record<string, unknown> | undefined;
+    if (data.type === "show" && payload?.contentType === "guest") {
+      setActiveGuestId((payload.guestId as string) || null);
 
-      try {
-        const ws = new WebSocket(getWebSocketUrl());
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-          ws.send(JSON.stringify({
-            type: "subscribe",
-            channel: "lower", // Channel name is "lower", not "lower-third"
-          }));
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data);
-            if (message.channel === "lower" && message.data) {
-              const data = message.data;
-              
-              // Clear any existing hide timeout
-              if (hideTimeoutRef.current) {
-                clearTimeout(hideTimeoutRef.current);
-                hideTimeoutRef.current = null;
-              }
-              
-              // Track when a guest lower third is shown or hidden
-              if (data.type === "show" && data.payload?.contentType === "guest") {
-                setActiveGuestId(data.payload.guestId || null);
-                
-                // If there's a duration, automatically clear the active state after that duration
-                if (data.payload.duration) {
-                  hideTimeoutRef.current = setTimeout(() => {
-                    setActiveGuestId(null);
-                    hideTimeoutRef.current = null;
-                  }, data.payload.duration * 1000);
-                }
-              } else if (data.type === "hide") {
-                setActiveGuestId(null);
-              }
-            }
-          } catch (error) {
-            console.error("[GuestsCard] Failed to parse WebSocket message:", error);
-          }
-        };
-
-        ws.onerror = () => {
-          // Silently handle error, will reconnect on close
-        };
-
-        ws.onclose = () => {
-          wsRef.current = null;
-          // Reconnect after 3 seconds if not unmounted
-          if (!isUnmounted) {
-            reconnectTimeout = setTimeout(connectWebSocket, 3000);
-          }
-        };
-      } catch (error) {
-        console.error("[GuestsCard] Failed to create WebSocket:", error);
-        // Retry connection after 3 seconds
-        if (!isUnmounted) {
-          reconnectTimeout = setTimeout(connectWebSocket, 3000);
-        }
+      // If there's a duration, automatically clear the active state after that duration
+      if (payload.duration) {
+        hideTimeoutRef.current = setTimeout(() => {
+          setActiveGuestId(null);
+          hideTimeoutRef.current = null;
+        }, (payload.duration as number) * 1000);
       }
-    };
-
-    // Initial connection with a small delay to let backend start
-    const initialTimeout = setTimeout(connectWebSocket, 500);
-
-    return () => {
-      isUnmounted = true;
-      clearTimeout(initialTimeout);
-      clearTimeout(reconnectTimeout);
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
+    } else if (data.type === "hide") {
+      setActiveGuestId(null);
+    }
   }, []);
+
+  useWebSocketChannel("lower", handleLowerMessage, {
+    logPrefix: "GuestsCard",
+  });
 
   const handleQuickLowerThird = async (guest: Guest) => {
     try {
