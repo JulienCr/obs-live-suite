@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,9 @@ import type { VideoChapter } from "@/lib/models/Poster";
 import { cn } from "@/lib/utils/cn";
 import { formatTimeShort } from "@/lib/utils/durationParser";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
-import { getWebSocketUrl } from "@/lib/utils/websocket";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { useSyncWithOverlayState } from "@/hooks/useSyncWithOverlayState";
+import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 
 interface Poster {
   id: string;
@@ -106,7 +106,6 @@ export function PosterContent({ className }: PosterContentProps) {
   const [columnCount, setColumnCount] = useState(2);
   const [containerWidth, setContainerWidth] = useState(400);
   const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Column width constraints
@@ -197,77 +196,54 @@ export function PosterContent({ className }: PosterContentProps) {
     },
   });
 
-  // WebSocket connection for playback state
+  // Dynamic channel based on display mode
+  const playbackChannel = useMemo(
+    () => displayMode === "bigpicture" ? "poster-bigpicture" : "poster",
+    [displayMode]
+  );
+
+  // WebSocket connection for playback state (fixes stale closure - hook keeps callback ref fresh)
+  const handlePlaybackMessage = useCallback((data: Record<string, unknown>) => {
+    setPlaybackState(prev => {
+      const newState = { ...prev };
+
+      // Only update currentTime if valid and not seeking
+      if (!isNaN(data.currentTime as number) && isFinite(data.currentTime as number) && localSeekTime === null) {
+        newState.currentTime = data.currentTime as number;
+      }
+
+      // Only update duration if valid
+      if (!isNaN(data.duration as number) && isFinite(data.duration as number) && (data.duration as number) > 0) {
+        newState.duration = data.duration as number;
+      }
+
+      // Update playing state (boolean, always safe)
+      if (typeof data.isPlaying === 'boolean') {
+        newState.isPlaying = data.isPlaying;
+      }
+
+      // Update muted state (boolean, always safe)
+      if (typeof data.isMuted === 'boolean') {
+        newState.isMuted = data.isMuted;
+      }
+
+      return newState;
+    });
+  }, [localSeekTime]);
+
+  useWebSocketChannel(playbackChannel, handlePlaybackMessage, {
+    enabled: !!activePoster,
+    logPrefix: "PosterCard",
+  });
+
+  // Clean up seekTimer on unmount
   useEffect(() => {
-    if (!activePoster) {
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      return;
-    }
-
-    const ws = new WebSocket(getWebSocketUrl());
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      // Subscribe to the appropriate channel based on display mode
-      const channel = displayMode === "bigpicture" ? "poster-bigpicture" : "poster";
-      ws.send(JSON.stringify({
-        type: "subscribe",
-        channel,
-      }));
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-
-        // Only process messages from the active channel
-        const expectedChannel = displayMode === "bigpicture" ? "poster-bigpicture" : "poster";
-        if (message.channel === expectedChannel && message.data) {
-          const data = message.data;
-
-          // Merge with existing state, only updating valid values
-          setPlaybackState(prev => {
-            const newState = { ...prev };
-
-            // Only update currentTime if valid and not seeking
-            if (!isNaN(data.currentTime) && isFinite(data.currentTime) && localSeekTime === null) {
-              newState.currentTime = data.currentTime;
-            }
-
-            // Only update duration if valid
-            if (!isNaN(data.duration) && isFinite(data.duration) && data.duration > 0) {
-              newState.duration = data.duration;
-            }
-
-            // Update playing state (boolean, always safe)
-            if (typeof data.isPlaying === 'boolean') {
-              newState.isPlaying = data.isPlaying;
-            }
-
-            // Update muted state (boolean, always safe)
-            if (typeof data.isMuted === 'boolean') {
-              newState.isMuted = data.isMuted;
-            }
-
-            return newState;
-          });
-        }
-      } catch (error) {
-        console.error("[PosterCard] Failed to parse message:", error);
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error("[PosterCard] WebSocket error:", error);
-    };
-
     return () => {
-      ws.close();
+      if (seekTimeoutRef.current) {
+        clearTimeout(seekTimeoutRef.current);
+      }
     };
-  }, [activePoster, displayMode]);
+  }, []);
 
   const fetchPosters = async () => {
     try {
