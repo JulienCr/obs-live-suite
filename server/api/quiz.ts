@@ -289,60 +289,38 @@ router.delete("/session/:id", quizHandler(async (req, res) => {
   res.json({ success: true });
 }, "Failed to delete session"));
 
-// Question CRUD (sync handlers)
+// Question CRUD (async handlers - saves are awaited)
 router.get("/questions", quizSyncHandler((_req, res) => {
   const questions = store.getAllQuestions();
   res.json({ questions });
 }, "Failed to get questions"));
 
-router.post("/questions", quizSyncHandler((req, res) => {
-  const question = store.createQuestion(req.body);
+router.post("/questions", quizHandler(async (req, res) => {
+  const question = await store.createQuestion(req.body);
   res.json({ success: true, question });
 }, "Failed to create question"));
 
-router.put("/questions/:id", quizSyncHandler((req, res) => {
+router.put("/questions/:id", quizHandler(async (req, res) => {
   const id = req.params.id as string;
-  const question = store.updateQuestion(id, req.body);
+  const question = await store.updateQuestion(id, req.body);
   res.json({ success: true, question });
 }, "Failed to update question"));
 
-router.delete("/questions/:id", quizSyncHandler((req, res) => {
+router.delete("/questions/:id", quizHandler(async (req, res) => {
   const id = req.params.id as string;
-  store.deleteQuestion(id);
+  await store.deleteQuestion(id);
   res.json({ success: true });
 }, "Failed to delete question"));
 
-// Bulk import
-router.post("/questions/bulk", quizSyncHandler((req, res) => {
+// Bulk import (uses batch method for single save)
+router.post("/questions/bulk", quizHandler(async (req, res) => {
   const { questions } = req.body;
 
   if (!Array.isArray(questions) || questions.length === 0) {
     return res.status(400).json({ error: "Invalid request: 'questions' array is required" });
   }
 
-  const imported: unknown[] = [];
-  const errors: { row: number; error: string }[] = [];
-
-  questions.forEach((q, idx) => {
-    try {
-      const question = store.createQuestion(q);
-      imported.push(question);
-    } catch (error) {
-      errors.push({
-        row: idx + 1,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  });
-
-  if (errors.length > 0) {
-    return res.status(400).json({
-      error: "Some questions failed to import",
-      imported: imported.length,
-      errors,
-    });
-  }
-
+  const imported = await store.createQuestions(questions);
   res.json({ success: true, imported: imported.length, questions: imported });
 }, "Failed to bulk import questions"));
 
