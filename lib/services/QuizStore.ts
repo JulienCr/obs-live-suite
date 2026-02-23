@@ -17,7 +17,9 @@ export class QuizStore {
   private session: Session | null;
   private questionBank: Map<string, Question>;
   private roundBank: Map<string, Round>;
-  // Mutex to prevent concurrent file writes that corrupt questions.json
+  // Mutex to prevent concurrent file writes that corrupt questions.json.
+  // Uses a coalescing pattern: callers share one promise that resolves
+  // only after ALL pending saves complete, preventing early resolution.
   private savePromise: Promise<void> | null = null;
   private pendingSave: boolean = false;
 
@@ -26,7 +28,6 @@ export class QuizStore {
     this.session = null;
     this.questionBank = new Map();
     this.roundBank = new Map();
-    // Note: Retry logic could be beneficial here if file system is temporarily unavailable
     this.loadQuestionBank().catch((error) => {
       this.logger.error('Failed to load question bank on initialization', error);
     });
@@ -143,7 +144,7 @@ export class QuizStore {
   async listSessions(): Promise<Array<{ id: string; title: string; rounds: number; createdAt: string; path: string }>> {
     const pm = PathManager.getInstance();
     const sessionsDir = pm.getQuizSessionsDir();
-    
+
     if (!existsSync(sessionsDir)) {
       return [];
     }
@@ -159,7 +160,7 @@ export class QuizStore {
           const content = await readFile(filepath, "utf-8");
           const parsed = JSON.parse(content);
           const stats = await fs.stat(filepath);
-          
+
           sessions.push({
             id: parsed.id || file.replace(".json", ""),
             title: parsed.title || "Untitled",
@@ -179,7 +180,7 @@ export class QuizStore {
   async deleteSession(sessionId: string): Promise<void> {
     const pm = PathManager.getInstance();
     const filepath = join(pm.getQuizSessionsDir(), `${sessionId}.json`);
-    
+
     if (!existsSync(filepath)) {
       throw new Error(`Session ${sessionId} not found`);
     }
@@ -194,30 +195,27 @@ export class QuizStore {
     const filepath = join(pm.getQuizSessionsDir(), `${sessionId}.json`);
     const content = await readFile(filepath, "utf-8");
     const parsed = sessionSchema.parse(JSON.parse(content));
-    
+
     if (updates.title !== undefined) {
       parsed.title = updates.title;
     }
-    
+
     await writeFile(filepath, JSON.stringify(parsed, null, 2), "utf-8");
     this.logger.info(`Updated session ${sessionId} metadata`);
-    
+
     // If this is the current session, update it in memory
     if (this.session?.id === sessionId) {
       this.session = parsed;
     }
-    
+
     return parsed;
   }
 
   // Question Bank CRUD
-  createQuestion(q: Omit<Question, "id">): Question {
+  async createQuestion(q: Omit<Question, "id">): Promise<Question> {
     const question = questionSchema.parse({ ...q, id: randomUUID() });
     this.questionBank.set(question.id, question);
-    // Note: Retry logic could be beneficial here to ensure data persistence
-    this.saveQuestionBank().catch((error) => {
-      this.logger.error('Failed to save question bank after creating question', error);
-    });
+    await this.saveQuestionBank();
     return question;
   }
 
@@ -229,24 +227,32 @@ export class QuizStore {
     return Array.from(this.questionBank.values());
   }
 
-  updateQuestion(id: string, updates: Partial<Question>): Question {
+  async updateQuestion(id: string, updates: Partial<Question>): Promise<Question> {
     const existing = this.questionBank.get(id);
     if (!existing) throw new Error("Question not found");
     const updated = questionSchema.parse({ ...existing, ...updates, id });
     this.questionBank.set(id, updated);
-    // Note: Retry logic could be beneficial here to ensure data persistence
-    this.saveQuestionBank().catch((error) => {
-      this.logger.error('Failed to save question bank after updating question', error);
-    });
+    await this.saveQuestionBank();
     return updated;
   }
 
-  deleteQuestion(id: string): void {
+  async deleteQuestion(id: string): Promise<void> {
     this.questionBank.delete(id);
-    // Note: Retry logic could be beneficial here to ensure data persistence
-    this.saveQuestionBank().catch((error) => {
-      this.logger.error('Failed to save question bank after deleting question', error);
+    await this.saveQuestionBank();
+  }
+
+  /**
+   * Batch-create multiple questions with a single save.
+   * Used by bulk import to avoid N individual saves.
+   */
+  async createQuestions(items: Omit<Question, "id">[]): Promise<Question[]> {
+    const questions = items.map(q => {
+      const question = questionSchema.parse({ ...q, id: randomUUID() });
+      this.questionBank.set(question.id, question);
+      return question;
     });
+    await this.saveQuestionBank();
+    return questions;
   }
 
   // Round Bank CRUD
@@ -306,15 +312,14 @@ export class QuizStore {
 
   /**
    * Save question bank to disk with mutex to prevent concurrent writes.
-   * Uses a coalescing pattern: if a save is in progress, marks pendingSave
-   * and waits for the current save to complete, then triggers one more save.
+   * Uses a coalescing pattern: concurrent callers share one promise that
+   * only resolves after all pending saves complete. This prevents the bug
+   * where callers resolve before their data is actually persisted.
    */
-  private async saveQuestionBank(): Promise<void> {
-    // If a save is already in progress, mark that we need another save and wait
+  private saveQuestionBank(): Promise<void> {
     if (this.savePromise) {
       this.pendingSave = true;
-      await this.savePromise;
-      return;
+      return this.savePromise;
     }
 
     const doSave = async (): Promise<void> => {
@@ -324,18 +329,19 @@ export class QuizStore {
       await writeFile(filepath, JSON.stringify(data, null, 2), "utf-8");
     };
 
-    try {
-      this.savePromise = doSave();
-      await this.savePromise;
-    } finally {
-      this.savePromise = null;
-      // If another save was requested while we were saving, do one more save
-      if (this.pendingSave) {
-        this.pendingSave = false;
-        await this.saveQuestionBank();
+    const run = async (): Promise<void> => {
+      try {
+        await doSave();
+        while (this.pendingSave) {
+          this.pendingSave = false;
+          await doSave();
+        }
+      } finally {
+        this.savePromise = null;
       }
-    }
+    };
+
+    this.savePromise = run();
+    return this.savePromise;
   }
 }
-
-

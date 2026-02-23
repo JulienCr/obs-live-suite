@@ -207,9 +207,10 @@ describe("QuizStore", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
       (writeFile as jest.Mock).mockClear();
 
-      // Act: Create 5 questions rapidly
+      // Act: Create 5 questions rapidly (fire-and-forget for coalescing test)
+      const promises = [];
       for (let i = 0; i < 5; i++) {
-        store.createQuestion({
+        promises.push(store.createQuestion({
           type: "qcm",
           text: `Q${i}`,
           media: null,
@@ -218,11 +219,11 @@ describe("QuizStore", () => {
           points: 10,
           tie_break: false,
           time_s: 20
-        });
+        }));
       }
 
       // Wait for all saves to complete
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await Promise.all(promises);
 
       // Assert: Should have fewer writes than creates due to coalescing
       // With coalescing, we expect at most 2 writes (initial + one coalesced)
@@ -244,14 +245,11 @@ describe("QuizStore", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Act: Create multiple questions concurrently
-      const questions = await Promise.all([
+      await Promise.all([
         store.createQuestion({ type: "qcm", text: "Q1", media: null, options: ["A", "B"], correct: 0, points: 10, tie_break: false, time_s: 20 }),
         store.createQuestion({ type: "qcm", text: "Q2", media: null, options: ["A", "B"], correct: 1, points: 10, tie_break: false, time_s: 20 }),
         store.createQuestion({ type: "qcm", text: "Q3", media: null, options: ["A", "B"], correct: 0, points: 15, tie_break: false, time_s: 25 }),
       ]);
-
-      // Wait for saves to complete
-      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Assert: All 3 questions should be in memory
       const allQuestions = store.getAllQuestions();
@@ -262,6 +260,92 @@ describe("QuizStore", () => {
       expect(savedData).not.toBeNull();
       const parsed = JSON.parse(savedData!);
       expect(parsed.questions).toHaveLength(3);
+    });
+
+    it("should guarantee data is persisted when createQuestion resolves", async () => {
+      // Verifies saves are awaited, not fire-and-forget
+      (existsSync as jest.Mock).mockReturnValue(false);
+      let writeCompleted = false;
+      (writeFile as jest.Mock).mockImplementation(async () => {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        writeCompleted = true;
+      });
+
+      const store = QuizStore.getInstance();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      await store.createQuestion({ type: "qcm", text: "Q1", media: null, options: ["A", "B"], correct: 0, points: 10, tie_break: false, time_s: 20 });
+
+      // Write must have completed by the time createQuestion resolves
+      expect(writeCompleted).toBe(true);
+    });
+
+    it("should guarantee data is persisted when deleteQuestion resolves", async () => {
+      (existsSync as jest.Mock).mockReturnValue(false);
+      let writeCount = 0;
+      (writeFile as jest.Mock).mockImplementation(async () => {
+        await new Promise(resolve => setTimeout(resolve, 20));
+        writeCount++;
+      });
+
+      const store = QuizStore.getInstance();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const q = await store.createQuestion({ type: "qcm", text: "Q1", media: null, options: ["A", "B"], correct: 0, points: 10, tie_break: false, time_s: 20 });
+      const countAfterCreate = writeCount;
+
+      await store.deleteQuestion(q.id);
+
+      // At least one more write happened for the delete
+      expect(writeCount).toBeGreaterThan(countAfterCreate);
+    });
+
+    it("should guarantee data is persisted when updateQuestion resolves", async () => {
+      (existsSync as jest.Mock).mockReturnValue(false);
+      let lastSavedData: string | null = null;
+      (writeFile as jest.Mock).mockImplementation(async (_p: string, data: string) => {
+        await new Promise(resolve => setTimeout(resolve, 20));
+        lastSavedData = data;
+      });
+
+      const store = QuizStore.getInstance();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const q = await store.createQuestion({ type: "qcm", text: "Original", media: null, options: ["A", "B"], correct: 0, points: 10, tie_break: false, time_s: 20 });
+
+      await store.updateQuestion(q.id, { text: "Updated" });
+
+      // Saved data must reflect the update
+      expect(lastSavedData).not.toBeNull();
+      const parsed = JSON.parse(lastSavedData!);
+      expect(parsed.questions[0].text).toBe("Updated");
+    });
+
+    it("should handle mixed concurrent operations with correct final state", async () => {
+      (existsSync as jest.Mock).mockReturnValue(false);
+      let lastSavedData: string | null = null;
+      (writeFile as jest.Mock).mockImplementation(async (_p: string, data: string) => {
+        await new Promise(resolve => setTimeout(resolve, 10));
+        lastSavedData = data;
+      });
+
+      const store = QuizStore.getInstance();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const q1 = await store.createQuestion({ type: "qcm", text: "Q1", media: null, options: ["A", "B"], correct: 0, points: 10, tie_break: false, time_s: 20 });
+      const q2 = await store.createQuestion({ type: "qcm", text: "Q2", media: null, options: ["A", "B"], correct: 0, points: 10, tie_break: false, time_s: 20 });
+
+      // Delete first, update second concurrently
+      await Promise.all([
+        store.deleteQuestion(q1.id),
+        store.updateQuestion(q2.id, { text: "Q2 updated" }),
+      ]);
+
+      // Final persisted state matches in-memory state
+      expect(lastSavedData).not.toBeNull();
+      const parsed = JSON.parse(lastSavedData!);
+      expect(parsed.questions).toHaveLength(1);
+      expect(parsed.questions[0].text).toBe("Q2 updated");
     });
   });
 });

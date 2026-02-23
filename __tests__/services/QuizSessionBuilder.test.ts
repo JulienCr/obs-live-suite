@@ -1,9 +1,41 @@
 import { QuizStore } from "../../lib/services/QuizStore";
 
+// Mock fs to prevent actual filesystem operations from async saves
+jest.mock("fs", () => ({
+  existsSync: jest.fn().mockReturnValue(false),
+}));
+jest.mock("fs/promises", () => ({
+  readFile: jest.fn(),
+  writeFile: jest.fn().mockResolvedValue(undefined),
+  mkdir: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock PathManager
+jest.mock("@/lib/config/PathManager", () => ({
+  PathManager: {
+    getInstance: jest.fn(() => ({
+      getQuizDir: jest.fn().mockReturnValue("/mock/quiz"),
+      getQuizSessionsDir: jest.fn().mockReturnValue("/mock/quiz/sessions"),
+    })),
+  },
+}));
+
+// Mock GuestRepository
+jest.mock("@/lib/repositories/GuestRepository", () => ({
+  GuestRepository: {
+    getInstance: jest.fn(() => ({
+      getAll: jest.fn().mockReturnValue([]),
+    })),
+  },
+}));
+
 describe("QuizSessionBuilder", () => {
   let store: QuizStore;
 
   beforeEach(() => {
+    // Reset singleton instance for fresh tests
+    // @ts-expect-error - accessing private static property for testing
+    QuizStore.instance = undefined;
     store = QuizStore.getInstance();
     // Reset session before each test
     const defaultSession = store.createDefaultSession();
@@ -91,19 +123,17 @@ describe("QuizSessionBuilder", () => {
     });
 
     it("should correctly map player fields from builder format to schema", () => {
-      // Simulate data coming from SessionBuilder component
       const builderPlayers = [
         { id: "guest-1", name: "John Doe", avatar: "/john.jpg", buzzerId: "b1" },
         { id: "guest-2", name: "Jane Smith", avatar: null, buzzerId: "b2" },
       ];
 
       const session = store.createDefaultSession();
-      
-      // Map like the API endpoint does
+
       session.players = builderPlayers.map((p) => ({
         id: p.id,
-        displayName: p.name, // name → displayName
-        avatarUrl: p.avatar || undefined, // avatar → avatarUrl
+        displayName: p.name,
+        avatarUrl: p.avatar || undefined,
         buzzerId: p.buzzerId,
       }));
 
@@ -121,8 +151,8 @@ describe("QuizSessionBuilder", () => {
       expect(retrieved?.players[1].avatarUrl).toBeUndefined();
     });
 
-    it("should create questions in the question bank", () => {
-      const question = store.createQuestion({
+    it("should create questions in the question bank", async () => {
+      const question = await store.createQuestion({
         type: "qcm",
         text: "What is the capital of France?",
         options: ["London", "Berlin", "Paris", "Madrid"],
@@ -141,8 +171,8 @@ describe("QuizSessionBuilder", () => {
       expect(allQuestions.find((q) => q.id === question.id)).toBeDefined();
     });
 
-    it("should update questions in the question bank", () => {
-      const question = store.createQuestion({
+    it("should update questions in the question bank", async () => {
+      const question = await store.createQuestion({
         type: "qcm",
         text: "Original question",
         options: ["A", "B", "C", "D"],
@@ -152,18 +182,18 @@ describe("QuizSessionBuilder", () => {
         time_s: 20,
       });
 
-      const updated = store.updateQuestion(question.id, {
+      const updated = await store.updateQuestion(question.id, {
         text: "Updated question",
         points: 20,
       });
 
       expect(updated.text).toBe("Updated question");
       expect(updated.points).toBe(20);
-      expect(updated.options).toEqual(["A", "B", "C", "D"]); // Should keep other fields
+      expect(updated.options).toEqual(["A", "B", "C", "D"]);
     });
 
-    it("should delete questions from the question bank", () => {
-      const question = store.createQuestion({
+    it("should delete questions from the question bank", async () => {
+      const question = await store.createQuestion({
         type: "qcm",
         text: "To be deleted",
         options: ["A", "B", "C", "D"],
@@ -174,15 +204,15 @@ describe("QuizSessionBuilder", () => {
       });
 
       const beforeDelete = store.getAllQuestions().length;
-      store.deleteQuestion(question.id);
+      await store.deleteQuestion(question.id);
       const afterDelete = store.getAllQuestions().length;
 
       expect(afterDelete).toBe(beforeDelete - 1);
       expect(store.getQuestion(question.id)).toBeUndefined();
     });
 
-    it("should handle image QCM questions", () => {
-      const question = store.createQuestion({
+    it("should handle image QCM questions", async () => {
+      const question = await store.createQuestion({
         type: "image",
         text: "Which one is a cat?",
         options: [
@@ -202,11 +232,11 @@ describe("QuizSessionBuilder", () => {
       expect(question.correct).toBe(2);
     });
 
-    it("should handle closest number questions", () => {
-      const question = store.createQuestion({
+    it("should handle closest number questions", async () => {
+      const question = await store.createQuestion({
         type: "closest",
         text: "How many countries are in Europe?",
-        correct: 44, // Target number
+        correct: 44,
         points: 20,
         tie_break: false,
         time_s: 30,
@@ -217,8 +247,8 @@ describe("QuizSessionBuilder", () => {
       expect(question.options).toBeUndefined();
     });
 
-    it("should handle open questions", () => {
-      const question = store.createQuestion({
+    it("should handle open questions", async () => {
+      const question = await store.createQuestion({
         type: "open",
         text: "Describe your favorite programming language",
         points: 25,
@@ -231,8 +261,8 @@ describe("QuizSessionBuilder", () => {
       expect(question.correct).toBeUndefined();
     });
 
-    it("should handle questions with explanation field", () => {
-      const question = store.createQuestion({
+    it("should handle questions with explanation field", async () => {
+      const question = await store.createQuestion({
         type: "qcm",
         text: "What is the capital of France?",
         options: ["London", "Paris", "Berlin", "Madrid"],
@@ -267,7 +297,6 @@ describe("QuizSessionBuilder", () => {
 
       store.setSession(session);
 
-      // Update a score
       store.addScorePlayer("p1", 10);
 
       const retrieved = store.getSession();
@@ -368,7 +397,6 @@ describe("QuizSessionBuilder", () => {
       expect(retrieved?.currentRoundIndex).toBe(0);
       expect(retrieved?.currentQuestionIndex).toBe(0);
 
-      // Simulate moving to next question
       if (retrieved) {
         retrieved.currentQuestionIndex = 1;
         store.setSession(retrieved);
@@ -379,4 +407,3 @@ describe("QuizSessionBuilder", () => {
     });
   });
 });
-
