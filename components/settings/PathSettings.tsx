@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, FolderOpen, Info, ExternalLink } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { useSettings } from "@/lib/hooks/useSettings";
+import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface DataPaths {
   dataDir: string;
@@ -29,30 +30,20 @@ interface DataPaths {
 export function PathSettings() {
   const t = useTranslations("settings.paths");
   const tCommon = useTranslations("common");
+
+  const { data: dataPaths, loading } = useSettings<DataPaths, DataPaths | null>({
+    endpoint: "/api/settings/paths",
+    initialState: null,
+    fromResponse: (data) => data,
+  });
+
   const [customPaths, setCustomPaths] = useState<string[]>([]);
   const [newPath, setNewPath] = useState("");
-  const [dataPaths, setDataPaths] = useState<DataPaths | null>(null);
-  const [loading, setLoading] = useState(true);
 
   const defaultPaths = [
     "C:\\Program Files\\obs-studio\\obs-plugins",
     "%APPDATA%\\obs-studio\\plugins",
   ];
-
-  useEffect(() => {
-    fetchDataPaths();
-  }, []);
-
-  const fetchDataPaths = async () => {
-    try {
-      const paths = await apiGet<DataPaths>("/api/settings/paths");
-      setDataPaths(paths);
-    } catch (error) {
-      console.error("Failed to fetch data paths:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openFolder = async (path: string) => {
     try {
@@ -253,4 +244,3 @@ export function PathSettings() {
     </div>
   );
 }
-
