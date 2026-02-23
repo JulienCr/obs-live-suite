@@ -95,6 +95,8 @@ export function QuizRenderer() {
 
   // Ref to hold sendAck function for use in handleMessage callback
   const sendAckRef = useRef<(eventId: string) => void>(() => {});
+  const questionShowTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const questionShowAbortRef = useRef<AbortController | null>(null);
 
   const handleMessage = useCallback(async (data: QuizEventData) => {
     // Send acknowledgment if event has an ID
@@ -108,20 +110,32 @@ export function QuizRenderer() {
         setState((prev) => ({ ...prev, phase: "show_question" }));
         break;
       case "question.show":
+        // Cancel any pending question.show transition/fetch
+        if (questionShowTimeoutRef.current) {
+          clearTimeout(questionShowTimeoutRef.current);
+        }
+        if (questionShowAbortRef.current) {
+          questionShowAbortRef.current.abort();
+        }
+
         // First, hide current question and reset
-        setState((prev) => ({ 
-          ...prev, 
+        setState((prev) => ({
+          ...prev,
           phase: "hiding",
-          voteCounts: {}, 
-          votePercentages: {}, 
+          voteCounts: {},
+          votePercentages: {},
           playerAssignments: {},
         }));
-        
+
         // Wait for transition, then show new question
-        setTimeout(async () => {
+        questionShowTimeoutRef.current = setTimeout(async () => {
           if (payload?.question_id) {
+            const abortController = new AbortController();
+            questionShowAbortRef.current = abortController;
             try {
-              const res = await fetch(`${getBackendUrl()}/api/quiz/state`);
+              const res = await fetch(`${getBackendUrl()}/api/quiz/state`, {
+                signal: abortController.signal,
+              });
               const stateData = await res.json();
               const currentQ = stateData.session?.rounds?.[stateData.session?.currentRoundIndex]?.questions?.[stateData.session?.currentQuestionIndex];
               if (currentQ) {
@@ -162,7 +176,9 @@ export function QuizRenderer() {
                 }));
               }
             } catch (error) {
-              console.error("Failed to fetch question:", error);
+              if ((error as Error).name !== "AbortError") {
+                console.error("Failed to fetch question:", error);
+              }
             }
           }
         }, 400); // 400ms transition delay
@@ -267,6 +283,18 @@ export function QuizRenderer() {
       default:
         break;
     }
+  }, []);
+
+  // Cleanup pending question.show timeout/fetch on unmount
+  useEffect(() => {
+    return () => {
+      if (questionShowTimeoutRef.current) {
+        clearTimeout(questionShowTimeoutRef.current);
+      }
+      if (questionShowAbortRef.current) {
+        questionShowAbortRef.current.abort();
+      }
+    };
   }, []);
 
   // Initial state fetch on mount
