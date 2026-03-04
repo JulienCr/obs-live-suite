@@ -34,6 +34,7 @@ import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { useAppMode } from "./AppModeContext";
 import type { ColorScheme } from "@/lib/models/PanelColor";
+import type { PanelId } from "@/lib/panels/registry";
 
 const customThemeDark = { ...themeDark, gap: 5 };
 const customThemeLight = { ...themeLight, gap: 5 };
@@ -58,7 +59,7 @@ const components = {
   textPresets: TextPresetsPanel,
   mediaPlayerArtlist: MediaPlayerPanel,
   mediaPlayerYoutube: MediaPlayerPanel,
-};
+} satisfies Record<PanelId, React.ComponentType<any>>;
 
 const tabComponents = {
   default: PanelTab,

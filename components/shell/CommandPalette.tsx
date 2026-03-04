@@ -15,7 +15,7 @@ import { useWorkspacesStore } from "@/lib/stores";
 import { WorkspaceSaveDialog } from "./WorkspaceSaveDialog";
 import { WorkspaceManagerDialog } from "./WorkspaceManagerDialog";
 
-import { PANEL_PARAMS } from "@/lib/panels/panelParams";
+import { getCommandPalettePanels, getPanelParams, getCommandPaletteI18nKey } from "@/lib/panels/registry";
 
 interface Command {
   id: string;
@@ -45,7 +45,7 @@ export function CommandPalette(): React.ReactNode {
         return;
       }
 
-      api.addPanel({ id, component, title: `panels.${titleKey}`, params: PANEL_PARAMS[id] });
+      api.addPanel({ id, component, title: `panels.${titleKey}`, params: getPanelParams(id as import("@/lib/panels/registry").PanelId) });
     },
     [api]
   );
@@ -88,69 +88,12 @@ export function CommandPalette(): React.ReactNode {
         keywords: ["navigate", "quiz", "host", "control"],
         action: () => (window.location.href = "/quiz/host"),
       },
-      {
-        id: "panel-lower-third",
-        label: t("showLowerThirdPanel"),
-        keywords: ["panel", "widget", "lower", "third", "overlay", "add"],
-        action: () => addPanel("lowerThird", "lowerThird", "lowerThird"),
-      },
-      {
-        id: "panel-countdown",
-        label: t("showCountdownPanel"),
-        keywords: ["panel", "widget", "countdown", "timer", "add"],
-        action: () => addPanel("countdown", "countdown", "countdown"),
-      },
-      {
-        id: "panel-guests",
-        label: t("showGuestsPanel"),
-        keywords: ["panel", "widget", "guests", "people", "add"],
-        action: () => addPanel("guests", "guests", "guests"),
-      },
-      {
-        id: "panel-poster",
-        label: t("showPosterPanel"),
-        keywords: ["panel", "widget", "poster", "gallery", "add"],
-        action: () => addPanel("poster", "poster", "poster"),
-      },
-      {
-        id: "panel-macros",
-        label: t("showMacrosPanel"),
-        keywords: ["panel", "widget", "macros", "shortcuts", "add"],
-        action: () => addPanel("macros", "macros", "macros"),
-      },
-      {
-        id: "panel-event-log",
-        label: t("showEventLogPanel"),
-        keywords: ["panel", "widget", "event", "log", "history", "add"],
-        action: () => addPanel("eventLog", "eventLog", "eventLog"),
-      },
-      {
-        id: "panel-text-presets",
-        label: t("showTextPresetsPanel"),
-        keywords: ["panel", "widget", "text", "presets", "lower", "third", "quick", "add"],
-        action: () => addPanel("textPresets", "textPresets", "textPresets"),
-      },
-      {
-        id: "panel-twitch",
-        label: t("showTwitchPanel"),
-        keywords: [
-          "panel", "widget", "twitch", "stats", "viewers", "broadcast",
-          "stream", "control", "title", "category", "edit", "add",
-        ],
-        action: () => addPanel("twitch", "twitch", "twitch"),
-      },
-      {
-        id: "panel-media-player-artlist",
-        label: t("showMediaPlayerArtlistPanel"),
-        keywords: ["panel", "widget", "media", "player", "artlist", "music", "add"],
-        action: () => addPanel("mediaPlayerArtlist", "mediaPlayerArtlist", "mediaPlayerArtlist"),
-      },
-      {
-        id: "panel-media-player-youtube",
-        label: t("showMediaPlayerYoutubePanel"),
-        keywords: ["panel", "widget", "media", "player", "youtube", "video", "add"],
-        action: () => addPanel("mediaPlayerYoutube", "mediaPlayerYoutube", "mediaPlayerYoutube"),
-      },
+      ...getCommandPalettePanels().map((p) => ({
+        id: `panel-${p.id}`,
+        label: t(getCommandPaletteI18nKey(p.id)),
+        keywords: p.keywords,
+        action: () => addPanel(p.id, p.id, p.id),
+      })),
       {
         id: "reset-layout",
         label: t("resetLayout"),

@@ -1,3 +1,5 @@
+import type { PanelId } from "./registry";
+
 /**
  * Panel context type - determines which wrapper features are enabled
  */
@@ -8,7 +10,7 @@ export type PanelContext = "dashboard" | "presenter" | "settings" | "overlay";
  */
 export interface PanelConfig {
   /** Unique panel identifier */
-  id: string;
+  id: PanelId | string;
 
   /** Panel context determines available features */
   context: PanelContext;

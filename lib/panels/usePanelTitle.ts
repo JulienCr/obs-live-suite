@@ -1,31 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { PANEL_TITLE_KEYS, type PanelTitleKey } from "./registry";
 
-/**
- * Type-safe mapping of panel i18n keys to their translation function calls.
- * Keys must match the "panels.*" keys in messages/{locale}.json under "dashboard".
- */
-export const PANEL_TITLE_KEYS = [
-  "lowerThird",
-  "countdown",
-  "guests",
-  "poster",
-  "macros",
-  "eventLog",
-  "cueComposer",
-  "presenceStatus",
-  "regieInternalChat",
-  "regieInternalChatView",
-  "regiePublicChat",
-  "twitch",
-  "chatMessages",
-  "textPresets",
-  "mediaPlayerArtlist",
-  "mediaPlayerYoutube",
-] as const;
-
-export type PanelTitleKey = (typeof PANEL_TITLE_KEYS)[number];
+// Re-export for backward compat
+export { PANEL_TITLE_KEYS, type PanelTitleKey } from "./registry";
 
 /**
  * Resolves panel title from i18n key or returns raw title.
@@ -50,7 +29,7 @@ export function usePanelTitle(rawTitle: string | undefined): string {
     if (process.env.NODE_ENV === "development") {
       console.warn(
         `[usePanelTitle] Unknown panel translation key: "${rawTitle}". ` +
-          `Add "${panelKey}" to PANEL_TITLE_KEYS if this is a new panel.`
+          `Add "${panelKey}" to PANEL_IDS in registry.ts if this is a new panel.`
       );
     }
 

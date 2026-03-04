@@ -21,17 +21,8 @@ import {
   PanelLeftClose,
   PanelLeft,
   Type,
-  Timer,
   Users,
   Image,
-  Command,
-  FileText,
-  BookText,
-  MessageSquare,
-  MessagesSquare,
-  Inbox,
-  Radio,
-  Send,
   Layers,
   Palette,
   FolderOpen,
@@ -49,7 +40,8 @@ import {
   Bot,
   ChevronDown,
   ChevronRight,
-  Music,
+  MessageSquare,
+  Send,
 } from "lucide-react";
 import { useAppMode } from "@/components/shell/AppModeContext";
 import { useOBSStatus, useStreamerbotStatus, useTwitchAuthStatus } from "@/lib/queries";
@@ -71,33 +63,7 @@ const TRUNCATE_CLASS = "whitespace-nowrap overflow-hidden text-ellipsis";
 /** Border class that stays visible even when --border matches --muted */
 const SIDEBAR_BORDER = "border-foreground/15";
 
-// ---------------------------------------------------------------------------
-// LIVE mode panels
-// ---------------------------------------------------------------------------
-
-interface PanelItem {
-  id: string;
-  icon: React.ElementType;
-}
-
-const PANELS: PanelItem[] = [
-  { id: "lowerThird", icon: Type },
-  { id: "countdown", icon: Timer },
-  { id: "guests", icon: Users },
-  { id: "textPresets", icon: BookText },
-  { id: "poster", icon: Image },
-  { id: "macros", icon: Command },
-  { id: "eventLog", icon: FileText },
-  { id: "regieInternalChat", icon: MessageSquare },
-  { id: "regieInternalChatView", icon: Inbox },
-  { id: "regiePublicChat", icon: MessagesSquare },
-  { id: "twitch", icon: Radio },
-  { id: "chatMessages", icon: Send },
-  { id: "mediaPlayerArtlist", icon: Music },
-  { id: "mediaPlayerYoutube", icon: Music },
-];
-
-import { PANEL_PARAMS } from "@/lib/panels/panelParams";
+import { getSidebarPanels, getPanelParams } from "@/lib/panels/registry";
 
 // ---------------------------------------------------------------------------
 // ADMIN mode navigation sections
@@ -302,7 +268,7 @@ export function AppSidebar() {
         component: panelId,
         title: tPanels(panelId),
         position,
-        params: PANEL_PARAMS[panelId],
+        params: getPanelParams(panelId as import("@/lib/panels/registry").PanelId),
       });
     },
     [dockviewApi, savePositionBeforeClose, getSavedPosition, tPanels]
@@ -463,7 +429,7 @@ export function AppSidebar() {
           {mode === "LIVE" ? (
             /* LIVE mode: panel toggles */
             <div>
-              {PANELS.map((panel) => {
+              {getSidebarPanels().map((panel) => {
                 const Icon = panel.icon;
                 const isVisible = isPanelVisible(panel.id);
                 const label = tPanels(panel.id);
