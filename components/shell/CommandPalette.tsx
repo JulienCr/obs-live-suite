@@ -15,6 +15,12 @@ import { useWorkspacesStore } from "@/lib/stores";
 import { WorkspaceSaveDialog } from "./WorkspaceSaveDialog";
 import { WorkspaceManagerDialog } from "./WorkspaceManagerDialog";
 
+/** Extra params for panels that need them (e.g. driver ID for media players). */
+const PANEL_PARAMS: Record<string, Record<string, unknown>> = {
+  mediaPlayerArtlist: { driverId: "artlist" },
+  mediaPlayerYoutube: { driverId: "youtube" },
+};
+
 interface Command {
   id: string;
   label: string;
@@ -44,7 +50,7 @@ export function CommandPalette(): React.ReactNode {
         return;
       }
 
-      api.addPanel({ id, component, title: tPanels(titleKey) });
+      api.addPanel({ id, component, title: tPanels(titleKey), params: PANEL_PARAMS[id] });
     },
     [api, tPanels]
   );
@@ -139,6 +145,18 @@ export function CommandPalette(): React.ReactNode {
         action: () => addPanel("twitch", "twitch", "twitch"),
       },
       {
+        id: "panel-media-player-artlist",
+        label: t("showMediaPlayerArtlistPanel"),
+        keywords: ["panel", "widget", "media", "player", "artlist", "music", "add"],
+        action: () => addPanel("mediaPlayerArtlist", "mediaPlayerArtlist", "mediaPlayerArtlist"),
+      },
+      {
+        id: "panel-media-player-youtube",
+        label: t("showMediaPlayerYoutubePanel"),
+        keywords: ["panel", "widget", "media", "player", "youtube", "video", "add"],
+        action: () => addPanel("mediaPlayerYoutube", "mediaPlayerYoutube", "mediaPlayerYoutube"),
+      },
+      {
         id: "reset-layout",
         label: t("resetLayout"),
         keywords: ["layout", "reset", "default", "restore"],
@@ -195,7 +213,7 @@ export function CommandPalette(): React.ReactNode {
   useEffect(() => {
     function handler(e: KeyboardEvent): void {
       const hasModifier = e.metaKey || e.ctrlKey;
-      if (hasModifier && e.key.toLowerCase() === "p") {
+      if (hasModifier && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setIsOpen((prev) => !prev);
       }

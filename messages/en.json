@@ -14,7 +14,9 @@
       "regiePublicChat": "Public Chat",
       "twitch": "Twitch",
       "chatMessages": "Chat Messages",
-      "textPresets": "Quick LT"
+      "textPresets": "Quick LT",
+      "mediaPlayerArtlist": "Artlist Player",
+      "mediaPlayerYoutube": "YouTube Player"
     },
     "header": {
       "connected": "Connected",
@@ -54,6 +56,8 @@
       "manageWorkspaces": "Manage Workspaces",
       "switchToWorkspace": "Switch to: {name}",
       "showTextPresetsPanel": "Show Quick LT Panel",
+      "showMediaPlayerArtlistPanel": "Show Artlist Player Panel",
+      "showMediaPlayerYoutubePanel": "Show YouTube Player Panel",
       "noResults": "No results found"
     },
     "workspaces": {
