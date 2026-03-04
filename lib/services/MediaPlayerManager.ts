@@ -237,15 +237,8 @@ export class MediaPlayerManager {
     const { driverId, status } = parsed.data;
     const driver = this.drivers.get(driverId);
     if (driver) {
-      // Skip broadcast if status hasn't changed
-      const prev = driver.lastStatus;
-      if (prev &&
-        prev.track === status.track &&
-        prev.artist === status.artist &&
-        prev.current === status.current &&
-        prev.total === status.total &&
-        prev.playing === status.playing
-      ) {
+      // Skip broadcast if status hasn't changed (JSON comparison covers all fields)
+      if (driver.lastStatus && JSON.stringify(driver.lastStatus) === JSON.stringify(status)) {
         return;
       }
       driver.lastStatus = status;

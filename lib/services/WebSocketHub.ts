@@ -259,6 +259,7 @@ export class WebSocketHub {
         case "media-player-register":
         case "media-player-response":
         case "media-player-status":
+        case "media-player-driver-event":
           if (this.onMediaPlayerCallback) {
             this.onMediaPlayerCallback(clientId, message);
           }

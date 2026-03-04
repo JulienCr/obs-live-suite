@@ -10,6 +10,7 @@ import { createContextHandler } from "../utils/expressRouteHandler";
 
 const router = Router();
 const handler = createContextHandler("[MediaPlayerAPI]");
+const manager = MediaPlayerManager.getInstance();
 
 /**
  * POST /api/media-player/:driverId/:action
@@ -30,7 +31,6 @@ router.post("/:driverId/:action", handler(async (req, res) => {
     return res.status(400).json({ error: `Invalid action: "${action}". Valid: ${MediaPlayerAction.options.join(", ")}` });
   }
 
-  const manager = MediaPlayerManager.getInstance();
   const result = await manager.sendCommand(driverResult.data, actionResult.data);
 
   if (!result.success) {
@@ -45,7 +45,6 @@ router.post("/:driverId/:action", handler(async (req, res) => {
  * Get status of all registered drivers.
  */
 router.get("/status", handler(async (_req, res) => {
-  const manager = MediaPlayerManager.getInstance();
   res.json({ ok: true, drivers: manager.getAllDriverStatus() });
 }, "Failed to get media player status"));
 
@@ -59,7 +58,6 @@ router.get("/:driverId/status", handler(async (req, res) => {
     return res.status(400).json({ error: `Invalid driver: "${req.params.driverId}"` });
   }
 
-  const manager = MediaPlayerManager.getInstance();
   const status = manager.getDriverStatus(driverResult.data);
   res.json({ ok: true, ...status });
 }, "Failed to get driver status"));

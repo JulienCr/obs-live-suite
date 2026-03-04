@@ -273,15 +273,9 @@ async function getServerUrl() {
  * Show notification to user
  */
 function showNotification(message, type = "info") {
-  const iconMap = {
-    success: "icons/icon48.png",
-    error: "icons/icon48.png",
-    info: "icons/icon48.png",
-  };
-
   chrome.notifications.create({
     type: "basic",
-    iconUrl: iconMap[type] || iconMap.info,
+    iconUrl: "icons/icon48.png",
     title: "OBS-Suite",
     message,
     priority: type === "error" ? 2 : 1,
@@ -393,6 +387,7 @@ function generateFilename(imageUrl, mimeType) {
  * from drivers back to the hub.
  */
 
+// Keep in sync with WS_PORT in lib/config/urls.ts
 const DEFAULT_WS_PORT = "3003";
 
 /** Map<driverId, tabId> - tracks which tab hosts each driver */
@@ -400,6 +395,7 @@ const driverTabs = new Map();
 
 let mediaPlayerWs = null;
 let wsReconnectTimer = null;
+// Keep in sync with RECONNECTION.BASE_DELAY_MS in lib/config/Constants.ts
 const WS_RECONNECT_DELAY_MS = 3000;
 
 /**

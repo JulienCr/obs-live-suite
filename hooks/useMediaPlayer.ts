@@ -2,10 +2,11 @@
 
 import { useCallback, useState } from "react";
 import { useWebSocketChannel } from "./useWebSocketChannel";
-import type {
-  MediaPlayerDriverId,
-  MediaPlayerStatus,
-  MediaPlayerDashboardEvent,
+import {
+  MEDIA_PLAYER_CHANNEL,
+  type MediaPlayerDriverId,
+  type MediaPlayerStatus,
+  type MediaPlayerDashboardEvent,
 } from "@/lib/models/MediaPlayer";
 
 export interface UseMediaPlayerReturn {
@@ -48,7 +49,7 @@ export function useMediaPlayer(driverId: MediaPlayerDriverId): UseMediaPlayerRet
   );
 
   const { isConnected: wsConnected } = useWebSocketChannel<MediaPlayerDashboardEvent>(
-    "media-player",
+    MEDIA_PLAYER_CHANNEL,
     handleMessage,
     { logPrefix: `MediaPlayer:${driverId}` }
   );
