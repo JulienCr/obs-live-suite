@@ -10,9 +10,6 @@ import {
   Square,
   RotateCcw,
   Volume2,
-  Wifi,
-  WifiOff,
-  Music,
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -24,10 +21,10 @@ import { useToast } from "@/hooks/use-toast";
 import type { MediaPlayerDriverId, MediaPlayerAction } from "@/lib/models/MediaPlayer";
 
 /**
- * MediaPlayerPanel - Generic transport control panel for media player drivers.
+ * MediaPlayerPanel - Compact toolbar-style transport control for media player drivers.
  *
- * Receives `driverId` via Dockview panel params. Shows connection status,
- * now-playing info (track/artist/time), and transport control buttons.
+ * Receives `driverId` via Dockview panel params. Single-row layout:
+ * status dot | transport buttons | fadeout | track info + time.
  */
 export function MediaPlayerPanel(props: IDockviewPanelProps<{ driverId: MediaPlayerDriverId }>) {
   const driverId = props.params?.driverId ?? "artlist";
@@ -49,127 +46,92 @@ export function MediaPlayerPanel(props: IDockviewPanelProps<{ driverId: MediaPla
   );
 
   const isPlaying = status?.playing ?? false;
-  const driverLabel = driverId.charAt(0).toUpperCase() + driverId.slice(1);
+  const isOnline = wsConnected && connected;
 
   return (
     <BasePanelWrapper config={config}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Music className="h-4 w-4 text-muted-foreground" />
-          <span className="font-semibold text-sm">{driverLabel}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          {wsConnected ? (
-            <Wifi className={cn("h-4 w-4", connected ? "text-green-500" : "text-muted-foreground")} />
-          ) : (
-            <WifiOff className="h-4 w-4 text-destructive" />
+      <div className="flex items-center gap-1.5 h-8">
+        {/* Status dot */}
+        <div
+          className={cn(
+            "h-2 w-2 rounded-full shrink-0",
+            !wsConnected ? "bg-destructive" : connected ? "bg-green-500" : "bg-yellow-500 animate-pulse"
           )}
-          <span className="text-xs text-muted-foreground">
-            {!wsConnected ? "WS offline" : connected ? "Connected" : "Waiting..."}
-          </span>
+          title={!wsConnected ? "WS offline" : connected ? "Connected" : "Waiting..."}
+        />
+
+        {/* Transport controls */}
+        <div className="flex items-center shrink-0">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => sendAction("prev")} disabled={!isOnline} title="Previous">
+            <SkipBack className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => sendAction("replay")} disabled={!isOnline} title="Replay">
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant={isPlaying ? "secondary" : "default"}
+            size="icon"
+            className="h-8 w-8 mx-0.5"
+            onClick={() => sendAction(isPlaying ? "pause" : "play")}
+            disabled={!isOnline}
+            title={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => sendAction("stop")} disabled={!isOnline} title="Stop">
+            <Square className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => sendAction("next")} disabled={!isOnline} title="Next">
+            <SkipForward className="h-3.5 w-3.5" />
+          </Button>
         </div>
-      </div>
 
-      {/* Now Playing */}
-      <div className="p-3 rounded-lg bg-muted/50 mb-3 min-h-[60px]">
-        {status ? (
-          <div className="space-y-1">
-            <div className="text-sm font-medium truncate" title={status.track ?? undefined}>
-              {status.track || "No track"}
-            </div>
-            <div className="text-xs text-muted-foreground truncate" title={status.artist ?? undefined}>
-              {status.artist || "Unknown artist"}
-            </div>
-            <div className="text-xs text-muted-foreground font-mono">
-              {status.current ?? "--:--"} / {status.total ?? "--:--"}
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
-            {connected ? (
-              <>
-                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                Loading status...
-              </>
-            ) : (
-              "No driver connected"
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Transport Controls */}
-      <div className="flex items-center justify-center gap-1">
+        {/* Fadeout */}
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
-          onClick={() => sendAction("prev")}
-          disabled={!connected}
-          title="Previous"
-        >
-          <SkipBack className="h-4 w-4" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => sendAction("replay")}
-          disabled={!connected}
-          title="Replay"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </Button>
-
-        <Button
-          variant={isPlaying ? "secondary" : "default"}
-          size="icon"
-          className="h-10 w-10"
-          onClick={() => sendAction(isPlaying ? "pause" : "play")}
-          disabled={!connected}
-          title={isPlaying ? "Pause" : "Play"}
-        >
-          {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => sendAction("stop")}
-          disabled={!connected}
-          title="Stop"
-        >
-          <Square className="h-4 w-4" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => sendAction("next")}
-          disabled={!connected}
-          title="Next"
-        >
-          <SkipForward className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Fadeout button */}
-      <div className="flex justify-center mt-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="text-xs"
+          className="h-7 w-7 shrink-0"
           onClick={() => sendAction("fadeout")}
-          disabled={!connected || !isPlaying}
+          disabled={!isOnline || !isPlaying}
           title="Fade out and stop (5s)"
         >
-          <Volume2 className="h-3 w-3 mr-1" />
-          Fadeout
+          <Volume2 className="h-3.5 w-3.5" />
         </Button>
+
+        {/* Separator */}
+        <div className="w-px h-4 bg-border shrink-0" />
+
+        {/* Track info - scrolls if too long */}
+        <div className="flex-1 min-w-0 overflow-hidden">
+          {status ? (
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <div
+                  className="truncate text-xs text-muted-foreground"
+                  title={`${status.artist || "Unknown"} - ${status.track || "No track"}`}
+                >
+                  <span className="font-medium text-foreground">{status.artist || "Unknown"}</span>
+                  {" - "}
+                  {status.track || "No track"}
+                </div>
+              </div>
+              <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+                {status.current ?? "--:--"}/{status.total ?? "--:--"}
+              </span>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              {connected ? (
+                <span className="flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Loading...
+                </span>
+              ) : (
+                "No driver"
+              )}
+            </span>
+          )}
+        </div>
       </div>
     </BasePanelWrapper>
   );
