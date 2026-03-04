@@ -451,6 +451,41 @@ export const TWITCH = {
 } as const;
 
 // ============================================================================
+// MEDIA PLAYER CONSTANTS
+// ============================================================================
+
+/**
+ * Media player driver system constants.
+ */
+export const MEDIA_PLAYER = {
+  /**
+   * Timeout in milliseconds for commands sent to Chrome extension drivers.
+   * If a driver doesn't respond within this time, the command is considered failed.
+   * @see lib/services/MediaPlayerManager.ts
+   */
+  COMMAND_TIMEOUT_MS: 5000,
+
+  /**
+   * Duration of the fadeout effect in milliseconds.
+   * @see chrome-extension/drivers/artlist.js
+   * @see chrome-extension/drivers/youtube.js
+   */
+  FADEOUT_DURATION_MS: 5000,
+
+  /**
+   * Number of steps in the fadeout animation (higher = smoother).
+   * @see chrome-extension/drivers/driver-base.js
+   */
+  FADEOUT_STEPS: 60,
+
+  /**
+   * Interval in milliseconds between status polls from content scripts.
+   * @see chrome-extension/drivers/driver-base.js
+   */
+  STATUS_POLL_INTERVAL_MS: 2000,
+} as const;
+
+// ============================================================================
 // UI CONSTANTS
 // ============================================================================
 

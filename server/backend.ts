@@ -32,9 +32,11 @@ import chatMessagesRouter from "./api/chat-messages";
 import overlaysRouter from "./api/overlays";
 import obsRouter from "./api/obs";
 import twitchRouter from "./api/twitch";
+import mediaPlayerRouter from "./api/media-player";
 import { APP_PORT, BACKEND_PORT, WS_PORT } from "../lib/config/urls";
 import { createServerWithFallback } from "../lib/utils/CertificateManager";
 import { expressError } from "../lib/utils/apiError";
+import { MediaPlayerManager } from "../lib/services/MediaPlayerManager";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -94,6 +96,9 @@ class BackendServer {
 
     // Overlay control routes (consolidated in server/api/overlays.ts)
     this.app.use('/api/overlays', overlaysRouter);
+
+    // Media Player driver control
+    this.app.use('/api/media-player', mediaPlayerRouter);
 
     // 404 handler MUST be added LAST (after all routes)
     this.app.use((req, res) => {
@@ -203,6 +208,10 @@ class BackendServer {
       // 2. Start WebSocket Hub
       this.wsHub.start();
       this.logger.info("✓ WebSocket hub started");
+
+      // 2b. Initialize Media Player Manager (registers WS callbacks)
+      MediaPlayerManager.getInstance().init();
+      this.logger.info("✓ Media player manager initialized");
 
       const settingsService = SettingsService.getInstance();
 

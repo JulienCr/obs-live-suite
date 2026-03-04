@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "OBS-Suite",
-  "version": "1.0.0",
-  "description": "Quickly add images from any webpage as posters to your OBS Live Suite",
+  "version": "1.1.0",
+  "description": "OBS Live Suite companion: poster capture and media player control",
   "permissions": [
     "contextMenus",
     "storage",
-    "notifications"
+    "notifications",
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -14,6 +15,18 @@
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["*://*.artlist.io/*"],
+      "js": ["drivers/driver-base.js", "drivers/artlist.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["drivers/driver-base.js", "drivers/youtube.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "options_page": "options/options.html",
   "action": {
     "default_popup": "popup/popup.html",

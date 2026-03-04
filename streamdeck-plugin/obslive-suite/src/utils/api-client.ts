@@ -268,5 +268,14 @@ export class APIClient {
 			body: JSON.stringify({ action: "hide" }),
 		});
 	}
+
+	/**
+	 * Send a command to a media player driver
+	 */
+	static async mediaPlayerCommand(driverId: string, action: string): Promise<void> {
+		await request(`${getApiConfig().backend}/api/media-player/${driverId}/${action}`, {
+			method: "POST",
+		});
+	}
 }
 

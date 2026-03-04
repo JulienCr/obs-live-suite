@@ -12,7 +12,7 @@ export default function ShortcutsPage() {
     {
       category: "General",
       items: [
-        { keys: [`${cmdKey}`, "P"], description: "Open Command Palette" },
+        { keys: [`${cmdKey}`, "K"], description: "Open Command Palette" },
         { keys: ["ESC"], description: "Unfocus input/textarea" },
         { keys: ["F"], description: "Toggle Fullscreen Mode" },
       ],

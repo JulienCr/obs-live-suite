@@ -49,6 +49,7 @@ import {
   Bot,
   ChevronDown,
   ChevronRight,
+  Music,
 } from "lucide-react";
 import { useAppMode } from "@/components/shell/AppModeContext";
 import { useOBSStatus, useStreamerbotStatus, useTwitchAuthStatus } from "@/lib/queries";
@@ -89,7 +90,15 @@ const PANELS: PanelItem[] = [
   { id: "regiePublicChat", icon: MessagesSquare },
   { id: "twitch", icon: Radio },
   { id: "chatMessages", icon: Send },
+  { id: "mediaPlayerArtlist", icon: Music },
+  { id: "mediaPlayerYoutube", icon: Music },
 ];
+
+/** Extra params for panels that need them (e.g. driver ID for media players). */
+const PANEL_PARAMS: Record<string, Record<string, unknown>> = {
+  mediaPlayerArtlist: { driverId: "artlist" },
+  mediaPlayerYoutube: { driverId: "youtube" },
+};
 
 // ---------------------------------------------------------------------------
 // ADMIN mode navigation sections
@@ -294,6 +303,7 @@ export function AppSidebar() {
         component: panelId,
         title: tPanels(panelId),
         position,
+        params: PANEL_PARAMS[panelId],
       });
     },
     [dockviewApi, savePositionBeforeClose, getSavedPosition, tPanels]
