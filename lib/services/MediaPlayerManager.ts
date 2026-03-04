@@ -237,8 +237,8 @@ export class MediaPlayerManager {
     const { driverId, status } = parsed.data;
     const driver = this.drivers.get(driverId);
     if (driver) {
-      // Skip broadcast if status hasn't changed (JSON comparison covers all fields)
-      if (driver.lastStatus && JSON.stringify(driver.lastStatus) === JSON.stringify(status)) {
+      // Skip broadcast if status hasn't changed
+      if (driver.lastStatus && this.isStatusEqual(driver.lastStatus, status)) {
         return;
       }
       driver.lastStatus = status;
@@ -263,6 +263,11 @@ export class MediaPlayerManager {
         driverId: driverId.data,
       });
     }
+  }
+
+  private isStatusEqual(a: MediaPlayerStatus, b: MediaPlayerStatus): boolean {
+    return a.track === b.track && a.artist === b.artist &&
+      a.current === b.current && a.total === b.total && a.playing === b.playing;
   }
 
   private broadcastToDashboard(event: MediaPlayerDashboardEvent): void {
