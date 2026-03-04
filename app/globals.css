@@ -326,28 +326,29 @@
    - 5px gap between panels (via theme config)
    ============================================================================= */
 
-/* Reduced header height (override theme-scoped variable) */
+/* Tabs container - compact height + muted background */
 .dv-tabs-and-actions-container {
   height: 25px !important;
-}
-
-/* Tabs container - muted background */
-.dv-tabs-and-actions-container {
   background-color: hsl(var(--muted)) !important;
 }
+
+/* Per-scheme accent color (single source of truth) */
+.panel-scheme-red    { --scheme-accent: hsl(0 65% 50%); }
+.panel-scheme-blue   { --scheme-accent: hsl(210 65% 50%); }
+.panel-scheme-green  { --scheme-accent: hsl(140 55% 42%); }
+.panel-scheme-yellow { --scheme-accent: hsl(45 80% 48%); }
+.panel-scheme-purple { --scheme-accent: hsl(270 55% 52%); }
+.panel-scheme-orange { --scheme-accent: hsl(25 80% 50%); }
+.panel-scheme-pink   { --scheme-accent: hsl(330 60% 52%); }
+.panel-scheme-cyan   { --scheme-accent: hsl(195 60% 45%); }
 
 /* Vibrant left border on each group */
 .dv-groupview {
   border-left: 4px solid hsl(var(--primary) / 0.4);
 }
-.dv-groupview.panel-scheme-red { border-left-color: hsl(0 65% 50%); }
-.dv-groupview.panel-scheme-blue { border-left-color: hsl(210 65% 50%); }
-.dv-groupview.panel-scheme-green { border-left-color: hsl(140 55% 42%); }
-.dv-groupview.panel-scheme-yellow { border-left-color: hsl(45 80% 48%); }
-.dv-groupview.panel-scheme-purple { border-left-color: hsl(270 55% 52%); }
-.dv-groupview.panel-scheme-orange { border-left-color: hsl(25 80% 50%); }
-.dv-groupview.panel-scheme-pink { border-left-color: hsl(330 60% 52%); }
-.dv-groupview.panel-scheme-cyan { border-left-color: hsl(195 60% 45%); }
+.dv-groupview[class*="panel-scheme-"] {
+  border-left-color: var(--scheme-accent);
+}
 
 /* Tab base styling */
 .dv-tab {
@@ -381,15 +382,11 @@
 /* 2px colored bottom border only on grouped tabs (2+ tabs) */
 .dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id] {
   border-bottom: 2px solid hsl(var(--primary) / 0.4);
+
+  &[class*="panel-scheme-"] {
+    border-bottom-color: var(--scheme-accent);
+  }
 }
-.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-red    { border-bottom-color: hsl(0 65% 50%); }
-.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-blue   { border-bottom-color: hsl(210 65% 50%); }
-.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-green  { border-bottom-color: hsl(140 55% 42%); }
-.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-yellow { border-bottom-color: hsl(45 80% 48%); }
-.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-purple { border-bottom-color: hsl(270 55% 52%); }
-.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-orange { border-bottom-color: hsl(25 80% 50%); }
-.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-pink   { border-bottom-color: hsl(330 60% 52%); }
-.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-cyan   { border-bottom-color: hsl(195 60% 45%); }
 
 /* Form elements inside colored panels should use --card for contrast */
 [class*="panel-scheme-"] input,

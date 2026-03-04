@@ -15,32 +15,16 @@ export const WORKSPACE_IDS = {
   MINIMAL: "workspace-builtin-minimal",
 } as const;
 
-// Panel title i18n keys - maps panel IDs to translation keys under "dashboard.panels"
-// These keys are resolved in PanelTab.tsx using useTranslations("dashboard")
-const PANEL_TITLE_KEYS: Record<string, string> = {
-  lowerThird: "panels.lowerThird",
-  countdown: "panels.countdown",
-  guests: "panels.guests",
-  poster: "panels.poster",
-  macros: "panels.macros",
-  eventLog: "panels.eventLog",
-  twitch: "panels.twitch",
-  regieInternalChat: "panels.regieInternalChat",
-  regieInternalChatView: "panels.regieInternalChatView",
-  regiePublicChat: "panels.regiePublicChat",
-};
-
 /**
- * Creates a panel definition for Dockview layout
- * Reduces repetition by generating the standard panel structure
- * The title stores an i18n key that will be resolved by PanelTab
+ * Creates a panel definition for Dockview layout.
+ * Title defaults to the i18n key "panels.{panelId}" which usePanelTitle resolves.
  */
 function createPanel(panelId: string, title?: string) {
   return {
     id: panelId,
     contentComponent: panelId,
     tabComponent: "props.defaultTabComponent",
-    title: title ?? PANEL_TITLE_KEYS[panelId] ?? panelId,
+    title: title ?? `panels.${panelId}`,
   };
 }
 
