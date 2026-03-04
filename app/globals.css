@@ -310,6 +310,14 @@
   transition: background-color 0.2s ease;
 }
 
+/* Gap and outer padding background: white (light) / black (dark) */
+.dockview-container {
+  background-color: white;
+}
+.dark .dockview-container {
+  background-color: black;
+}
+
 /* =============================================================================
    Dockview Dashboard Styling
    - Compact 28px header with muted background

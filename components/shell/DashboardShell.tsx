@@ -376,7 +376,7 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
       <StoreWorkspaceSaveDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} />
       <LayoutPresetsProvider applyPreset={applyPreset}>
         <DockviewContext.Provider value={dockviewContextValue}>
-          <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--topbar-height))", width: "100%", display: "flex", padding: 5 }}>
+          <div className="dockview-container" style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--topbar-height))", width: "100%", display: "flex", padding: 5 }}>
             <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
               <DockviewReact
                 components={components}

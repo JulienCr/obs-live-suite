@@ -28,7 +28,8 @@ import type { MediaPlayerDriverId, MediaPlayerAction } from "@/lib/models/MediaP
  */
 export function MediaPlayerPanel(props: IDockviewPanelProps<{ driverId: MediaPlayerDriverId }>) {
   const driverId = props.params?.driverId ?? "artlist";
-  const config: PanelConfig = { id: `mediaPlayer-${driverId}`, context: "dashboard" };
+  const panelId = props.api?.id ?? `mediaPlayer-${driverId}`;
+  const config: PanelConfig = { id: panelId, context: "dashboard" };
 
   const { connected, status, wsConnected } = useMediaPlayer(driverId);
   const { toast } = useToast();
