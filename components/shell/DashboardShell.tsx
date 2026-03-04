@@ -25,6 +25,7 @@ import { RegiePublicChatPanel } from "./panels/RegiePublicChatPanel";
 import { TwitchPanel } from "./panels/TwitchPanel";
 import { ChatMessagesPanel } from "./panels/ChatMessagesPanel";
 import { TextPresetsPanel } from "./panels/TextPresetsPanel";
+import { MediaPlayerPanel } from "./panels/MediaPlayerPanel";
 import { DockviewContext } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { usePanelColorsStore, useWorkspacesStore, useDockviewStore } from "@/lib/stores";
@@ -51,6 +52,8 @@ const components = {
   twitch: TwitchPanel,
   chatMessages: ChatMessagesPanel,
   textPresets: TextPresetsPanel,
+  mediaPlayerArtlist: MediaPlayerPanel,
+  mediaPlayerYoutube: MediaPlayerPanel,
 };
 
 const tabComponents = {

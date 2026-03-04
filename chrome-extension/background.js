@@ -382,3 +382,182 @@ function generateFilename(imageUrl, mimeType) {
     return `image-${timestamp}.${ext}`;
   }
 }
+
+// ============================================================================
+// MEDIA PLAYER - WebSocket Relay
+// ============================================================================
+
+/**
+ * Maintains a persistent WebSocket connection to the OBS Live Suite WS hub.
+ * Relays commands from the hub to content script drivers, and responses/status
+ * from drivers back to the hub.
+ */
+
+const DEFAULT_WS_PORT = "3003";
+
+/** Map<driverId, tabId> - tracks which tab hosts each driver */
+const driverTabs = new Map();
+
+let mediaPlayerWs = null;
+let wsReconnectTimer = null;
+const WS_RECONNECT_DELAY_MS = 3000;
+
+/**
+ * Get WS URL, deriving protocol and hostname from the configured serverUrl.
+ * e.g. "https://edison:3000" → "wss://edison:3003"
+ *      "http://localhost:3000" → "ws://localhost:3003"
+ */
+async function getWsUrl() {
+  const serverUrl = await getServerUrl();
+  try {
+    const url = new URL(serverUrl);
+    const wsProtocol = url.protocol === "https:" ? "wss" : "ws";
+    return `${wsProtocol}://${url.hostname}:${DEFAULT_WS_PORT}`;
+  } catch {
+    return `ws://localhost:${DEFAULT_WS_PORT}`;
+  }
+}
+
+/**
+ * Connect to WS hub and set up relay
+ */
+async function connectMediaPlayerWs() {
+  if (mediaPlayerWs && mediaPlayerWs.readyState === WebSocket.OPEN) return;
+
+  const wsUrl = await getWsUrl();
+
+  try {
+    mediaPlayerWs = new WebSocket(wsUrl);
+  } catch {
+    scheduleWsReconnect();
+    return;
+  }
+
+  mediaPlayerWs.addEventListener("open", () => {
+    console.log("[MediaPlayer BG] Connected to WS hub");
+    // Re-register any known drivers
+    for (const [driverId] of driverTabs) {
+      mediaPlayerWs.send(JSON.stringify({
+        type: "media-player-register",
+        driverId,
+      }));
+    }
+  });
+
+  mediaPlayerWs.addEventListener("message", (event) => {
+    let data;
+    try {
+      data = JSON.parse(event.data);
+    } catch {
+      return;
+    }
+
+    // Relay commands from hub to content script
+    if (data.type === "media-player-command") {
+      relayCommandToTab(data);
+    }
+  });
+
+  mediaPlayerWs.addEventListener("close", () => {
+    console.log("[MediaPlayer BG] WS disconnected");
+    mediaPlayerWs = null;
+    scheduleWsReconnect();
+  });
+
+  mediaPlayerWs.addEventListener("error", () => {
+    // close event will fire after this
+  });
+}
+
+function scheduleWsReconnect() {
+  if (wsReconnectTimer) return;
+  wsReconnectTimer = setTimeout(() => {
+    wsReconnectTimer = null;
+    connectMediaPlayerWs();
+  }, WS_RECONNECT_DELAY_MS);
+}
+
+/**
+ * Relay a command from the WS hub to the appropriate content script tab
+ */
+function relayCommandToTab(command) {
+  const tabId = driverTabs.get(command.driverId);
+  if (!tabId) {
+    // No tab for this driver — send error response back
+    sendToWsHub({
+      type: "media-player-response",
+      correlationId: command.correlationId,
+      success: false,
+      error: `No tab found for driver "${command.driverId}"`,
+    });
+    return;
+  }
+
+  chrome.tabs.sendMessage(tabId, command, (response) => {
+    if (chrome.runtime.lastError) {
+      sendToWsHub({
+        type: "media-player-response",
+        correlationId: command.correlationId,
+        success: false,
+        error: chrome.runtime.lastError.message,
+      });
+      return;
+    }
+    // Forward the content script response to WS hub
+    if (response) {
+      sendToWsHub(response);
+    }
+  });
+}
+
+/**
+ * Send a message to the WS hub
+ */
+function sendToWsHub(message) {
+  if (mediaPlayerWs && mediaPlayerWs.readyState === WebSocket.OPEN) {
+    mediaPlayerWs.send(JSON.stringify(message));
+  }
+}
+
+/**
+ * Listen for messages from content scripts (register + status broadcasts)
+ */
+chrome.runtime.onMessage.addListener((message, sender, _sendResponse) => {
+  if (!sender.tab?.id) return;
+
+  if (message.type === "media-player-register") {
+    const { driverId } = message;
+    driverTabs.set(driverId, sender.tab.id);
+    console.log(`[MediaPlayer BG] Driver "${driverId}" registered from tab ${sender.tab.id}`);
+
+    // Forward registration to WS hub
+    sendToWsHub(message);
+    // Ensure WS connection is active
+    connectMediaPlayerWs();
+  }
+
+  if (message.type === "media-player-status") {
+    // Update tab mapping (tab might have navigated)
+    driverTabs.set(message.driverId, sender.tab.id);
+    // Forward status to WS hub
+    sendToWsHub(message);
+  }
+});
+
+// Clean up driver mapping when tab is closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+  for (const [driverId, tid] of driverTabs) {
+    if (tid === tabId) {
+      driverTabs.delete(driverId);
+      console.log(`[MediaPlayer BG] Driver "${driverId}" tab closed`);
+      sendToWsHub({
+        type: "media-player-driver-event",
+        event: "disconnected",
+        driverId,
+      });
+    }
+  }
+});
+
+// Start WS connection on extension load
+connectMediaPlayerWs();

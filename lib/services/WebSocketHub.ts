@@ -36,7 +36,8 @@ export class WebSocketHub {
   private startAttempted: boolean;
   private onPresenterJoinCallback?: (clientId: string, role: PresenterRole) => void;
   private onAckCallback?: (ack: { eventId: string; channel: string; success: boolean; error?: string }) => void;
-  private onClientDisconnectCallback?: (clientId: string, channels: Set<string>) => void;
+  private onClientDisconnectCallbacks: Array<(clientId: string, channels: Set<string>) => void> = [];
+  private onMediaPlayerCallback?: (clientId: string, message: Record<string, unknown>) => void;
 
   private constructor() {
     this.wss = null;
@@ -255,6 +256,14 @@ export class WebSocketHub {
           this.updatePresenceActivity(clientId);
           break;
 
+        case "media-player-register":
+        case "media-player-response":
+        case "media-player-status":
+          if (this.onMediaPlayerCallback) {
+            this.onMediaPlayerCallback(clientId, message);
+          }
+          break;
+
         default:
           this.logger.warn(`Unknown message type: ${message.type}`);
       }
@@ -346,10 +355,11 @@ export class WebSocketHub {
   }
 
   /**
-   * Set callback for client disconnect events (used by ChannelManager to clear orphaned pending acks)
+   * Add callback for client disconnect events.
+   * Multiple callbacks can be registered (used by ChannelManager, MediaPlayerManager, etc.)
    */
   setOnClientDisconnectCallback(callback: (clientId: string, channels: Set<string>) => void): void {
-    this.onClientDisconnectCallback = callback;
+    this.onClientDisconnectCallbacks.push(callback);
   }
 
   /**
@@ -357,6 +367,14 @@ export class WebSocketHub {
    */
   setOnPresenterJoinCallback(callback: (clientId: string, role: PresenterRole) => void): void {
     this.onPresenterJoinCallback = callback;
+  }
+
+  /**
+   * Set callback for media player messages (register, response, status)
+   * Used by MediaPlayerManager to handle driver communication.
+   */
+  setOnMediaPlayerCallback(callback: (clientId: string, message: Record<string, unknown>) => void): void {
+    this.onMediaPlayerCallback = callback;
   }
 
   /**
@@ -485,9 +503,13 @@ export class WebSocketHub {
     const client = this.clients.get(clientId);
     if (!client) return;
 
-    // Notify ChannelManager to clear orphaned pending acks before removing the client
-    if (this.onClientDisconnectCallback) {
-      this.onClientDisconnectCallback(clientId, client.channels);
+    // Notify all registered disconnect listeners (ChannelManager, MediaPlayerManager, etc.)
+    for (const callback of this.onClientDisconnectCallbacks) {
+      try {
+        callback(clientId, client.channels);
+      } catch (error) {
+        this.logger.error("Error in client disconnect callback", error);
+      }
     }
 
     if (client.isPresenter) {
