@@ -10,13 +10,18 @@ import { Logger } from "../utils/Logger";
 import { WebSocketHub } from "./WebSocketHub";
 import { MEDIA_PLAYER } from "../config/Constants";
 import type {
-  MediaPlayerDriverId,
   MediaPlayerAction,
   MediaPlayerStatus,
   MediaPlayerCommand,
   MediaPlayerDashboardEvent,
 } from "../models/MediaPlayer";
-import { MEDIA_PLAYER_CHANNEL } from "../models/MediaPlayer";
+import {
+  MediaPlayerDriverId,
+  MediaPlayerRegisterSchema,
+  MediaPlayerResponseSchema,
+  MediaPlayerStatusBroadcastSchema,
+  MEDIA_PLAYER_CHANNEL,
+} from "../models/MediaPlayer";
 
 interface PendingCommand {
   resolve: (result: { success: boolean; data?: unknown; error?: string }) => void;
@@ -140,12 +145,26 @@ export class MediaPlayerManager {
   }
 
   /**
+   * Clean up pending commands and driver state.
+   * Called during backend shutdown.
+   */
+  shutdown(): void {
+    for (const [, pending] of this.pendingCommands) {
+      clearTimeout(pending.timer);
+      pending.resolve({ success: false, error: "Server shutting down" });
+    }
+    this.pendingCommands.clear();
+    this.drivers.clear();
+    this.logger.info("MediaPlayerManager shut down");
+  }
+
+  /**
    * Handle incoming WS messages from Chrome extension.
    */
   private handleMessage(clientId: string, message: Record<string, unknown>): void {
     switch (message.type) {
       case "media-player-register":
-        this.handleRegister(clientId, message.driverId as MediaPlayerDriverId);
+        this.handleRegister(clientId, message);
         break;
 
       case "media-player-response":
@@ -156,12 +175,23 @@ export class MediaPlayerManager {
         this.handleStatusUpdate(message);
         break;
 
+      case "media-player-driver-event":
+        this.handleDriverEvent(message);
+        break;
+
       default:
         this.logger.warn(`Unknown media player message type: ${message.type}`);
     }
   }
 
-  private handleRegister(clientId: string, driverId: MediaPlayerDriverId): void {
+  private handleRegister(clientId: string, message: Record<string, unknown>): void {
+    const parsed = MediaPlayerRegisterSchema.safeParse(message);
+    if (!parsed.success) {
+      this.logger.warn("Invalid register message", parsed.error.message);
+      return;
+    }
+
+    const { driverId } = parsed.data;
     this.drivers.set(driverId, {
       driverId,
       clientId,
@@ -178,7 +208,13 @@ export class MediaPlayerManager {
   }
 
   private handleResponse(message: Record<string, unknown>): void {
-    const correlationId = message.correlationId as string;
+    const parsed = MediaPlayerResponseSchema.safeParse(message);
+    if (!parsed.success) {
+      this.logger.warn("Invalid response message", parsed.error.message);
+      return;
+    }
+
+    const { correlationId, success, data, error } = parsed.data;
     const pending = this.pendingCommands.get(correlationId);
     if (!pending) {
       this.logger.warn(`No pending command for correlation ${correlationId}`);
@@ -188,19 +224,30 @@ export class MediaPlayerManager {
     clearTimeout(pending.timer);
     this.pendingCommands.delete(correlationId);
 
-    pending.resolve({
-      success: message.success as boolean,
-      data: message.data,
-      error: message.error as string | undefined,
-    });
+    pending.resolve({ success, data, error });
   }
 
   private handleStatusUpdate(message: Record<string, unknown>): void {
-    const driverId = message.driverId as MediaPlayerDriverId;
-    const status = message.status as MediaPlayerStatus;
+    const parsed = MediaPlayerStatusBroadcastSchema.safeParse(message);
+    if (!parsed.success) {
+      this.logger.warn("Invalid status message", parsed.error.message);
+      return;
+    }
 
+    const { driverId, status } = parsed.data;
     const driver = this.drivers.get(driverId);
     if (driver) {
+      // Skip broadcast if status hasn't changed
+      const prev = driver.lastStatus;
+      if (prev &&
+        prev.track === status.track &&
+        prev.artist === status.artist &&
+        prev.current === status.current &&
+        prev.total === status.total &&
+        prev.playing === status.playing
+      ) {
+        return;
+      }
       driver.lastStatus = status;
     }
 
@@ -209,6 +256,20 @@ export class MediaPlayerManager {
       driverId,
       status,
     });
+  }
+
+  private handleDriverEvent(message: Record<string, unknown>): void {
+    const driverId = MediaPlayerDriverId.safeParse(message.driverId);
+    if (!driverId.success) return;
+
+    if (message.event === "disconnected") {
+      this.drivers.delete(driverId.data);
+      this.logger.info(`Driver ${driverId.data} reported disconnected (tab closed)`);
+      this.broadcastToDashboard({
+        type: "disconnected",
+        driverId: driverId.data,
+      });
+    }
   }
 
   private broadcastToDashboard(event: MediaPlayerDashboardEvent): void {

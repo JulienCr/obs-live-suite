@@ -7,11 +7,6 @@
 
 /* global window, document */
 
-const FADE_DURATION_MS = 5000;
-const FADE_STEPS = 60;
-
-let fadeInProgress = false;
-
 function getVideo() {
   return document.querySelector("video");
 }
@@ -23,37 +18,24 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function fadeOutAndStop() {
-  const video = getVideo();
-  if (!video || fadeInProgress) return;
-
-  fadeInProgress = true;
-  const startVolume = video.volume;
-  const stepInterval = FADE_DURATION_MS / FADE_STEPS;
-  let step = 0;
-
-  const timer = setInterval(() => {
-    step++;
-    const t = step / FADE_STEPS;
-    const volume = startVolume * Math.pow(1 - t, 3); // cubic ease-out
-
-    if (step >= FADE_STEPS) {
-      clearInterval(timer);
-      video.volume = 0;
-      video.pause();
-      video.currentTime = 0;
-
-      // Restore volume after pause
-      setTimeout(() => {
-        video.volume = startVolume;
-        fadeInProgress = false;
-      }, 200);
-      return;
+const fadeOutAndStop = window.__createFadeOutHandler(
+  () => {
+    const v = getVideo();
+    return v ? v.volume : 1;
+  },
+  (vol) => {
+    const v = getVideo();
+    if (v) v.volume = vol;
+  },
+  (restoreVolume) => {
+    const v = getVideo();
+    if (v) {
+      v.pause();
+      v.currentTime = 0;
     }
-
-    video.volume = Math.max(0, volume);
-  }, stepInterval);
-}
+    setTimeout(restoreVolume, 200);
+  }
+);
 
 function getStatus() {
   const video = getVideo();

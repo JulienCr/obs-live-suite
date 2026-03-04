@@ -11,7 +11,50 @@
 
 /* global chrome */
 
+// Shared constants — keep in sync with MEDIA_PLAYER in lib/config/Constants.ts
 const STATUS_POLL_INTERVAL_MS = 2000;
+const FADEOUT_DURATION_MS = 5000;
+const FADEOUT_STEPS = 60;
+
+/**
+ * Create a reusable fadeout handler.
+ * Drives volume from current level to 0 using a cubic ease-out curve,
+ * then calls onComplete which receives a restoreVolume callback.
+ *
+ * @param {() => number} getVolume - Returns current volume (0..1)
+ * @param {(v: number) => void} setVolume - Sets volume
+ * @param {(restore: () => void) => void} onComplete - Called after fade finishes;
+ *   call restore() to reset volume to its original value.
+ * @returns {() => void} fadeout function
+ */
+function createFadeOutHandler(getVolume, setVolume, onComplete) {
+  let fadeInProgress = false;
+  return function fadeOutAndStop() {
+    if (fadeInProgress) return;
+    fadeInProgress = true;
+    const startVolume = getVolume();
+    const stepInterval = FADEOUT_DURATION_MS / FADEOUT_STEPS;
+    let step = 0;
+
+    const timer = setInterval(() => {
+      step++;
+      const t = step / FADEOUT_STEPS;
+      const volume = startVolume * Math.pow(1 - t, 3); // cubic ease-out
+
+      if (step >= FADEOUT_STEPS) {
+        clearInterval(timer);
+        setVolume(0);
+        onComplete(() => {
+          setVolume(startVolume);
+          fadeInProgress = false;
+        });
+        return;
+      }
+
+      setVolume(Math.max(0, volume));
+    }, stepInterval);
+  };
+}
 
 /**
  * Initialize a media player driver.
@@ -110,3 +153,5 @@ function initDriver(driverId, handlers) {
 // Export for use by driver scripts (loaded as content_scripts in sequence)
 // eslint-disable-next-line no-unused-vars
 window.__initMediaPlayerDriver = initDriver;
+// eslint-disable-next-line no-unused-vars
+window.__createFadeOutHandler = createFadeOutHandler;

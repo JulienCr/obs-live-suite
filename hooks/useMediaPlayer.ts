@@ -33,7 +33,7 @@ export function useMediaPlayer(driverId: MediaPlayerDriverId): UseMediaPlayerRet
       switch (data.type) {
         case "status":
           setStatus(data.status);
-          if (!connected) setConnected(true);
+          setConnected(true);
           break;
         case "connected":
           setConnected(true);
@@ -44,7 +44,7 @@ export function useMediaPlayer(driverId: MediaPlayerDriverId): UseMediaPlayerRet
           break;
       }
     },
-    [driverId, connected]
+    [driverId]
   );
 
   const { isConnected: wsConnected } = useWebSocketChannel<MediaPlayerDashboardEvent>(

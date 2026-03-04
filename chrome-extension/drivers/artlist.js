@@ -25,15 +25,10 @@ const FALLBACK_PATTERNS = {
   prev: ["prev", "previous"],
 };
 
-const FADE_DURATION_MS = 5000;
-const FADE_STEPS = 60;
-
 const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
   HTMLInputElement.prototype,
   "value"
 ).set;
-
-let fadeInProgress = false;
 
 function findElement(action) {
   const el = document.querySelector(SELECTORS[action]);
@@ -71,40 +66,24 @@ function seekToStart() {
   canvas.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: x, clientY: y }));
 }
 
-function fadeOutAndStop() {
-  const input = document.querySelector(SELECTORS.volume);
-  if (!input || fadeInProgress) return;
-
-  fadeInProgress = true;
-  const startVolume = parseFloat(input.value) || 1;
-  const stepInterval = FADE_DURATION_MS / FADE_STEPS;
-  let step = 0;
-
-  const timer = setInterval(() => {
-    step++;
-    const t = step / FADE_STEPS;
-    const volume = startVolume * Math.pow(1 - t, 3); // cubic ease-out
-
-    if (step >= FADE_STEPS) {
-      clearInterval(timer);
-      setVolume(input, 0);
-      seekToStart();
-
-      setTimeout(() => {
-        const playBtn = findElement("play");
-        if (playBtn) playBtn.click();
-      }, 100);
-
-      setTimeout(() => {
-        setVolume(input, startVolume);
-        fadeInProgress = false;
-      }, 300);
-      return;
-    }
-
-    setVolume(input, Math.max(0, volume));
-  }, stepInterval);
-}
+const fadeOutAndStop = window.__createFadeOutHandler(
+  () => {
+    const input = document.querySelector(SELECTORS.volume);
+    return input ? parseFloat(input.value) || 1 : 1;
+  },
+  (v) => {
+    const input = document.querySelector(SELECTORS.volume);
+    if (input) setVolume(input, v);
+  },
+  (restoreVolume) => {
+    seekToStart();
+    setTimeout(() => {
+      const playBtn = findElement("play");
+      if (playBtn) playBtn.click();
+    }, 100);
+    setTimeout(restoreVolume, 300);
+  }
+);
 
 function stopAndReset() {
   const muteBtn = document.querySelector(SELECTORS.mute);
