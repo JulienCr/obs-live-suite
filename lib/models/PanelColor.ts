@@ -1,28 +1,6 @@
 import { z } from "zod";
 
 /**
- * Panel IDs for the dashboard dockview panels
- */
-export const PANEL_IDS = [
-  "lowerThird",
-  "countdown",
-  "guests",
-  "poster",
-  "macros",
-  "eventLog",
-  "cueComposer",
-  "presenceStatus",
-  "regieInternalChat",
-  "regieInternalChatView",
-  "regiePublicChat",
-  "twitch",
-  "chatMessages",
-  "textPresets",
-] as const;
-
-export type PanelId = (typeof PANEL_IDS)[number];
-
-/**
  * Color schemes available for panel customization
  */
 export const COLOR_SCHEMES = [
@@ -59,7 +37,7 @@ export const COLOR_SCHEME_DISPLAY_NAMES: Record<ColorScheme, string> = {
  */
 export const panelColorSchema = z.object({
   id: z.string().uuid(),
-  panelId: z.enum(PANEL_IDS),
+  panelId: z.string().min(1),
   scheme: z.enum(COLOR_SCHEMES).default("neutral"),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -76,22 +54,3 @@ export const panelColorUpdateSchema = z.object({
 
 export type PanelColorUpdate = z.infer<typeof panelColorUpdateSchema>;
 
-/**
- * Panel display names for UI
- */
-export const PANEL_DISPLAY_NAMES: Record<PanelId, string> = {
-  lowerThird: "Lower Third",
-  countdown: "Countdown",
-  guests: "Guests",
-  poster: "Poster",
-  macros: "Macros",
-  eventLog: "Event Log",
-  cueComposer: "Cue Composer",
-  presenceStatus: "Presence Status",
-  regieInternalChat: "Regie Internal Chat",
-  regieInternalChatView: "Regie Internal Chat View",
-  regiePublicChat: "Regie Public Chat",
-  twitch: "Twitch",
-  chatMessages: "Chat Messages",
-  textPresets: "Text Presets",
-};

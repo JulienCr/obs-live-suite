@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/utils/ClientFetch";
 import type { DbWorkspaceSummary, DbWorkspace } from "@/lib/models/Database";
-import type { PanelId, ColorScheme } from "@/lib/models/PanelColor";
-import { PANEL_IDS, COLOR_SCHEMES } from "@/lib/models/PanelColor";
+import type { ColorScheme } from "@/lib/models/PanelColor";
+import { COLOR_SCHEMES } from "@/lib/models/PanelColor";
 import { usePanelColorsStore } from "./panelColorsStore";
 
 const LAYOUT_KEY = "obs-live-suite-dockview-layout";
@@ -106,11 +106,8 @@ export const useWorkspacesStore = create<WorkspacesState>((set, get) => ({
       for (const [panelId, scheme] of Object.entries(
         workspacePanelColors
       )) {
-        if (
-          (PANEL_IDS as readonly string[]).includes(panelId) &&
-          (COLOR_SCHEMES as readonly string[]).includes(scheme)
-        ) {
-          await setScheme(panelId as PanelId, scheme as ColorScheme);
+        if ((COLOR_SCHEMES as readonly string[]).includes(scheme)) {
+          await setScheme(panelId, scheme as ColorScheme);
         }
       }
 

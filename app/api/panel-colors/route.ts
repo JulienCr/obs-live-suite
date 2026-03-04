@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PanelColorRepository } from "@/lib/repositories/PanelColorRepository";
-import { PANEL_IDS, COLOR_SCHEMES } from "@/lib/models/PanelColor";
+import { COLOR_SCHEMES } from "@/lib/models/PanelColor";
 
 /**
  * GET all panel colors
@@ -29,9 +29,9 @@ export async function POST(request: NextRequest) {
     const { panelId, scheme } = body;
 
     // Validate panelId
-    if (!panelId || !PANEL_IDS.includes(panelId)) {
+    if (typeof panelId !== "string" || panelId.length === 0) {
       return NextResponse.json(
-        { error: `Invalid panelId. Must be one of: ${PANEL_IDS.join(", ")}` },
+        { error: "panelId must be a non-empty string" },
         { status: 400 }
       );
     }

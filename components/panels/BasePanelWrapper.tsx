@@ -3,7 +3,7 @@
 import { PanelColorMenu } from "@/components/shell/PanelColorMenu";
 import { usePanelColorsStore } from "@/lib/stores";
 import type { BasePanelWrapperProps } from "@/lib/panels/types";
-import type { PanelId } from "@/lib/models/PanelColor";
+
 
 /**
  * Unified wrapper for all panel types.
@@ -55,7 +55,7 @@ export function BasePanelWrapper({
 
   if (showColorMenu) {
     return (
-      <PanelColorMenu panelId={config.id as PanelId}>{content}</PanelColorMenu>
+      <PanelColorMenu panelId={config.id}>{content}</PanelColorMenu>
     );
   }
 

@@ -7,6 +7,7 @@ import {
   themeAbyss as themeDark,
   themeLight,
 } from "dockview-react";
+import { PanelGroupHeader } from "./PanelGroupHeader";
 import { useTheme } from "next-themes";
 // Note: Dockview CSS is imported globally in app/globals.css
 
@@ -33,6 +34,9 @@ import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { useAppMode } from "./AppModeContext";
 import type { ColorScheme } from "@/lib/models/PanelColor";
+
+const customThemeDark = { ...themeDark, gap: 5 };
+const customThemeLight = { ...themeLight, gap: 5 };
 
 const LAYOUT_KEY = "obs-live-suite-dockview-layout";
 const PRESET_KEY = "obs-live-suite-layout-preset";
@@ -372,14 +376,15 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
       <StoreWorkspaceSaveDialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen} />
       <LayoutPresetsProvider applyPreset={applyPreset}>
         <DockviewContext.Provider value={dockviewContextValue}>
-          <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--topbar-height))", width: "100%", display: "flex" }}>
+          <div style={{ height: isFullscreenMode ? "100vh" : "calc(100vh - var(--topbar-height))", width: "100%", display: "flex", padding: 5 }}>
             <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
               <DockviewReact
                 components={components}
                 tabComponents={tabComponents}
                 defaultTabComponent={PanelTab}
+                prefixHeaderActionsComponent={PanelGroupHeader}
                 onReady={onReady}
-                theme={!mounted || theme === "dark" ? themeDark : themeLight}
+                theme={!mounted || theme === "dark" ? customThemeDark : customThemeLight}
               />
             </div>
           </div>

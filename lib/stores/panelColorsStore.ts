@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { PanelId, ColorScheme } from "@/lib/models/PanelColor";
+import type { ColorScheme } from "@/lib/models/PanelColor";
 import { apiGet, apiPost, apiDelete } from "@/lib/utils/ClientFetch";
 
 interface PanelColorEntry {
@@ -14,8 +14,8 @@ interface PanelColorsState {
   // Actions
   hydrate: (colors: Record<string, PanelColorEntry>) => void;
   fetchColors: () => Promise<void>;
-  setScheme: (panelId: PanelId, scheme: ColorScheme) => Promise<void>;
-  resetScheme: (panelId: PanelId) => Promise<void>;
+  setScheme: (panelId: string, scheme: ColorScheme) => Promise<void>;
+  resetScheme: (panelId: string) => Promise<void>;
 }
 
 export const usePanelColorsStore = create<PanelColorsState>((set, get) => ({
@@ -47,7 +47,7 @@ export const usePanelColorsStore = create<PanelColorsState>((set, get) => ({
     }
   },
 
-  setScheme: async (panelId: PanelId, scheme: ColorScheme) => {
+  setScheme: async (panelId: string, scheme: ColorScheme) => {
     try {
       const data = await apiPost<{ panelColor: { scheme: ColorScheme } }>(
         "/api/panel-colors",
@@ -64,7 +64,7 @@ export const usePanelColorsStore = create<PanelColorsState>((set, get) => ({
     }
   },
 
-  resetScheme: async (panelId: PanelId) => {
+  resetScheme: async (panelId: string) => {
     try {
       await apiDelete(`/api/panel-colors/${panelId}`);
       set((state) => {

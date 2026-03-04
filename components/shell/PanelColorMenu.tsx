@@ -14,8 +14,8 @@ import {
   ContextMenuRadioItem,
 } from "@/components/ui/context-menu";
 import { usePanelColorsStore } from "@/lib/stores";
-import type { PanelId, ColorScheme } from "@/lib/models/PanelColor";
-import { PANEL_DISPLAY_NAMES, COLOR_SCHEMES, COLOR_SCHEME_DISPLAY_NAMES } from "@/lib/models/PanelColor";
+import type { ColorScheme } from "@/lib/models/PanelColor";
+import { COLOR_SCHEMES, COLOR_SCHEME_DISPLAY_NAMES } from "@/lib/models/PanelColor";
 
 /**
  * Hardcoded preview colors for each scheme
@@ -82,7 +82,7 @@ function SchemePreview({ scheme, isDark }: { scheme: ColorScheme; isDark: boolea
 }
 
 interface PanelColorMenuProps {
-  panelId: PanelId;
+  panelId: string;
   children: ReactNode;
 }
 
@@ -92,7 +92,7 @@ export function PanelColorMenu({ panelId, children }: PanelColorMenuProps) {
   const setScheme = usePanelColorsStore((s) => s.setScheme);
   const resetScheme = usePanelColorsStore((s) => s.resetScheme);
   const currentScheme = colors[panelId]?.scheme ?? "neutral";
-  const displayName = PANEL_DISPLAY_NAMES[panelId] || panelId;
+  const displayName = panelId;
   const isDark = theme === "dark";
 
   const handleSchemeChange = useCallback((scheme: string) => {

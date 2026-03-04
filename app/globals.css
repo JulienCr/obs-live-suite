@@ -310,15 +310,38 @@
   transition: background-color 0.2s ease;
 }
 
-/* Dockview tabs container - pure white/black background */
+/* =============================================================================
+   Dockview Dashboard Styling
+   - Compact 28px header with muted background
+   - Chip/segmented-control style tabs
+   - 4px colored left border per group
+   - 5px gap between panels (via theme config)
+   ============================================================================= */
+
+/* Reduced header height (override theme-scoped variable) */
 .dv-tabs-and-actions-container {
-  background-color: white !important;
-}
-.dark .dv-tabs-and-actions-container {
-  background-color: black !important;
+  height: 25px !important;
 }
 
-/* Dockview tab styling - remove padding and make transparent */
+/* Tabs container - muted background */
+.dv-tabs-and-actions-container {
+  background-color: hsl(var(--muted)) !important;
+}
+
+/* Vibrant left border on each group */
+.dv-groupview {
+  border-left: 4px solid hsl(var(--primary) / 0.4);
+}
+.dv-groupview.panel-scheme-red { border-left-color: hsl(0 65% 50%); }
+.dv-groupview.panel-scheme-blue { border-left-color: hsl(210 65% 50%); }
+.dv-groupview.panel-scheme-green { border-left-color: hsl(140 55% 42%); }
+.dv-groupview.panel-scheme-yellow { border-left-color: hsl(45 80% 48%); }
+.dv-groupview.panel-scheme-purple { border-left-color: hsl(270 55% 52%); }
+.dv-groupview.panel-scheme-orange { border-left-color: hsl(25 80% 50%); }
+.dv-groupview.panel-scheme-pink { border-left-color: hsl(330 60% 52%); }
+.dv-groupview.panel-scheme-cyan { border-left-color: hsl(195 60% 45%); }
+
+/* Tab base styling */
 .dv-tab {
   background: transparent !important;
   padding: 0 !important;
@@ -336,15 +359,29 @@
   display: flex;
   align-items: center;
   padding: 0 8px;
+  font-size: 11px;
   background-color: hsl(var(--muted));
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-/* Active tab styling */
+/* Active/hovered tab */
 .dv-default-tab[data-panel-id].dv-active-tab,
 .dv-default-tab[data-panel-id]:hover {
   background-color: hsl(var(--accent));
 }
+
+/* 2px colored bottom border only on grouped tabs (2+ tabs) */
+.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id] {
+  border-bottom: 2px solid hsl(var(--primary) / 0.4);
+}
+.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-red    { border-bottom-color: hsl(0 65% 50%); }
+.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-blue   { border-bottom-color: hsl(210 65% 50%); }
+.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-green  { border-bottom-color: hsl(140 55% 42%); }
+.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-yellow { border-bottom-color: hsl(45 80% 48%); }
+.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-purple { border-bottom-color: hsl(270 55% 52%); }
+.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-orange { border-bottom-color: hsl(25 80% 50%); }
+.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-pink   { border-bottom-color: hsl(330 60% 52%); }
+.dv-tabs-container:has(.dv-tab ~ .dv-tab) .dv-default-tab[data-panel-id].panel-scheme-cyan   { border-bottom-color: hsl(195 60% 45%); }
 
 /* Form elements inside colored panels should use --card for contrast */
 [class*="panel-scheme-"] input,
