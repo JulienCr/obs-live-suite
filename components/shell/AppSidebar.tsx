@@ -68,6 +68,9 @@ const SIDEBAR_WIDTH_EXPANDED = "var(--sidebar-width-expanded)";
 
 const TRUNCATE_CLASS = "whitespace-nowrap overflow-hidden text-ellipsis";
 
+/** Border class that stays visible even when --border matches --muted */
+const SIDEBAR_BORDER = "border-foreground/15";
+
 // ---------------------------------------------------------------------------
 // LIVE mode panels
 // ---------------------------------------------------------------------------
@@ -357,8 +360,16 @@ export function AppSidebar() {
 
   return (
     <>
+      {/* When not pinned, reserve collapsed width in flow; the aside overlays on hover */}
+      {!isPinned && (
+        <div className="shrink-0 h-full" style={{ width: SIDEBAR_WIDTH_COLLAPSED }} />
+      )}
       <aside
-        className="relative border-r bg-muted flex flex-col h-full transition-all duration-200 overflow-hidden"
+        className={cn(
+          `border-r ${SIDEBAR_BORDER} bg-muted flex flex-col h-full transition-all duration-200 overflow-hidden`,
+          isPinned ? "relative" : "absolute left-0 top-0 z-40",
+          !isPinned && isHovered && "shadow-[4px_0_12px_-2px_rgba(0,0,0,0.15)] dark:shadow-[4px_0_12px_-2px_rgba(0,0,0,0.5)]"
+        )}
         style={{ width: isExpanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -390,7 +401,7 @@ export function AppSidebar() {
           </div>
 
           {/* Separator */}
-          <div className="border-b my-2" />
+          <div className={cn("border-b my-2", SIDEBAR_BORDER)} />
 
           {/* Connection indicators */}
           <div className="space-y-1">
@@ -425,7 +436,7 @@ export function AppSidebar() {
         </div>
 
         {/* ============================== MODE TOGGLE ============================== */}
-        <div className="shrink-0 border-t border-b px-2 h-9 flex items-center">
+        <div className={cn("shrink-0 border-t border-b px-2 h-9 flex items-center", SIDEBAR_BORDER)}>
           <div className={cn("flex items-center justify-center gap-2 w-full", !isExpanded && "invisible")}>
             <span
               className={cn(
@@ -438,6 +449,7 @@ export function AppSidebar() {
             <Switch
               checked={mode === "ADMIN"}
               onCheckedChange={handleModeToggle}
+              className="data-[state=unchecked]:bg-foreground/20"
             />
             <span
               className={cn(
@@ -467,8 +479,8 @@ export function AppSidebar() {
                     onClick={() => handlePanelToggle(panel.id)}
                     disabled={disabled}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 h-10 transition-colors relative",
-                      disabled && "text-muted-foreground/40 cursor-not-allowed",
+                      "w-full flex items-center gap-3 px-3 h-10 transition-colors relative cursor-pointer",
+                      disabled && "text-muted-foreground/40 !cursor-not-allowed",
                       !disabled && isVisible && "[background-color:hsl(var(--sidebar-accent))] text-accent-foreground",
                       !disabled && !isVisible && "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                     )}
@@ -510,7 +522,7 @@ export function AppSidebar() {
                       </button>
                     ) : (
                       /* When collapsed, show a thin separator between sections */
-                      <div className="border-b my-1" />
+                      <div className={cn("border-b my-1", SIDEBAR_BORDER)} />
                     )}
 
                     {!isCollapsed && (
@@ -525,7 +537,7 @@ export function AppSidebar() {
                               key={item.href}
                               href={item.href}
                               className={cn(
-                                "flex items-center gap-3 px-2 py-2 text-sm rounded-md transition-colors",
+                                "flex items-center gap-3 px-2 py-2 text-sm rounded-md transition-colors cursor-pointer",
                                 active
                                   ? "[background-color:hsl(var(--sidebar-accent))] text-accent-foreground border-l-2 border-primary"
                                   : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
@@ -551,10 +563,10 @@ export function AppSidebar() {
         </nav>
 
         {/* ============================== FOOTER ============================== */}
-        <div className="shrink-0 border-t p-2">
+        <div className={cn("shrink-0 border-t p-2", SIDEBAR_BORDER)}>
           <Link
             href="/help"
-            className="flex items-center gap-3 px-2 py-2 text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground rounded-md transition-colors"
+            className="flex items-center gap-3 px-2 py-2 text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground rounded-md transition-colors cursor-pointer"
             title={isExpanded ? undefined : tItems("helpSupport")}
           >
             <HelpCircle className="w-4 h-4 shrink-0" />
@@ -612,7 +624,7 @@ function OBSStatusIndicator({
   tSidebar: ReturnType<typeof useTranslations>;
 }) {
   const baseClass = cn(
-    "flex items-center h-6 rounded-md",
+    "flex items-center h-6 rounded-md cursor-pointer text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors",
     isExpanded ? "gap-2 px-2" : "justify-center"
   );
 
@@ -620,12 +632,12 @@ function OBSStatusIndicator({
     return (
       <Link
         href="/settings/obs"
-        className={cn(baseClass, "text-sm hover:bg-accent/50 transition-colors")}
+        className={cn(baseClass, "text-sm")}
         title={isExpanded ? undefined : tSidebar("obsDisconnected")}
       >
         <StatusDot color="bg-red-500" />
         {isExpanded && (
-          <span className={cn("text-xs text-muted-foreground", TRUNCATE_CLASS)}>
+          <span className={cn("text-xs", TRUNCATE_CLASS)}>
             {tSidebar("obsDisconnected")}
           </span>
         )}
@@ -635,26 +647,26 @@ function OBSStatusIndicator({
 
   if (isOnAir) {
     return (
-      <div className={baseClass} title={isExpanded ? undefined : tSidebar("onAir")}>
+      <Link href="/settings/obs" className={baseClass} title={isExpanded ? undefined : tSidebar("onAir")}>
         <StatusDot color="bg-red-500" pulse />
         {isExpanded && (
           <span className="text-xs font-bold text-red-500 animate-pulse whitespace-nowrap">
             {tSidebar("onAir")}
           </span>
         )}
-      </div>
+      </Link>
     );
   }
 
   return (
-    <div className={baseClass} title={isExpanded ? undefined : tSidebar("offAir")}>
+    <Link href="/settings/obs" className={baseClass} title={isExpanded ? undefined : tSidebar("offAir")}>
       <StatusDot color="bg-gray-400" />
       {isExpanded && (
-        <span className={cn("text-xs text-muted-foreground", TRUNCATE_CLASS)}>
+        <span className={cn("text-xs", TRUNCATE_CLASS)}>
           {tSidebar("offAir")}
         </span>
       )}
-    </div>
+    </Link>
   );
 }
 
@@ -681,14 +693,14 @@ function ConnectionIndicator({
     <Link
       href={href}
       className={cn(
-        "flex items-center h-6 rounded-md text-sm hover:bg-accent/50 transition-colors",
+        "flex items-center h-6 rounded-md text-sm cursor-pointer text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors",
         isExpanded ? "gap-2 px-2" : "justify-center"
       )}
       title={isExpanded ? undefined : label}
     >
       <StatusDot color={isConnected ? "bg-green-500" : "bg-red-500"} />
       {isExpanded && (
-        <span className={cn("text-xs text-muted-foreground", TRUNCATE_CLASS)}>
+        <span className={cn("text-xs", TRUNCATE_CLASS)}>
           {label}
         </span>
       )}
