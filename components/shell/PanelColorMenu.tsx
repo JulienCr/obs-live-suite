@@ -83,16 +83,16 @@ function SchemePreview({ scheme, isDark }: { scheme: ColorScheme; isDark: boolea
 
 interface PanelColorMenuProps {
   panelId: string;
+  displayName?: string;
   children: ReactNode;
 }
 
-export function PanelColorMenu({ panelId, children }: PanelColorMenuProps) {
+export function PanelColorMenu({ panelId, displayName, children }: PanelColorMenuProps) {
   const { theme } = useTheme();
   const colors = usePanelColorsStore((s) => s.colors);
   const setScheme = usePanelColorsStore((s) => s.setScheme);
   const resetScheme = usePanelColorsStore((s) => s.resetScheme);
   const currentScheme = colors[panelId]?.scheme ?? "neutral";
-  const displayName = panelId;
   const isDark = theme === "dark";
 
   const handleSchemeChange = useCallback((scheme: string) => {
@@ -111,7 +111,7 @@ export function PanelColorMenu({ panelId, children }: PanelColorMenuProps) {
       <ContextMenuContent className="w-48">
         <ContextMenuLabel className="flex items-center gap-2">
           <Palette className="h-4 w-4" />
-          {displayName} Color
+          {displayName ?? panelId} Color
         </ContextMenuLabel>
         <ContextMenuSeparator />
 

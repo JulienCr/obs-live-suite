@@ -15,11 +15,7 @@ import { useWorkspacesStore } from "@/lib/stores";
 import { WorkspaceSaveDialog } from "./WorkspaceSaveDialog";
 import { WorkspaceManagerDialog } from "./WorkspaceManagerDialog";
 
-/** Extra params for panels that need them (e.g. driver ID for media players). */
-const PANEL_PARAMS: Record<string, Record<string, unknown>> = {
-  mediaPlayerArtlist: { driverId: "artlist" },
-  mediaPlayerYoutube: { driverId: "youtube" },
-};
+import { PANEL_PARAMS } from "@/lib/panels/panelParams";
 
 interface Command {
   id: string;
@@ -34,7 +30,6 @@ export function CommandPalette(): React.ReactNode {
   const [managerDialogOpen, setManagerDialogOpen] = useState(false);
   const { api } = useDockview();
   const t = useTranslations("dashboard.commandPalette");
-  const tPanels = useTranslations("dashboard.panels");
 
   const workspacesWorkspaces = useWorkspacesStore((s) => s.workspaces);
   const workspacesResetToDefault = useWorkspacesStore((s) => s.resetToDefault);
@@ -50,9 +45,9 @@ export function CommandPalette(): React.ReactNode {
         return;
       }
 
-      api.addPanel({ id, component, title: tPanels(titleKey), params: PANEL_PARAMS[id] });
+      api.addPanel({ id, component, title: `panels.${titleKey}`, params: PANEL_PARAMS[id] });
     },
-    [api, tPanels]
+    [api]
   );
 
   const COMMANDS: Command[] = useMemo(

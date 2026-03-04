@@ -2,6 +2,8 @@
 
 import { PanelColorMenu } from "@/components/shell/PanelColorMenu";
 import { usePanelColorsStore } from "@/lib/stores";
+import { getPanelSchemeClass } from "@/lib/models/PanelColor";
+import { usePanelTitle } from "@/lib/panels/usePanelTitle";
 import type { BasePanelWrapperProps } from "@/lib/panels/types";
 
 
@@ -44,8 +46,9 @@ export function BasePanelWrapper({
   };
 
   const scheme = usePanelColorsStore((s) => s.colors[config.id]?.scheme);
-  const schemeClass = scheme && scheme !== "neutral" ? `panel-scheme-${scheme}` : "";
+  const schemeClass = getPanelSchemeClass(scheme);
   const combinedClassName = [schemeClass, className].filter(Boolean).join(" ") || undefined;
+  const panelDisplayName = usePanelTitle(`panels.${config.id}`);
 
   const content = (
     <div data-panel-id={config.id} style={containerStyle} className={combinedClassName}>
@@ -55,7 +58,7 @@ export function BasePanelWrapper({
 
   if (showColorMenu) {
     return (
-      <PanelColorMenu panelId={config.id}>{content}</PanelColorMenu>
+      <PanelColorMenu panelId={config.id} displayName={panelDisplayName}>{content}</PanelColorMenu>
     );
   }
 

@@ -97,11 +97,7 @@ const PANELS: PanelItem[] = [
   { id: "mediaPlayerYoutube", icon: Music },
 ];
 
-/** Extra params for panels that need them (e.g. driver ID for media players). */
-const PANEL_PARAMS: Record<string, Record<string, unknown>> = {
-  mediaPlayerArtlist: { driverId: "artlist" },
-  mediaPlayerYoutube: { driverId: "youtube" },
-};
+import { PANEL_PARAMS } from "@/lib/panels/panelParams";
 
 // ---------------------------------------------------------------------------
 // ADMIN mode navigation sections

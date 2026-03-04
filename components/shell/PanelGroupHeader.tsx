@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import type { IDockviewHeaderActionsProps } from "dockview-react";
 import { usePanelColorsStore } from "@/lib/stores";
-import { COLOR_SCHEMES } from "@/lib/models/PanelColor";
+import { COLOR_SCHEMES, getPanelSchemeClass } from "@/lib/models/PanelColor";
 
 /**
  * Prefix header actions component for Dockview groups.
@@ -12,8 +12,7 @@ import { COLOR_SCHEMES } from "@/lib/models/PanelColor";
  */
 export function PanelGroupHeader(props: IDockviewHeaderActionsProps) {
   const panelId = props.activePanel?.id ?? "";
-  const colors = usePanelColorsStore((s) => s.colors);
-  const scheme = colors[panelId]?.scheme ?? "neutral";
+  const scheme = usePanelColorsStore((s) => s.colors[panelId]?.scheme ?? "neutral");
 
   useEffect(() => {
     const el = props.group.element;
@@ -24,13 +23,13 @@ export function PanelGroupHeader(props: IDockviewHeaderActionsProps) {
       if (s !== "neutral") el.classList.remove(`panel-scheme-${s}`);
     }
 
-    const classToAdd = scheme !== "neutral" ? `panel-scheme-${scheme}` : null;
+    const classToAdd = getPanelSchemeClass(scheme) || null;
     if (classToAdd) el.classList.add(classToAdd);
 
     return () => {
       if (classToAdd) el.classList.remove(classToAdd);
     };
-  }, [props.group.element, scheme]);
+  }, [scheme]);
 
   return null;
 }

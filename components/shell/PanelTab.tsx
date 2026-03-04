@@ -2,6 +2,7 @@
 
 import { IDockviewPanelHeaderProps } from "dockview-react";
 import { usePanelColorsStore } from "@/lib/stores";
+import { getPanelSchemeClass } from "@/lib/models/PanelColor";
 import { usePanelTitle } from "@/lib/panels/usePanelTitle";
 import { useDockview } from "./DockviewContext";
 
@@ -15,16 +16,15 @@ import { useDockview } from "./DockviewContext";
  * our color scheme system to work on tabs.
  */
 export function PanelTab(props: IDockviewPanelHeaderProps) {
-  const colors = usePanelColorsStore((s) => s.colors);
   const { savePositionBeforeClose } = useDockview();
   const panelId = props.api.id;
-  const scheme = colors[panelId]?.scheme ?? "neutral";
+  const scheme = usePanelColorsStore((s) => s.colors[panelId]?.scheme);
   const title = usePanelTitle(props.api.title);
 
   return (
     <div
       data-panel-id={panelId}
-      className={`dv-default-tab ${scheme !== "neutral" ? `panel-scheme-${scheme}` : ""}`}
+      className={`dv-default-tab ${getPanelSchemeClass(scheme)}`}
     >
       <span className="dv-default-tab-content">{title}</span>
       <div

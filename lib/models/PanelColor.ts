@@ -54,3 +54,10 @@ export const panelColorUpdateSchema = z.object({
 
 export type PanelColorUpdate = z.infer<typeof panelColorUpdateSchema>;
 
+/**
+ * Returns the CSS class name for a panel color scheme, or empty string for neutral.
+ */
+export function getPanelSchemeClass(scheme: ColorScheme | undefined): string {
+  return scheme && scheme !== "neutral" ? `panel-scheme-${scheme}` : "";
+}
+
