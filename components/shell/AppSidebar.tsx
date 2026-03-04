@@ -63,7 +63,7 @@ const TRUNCATE_CLASS = "whitespace-nowrap overflow-hidden text-ellipsis";
 /** Border class that stays visible even when --border matches --muted */
 const SIDEBAR_BORDER = "border-foreground/15";
 
-import { getSidebarPanels, getPanelParams } from "@/lib/panels/registry";
+import { SIDEBAR_PANELS, getPanelParams, type PanelId } from "@/lib/panels/registry";
 
 // ---------------------------------------------------------------------------
 // ADMIN mode navigation sections
@@ -236,7 +236,7 @@ export function AppSidebar() {
   // ---------------------------------------------------------------------------
 
   const handlePanelToggle = useCallback(
-    (panelId: string) => {
+    (panelId: PanelId) => {
       if (!dockviewApi) return;
 
       const panel = dockviewApi.getPanel(panelId);
@@ -268,7 +268,7 @@ export function AppSidebar() {
         component: panelId,
         title: tPanels(panelId),
         position,
-        params: getPanelParams(panelId as import("@/lib/panels/registry").PanelId),
+        params: getPanelParams(panelId),
       });
     },
     [dockviewApi, savePositionBeforeClose, getSavedPosition, tPanels]
@@ -429,7 +429,7 @@ export function AppSidebar() {
           {mode === "LIVE" ? (
             /* LIVE mode: panel toggles */
             <div>
-              {getSidebarPanels().map((panel) => {
+              {SIDEBAR_PANELS.map((panel) => {
                 const Icon = panel.icon;
                 const isVisible = isPanelVisible(panel.id);
                 const label = tPanels(panel.id);

@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 import { useMediaPlayer } from "@/hooks/useMediaPlayer";
-import { BasePanelWrapper, type PanelConfig, type PanelId } from "@/components/panels";
+import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import type { MediaPlayerDriverId, MediaPlayerAction } from "@/lib/models/MediaPlayer";
@@ -29,7 +29,7 @@ import type { MediaPlayerDriverId, MediaPlayerAction } from "@/lib/models/MediaP
 export function MediaPlayerPanel(props: IDockviewPanelProps<{ driverId: MediaPlayerDriverId }>) {
   const driverId = props.params?.driverId ?? "artlist";
   const panelId = props.api?.id ?? `mediaPlayer-${driverId}`;
-  const config: PanelConfig = { id: panelId as PanelId, context: "dashboard" };
+  const config: PanelConfig = { id: panelId, context: "dashboard" };
 
   const { connected, status, wsConnected } = useMediaPlayer(driverId);
   const { toast } = useToast();

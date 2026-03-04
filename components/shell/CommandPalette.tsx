@@ -15,7 +15,7 @@ import { useWorkspacesStore } from "@/lib/stores";
 import { WorkspaceSaveDialog } from "./WorkspaceSaveDialog";
 import { WorkspaceManagerDialog } from "./WorkspaceManagerDialog";
 
-import { getCommandPalettePanels, getPanelParams, getCommandPaletteI18nKey } from "@/lib/panels/registry";
+import { COMMAND_PALETTE_PANELS, COMMAND_PALETTE_I18N_KEYS, getPanelParams, type PanelId } from "@/lib/panels/registry";
 
 interface Command {
   id: string;
@@ -36,7 +36,7 @@ export function CommandPalette(): React.ReactNode {
   const workspacesApplyWorkspace = useWorkspacesStore((s) => s.applyWorkspace);
 
   const addPanel = useCallback(
-    (id: string, component: string, titleKey: string): void => {
+    (id: PanelId, component: string, titleKey: string): void => {
       if (!api) return;
 
       const existingPanel = api.getPanel(id);
@@ -45,7 +45,7 @@ export function CommandPalette(): React.ReactNode {
         return;
       }
 
-      api.addPanel({ id, component, title: `panels.${titleKey}`, params: getPanelParams(id as import("@/lib/panels/registry").PanelId) });
+      api.addPanel({ id, component, title: `panels.${titleKey}`, params: getPanelParams(id) });
     },
     [api]
   );
@@ -88,9 +88,9 @@ export function CommandPalette(): React.ReactNode {
         keywords: ["navigate", "quiz", "host", "control"],
         action: () => (window.location.href = "/quiz/host"),
       },
-      ...getCommandPalettePanels().map((p) => ({
+      ...COMMAND_PALETTE_PANELS.map((p) => ({
         id: `panel-${p.id}`,
-        label: t(getCommandPaletteI18nKey(p.id)),
+        label: t(COMMAND_PALETTE_I18N_KEYS[p.id]),
         keywords: p.keywords,
         action: () => addPanel(p.id, p.id, p.id),
       })),

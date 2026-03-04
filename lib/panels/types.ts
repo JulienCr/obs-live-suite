@@ -10,7 +10,7 @@ export type PanelContext = "dashboard" | "presenter" | "settings" | "overlay";
  */
 export interface PanelConfig {
   /** Unique panel identifier */
-  id: PanelId | string;
+  id: PanelId | (string & {});
 
   /** Panel context determines available features */
   context: PanelContext;
