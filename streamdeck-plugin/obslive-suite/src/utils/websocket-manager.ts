@@ -1,6 +1,6 @@
 /**
  * WebSocket Manager for OBS Live Suite Backend
- * Handles real-time countdown updates
+ * Handles real-time countdown and media-player updates
  */
 
 import WebSocket from "ws";
@@ -16,6 +16,16 @@ export interface CountdownState {
 
 type CountdownCallback = (state: CountdownState) => void;
 
+export interface MediaPlayerState {
+	driverId: string;
+	connected: boolean;
+	playing: boolean;
+	track: string;
+	artist: string;
+}
+
+type MediaPlayerCallback = (driverId: string, state: MediaPlayerState) => void;
+
 /**
  * WebSocket Manager for real-time updates
  */
@@ -24,6 +34,8 @@ export class WebSocketManager {
 	private reconnectTimeout: NodeJS.Timeout | null = null;
 	private readonly reconnectDelay = 3000;
 	private countdownCallbacks: Set<CountdownCallback> = new Set();
+	private mediaPlayerCallbacks: Set<MediaPlayerCallback> = new Set();
+	private mediaPlayerStates: Map<string, MediaPlayerState> = new Map();
 	private countdownState: CountdownState = {
 		running: false,
 		paused: false,
@@ -74,6 +86,11 @@ export class WebSocketManager {
 					type: "subscribe",
 					channel: "countdown",
 				});
+				// Subscribe to media-player channel
+				this.send({
+					type: "subscribe",
+					channel: "media-player",
+				});
 			});
 
 			this.ws.on("message", (data: Buffer) => {
@@ -123,23 +140,27 @@ export class WebSocketManager {
 	/**
 	 * Handle incoming WebSocket messages
 	 */
-	private handleMessage(message: { channel?: string; type?: string; payload?: { seconds?: number } }): void {
+	private handleMessage(message: { channel?: string; type?: string; payload?: Record<string, unknown> }): void {
 		if (message.channel === "countdown") {
 			this.updateCountdownState(message);
+		}
+		if (message.channel === "media-player") {
+			this.handleMediaPlayerMessage(message);
 		}
 	}
 
 	/**
 	 * Update countdown state from WebSocket message
 	 */
-	private updateCountdownState(message: { type?: string; payload?: { seconds?: number } }): void {
+	private updateCountdownState(message: { type?: string; payload?: Record<string, unknown> }): void {
 		const { type, payload } = message;
+		const seconds = payload?.seconds as number | undefined;
 
 		switch (type) {
 			case "set":
-				if (payload?.seconds !== undefined) {
-					this.countdownState.seconds = payload.seconds;
-					this.countdownState.totalSeconds = payload.seconds;
+				if (seconds !== undefined) {
+					this.countdownState.seconds = seconds;
+					this.countdownState.totalSeconds = seconds;
 					this.countdownState.running = false;
 					this.countdownState.paused = false;
 				}
@@ -157,8 +178,8 @@ export class WebSocketManager {
 				this.countdownState.paused = false;
 				break;
 			case "tick":
-				if (payload?.seconds !== undefined) {
-					this.countdownState.seconds = payload.seconds;
+				if (seconds !== undefined) {
+					this.countdownState.seconds = seconds;
 					if (this.countdownState.seconds <= 0) {
 						this.countdownState.running = false;
 					}
@@ -193,6 +214,94 @@ export class WebSocketManager {
 	 */
 	offCountdownUpdate(callback: CountdownCallback): void {
 		this.countdownCallbacks.delete(callback);
+	}
+
+	/**
+	 * Handle incoming media-player channel messages
+	 */
+	private handleMediaPlayerMessage(message: { type?: string; payload?: Record<string, unknown> }): void {
+		const { type, payload } = message;
+		const driverId = payload?.driverId as string | undefined;
+
+		if (!driverId) return;
+
+		switch (type) {
+			case "status": {
+				const existing = this.mediaPlayerStates.get(driverId);
+				const state: MediaPlayerState = {
+					driverId,
+					connected: existing?.connected ?? true,
+					playing: (payload?.playing as boolean) ?? false,
+					track: (payload?.track as string) ?? "",
+					artist: (payload?.artist as string) ?? "",
+				};
+				this.mediaPlayerStates.set(driverId, state);
+				this.notifyMediaPlayerCallbacks(driverId);
+				break;
+			}
+			case "connected": {
+				const existing = this.mediaPlayerStates.get(driverId);
+				const state: MediaPlayerState = {
+					driverId,
+					connected: true,
+					playing: existing?.playing ?? false,
+					track: existing?.track ?? "",
+					artist: existing?.artist ?? "",
+				};
+				this.mediaPlayerStates.set(driverId, state);
+				this.notifyMediaPlayerCallbacks(driverId);
+				break;
+			}
+			case "disconnected": {
+				const state: MediaPlayerState = {
+					driverId,
+					connected: false,
+					playing: false,
+					track: "",
+					artist: "",
+				};
+				this.mediaPlayerStates.set(driverId, state);
+				this.notifyMediaPlayerCallbacks(driverId);
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Notify all media-player callbacks for a specific driver
+	 */
+	private notifyMediaPlayerCallbacks(driverId: string): void {
+		const state = this.mediaPlayerStates.get(driverId);
+		if (!state) return;
+		this.mediaPlayerCallbacks.forEach((callback) => {
+			callback(driverId, state);
+		});
+	}
+
+	/**
+	 * Register a callback for media-player updates
+	 */
+	onMediaPlayerUpdate(callback: MediaPlayerCallback): void {
+		this.mediaPlayerCallbacks.add(callback);
+		// Immediately call with all existing states
+		this.mediaPlayerStates.forEach((state, driverId) => {
+			callback(driverId, state);
+		});
+	}
+
+	/**
+	 * Unregister a media-player callback
+	 */
+	offMediaPlayerUpdate(callback: MediaPlayerCallback): void {
+		this.mediaPlayerCallbacks.delete(callback);
+	}
+
+	/**
+	 * Get current media-player state for a specific driver
+	 */
+	getMediaPlayerState(driverId: string): MediaPlayerState | undefined {
+		const state = this.mediaPlayerStates.get(driverId);
+		return state ? { ...state } : undefined;
 	}
 
 	/**

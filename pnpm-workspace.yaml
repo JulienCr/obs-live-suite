@@ -1,3 +1,6 @@
+packages:
+  - '.'
+  - 'streamdeck-plugin/obslive-suite'
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@swc/core'

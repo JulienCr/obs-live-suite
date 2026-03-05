@@ -293,6 +293,80 @@
 					"TitleAlignment": "middle"
 				}
 			]
+		},
+		{
+			"Name": "Media Play/Pause",
+			"UUID": "com.julien-cruau.obslive-suite.media-player.play-pause",
+			"Icon": "imgs/actions/media-play-pause/icon",
+			"Tooltip": "Toggle media player play/pause with track info",
+			"PropertyInspectorPath": "ui/media-player-driver.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/media-play-pause/key-off",
+					"TitleAlignment": "bottom"
+				},
+				{
+					"Image": "imgs/actions/media-play-pause/key-on",
+					"TitleAlignment": "bottom"
+				}
+			]
+		},
+		{
+			"Name": "Media Next",
+			"UUID": "com.julien-cruau.obslive-suite.media-player.next",
+			"Icon": "imgs/actions/media-next/icon",
+			"Tooltip": "Skip to next track",
+			"PropertyInspectorPath": "ui/media-player-driver.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/media-next/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Media Previous",
+			"UUID": "com.julien-cruau.obslive-suite.media-player.prev",
+			"Icon": "imgs/actions/media-prev/icon",
+			"Tooltip": "Skip to previous track",
+			"PropertyInspectorPath": "ui/media-player-driver.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/media-prev/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Media Stop",
+			"UUID": "com.julien-cruau.obslive-suite.media-player.stop",
+			"Icon": "imgs/actions/media-stop/icon",
+			"Tooltip": "Stop media playback",
+			"PropertyInspectorPath": "ui/media-player-driver.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/media-stop/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Media Fadeout",
+			"UUID": "com.julien-cruau.obslive-suite.media-player.fadeout",
+			"Icon": "imgs/actions/media-fadeout/icon",
+			"Tooltip": "Fade out media playback",
+			"PropertyInspectorPath": "ui/media-player-driver.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/media-fadeout/key",
+					"TitleAlignment": "middle"
+				}
+			]
 		}
 	]
 }

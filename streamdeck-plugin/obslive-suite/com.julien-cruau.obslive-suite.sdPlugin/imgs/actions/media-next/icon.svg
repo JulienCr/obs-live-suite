@@ -1,0 +1,6 @@
+<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
+  <rect width="144" height="144" fill="#1a202c" rx="8"/>
+  <!-- Next: triangle pointing right + vertical bar -->
+  <polygon points="36,38 36,106 92,72" fill="#a0aec0"/>
+  <rect x="98" y="38" width="14" height="68" rx="3" fill="#a0aec0"/>
+</svg>

@@ -1,0 +1,6 @@
+<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
+  <rect width="144" height="144" fill="#1a202c" rx="8"/>
+  <!-- Pause bars -->
+  <rect x="42" y="36" width="20" height="72" rx="4" fill="#a0aec0"/>
+  <rect x="82" y="36" width="20" height="72" rx="4" fill="#a0aec0"/>
+</svg>

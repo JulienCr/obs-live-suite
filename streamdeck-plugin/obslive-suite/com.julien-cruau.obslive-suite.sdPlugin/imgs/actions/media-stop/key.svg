@@ -1,0 +1,5 @@
+<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
+  <rect width="144" height="144" fill="#1a202c" rx="8"/>
+  <!-- Stop square -->
+  <rect x="38" y="38" width="68" height="68" rx="6" fill="#a0aec0"/>
+</svg>

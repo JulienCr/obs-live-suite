@@ -1,0 +1,5 @@
+<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
+  <rect width="144" height="144" fill="#1a202c" rx="8"/>
+  <!-- Play triangle -->
+  <polygon points="46,36 46,108 112,72" fill="#a0aec0"/>
+</svg>

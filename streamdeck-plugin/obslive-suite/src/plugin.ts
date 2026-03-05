@@ -27,7 +27,11 @@ import { PanicButton } from "./actions/panic-button";
 import { SetupConnection } from "./actions/setup-connection";
 import { GuestSlot } from "./actions/guest-slot";
 import { PosterSlot } from "./actions/poster-slot";
-import { MediaPlayerControl } from "./actions/media-player-control";
+import { MediaPlayerPlayPause } from "./actions/media-player-play-pause";
+import { MediaPlayerNext } from "./actions/media-player-next";
+import { MediaPlayerPrev } from "./actions/media-player-prev";
+import { MediaPlayerStop } from "./actions/media-player-stop";
+import { MediaPlayerFadeout } from "./actions/media-player-fadeout";
 
 // Import WebSocket manager
 import { wsManager } from "./utils/websocket-manager";
@@ -54,9 +58,13 @@ streamDeck.actions.registerAction(new PanicButton());
 streamDeck.actions.registerAction(new SetupConnection());
 streamDeck.actions.registerAction(new GuestSlot());
 streamDeck.actions.registerAction(new PosterSlot());
-streamDeck.actions.registerAction(new MediaPlayerControl());
+streamDeck.actions.registerAction(new MediaPlayerPlayPause());
+streamDeck.actions.registerAction(new MediaPlayerNext());
+streamDeck.actions.registerAction(new MediaPlayerPrev());
+streamDeck.actions.registerAction(new MediaPlayerStop());
+streamDeck.actions.registerAction(new MediaPlayerFadeout());
 
-streamDeck.logger.info("OBS Live Suite plugin loaded - 19 actions registered");
+streamDeck.logger.info("OBS Live Suite plugin loaded - 23 actions registered");
 
 // Initialize configuration and connect services
 async function initializePlugin(): Promise<void> {
