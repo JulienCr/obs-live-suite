@@ -31,6 +31,7 @@ const DEFAULT_STATE = (driverId: string): MediaPlayerState => ({
 	playing: false,
 	track: "",
 	artist: "",
+	artworkUrl: "",
 });
 
 type TrackedInstance = {
