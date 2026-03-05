@@ -3,8 +3,8 @@
  * Toggles play/pause and shows track info on the button.
  */
 
-import { action, KeyAction, KeyDownEvent } from "@elgato/streamdeck";
-import { MediaPlayerBase, MediaPlayerActionSettings, resolveDriverId } from "./media-player-base";
+import { action, KeyAction, KeyDownEvent, streamDeck } from "@elgato/streamdeck";
+import { MediaPlayerBase, MediaPlayerActionSettings, MediaPlayerCommand, resolveDriverId } from "./media-player-base";
 import { wsManager, MediaPlayerState } from "../utils/websocket-manager";
 import { generatePlayIcon, generatePauseIcon, getDriverColors } from "../utils/media-player-icons";
 import { truncate } from "../utils/title-helper";
@@ -14,11 +14,12 @@ export class MediaPlayerPlayPause extends MediaPlayerBase {
 	override async onKeyDown(ev: KeyDownEvent<MediaPlayerActionSettings>): Promise<void> {
 		const driverId = resolveDriverId(ev.payload.settings);
 		const state = wsManager.getMediaPlayerState(driverId);
-		const command = state?.playing ? "pause" : "play";
+		const command: MediaPlayerCommand = state?.playing ? "pause" : "play";
 
 		try {
 			await this.sendCommand(driverId, command);
-		} catch {
+		} catch (error) {
+			streamDeck.logger.error(`[MediaPlayer] ${command} failed:`, error);
 			await ev.action.showAlert();
 		}
 	}

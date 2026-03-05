@@ -272,8 +272,8 @@ export class APIClient {
 	/**
 	 * Send a command to a media player driver
 	 */
-	static async mediaPlayerCommand(driverId: string, action: string): Promise<void> {
-		await request(`${getApiConfig().backend}/api/media-player/${driverId}/${action}`, {
+	static async mediaPlayerCommand(driverId: string, command: string): Promise<void> {
+		await request(`${getApiConfig().backend}/api/media-player/${driverId}/${command}`, {
 			method: "POST",
 		});
 	}

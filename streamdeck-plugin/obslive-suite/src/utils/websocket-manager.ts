@@ -239,7 +239,6 @@ export class WebSocketManager {
 				break;
 			case "connected":
 				state = {
-					...existing,
 					driverId,
 					connected: true,
 					playing: existing?.playing ?? false,

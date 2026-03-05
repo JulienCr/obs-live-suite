@@ -8,10 +8,12 @@
  * Actions needing custom behavior (play-pause) override onKeyDown/updateButton.
  */
 
-import { Action, DidReceiveSettingsEvent, KeyAction, KeyDownEvent, SingletonAction, WillAppearEvent, WillDisappearEvent } from "@elgato/streamdeck";
+import { Action, DidReceiveSettingsEvent, KeyAction, KeyDownEvent, SingletonAction, streamDeck, WillAppearEvent, WillDisappearEvent } from "@elgato/streamdeck";
 import { APIClient } from "../utils/api-client";
 import { wsManager, MediaPlayerState } from "../utils/websocket-manager";
 import { getDriverColors, IconGenerator } from "../utils/media-player-icons";
+
+export type MediaPlayerCommand = "play" | "pause" | "stop" | "next" | "prev" | "replay" | "fadeout";
 
 export type MediaPlayerActionSettings = {
 	driverId?: string;
@@ -35,7 +37,7 @@ export abstract class MediaPlayerBase extends SingletonAction<MediaPlayerActionS
 	private instances: Map<string, Action<MediaPlayerActionSettings>> = new Map();
 	private instanceSettings: Map<string, MediaPlayerActionSettings> = new Map();
 
-	protected readonly command?: string;
+	protected readonly command?: MediaPlayerCommand;
 	protected readonly iconGenerator?: IconGenerator;
 
 	constructor() {
@@ -84,12 +86,13 @@ export abstract class MediaPlayerBase extends SingletonAction<MediaPlayerActionS
 		try {
 			await this.sendCommand(driverId, this.command);
 			await ev.action.showOk();
-		} catch {
+		} catch (error) {
+			streamDeck.logger.error(`[MediaPlayer] ${this.command} failed:`, error);
 			await ev.action.showAlert();
 		}
 	}
 
-	protected async sendCommand(driverId: string, command: string): Promise<void> {
+	protected async sendCommand(driverId: string, command: MediaPlayerCommand): Promise<void> {
 		await APIClient.mediaPlayerCommand(driverId, command);
 	}
 
