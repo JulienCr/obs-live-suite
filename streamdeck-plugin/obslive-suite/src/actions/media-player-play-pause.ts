@@ -24,7 +24,6 @@ export class MediaPlayerPlayPause extends MediaPlayerBase {
 
 		try {
 			await this.sendCommand(driverId, command);
-			await ev.action.showOk();
 		} catch (error) {
 			streamDeck.logger.error(`[MediaPlayer] ${command} failed:`, error);
 			await ev.action.showAlert();

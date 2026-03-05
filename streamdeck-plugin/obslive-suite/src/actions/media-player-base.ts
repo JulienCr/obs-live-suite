@@ -91,7 +91,6 @@ export abstract class MediaPlayerBase extends SingletonAction<MediaPlayerActionS
 		const driverId = resolveDriverId(ev.payload.settings);
 		try {
 			await this.sendCommand(driverId, this.command);
-			await ev.action.showOk();
 		} catch (error) {
 			streamDeck.logger.error(`[MediaPlayer] ${this.command} failed:`, error);
 			await ev.action.showAlert();
