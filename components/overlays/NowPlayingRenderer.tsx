@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import {
@@ -19,11 +19,9 @@ interface NowPlayingState {
   driverId: MediaPlayerDriverId | null;
 }
 
-const HIDE_DELAY_MS = 3000;
-
 /**
  * NowPlayingRenderer manages WebSocket connection and state for the now-playing overlay.
- * Shows whichever driver is currently playing; hides after playback stops.
+ * Shows whichever driver is currently playing; hides immediately when playback stops.
  */
 export function NowPlayingRenderer() {
   const [state, setState] = useState<NowPlayingState>({
@@ -34,20 +32,12 @@ export function NowPlayingRenderer() {
     driverId: null,
   });
 
-  const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
-
   const handleMessage = useCallback((data: MediaPlayerDashboardEvent) => {
     switch (data.type) {
       case "status": {
         const { status, driverId } = data;
 
         if (status.playing && status.track) {
-          // Clear any pending hide
-          if (hideTimeout.current) {
-            clearTimeout(hideTimeout.current);
-            hideTimeout.current = undefined;
-          }
-
           setState({
             visible: true,
             artworkUrl: status.artworkUrl,
@@ -56,21 +46,12 @@ export function NowPlayingRenderer() {
             driverId,
           });
         } else if (!status.playing) {
-          // Delay hiding so the card doesn't flicker on brief pauses
-          if (hideTimeout.current) return;
-          hideTimeout.current = setTimeout(() => {
-            setState((prev) => ({ ...prev, visible: false }));
-            hideTimeout.current = undefined;
-          }, HIDE_DELAY_MS);
+          setState((prev) => ({ ...prev, visible: false }));
         }
         break;
       }
 
       case "disconnected":
-        if (hideTimeout.current) {
-          clearTimeout(hideTimeout.current);
-          hideTimeout.current = undefined;
-        }
         setState((prev) =>
           prev.driverId === data.driverId ? { ...prev, visible: false } : prev
         );
