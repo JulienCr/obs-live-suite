@@ -1,6 +1,7 @@
 packages:
   - '.'
   - 'streamdeck-plugin/obslive-suite'
+  - 'mcp-server'
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@swc/core'

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "obs-live-suite": {
+      "command": "cmd",
+      "args": ["/c", "npx", "tsx", "mcp-server/src/stdio.ts"],
+      "env": {}
+    }
+  }
+}
