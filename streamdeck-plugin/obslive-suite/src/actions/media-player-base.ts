@@ -33,19 +33,25 @@ const DEFAULT_STATE = (driverId: string): MediaPlayerState => ({
 	artist: "",
 });
 
+type TrackedInstance = {
+	action: Action<MediaPlayerActionSettings>;
+	settings: MediaPlayerActionSettings;
+};
+
 export abstract class MediaPlayerBase extends SingletonAction<MediaPlayerActionSettings> {
-	private instances: Map<string, Action<MediaPlayerActionSettings>> = new Map();
-	private instanceSettings: Map<string, MediaPlayerActionSettings> = new Map();
+	private instances: Map<string, TrackedInstance> = new Map();
 
 	protected readonly command?: MediaPlayerCommand;
 	protected readonly iconGenerator?: IconGenerator;
+	/** Override to true in subclasses that need live state updates (e.g. play-pause). */
+	protected readonly tracksState: boolean = false;
 
 	constructor() {
 		super();
 		wsManager.onMediaPlayerUpdate((driverId: string, state: MediaPlayerState) => {
-			this.instances.forEach((actionInstance, id) => {
-				const settings = this.instanceSettings.get(id);
-				const instanceDriver = resolveDriverId(settings || {});
+			if (!this.tracksState && this.iconGenerator) return;
+			this.instances.forEach(({ action: actionInstance, settings }) => {
+				const instanceDriver = resolveDriverId(settings);
 				if (instanceDriver === driverId && actionInstance.isKey()) {
 					void this.updateButton(actionInstance, driverId, state);
 				}
@@ -54,8 +60,7 @@ export abstract class MediaPlayerBase extends SingletonAction<MediaPlayerActionS
 	}
 
 	override async onWillAppear(ev: WillAppearEvent<MediaPlayerActionSettings>): Promise<void> {
-		this.instances.set(ev.action.id, ev.action);
-		this.instanceSettings.set(ev.action.id, ev.payload.settings);
+		this.instances.set(ev.action.id, { action: ev.action, settings: ev.payload.settings });
 
 		if (!ev.action.isKey()) return;
 
@@ -66,15 +71,15 @@ export abstract class MediaPlayerBase extends SingletonAction<MediaPlayerActionS
 
 	override onWillDisappear(ev: WillDisappearEvent<MediaPlayerActionSettings>): void {
 		this.instances.delete(ev.action.id);
-		this.instanceSettings.delete(ev.action.id);
 	}
 
 	override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<MediaPlayerActionSettings>): Promise<void> {
-		this.instanceSettings.set(ev.action.id, ev.payload.settings);
+		const existing = this.instances.get(ev.action.id);
+		if (existing) existing.settings = ev.payload.settings;
 
 		const driverId = resolveDriverId(ev.payload.settings);
 		const state = wsManager.getMediaPlayerState(driverId) || DEFAULT_STATE(driverId);
-		const action = this.instances.get(ev.action.id);
+		const action = existing?.action;
 		if (action && action.isKey()) {
 			await this.updateButton(action, driverId, state);
 		}

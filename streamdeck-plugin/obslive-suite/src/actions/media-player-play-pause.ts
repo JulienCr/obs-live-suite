@@ -11,6 +11,8 @@ import { truncate } from "../utils/title-helper";
 
 @action({ UUID: "com.julien-cruau.obslive-suite.media-player.play-pause" })
 export class MediaPlayerPlayPause extends MediaPlayerBase {
+	protected override readonly tracksState = true;
+
 	override async onKeyDown(ev: KeyDownEvent<MediaPlayerActionSettings>): Promise<void> {
 		const driverId = resolveDriverId(ev.payload.settings);
 		const state = wsManager.getMediaPlayerState(driverId);
@@ -18,6 +20,7 @@ export class MediaPlayerPlayPause extends MediaPlayerBase {
 
 		try {
 			await this.sendCommand(driverId, command);
+			await ev.action.showOk();
 		} catch (error) {
 			streamDeck.logger.error(`[MediaPlayer] ${command} failed:`, error);
 			await ev.action.showAlert();
