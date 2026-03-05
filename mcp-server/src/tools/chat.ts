@@ -15,7 +15,7 @@ export function registerChatTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify(input),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('Chat message sent.');
   });
 
@@ -25,7 +25,7 @@ export function registerChatTools(server: McpServer) {
     inputSchema: z.object({}),
   }, async () => {
     const result = await backendFetch('/api/streamerbot-chat/status');
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return jsonResponse(result.data);
   });
 
@@ -35,7 +35,7 @@ export function registerChatTools(server: McpServer) {
     inputSchema: z.object({}),
   }, async () => {
     const result = await backendFetch('/api/streamerbot-chat/history');
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return jsonResponse(result.data);
   });
 }

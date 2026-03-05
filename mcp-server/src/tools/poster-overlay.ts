@@ -24,7 +24,7 @@ export function registerPosterOverlayTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'show', payload }),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('Poster overlay displayed.');
   });
 
@@ -56,7 +56,7 @@ export function registerPosterOverlayTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'play' }),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('Poster video playing.');
   });
 
@@ -69,7 +69,7 @@ export function registerPosterOverlayTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'pause' }),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('Poster video paused.');
   });
 }

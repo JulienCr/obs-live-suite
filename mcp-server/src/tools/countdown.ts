@@ -16,7 +16,7 @@ export function registerCountdownTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'set', payload: input }),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse(`Countdown set to ${input.seconds}s. Use countdown-start to begin.`);
   });
 
@@ -29,7 +29,7 @@ export function registerCountdownTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'start' }),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('Countdown started.');
   });
 
@@ -42,7 +42,7 @@ export function registerCountdownTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'pause' }),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('Countdown paused.');
   });
 
@@ -55,7 +55,7 @@ export function registerCountdownTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'reset' }),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('Countdown reset.');
   });
 
@@ -70,7 +70,7 @@ export function registerCountdownTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'add-time', payload: { seconds } }),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse(`Added ${seconds}s to countdown.`);
   });
 }

@@ -36,7 +36,7 @@ export function registerPosterTools(server: McpServer) {
   }, async ({ enabled }) => {
     const query = enabled !== undefined ? `?enabled=${enabled}` : '';
     const result = await frontendFetch(`/api/assets/posters${query}`);
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return jsonResponse(result.data);
   });
 
@@ -63,7 +63,7 @@ export function registerPosterTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ ...input, fileUrl: resolved.fileUrl }),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return jsonResponse(result.data);
   });
 
@@ -94,7 +94,7 @@ export function registerPosterTools(server: McpServer) {
       method: 'PATCH',
       body: JSON.stringify(fields),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return jsonResponse(result.data);
   });
 
@@ -106,7 +106,7 @@ export function registerPosterTools(server: McpServer) {
     }),
   }, async ({ id }) => {
     const result = await frontendFetch(`/api/assets/posters/${id}`, { method: 'DELETE' });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('Poster deleted successfully.');
   });
 }

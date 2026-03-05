@@ -9,7 +9,7 @@ export function registerClearAllTools(server: McpServer) {
     inputSchema: z.object({}),
   }, async () => {
     const result = await backendFetch('/api/overlays/clear-all', { method: 'POST' });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('All overlays cleared.');
   });
 }

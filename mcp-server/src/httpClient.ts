@@ -54,7 +54,7 @@ async function doFetch<T = unknown>(
   }
 }
 
-export function errorResponse(message: string) {
+export function errorResponse(message = 'Unknown error') {
   return { content: [{ type: 'text' as const, text: `Error: ${message}` }], isError: true as const };
 }
 
@@ -103,6 +103,9 @@ export async function uploadImage(
     }
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     const buffer = await response.arrayBuffer();
+    if (buffer.byteLength > MAX_IMAGE_SIZE) {
+      return { success: false, error: `Image too large (${buffer.byteLength} bytes, max ${MAX_IMAGE_SIZE})`, status: 0 };
+    }
     blob = new Blob([buffer], { type: contentType });
     const ext = contentType.split('/')[1]?.split(';')[0]?.replace('jpeg', 'jpg') || 'jpg';
     filename = `avatar.${ext}`;

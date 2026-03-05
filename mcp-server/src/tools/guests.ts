@@ -38,7 +38,7 @@ export function registerGuestTools(server: McpServer) {
   }, async ({ enabled }) => {
     const query = enabled !== undefined ? `?enabled=${enabled}` : '';
     const result = await frontendFetch(`/api/assets/guests${query}`);
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return jsonResponse(result.data);
   });
 
@@ -62,7 +62,7 @@ export function registerGuestTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify(body),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return jsonResponse(result.data);
   });
 
@@ -87,7 +87,7 @@ export function registerGuestTools(server: McpServer) {
       method: 'PATCH',
       body: JSON.stringify(body),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return jsonResponse(result.data);
   });
 
@@ -99,7 +99,7 @@ export function registerGuestTools(server: McpServer) {
     }),
   }, async ({ id }) => {
     const result = await frontendFetch(`/api/assets/guests/${id}`, { method: 'DELETE' });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('Guest deleted successfully.');
   });
 }

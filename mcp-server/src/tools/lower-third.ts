@@ -20,7 +20,7 @@ export function registerLowerThirdTools(server: McpServer) {
         payload: { contentType: 'text', ...input },
       }),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('Lower third (text) displayed.');
   });
 
@@ -40,7 +40,7 @@ export function registerLowerThirdTools(server: McpServer) {
         payload: { contentType: 'guest', ...input },
       }),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('Lower third (guest) displayed.');
   });
 
@@ -53,7 +53,7 @@ export function registerLowerThirdTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'hide' }),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return textResponse('Lower third hidden.');
   });
 }

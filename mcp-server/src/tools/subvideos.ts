@@ -11,7 +11,7 @@ export function registerSubvideoTools(server: McpServer) {
     }),
   }, async ({ posterId }) => {
     const result = await frontendFetch(`/api/assets/posters/${posterId}/subvideos`);
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return jsonResponse(result.data);
   });
 
@@ -31,7 +31,7 @@ export function registerSubvideoTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify(fields),
     });
-    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    if (!result.success) return errorResponse(result.error);
     return jsonResponse(result.data);
   });
 }

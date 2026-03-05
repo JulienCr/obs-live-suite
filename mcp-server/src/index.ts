@@ -7,14 +7,17 @@ import { MCP_PORT, MCP_HOST, MCP_SERVER_NAME, MCP_SERVER_VERSION } from './confi
 const app = express();
 app.use(express.json());
 
+const LOCAL_IP_RE = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.).*:[0-9]+$/;
+const LOCAL_HOSTNAME_RE = /^https?:\/\/[a-zA-Z][a-zA-Z0-9-]*:[0-9]+$/;
+
 // CORS for local network access
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const isLocalOrigin = origin && (
     origin.startsWith('http://localhost:') ||
     origin.startsWith('https://localhost:') ||
-    /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.).*:[0-9]+$/.test(origin) ||
-    /^https?:\/\/[a-zA-Z][a-zA-Z0-9-]*:[0-9]+$/.test(origin)
+    LOCAL_IP_RE.test(origin) ||
+    LOCAL_HOSTNAME_RE.test(origin)
   );
   if (isLocalOrigin) {
     res.header('Access-Control-Allow-Origin', origin);
@@ -37,7 +40,7 @@ function createConfiguredServer() {
   return server;
 }
 
-// Stateless MCP endpoint
+// Stateless MCP endpoint — new server+transport per request (SDK requirement for stateless mode)
 app.post('/mcp', async (req, res) => {
   const server = createConfiguredServer();
   const transport = new StreamableHTTPServerTransport({
