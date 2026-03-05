@@ -30,7 +30,9 @@
     "test:functional:ui": "node scripts/test-dashboard-ui.js",
     "test:all": "pnpm test && pnpm test:functional && pnpm test:functional:ui",
     "streamdeck:ids": "node scripts/list-streamdeck-ids.js",
-    "backup:appdata": "node scripts/backup-appdata.js"
+    "backup:appdata": "node scripts/backup-appdata.js",
+    "dev:mcp": "cd mcp-server && pnpm dev",
+    "test:mcp": "pnpm --filter obs-live-suite-mcp test"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

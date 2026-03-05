@@ -50,6 +50,12 @@ A comprehensive desktop-first web application for managing live show production 
 - 9+ pre-configured actions (lower third, countdown, poster, quiz, panic)
 - HTTP API fallback for simple integration
 
+### MCP Server (AI Integration)
+- **Model Context Protocol** server for AI-driven live session control
+- 26 tools across 8 domains (guests, posters, overlays, countdown, chat, etc.)
+- Dual transport: **stdio** (Claude Code via `.mcp.json`) and **Streamable HTTP** (port 3004)
+- Auto-detects HTTPS (mkcert) for proxying to frontend/backend
+
 ### Additional Features
 - **i18n**: French (default) and English support (~83% translated)
 - **Wikipedia Integration**: Auto-fetch guest information and summaries
@@ -106,6 +112,7 @@ The server will automatically:
 pnpm dev              # Start frontend + backend (watch mode)
 pnpm dev:frontend     # Start only Next.js dev server
 pnpm dev:backend      # Start only backend server
+pnpm dev:mcp          # Start MCP server (watch mode)
 pnpm build            # Build for production
 pnpm start            # Start production server
 ```
@@ -118,6 +125,7 @@ pnpm test:coverage    # Generate coverage report
 pnpm test:functional  # Run functional overlay tests
 pnpm test:functional:ui  # Run dashboard UI tests
 pnpm test:all         # Run all tests
+pnpm test:mcp         # Run MCP server tests
 ```
 
 ### Code Quality
@@ -234,6 +242,36 @@ Configure webhook to POST to `http://localhost:3002/api/quiz-bot/chat` with:
 - `context` (image + bullets + links)
 - `note` (freeform)
 
+## MCP Server (AI Integration)
+
+The MCP server exposes 26 tools via the [Model Context Protocol](https://modelcontextprotocol.io/) for AI-driven live session control.
+
+### Tools
+
+| Domain | Tools | Target |
+|--------|-------|--------|
+| Guests | list, create (with avatar), update, delete | Frontend :3000 |
+| Posters | list, create (with download-to-local), update, delete | Frontend :3000 |
+| Sub-videos | list, create | Frontend :3000 |
+| Lower third | show-text, show-guest, hide | Backend :3002 |
+| Countdown | set, start, pause, reset, add-time | Backend :3002 |
+| Poster overlay | show, hide, play, pause | Backend :3002 |
+| Chat | send, status, history | Backend :3002 |
+| Clear all | clear-all-overlays | Backend :3002 |
+
+### Usage with Claude Code
+
+The project includes a `.mcp.json` file at the root. Claude Code automatically detects it and can call any of the 26 tools via stdio transport.
+
+### HTTP Transport
+
+For network clients, start the MCP server:
+```bash
+pnpm dev:mcp    # Development (watch mode)
+```
+Health check: `GET http://localhost:3004/health`
+MCP endpoint: `POST http://localhost:3004/mcp`
+
 ## Stream Deck Integration
 
 ### Native Plugin (Recommended)
@@ -265,11 +303,13 @@ pnpm pm2:start
 - **Real-time**: WebSocket (ws) on port 3003
 - **Backend**: Express on port 3002
 - **Database**: SQLite (better-sqlite3)
+- **MCP Server**: Model Context Protocol (port 3004)
 - **Process Manager**: PM2
 
-### Dual-Process Design
+### Multi-Process Design
 - **Frontend** (port 3000): Next.js UI, API routes
 - **Backend** (port 3002): Express API, WebSocket hub (3003)
+- **MCP Server** (port 3004): AI tool interface (stdio + HTTP transports)
 
 The backend runs independently to maintain WebSocket/OBS connections during hot-reload.
 

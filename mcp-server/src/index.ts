@@ -1,0 +1,64 @@
+import express from 'express';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { registerAllTools } from './tools/index.js';
+import { MCP_PORT, MCP_HOST, MCP_SERVER_NAME, MCP_SERVER_VERSION } from './config.js';
+
+const app = express();
+app.use(express.json());
+
+const LOCAL_IP_RE = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.).*:[0-9]+$/;
+const LOCAL_HOSTNAME_RE = /^https?:\/\/[a-zA-Z][a-zA-Z0-9-]*:[0-9]+$/;
+
+// CORS for local network access
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const isLocalOrigin = origin && (
+    origin.startsWith('http://localhost:') ||
+    origin.startsWith('https://localhost:') ||
+    LOCAL_IP_RE.test(origin) ||
+    LOCAL_HOSTNAME_RE.test(origin)
+  );
+  if (isLocalOrigin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+
+function createConfiguredServer() {
+  const server = new McpServer({
+    name: MCP_SERVER_NAME,
+    version: MCP_SERVER_VERSION,
+  });
+  registerAllTools(server);
+  return server;
+}
+
+// Stateless MCP endpoint — new server+transport per request (SDK requirement for stateless mode)
+app.post('/mcp', async (req, res) => {
+  const server = createConfiguredServer();
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+  });
+  try {
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } finally {
+    await server.close();
+  }
+});
+
+// Health check
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', name: MCP_SERVER_NAME, version: MCP_SERVER_VERSION });
+});
+
+app.listen(MCP_PORT, MCP_HOST, () => {
+  console.log(`MCP server listening on http://${MCP_HOST}:${MCP_PORT}/mcp`);
+});

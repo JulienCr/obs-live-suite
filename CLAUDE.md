@@ -30,6 +30,7 @@ Runs both frontend (Next.js watch) and backend (tsx watch) concurrently. **IMPOR
 pnpm dev:frontend    # Next.js dev server only
 pnpm dev:backend     # Backend server only
 pnpm backend         # Backend without watch
+pnpm dev:mcp         # MCP server (tsx watch)
 ```
 
 ### Testing
@@ -40,6 +41,7 @@ pnpm test:coverage          # Coverage report
 pnpm test:functional        # Functional tests for lower third
 pnpm test:functional:ui     # Dashboard UI tests
 pnpm test:all              # All tests
+pnpm test:mcp              # MCP server tests (67 tests)
 ```
 
 ### Type Checking & Linting
@@ -72,6 +74,7 @@ pnpm setup:https          # Generate HTTPS certificates
 - **Next.js Frontend** (port 3000): UI, API routes, server actions
 - **Express Backend** (port 3002): HTTP API for message publishing
 - **WebSocket Hub** (port 3003): Real-time overlay updates
+- **MCP Server** (port 3004): Model Context Protocol for AI-driven control
 
 The backend runs independently to ensure WebSocket and OBS connections persist even during Next.js hot-reloading.
 
@@ -288,6 +291,15 @@ Each overlay connects to WebSocket hub and subscribes to its channel.
 - Pre-built themes in seed data
 - Applied to active profile via `/api/themes/{id}` endpoints
 
+## MCP Server
+- Location: `mcp-server/` (workspace package `obs-live-suite-mcp`)
+- Transports: **stdio** (Claude Code via `.mcp.json`) and **Streamable HTTP** (port 3004)
+- 26 tools across 8 domains: guests, posters, sub-videos, lower-third, countdown, poster-overlay, chat, clear-all
+- Proxies to frontend (port 3000) and backend (port 3002) via `httpClient.ts`
+- Config auto-detects HTTPS (mkcert certificates) or uses env vars (`USE_HTTPS`, `MCP_PORT`, etc.)
+- Tests: `mcp-server/__tests__/` with independent Jest setup (ts-jest + custom transform for `import.meta.url`)
+- Run: `pnpm dev:mcp` (dev), `pnpm test:mcp` (tests)
+
 ## Stream Deck Plugin
 - Location: `streamdeck-plugin/obslive-suite/`
 - Source: `streamdeck-plugin/obslive-suite/src/`
@@ -295,11 +307,12 @@ Each overlay connects to WebSocket hub and subscribes to its channel.
 - Actions: lower-third-guest, countdown-start, poster-show, quiz controls, panic
 
 ## PM2 Deployment
-`ecosystem.config.cjs` defines two apps:
+`ecosystem.config.cjs` defines three apps:
 - `obs-backend`: Express + WebSocket (port 3002/3003)
 - `obs-frontend`: Next.js server (port 3000)
+- `obs-mcp`: MCP server (port 3004)
 
-Both use fork mode with autorestart and memory limits.
+All use fork mode with autorestart and memory limits.
 
 ## Important Notes
 - **Never build** without explicit user authorization (per CLAUDE.md user instructions)
