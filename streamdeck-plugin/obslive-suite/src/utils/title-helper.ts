@@ -32,6 +32,14 @@ export function wrapTitle(text: string, maxLineLength: number = 10): string {
 }
 
 /**
+ * Truncate text with ellipsis if it exceeds max length
+ */
+export function truncate(text: string, maxLen: number): string {
+	if (!text) return "";
+	return text.length > maxLen ? text.slice(0, maxLen - 1) + "\u2026" : text;
+}
+
+/**
  * Generate a slot placeholder title
  * @param slotType - "Guest" or "Poster"
  * @param slotNumber - The slot number (1-30)

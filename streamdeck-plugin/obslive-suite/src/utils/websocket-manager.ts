@@ -143,8 +143,7 @@ export class WebSocketManager {
 	private handleMessage(message: { channel?: string; type?: string; payload?: Record<string, unknown> }): void {
 		if (message.channel === "countdown") {
 			this.updateCountdownState(message);
-		}
-		if (message.channel === "media-player") {
+		} else if (message.channel === "media-player") {
 			this.handleMediaPlayerMessage(message);
 		}
 	}
@@ -225,45 +224,37 @@ export class WebSocketManager {
 
 		if (!driverId) return;
 
+		const existing = this.mediaPlayerStates.get(driverId);
+		let state: MediaPlayerState | undefined;
+
 		switch (type) {
-			case "status": {
-				const existing = this.mediaPlayerStates.get(driverId);
-				const state: MediaPlayerState = {
+			case "status":
+				state = {
 					driverId,
 					connected: existing?.connected ?? true,
 					playing: (payload?.playing as boolean) ?? false,
 					track: (payload?.track as string) ?? "",
 					artist: (payload?.artist as string) ?? "",
 				};
-				this.mediaPlayerStates.set(driverId, state);
-				this.notifyMediaPlayerCallbacks(driverId);
 				break;
-			}
-			case "connected": {
-				const existing = this.mediaPlayerStates.get(driverId);
-				const state: MediaPlayerState = {
+			case "connected":
+				state = {
+					...existing,
 					driverId,
 					connected: true,
 					playing: existing?.playing ?? false,
 					track: existing?.track ?? "",
 					artist: existing?.artist ?? "",
 				};
-				this.mediaPlayerStates.set(driverId, state);
-				this.notifyMediaPlayerCallbacks(driverId);
 				break;
-			}
-			case "disconnected": {
-				const state: MediaPlayerState = {
-					driverId,
-					connected: false,
-					playing: false,
-					track: "",
-					artist: "",
-				};
-				this.mediaPlayerStates.set(driverId, state);
-				this.notifyMediaPlayerCallbacks(driverId);
+			case "disconnected":
+				state = { driverId, connected: false, playing: false, track: "", artist: "" };
 				break;
-			}
+		}
+
+		if (state) {
+			this.mediaPlayerStates.set(driverId, state);
+			this.notifyMediaPlayerCallbacks(driverId);
 		}
 	}
 

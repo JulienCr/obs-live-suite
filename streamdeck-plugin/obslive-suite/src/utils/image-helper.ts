@@ -8,6 +8,13 @@ import https from "https";
 import { ConfigManager } from "./config-manager";
 
 /**
+ * Encode an SVG string as a data URI
+ */
+export function toSvgDataUri(svg: string): string {
+	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg.trim())}`;
+}
+
+/**
  * Get default base URL from ConfigManager
  */
 function getDefaultBaseUrl(): string {
@@ -102,7 +109,7 @@ export function generateInitialsAvatar(name: string, color: string = "#3b82f6"):
 		</svg>
 	`.trim();
 
-	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg)}`;
+	return toSvgDataUri(svg);
 }
 
 /**
@@ -140,7 +147,7 @@ export function generateVideoIcon(): string {
 		</svg>
 	`.trim();
 
-	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg)}`;
+	return toSvgDataUri(svg);
 }
 
 /**
@@ -157,7 +164,7 @@ export function generateGrayedGuestIcon(): string {
 		</svg>
 	`.trim();
 
-	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg)}`;
+	return toSvgDataUri(svg);
 }
 
 /**
@@ -173,7 +180,7 @@ export function generateGrayedPosterIcon(): string {
 		</svg>
 	`.trim();
 
-	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg)}`;
+	return toSvgDataUri(svg);
 }
 
 /**
@@ -199,7 +206,7 @@ export function generatePosterFallbackIcon(title: string, color: string = "#8b5c
 		</svg>
 	`.trim();
 
-	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg)}`;
+	return toSvgDataUri(svg);
 }
 
 /**

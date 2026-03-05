@@ -4,21 +4,21 @@
  */
 
 import { action, KeyAction, KeyDownEvent } from "@elgato/streamdeck";
-import { MediaPlayerBase, MediaPlayerActionSettings } from "./media-player-base";
+import { MediaPlayerBase, MediaPlayerActionSettings, resolveDriverId } from "./media-player-base";
 import { wsManager, MediaPlayerState } from "../utils/websocket-manager";
-import { generatePlayIcon, generatePauseIcon } from "../utils/media-player-icons";
+import { generatePlayIcon, generatePauseIcon, getDriverColors } from "../utils/media-player-icons";
+import { truncate } from "../utils/title-helper";
 
 @action({ UUID: "com.julien-cruau.obslive-suite.media-player.play-pause" })
 export class MediaPlayerPlayPause extends MediaPlayerBase {
 	override async onKeyDown(ev: KeyDownEvent<MediaPlayerActionSettings>): Promise<void> {
-		const driverId = ev.payload.settings.driverId || "artlist";
+		const driverId = resolveDriverId(ev.payload.settings);
 		const state = wsManager.getMediaPlayerState(driverId);
 		const command = state?.playing ? "pause" : "play";
 
 		try {
 			await this.sendCommand(driverId, command);
-		} catch (error) {
-			console.error("[MediaPlayer PlayPause] Failed:", error);
+		} catch {
 			await ev.action.showAlert();
 		}
 	}
@@ -28,7 +28,7 @@ export class MediaPlayerPlayPause extends MediaPlayerBase {
 		driverId: string,
 		state: MediaPlayerState,
 	): Promise<void> {
-		const { bg, accent } = this.getColors(driverId);
+		const { bg, accent } = getDriverColors(driverId);
 
 		if (state.playing) {
 			await actionInstance.setImage(generatePauseIcon(bg, accent));
@@ -36,7 +36,6 @@ export class MediaPlayerPlayPause extends MediaPlayerBase {
 			await actionInstance.setImage(generatePlayIcon(bg, accent));
 		}
 
-		// Show track info
 		if (state.artist || state.track) {
 			const artist = truncate(state.artist, 10);
 			const track = truncate(state.track, 10);
@@ -46,9 +45,4 @@ export class MediaPlayerPlayPause extends MediaPlayerBase {
 			await actionInstance.setTitle("");
 		}
 	}
-}
-
-function truncate(text: string, maxLen: number): string {
-	if (!text) return "";
-	return text.length > maxLen ? text.slice(0, maxLen - 1) + "\u2026" : text;
 }

@@ -2,18 +2,28 @@
  * Base class for Media Player Stream Deck actions.
  * Handles WebSocket state tracking, driver color theming,
  * and instance management for all media player buttons.
+ *
+ * Simple transport actions (next, prev, stop, fadeout) only need to set
+ * `command` and `iconGenerator` — the base class handles everything else.
+ * Actions needing custom behavior (play-pause) override onKeyDown/updateButton.
  */
 
-import { Action, DidReceiveSettingsEvent, KeyAction, SingletonAction, WillAppearEvent, WillDisappearEvent } from "@elgato/streamdeck";
+import { Action, DidReceiveSettingsEvent, KeyAction, KeyDownEvent, SingletonAction, WillAppearEvent, WillDisappearEvent } from "@elgato/streamdeck";
 import { APIClient } from "../utils/api-client";
 import { wsManager, MediaPlayerState } from "../utils/websocket-manager";
-import { getDriverColors } from "../utils/media-player-icons";
+import { getDriverColors, IconGenerator } from "../utils/media-player-icons";
 
 export type MediaPlayerActionSettings = {
 	driverId?: string;
 };
 
-const DEFAULT_STATE: (driverId: string) => MediaPlayerState = (driverId) => ({
+export const DEFAULT_DRIVER_ID = "artlist";
+
+export function resolveDriverId(settings: MediaPlayerActionSettings): string {
+	return settings.driverId || DEFAULT_DRIVER_ID;
+}
+
+const DEFAULT_STATE = (driverId: string): MediaPlayerState => ({
 	driverId,
 	connected: false,
 	playing: false,
@@ -25,12 +35,15 @@ export abstract class MediaPlayerBase extends SingletonAction<MediaPlayerActionS
 	private instances: Map<string, Action<MediaPlayerActionSettings>> = new Map();
 	private instanceSettings: Map<string, MediaPlayerActionSettings> = new Map();
 
+	protected readonly command?: string;
+	protected readonly iconGenerator?: IconGenerator;
+
 	constructor() {
 		super();
 		wsManager.onMediaPlayerUpdate((driverId: string, state: MediaPlayerState) => {
 			this.instances.forEach((actionInstance, id) => {
 				const settings = this.instanceSettings.get(id);
-				const instanceDriver = settings?.driverId || "artlist";
+				const instanceDriver = resolveDriverId(settings || {});
 				if (instanceDriver === driverId && actionInstance.isKey()) {
 					void this.updateButton(actionInstance, driverId, state);
 				}
@@ -44,7 +57,7 @@ export abstract class MediaPlayerBase extends SingletonAction<MediaPlayerActionS
 
 		if (!ev.action.isKey()) return;
 
-		const driverId = ev.payload.settings.driverId || "artlist";
+		const driverId = resolveDriverId(ev.payload.settings);
 		const state = wsManager.getMediaPlayerState(driverId) || DEFAULT_STATE(driverId);
 		await this.updateButton(ev.action, driverId, state);
 	}
@@ -57,7 +70,7 @@ export abstract class MediaPlayerBase extends SingletonAction<MediaPlayerActionS
 	override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<MediaPlayerActionSettings>): Promise<void> {
 		this.instanceSettings.set(ev.action.id, ev.payload.settings);
 
-		const driverId = ev.payload.settings.driverId || "artlist";
+		const driverId = resolveDriverId(ev.payload.settings);
 		const state = wsManager.getMediaPlayerState(driverId) || DEFAULT_STATE(driverId);
 		const action = this.instances.get(ev.action.id);
 		if (action && action.isKey()) {
@@ -65,17 +78,28 @@ export abstract class MediaPlayerBase extends SingletonAction<MediaPlayerActionS
 		}
 	}
 
+	override async onKeyDown(ev: KeyDownEvent<MediaPlayerActionSettings>): Promise<void> {
+		if (!this.command) return;
+		const driverId = resolveDriverId(ev.payload.settings);
+		try {
+			await this.sendCommand(driverId, this.command);
+			await ev.action.showOk();
+		} catch {
+			await ev.action.showAlert();
+		}
+	}
+
 	protected async sendCommand(driverId: string, command: string): Promise<void> {
 		await APIClient.mediaPlayerCommand(driverId, command);
 	}
 
-	protected getColors(driverId: string) {
-		return getDriverColors(driverId);
-	}
-
-	protected abstract updateButton(
+	protected async updateButton(
 		action: KeyAction<MediaPlayerActionSettings>,
 		driverId: string,
-		state: MediaPlayerState,
-	): Promise<void>;
+		_state: MediaPlayerState,
+	): Promise<void> {
+		if (!this.iconGenerator) return;
+		const { bg, accent } = getDriverColors(driverId);
+		await action.setImage(this.iconGenerator(bg, accent));
+	}
 }

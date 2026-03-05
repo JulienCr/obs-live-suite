@@ -3,6 +3,10 @@
  * SVG icons for Stream Deck media player transport controls
  */
 
+import { toSvgDataUri } from "./image-helper";
+
+export type IconGenerator = (bg: string, accent: string) => string;
+
 export const DRIVER_COLORS: Record<string, { bg: string; accent: string }> = {
 	artlist: { bg: "#3d3520", accent: "#f5c518" },
 	youtube: { bg: "#3d1c1c", accent: "#ff4444" },
@@ -17,86 +21,66 @@ export function getDriverColors(driverId: string): { bg: string; accent: string 
 	return DRIVER_COLORS[driverId.toLowerCase()] ?? DEFAULT_DRIVER_COLORS;
 }
 
-/**
- * Encode an SVG string as a data URI
- */
-function toDataUri(svg: string): string {
-	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg.trim())}`;
+const iconCache = new Map<string, string>();
+
+function cached(key: string, generator: () => string): string {
+	const existing = iconCache.get(key);
+	if (existing) return existing;
+	const result = generator();
+	iconCache.set(key, result);
+	return result;
 }
 
-/**
- * Generate a play icon (right-pointing triangle)
- */
 export function generatePlayIcon(bg: string, accent: string): string {
-	const svg = `
+	return cached(`play:${bg}:${accent}`, () => toSvgDataUri(`
 		<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
 			<rect width="144" height="144" fill="${bg}" rx="8"/>
 			<polygon points="52,36 52,108 112,72" fill="${accent}"/>
 		</svg>
-	`;
-	return toDataUri(svg);
+	`));
 }
 
-/**
- * Generate a pause icon (two vertical bars)
- */
 export function generatePauseIcon(bg: string, accent: string): string {
-	const svg = `
+	return cached(`pause:${bg}:${accent}`, () => toSvgDataUri(`
 		<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
 			<rect width="144" height="144" fill="${bg}" rx="8"/>
 			<rect x="42" y="36" width="20" height="72" rx="4" fill="${accent}"/>
 			<rect x="82" y="36" width="20" height="72" rx="4" fill="${accent}"/>
 		</svg>
-	`;
-	return toDataUri(svg);
+	`));
 }
 
-/**
- * Generate a next/skip-forward icon (triangle + vertical bar)
- */
 export function generateNextIcon(bg: string, accent: string): string {
-	const svg = `
+	return cached(`next:${bg}:${accent}`, () => toSvgDataUri(`
 		<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
 			<rect width="144" height="144" fill="${bg}" rx="8"/>
 			<polygon points="36,36 36,108 88,72" fill="${accent}"/>
 			<rect x="94" y="36" width="16" height="72" rx="4" fill="${accent}"/>
 		</svg>
-	`;
-	return toDataUri(svg);
+	`));
 }
 
-/**
- * Generate a previous/skip-back icon (vertical bar + triangle)
- */
 export function generatePrevIcon(bg: string, accent: string): string {
-	const svg = `
+	return cached(`prev:${bg}:${accent}`, () => toSvgDataUri(`
 		<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
 			<rect width="144" height="144" fill="${bg}" rx="8"/>
 			<rect x="34" y="36" width="16" height="72" rx="4" fill="${accent}"/>
 			<polygon points="108,36 108,108 56,72" fill="${accent}"/>
 		</svg>
-	`;
-	return toDataUri(svg);
+	`));
 }
 
-/**
- * Generate a stop icon (square)
- */
 export function generateStopIcon(bg: string, accent: string): string {
-	const svg = `
+	return cached(`stop:${bg}:${accent}`, () => toSvgDataUri(`
 		<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
 			<rect width="144" height="144" fill="${bg}" rx="8"/>
 			<rect x="40" y="40" width="64" height="64" rx="6" fill="${accent}"/>
 		</svg>
-	`;
-	return toDataUri(svg);
+	`));
 }
 
-/**
- * Generate a fadeout icon (triangle with decreasing opacity bars)
- */
 export function generateFadeoutIcon(bg: string, accent: string): string {
-	const svg = `
+	return cached(`fadeout:${bg}:${accent}`, () => toSvgDataUri(`
 		<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg">
 			<rect width="144" height="144" fill="${bg}" rx="8"/>
 			<polygon points="52,36 52,108 112,72" fill="${accent}" opacity="0.3"/>
@@ -105,6 +89,5 @@ export function generateFadeoutIcon(bg: string, accent: string): string {
 			<rect x="62" y="54" width="8" height="36" rx="3" fill="${accent}" opacity="0.5"/>
 			<rect x="76" y="60" width="8" height="24" rx="3" fill="${accent}" opacity="0.25"/>
 		</svg>
-	`;
-	return toDataUri(svg);
+	`));
 }
