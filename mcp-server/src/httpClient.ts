@@ -1,7 +1,9 @@
 import { BACKEND_URL, FRONTEND_URL } from './config.js';
 
-// Accept self-signed certificates (mkcert) in development
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+// Accept self-signed certificates (mkcert) in development only
+if (process.env.NODE_ENV !== 'production') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
 
 export interface FetchResult<T = unknown> {
   success: boolean;
@@ -52,6 +54,18 @@ async function doFetch<T = unknown>(
   }
 }
 
+export function errorResponse(message: string) {
+  return { content: [{ type: 'text' as const, text: `Error: ${message}` }], isError: true as const };
+}
+
+export function textResponse(text: string) {
+  return { content: [{ type: 'text' as const, text }] };
+}
+
+export function jsonResponse(data: unknown) {
+  return textResponse(JSON.stringify(data, null, 2));
+}
+
 export function backendFetch<T = unknown>(path: string, options?: RequestInit) {
   return doFetch<T>(BACKEND_URL, path, options);
 }
@@ -81,6 +95,11 @@ export async function uploadImage(
     const response = await fetch(source.url, { signal: AbortSignal.timeout(10_000) });
     if (!response.ok) {
       return { success: false, error: `Failed to fetch image from URL: ${response.status}`, status: 0 };
+    }
+    const contentLength = parseInt(response.headers.get('content-length') || '0', 10);
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
+    if (contentLength > MAX_IMAGE_SIZE) {
+      return { success: false, error: `Image too large (${contentLength} bytes, max ${MAX_IMAGE_SIZE})`, status: 0 };
     }
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     const buffer = await response.arrayBuffer();

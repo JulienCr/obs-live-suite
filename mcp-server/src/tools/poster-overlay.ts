@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
-import { backendFetch } from '../httpClient.js';
+import { backendFetch, errorResponse, textResponse } from '../httpClient.js';
 
 export function registerPosterOverlayTools(server: McpServer) {
   server.registerTool('show-poster-overlay', {
@@ -24,25 +24,27 @@ export function registerPosterOverlayTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'show', payload }),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Poster overlay displayed.' }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse('Poster overlay displayed.');
   });
 
   server.registerTool('hide-poster-overlay', {
     title: 'Hide Poster Overlay',
-    description: 'Hide the currently displayed poster overlay.',
+    description: 'Hide the currently displayed poster overlay (both regular and big picture).',
     inputSchema: z.object({}),
   }, async () => {
-    const result = await backendFetch('/api/overlays/poster', {
-      method: 'POST',
-      body: JSON.stringify({ action: 'hide' }),
-    });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Poster overlay hidden.' }] };
+    const [regular, bigPicture] = await Promise.all([
+      backendFetch('/api/overlays/poster', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'hide' }),
+      }),
+      backendFetch('/api/overlays/poster-bigpicture', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'hide' }),
+      }),
+    ]);
+    if (!regular.success && !bigPicture.success) return errorResponse(regular.error ?? 'Unknown error');
+    return textResponse('Poster overlay hidden.');
   });
 
   server.registerTool('poster-overlay-play', {
@@ -54,10 +56,8 @@ export function registerPosterOverlayTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'play' }),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Poster video playing.' }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse('Poster video playing.');
   });
 
   server.registerTool('poster-overlay-pause', {
@@ -69,9 +69,7 @@ export function registerPosterOverlayTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'pause' }),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Poster video paused.' }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse('Poster video paused.');
   });
 }

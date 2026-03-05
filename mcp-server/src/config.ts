@@ -18,6 +18,8 @@ function detectHttps(): boolean {
 
 const protocol = detectHttps() ? 'https' : 'http';
 
+export const MCP_SERVER_NAME = 'obs-live-suite';
+export const MCP_SERVER_VERSION = '0.1.0';
 export const MCP_PORT = parseInt(process.env.MCP_PORT || '3004', 10);
 export const MCP_HOST = process.env.MCP_HOST || '0.0.0.0';
 export const BACKEND_URL = process.env.BACKEND_URL || `${protocol}://localhost:${process.env.BACKEND_PORT || '3002'}`;

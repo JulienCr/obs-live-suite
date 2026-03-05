@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
-import { frontendFetch, uploadImage } from '../httpClient.js';
+import { frontendFetch, uploadImage, errorResponse, textResponse, jsonResponse } from '../httpClient.js';
 
 const GUEST_UPLOAD_PATH = '/api/assets/guests/upload';
 
@@ -33,15 +33,13 @@ export function registerGuestTools(server: McpServer) {
     title: 'List Guests',
     description: 'List all guests. Optionally filter by enabled status.',
     inputSchema: z.object({
-      enabled: z.enum(['true', 'false']).optional().describe('Filter by enabled status'),
+      enabled: z.boolean().optional().describe('Filter by enabled status'),
     }),
   }, async ({ enabled }) => {
-    const query = enabled ? `?enabled=${enabled}` : '';
+    const query = enabled !== undefined ? `?enabled=${enabled}` : '';
     const result = await frontendFetch(`/api/assets/guests${query}`);
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result.data, null, 2) }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return jsonResponse(result.data);
   });
 
   server.registerTool('create-guest', {
@@ -57,19 +55,15 @@ export function registerGuestTools(server: McpServer) {
     }),
   }, async ({ avatarBase64, avatarMimeType, avatarImageUrl, ...input }) => {
     const avatar = await resolveAvatarUrl(avatarBase64, avatarMimeType, avatarImageUrl);
-    if (avatar.error) {
-      return { content: [{ type: 'text' as const, text: avatar.error }], isError: true };
-    }
+    if (avatar.error) return errorResponse(avatar.error);
 
     const body = { ...input, ...(avatar.avatarUrl ? { avatarUrl: avatar.avatarUrl } : {}) };
     const result = await frontendFetch('/api/assets/guests', {
       method: 'POST',
       body: JSON.stringify(body),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result.data, null, 2) }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return jsonResponse(result.data);
   });
 
   server.registerTool('update-guest', {
@@ -86,19 +80,15 @@ export function registerGuestTools(server: McpServer) {
     }),
   }, async ({ id, avatarBase64, avatarMimeType, avatarImageUrl, ...fields }) => {
     const avatar = await resolveAvatarUrl(avatarBase64, avatarMimeType, avatarImageUrl);
-    if (avatar.error) {
-      return { content: [{ type: 'text' as const, text: avatar.error }], isError: true };
-    }
+    if (avatar.error) return errorResponse(avatar.error);
 
     const body = { ...fields, ...(avatar.avatarUrl ? { avatarUrl: avatar.avatarUrl } : {}) };
     const result = await frontendFetch(`/api/assets/guests/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result.data, null, 2) }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return jsonResponse(result.data);
   });
 
   server.registerTool('delete-guest', {
@@ -109,9 +99,7 @@ export function registerGuestTools(server: McpServer) {
     }),
   }, async ({ id }) => {
     const result = await frontendFetch(`/api/assets/guests/${id}`, { method: 'DELETE' });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Guest deleted successfully.' }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse('Guest deleted successfully.');
   });
 }

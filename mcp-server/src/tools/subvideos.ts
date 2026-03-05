@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
-import { frontendFetch } from '../httpClient.js';
+import { frontendFetch, errorResponse, jsonResponse } from '../httpClient.js';
 
 export function registerSubvideoTools(server: McpServer) {
   server.registerTool('list-subvideos', {
@@ -11,10 +11,8 @@ export function registerSubvideoTools(server: McpServer) {
     }),
   }, async ({ posterId }) => {
     const result = await frontendFetch(`/api/assets/posters/${posterId}/subvideos`);
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result.data, null, 2) }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return jsonResponse(result.data);
   });
 
   server.registerTool('create-subvideo', {
@@ -33,9 +31,7 @@ export function registerSubvideoTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify(fields),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result.data, null, 2) }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return jsonResponse(result.data);
   });
 }

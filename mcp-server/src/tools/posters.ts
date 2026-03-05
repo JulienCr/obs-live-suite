@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
-import { frontendFetch } from '../httpClient.js';
+import { frontendFetch, errorResponse, textResponse, jsonResponse } from '../httpClient.js';
 
 /**
  * If downloadToLocal is true and fileUrl is an external URL (not YouTube),
@@ -31,15 +31,13 @@ export function registerPosterTools(server: McpServer) {
     title: 'List Posters',
     description: 'List all posters (images, videos, YouTube). Optionally filter by enabled status.',
     inputSchema: z.object({
-      enabled: z.enum(['true', 'false']).optional().describe('Filter by enabled status'),
+      enabled: z.boolean().optional().describe('Filter by enabled status'),
     }),
   }, async ({ enabled }) => {
-    const query = enabled ? `?enabled=${enabled}` : '';
+    const query = enabled !== undefined ? `?enabled=${enabled}` : '';
     const result = await frontendFetch(`/api/assets/posters${query}`);
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result.data, null, 2) }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return jsonResponse(result.data);
   });
 
   server.registerTool('create-poster', {
@@ -59,18 +57,14 @@ export function registerPosterTools(server: McpServer) {
     }),
   }, async ({ downloadToLocal, ...input }) => {
     const resolved = await maybeDownloadToLocal(input.fileUrl, input.type, downloadToLocal);
-    if (resolved.error) {
-      return { content: [{ type: 'text' as const, text: resolved.error }], isError: true };
-    }
+    if (resolved.error) return errorResponse(resolved.error);
 
     const result = await frontendFetch('/api/assets/posters', {
       method: 'POST',
       body: JSON.stringify({ ...input, fileUrl: resolved.fileUrl }),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result.data, null, 2) }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return jsonResponse(result.data);
   });
 
   server.registerTool('update-poster', {
@@ -92,9 +86,7 @@ export function registerPosterTools(server: McpServer) {
   }, async ({ id, downloadToLocal, ...fields }) => {
     if (fields.fileUrl && downloadToLocal) {
       const resolved = await maybeDownloadToLocal(fields.fileUrl, fields.type, true);
-      if (resolved.error) {
-        return { content: [{ type: 'text' as const, text: resolved.error }], isError: true };
-      }
+      if (resolved.error) return errorResponse(resolved.error);
       fields.fileUrl = resolved.fileUrl;
     }
 
@@ -102,10 +94,8 @@ export function registerPosterTools(server: McpServer) {
       method: 'PATCH',
       body: JSON.stringify(fields),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result.data, null, 2) }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return jsonResponse(result.data);
   });
 
   server.registerTool('delete-poster', {
@@ -116,9 +106,7 @@ export function registerPosterTools(server: McpServer) {
     }),
   }, async ({ id }) => {
     const result = await frontendFetch(`/api/assets/posters/${id}`, { method: 'DELETE' });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Poster deleted successfully.' }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse('Poster deleted successfully.');
   });
 }

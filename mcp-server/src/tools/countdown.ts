@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
-import { backendFetch } from '../httpClient.js';
+import { backendFetch, errorResponse, textResponse } from '../httpClient.js';
 
 export function registerCountdownTools(server: McpServer) {
   server.registerTool('countdown-set', {
@@ -16,10 +16,8 @@ export function registerCountdownTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'set', payload: input }),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: `Countdown set to ${input.seconds}s. Use countdown-start to begin.` }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse(`Countdown set to ${input.seconds}s. Use countdown-start to begin.`);
   });
 
   server.registerTool('countdown-start', {
@@ -31,10 +29,8 @@ export function registerCountdownTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'start' }),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Countdown started.' }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse('Countdown started.');
   });
 
   server.registerTool('countdown-pause', {
@@ -46,10 +42,8 @@ export function registerCountdownTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'pause' }),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Countdown paused.' }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse('Countdown paused.');
   });
 
   server.registerTool('countdown-reset', {
@@ -61,10 +55,8 @@ export function registerCountdownTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'reset' }),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Countdown reset.' }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse('Countdown reset.');
   });
 
   server.registerTool('countdown-add-time', {
@@ -78,9 +70,7 @@ export function registerCountdownTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'add-time', payload: { seconds } }),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: `Added ${seconds}s to countdown.` }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse(`Added ${seconds}s to countdown.`);
   });
 }

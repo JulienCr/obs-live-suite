@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
-import { backendFetch } from '../httpClient.js';
+import { backendFetch, errorResponse, textResponse, jsonResponse } from '../httpClient.js';
 
 export function registerChatTools(server: McpServer) {
   server.registerTool('chat-send', {
@@ -15,10 +15,8 @@ export function registerChatTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify(input),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Chat message sent.' }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse('Chat message sent.');
   });
 
   server.registerTool('chat-status', {
@@ -27,10 +25,8 @@ export function registerChatTools(server: McpServer) {
     inputSchema: z.object({}),
   }, async () => {
     const result = await backendFetch('/api/streamerbot-chat/status');
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result.data, null, 2) }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return jsonResponse(result.data);
   });
 
   server.registerTool('chat-history', {
@@ -39,9 +35,7 @@ export function registerChatTools(server: McpServer) {
     inputSchema: z.object({}),
   }, async () => {
     const result = await backendFetch('/api/streamerbot-chat/history');
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: JSON.stringify(result.data, null, 2) }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return jsonResponse(result.data);
   });
 }

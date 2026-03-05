@@ -2,7 +2,7 @@ import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { registerAllTools } from './tools/index.js';
-import { MCP_PORT, MCP_HOST } from './config.js';
+import { MCP_PORT, MCP_HOST, MCP_SERVER_NAME, MCP_SERVER_VERSION } from './config.js';
 
 const app = express();
 app.use(express.json());
@@ -30,8 +30,8 @@ app.use((req, res, next) => {
 
 function createConfiguredServer() {
   const server = new McpServer({
-    name: 'obs-live-suite',
-    version: '0.1.0',
+    name: MCP_SERVER_NAME,
+    version: MCP_SERVER_VERSION,
   });
   registerAllTools(server);
   return server;
@@ -43,13 +43,17 @@ app.post('/mcp', async (req, res) => {
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
-  await server.connect(transport);
-  await transport.handleRequest(req, res, req.body);
+  try {
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } finally {
+    await server.close();
+  }
 });
 
 // Health check
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', name: 'obs-live-suite-mcp', version: '0.1.0' });
+  res.json({ status: 'ok', name: MCP_SERVER_NAME, version: MCP_SERVER_VERSION });
 });
 
 app.listen(MCP_PORT, MCP_HOST, () => {

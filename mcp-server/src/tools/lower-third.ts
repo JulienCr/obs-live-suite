@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
-import { backendFetch } from '../httpClient.js';
+import { backendFetch, errorResponse, textResponse } from '../httpClient.js';
 
 export function registerLowerThirdTools(server: McpServer) {
   server.registerTool('show-lower-third-text', {
@@ -20,10 +20,8 @@ export function registerLowerThirdTools(server: McpServer) {
         payload: { contentType: 'text', ...input },
       }),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Lower third (text) displayed.' }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse('Lower third (text) displayed.');
   });
 
   server.registerTool('show-lower-third-guest', {
@@ -42,10 +40,8 @@ export function registerLowerThirdTools(server: McpServer) {
         payload: { contentType: 'guest', ...input },
       }),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Lower third (guest) displayed.' }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse('Lower third (guest) displayed.');
   });
 
   server.registerTool('hide-lower-third', {
@@ -57,9 +53,7 @@ export function registerLowerThirdTools(server: McpServer) {
       method: 'POST',
       body: JSON.stringify({ action: 'hide' }),
     });
-    if (!result.success) {
-      return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }], isError: true };
-    }
-    return { content: [{ type: 'text' as const, text: 'Lower third hidden.' }] };
+    if (!result.success) return errorResponse(result.error ?? 'Unknown error');
+    return textResponse('Lower third hidden.');
   });
 }
