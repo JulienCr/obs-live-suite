@@ -7,16 +7,19 @@
 
 /* global window */
 
+// Scope metadata selectors to the global player bar to avoid matching playlist rows
+const PLAYER = '[data-id="global-player"]';
+
 const SELECTORS = {
-  play: '[data-testid="PlaybackButton"]',
-  next: 'button[aria-label="next track"]',
-  prev: 'button[aria-label="previous track"]',
-  volume: 'input[aria-label="Volume"]',
-  mute: 'button[aria-label="Mute/UnMute"]',
-  waveform: '[data-testid="UrlWaveformCanvas"]',
-  duration: '[data-testid="AudioDuration"]',
-  trackName: '[data-testid="audio-name"] a',
-  artistName: '[data-testid="artist-name"] a',
+  play: `${PLAYER} [data-testid="PlaybackButton"]`,
+  next: `${PLAYER} button[aria-label="next track"]`,
+  prev: `${PLAYER} button[aria-label="previous track"]`,
+  volume: `${PLAYER} input[aria-label="Volume"]`,
+  mute: `${PLAYER} button[aria-label="Mute/UnMute"]`,
+  waveform: `${PLAYER} [data-testid="UrlWaveformCanvas"]`,
+  duration: `${PLAYER} [data-testid="AudioDuration"]`,
+  trackName: `${PLAYER} [data-testid="audio-name"] a`,
+  artistName: `${PLAYER} [data-testid="artist-name"] a`,
 };
 
 const FALLBACK_PATTERNS = {
@@ -37,11 +40,14 @@ function findElement(action) {
   const patterns = FALLBACK_PATTERNS[action];
   if (!patterns) return null;
 
+  const player = document.querySelector(PLAYER);
+  if (!player) return null;
+
   for (const pattern of patterns) {
     const found =
-      document.querySelector(`[aria-label*="${pattern}" i]`) ||
-      document.querySelector(`[data-testid*="${pattern}" i]`) ||
-      document.querySelector(`button[class*="${pattern}" i]`);
+      player.querySelector(`[aria-label*="${pattern}" i]`) ||
+      player.querySelector(`[data-testid*="${pattern}" i]`) ||
+      player.querySelector(`button[class*="${pattern}" i]`);
     if (found) return found;
   }
 
@@ -109,12 +115,17 @@ function getStatus() {
   const icon = playBtn?.querySelector("svg[data-icon]");
   const isPlaying = icon?.getAttribute("data-icon") === "pause";
 
+  // Extract album art from global player
+  const artworkImg = document.querySelector(`${PLAYER} img[alt^="Album art"]`);
+  const artworkUrl = artworkImg?.getAttribute("src") || null;
+
   return {
     track: trackEl?.textContent?.trim() || null,
     artist: artistEl?.textContent?.trim() || null,
     current: current || null,
     total: total || null,
     playing: isPlaying,
+    artworkUrl,
   };
 }
 

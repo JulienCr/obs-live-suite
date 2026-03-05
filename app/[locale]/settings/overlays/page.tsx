@@ -88,6 +88,20 @@ const overlays: Overlay[] = [
     ],
   },
   {
+    id: "now-playing",
+    title: "Now Playing",
+    path: "/overlays/now-playing",
+    type: "Media Player",
+    description: "Affichage artwork + infos du morceau en cours de lecture (YouTube, Artlist)",
+    features: [
+      "Pochette album / thumbnail vidéo",
+      "Titre du morceau et nom de l'artiste",
+      "Badge du driver actif (YouTube, Artlist)",
+      "Animation slide-in/out avec backdrop blur",
+      "Masquage automatique à l'arrêt de la lecture",
+    ],
+  },
+  {
     id: "composite",
     title: "Composite",
     path: "/overlays/composite",
@@ -120,6 +134,7 @@ const typeColors: Record<string, string> = {
   "Media": "bg-green-500/10 text-green-500 border-green-500/20",
   "Quiz": "bg-orange-500/10 text-orange-500 border-orange-500/20",
   "Composite": "bg-pink-500/10 text-pink-500 border-pink-500/20",
+  "Media Player": "bg-teal-500/10 text-teal-500 border-teal-500/20",
   "Debug": "bg-gray-500/10 text-gray-500 border-gray-500/20",
 };
 

@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Volume2,
   Loader2,
+  Music,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
@@ -106,6 +107,13 @@ export function MediaPlayerPanel(props: IDockviewPanelProps<{ driverId: MediaPla
         <div className="flex-1 min-w-0 overflow-hidden">
           {status ? (
             <div className="flex items-center gap-2">
+              {status.artworkUrl ? (
+                <img src={status.artworkUrl} alt="" className="h-8 w-8 rounded shrink-0 object-cover" />
+              ) : (
+                <div className="h-8 w-8 rounded shrink-0 bg-muted flex items-center justify-center">
+                  <Music className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
               <div className="min-w-0 flex-1 overflow-hidden">
                 <div
                   className="truncate text-xs text-muted-foreground"

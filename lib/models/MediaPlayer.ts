@@ -38,6 +38,7 @@ export const MediaPlayerStatusSchema = z.object({
   current: z.string().nullable(),
   total: z.string().nullable(),
   playing: z.boolean(),
+  artworkUrl: z.string().nullable(),
 });
 export type MediaPlayerStatus = z.infer<typeof MediaPlayerStatusSchema>;
 

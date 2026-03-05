@@ -22,6 +22,7 @@ export interface MediaPlayerState {
 	playing: boolean;
 	track: string;
 	artist: string;
+	artworkUrl: string;
 }
 
 type MediaPlayerCallback = (driverId: string, state: MediaPlayerState) => void;
@@ -140,11 +141,14 @@ export class WebSocketManager {
 	/**
 	 * Handle incoming WebSocket messages
 	 */
-	private handleMessage(message: { channel?: string; type?: string; payload?: Record<string, unknown> }): void {
+	private handleMessage(message: { channel?: string; data?: Record<string, unknown> }): void {
+		const data = message.data;
+		if (!data) return;
+
 		if (message.channel === "countdown") {
-			this.updateCountdownState(message);
+			this.updateCountdownState(data as { type?: string; payload?: Record<string, unknown> });
 		} else if (message.channel === "media-player") {
-			this.handleMediaPlayerMessage(message);
+			this.handleMediaPlayerMessage(data);
 		}
 	}
 
@@ -218,9 +222,9 @@ export class WebSocketManager {
 	/**
 	 * Handle incoming media-player channel messages
 	 */
-	private handleMediaPlayerMessage(message: { type?: string; payload?: Record<string, unknown> }): void {
-		const { type, payload } = message;
-		const driverId = payload?.driverId as string | undefined;
+	private handleMediaPlayerMessage(data: Record<string, unknown>): void {
+		const type = data.type as string | undefined;
+		const driverId = data.driverId as string | undefined;
 
 		if (!driverId) return;
 
@@ -228,15 +232,18 @@ export class WebSocketManager {
 		let state: MediaPlayerState | undefined;
 
 		switch (type) {
-			case "status":
+			case "status": {
+				const status = data.status as Record<string, unknown> | undefined;
 				state = {
 					driverId,
 					connected: existing?.connected ?? true,
-					playing: (payload?.playing as boolean) ?? false,
-					track: (payload?.track as string) ?? "",
-					artist: (payload?.artist as string) ?? "",
+					playing: (status?.playing as boolean) ?? false,
+					track: (status?.track as string) ?? "",
+					artist: (status?.artist as string) ?? "",
+					artworkUrl: (status?.artworkUrl as string) ?? "",
 				};
 				break;
+			}
 			case "connected":
 				state = {
 					driverId,
@@ -244,10 +251,11 @@ export class WebSocketManager {
 					playing: existing?.playing ?? false,
 					track: existing?.track ?? "",
 					artist: existing?.artist ?? "",
+					artworkUrl: existing?.artworkUrl ?? "",
 				};
 				break;
 			case "disconnected":
-				state = { driverId, connected: false, playing: false, track: "", artist: "" };
+				state = { driverId, connected: false, playing: false, track: "", artist: "", artworkUrl: "" };
 				break;
 		}
 

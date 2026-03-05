@@ -267,7 +267,8 @@ export class MediaPlayerManager {
 
   private isStatusEqual(a: MediaPlayerStatus, b: MediaPlayerStatus): boolean {
     return a.track === b.track && a.artist === b.artist &&
-      a.current === b.current && a.total === b.total && a.playing === b.playing;
+      a.current === b.current && a.total === b.total && a.playing === b.playing &&
+      a.artworkUrl === b.artworkUrl;
   }
 
   private broadcastToDashboard(event: MediaPlayerDashboardEvent): void {
