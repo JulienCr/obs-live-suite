@@ -41,7 +41,7 @@ export class MediaPlayerPlayPause extends MediaPlayerBase {
 		// Try artwork with play/pause overlay, fall back to plain icon
 		const artworkDataUri = await this.getArtwork(actionInstance.id, state.artworkUrl);
 		if (artworkDataUri) {
-			await actionInstance.setImage(generateArtworkWithOverlay(artworkDataUri, state.playing));
+			await actionInstance.setImage(generateArtworkWithOverlay(artworkDataUri, state.playing, accent));
 		} else if (state.playing) {
 			await actionInstance.setImage(generatePauseIcon(bg, accent));
 		} else {
@@ -77,17 +77,17 @@ export class MediaPlayerPlayPause extends MediaPlayerBase {
 	}
 }
 
-/** Composite SVG: artwork background + play or pause icon with black outline for contrast.
+/** Composite SVG: artwork background with scrim + driver-colored play/pause icon.
  * Uses base64 encoding (not encodeURIComponent) to safely embed the artwork data URI. */
-function generateArtworkWithOverlay(artworkDataUri: string, playing: boolean): string {
+function generateArtworkWithOverlay(artworkDataUri: string, playing: boolean, accent: string): string {
 	const icon = playing
-		? `<rect x="46" y="44" width="16" height="56" rx="3" stroke="black" stroke-width="5" fill="white"/>
-		   <rect x="82" y="44" width="16" height="56" rx="3" stroke="black" stroke-width="5" fill="white"/>`
-		: `<polygon points="56,42 56,102 104,72" stroke="black" stroke-width="5" stroke-linejoin="round" fill="white"/>`;
+		? `<rect x="46" y="44" width="16" height="56" rx="3" fill="${accent}"/>
+		   <rect x="82" y="44" width="16" height="56" rx="3" fill="${accent}"/>`
+		: `<polygon points="56,42 56,102 104,72" fill="${accent}"/>`;
 
 	const svg = `<svg width="144" height="144" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 		<image xlink:href="${artworkDataUri}" x="0" y="0" width="144" height="144" preserveAspectRatio="xMidYMid slice"/>
-		<rect width="144" height="144" fill="black" opacity="0.35"/>
+		<rect width="144" height="144" fill="black" opacity="0.55"/>
 		${icon}
 	</svg>`;
 
