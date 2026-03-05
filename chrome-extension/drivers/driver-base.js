@@ -104,6 +104,9 @@ function initDriver(driverId, handlers) {
           correlationId,
           success: true,
         });
+        // Broadcast updated status shortly after command execution
+        // so UI reflects the change without waiting for the next poll tick
+        setTimeout(() => broadcastStatus(), 150);
       } else {
         sendResponse({
           type: "media-player-response",
@@ -124,8 +127,7 @@ function initDriver(driverId, handlers) {
     return false; // synchronous response
   });
 
-  // Periodic status broadcast
-  setInterval(() => {
+  function broadcastStatus() {
     try {
       const status = handlers.getStatus();
       chrome.runtime.sendMessage({
@@ -136,7 +138,10 @@ function initDriver(driverId, handlers) {
     } catch {
       // Extension context may be invalidated — ignore
     }
-  }, STATUS_POLL_INTERVAL_MS);
+  }
+
+  // Periodic status broadcast
+  setInterval(broadcastStatus, STATUS_POLL_INTERVAL_MS);
 
   // Register this driver with the background service worker
   try {
