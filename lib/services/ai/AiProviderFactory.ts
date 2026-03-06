@@ -19,7 +19,7 @@ export function createAiModel(): LanguageModel {
   switch (providerType) {
     case LLMProviderType.OPENAI: {
       const apiKey = db.getSetting("openai_api_key") || "";
-      const model = db.getSetting("openai_model") || "gpt-4o-mini";
+      const model = db.getSetting("openai_model") || "gpt-5-mini";
       if (!apiKey) throw new Error("OpenAI API key is not configured");
       const openai = createOpenAI({ apiKey });
       return openai(model);
@@ -28,7 +28,7 @@ export function createAiModel(): LanguageModel {
     case LLMProviderType.ANTHROPIC: {
       const apiKey = db.getSetting("anthropic_api_key") || "";
       const model =
-        db.getSetting("anthropic_model") || "claude-sonnet-4-20250514";
+        db.getSetting("anthropic_model") || "claude-haiku-4-5-20251001";
       if (!apiKey) throw new Error("Anthropic API key is not configured");
       const anthropic = createAnthropic({ apiKey });
       return anthropic(model);
