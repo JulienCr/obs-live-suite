@@ -73,8 +73,8 @@ function getStatus() {
 
 // Initialize driver via shared base
 window.__initMediaPlayerDriver("youtube", {
-  play() { const v = getVideo(); if (v) { v.paused ? v.play() : v.pause(); } },
-  pause() { const v = getVideo(); if (v) { v.paused ? v.play() : v.pause(); } },
+  play() { const v = getVideo(); if (v) v.play(); },
+  pause() { const v = getVideo(); if (v) v.pause(); },
   stop() {
     const v = getVideo();
     if (v) { v.pause(); v.currentTime = 0; }

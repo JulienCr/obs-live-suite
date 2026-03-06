@@ -7,15 +7,13 @@ import {
   MEDIA_PLAYER_CHANNEL,
   type MediaPlayerDashboardEvent,
   type MediaPlayerDriverId,
+  type MediaPlayerStatus,
 } from "@/lib/models/MediaPlayer";
 import { NowPlayingDisplay } from "./NowPlayingDisplay";
 import { OverlayMotionProvider } from "./OverlayMotionProvider";
 
-interface NowPlayingState {
+interface NowPlayingState extends Pick<MediaPlayerStatus, "artworkUrl" | "track" | "artist"> {
   visible: boolean;
-  artworkUrl: string | null;
-  track: string | null;
-  artist: string | null;
   driverId: MediaPlayerDriverId | null;
 }
 
@@ -38,12 +36,13 @@ export function NowPlayingRenderer() {
         const { status, driverId } = data;
 
         if (status.playing && status.track) {
-          setState({
-            visible: true,
-            artworkUrl: status.artworkUrl,
-            track: status.track,
-            artist: status.artist,
-            driverId,
+          setState((prev) => {
+            if (prev.visible && prev.track === status.track &&
+                prev.artist === status.artist && prev.artworkUrl === status.artworkUrl &&
+                prev.driverId === driverId) {
+              return prev;
+            }
+            return { visible: true, artworkUrl: status.artworkUrl, track: status.track, artist: status.artist, driverId };
           });
         } else if (!status.playing) {
           setState((prev) => ({ ...prev, visible: false }));

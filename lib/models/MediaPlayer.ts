@@ -133,3 +133,9 @@ export type MediaPlayerDashboardEvent =
 
 /** WS channel name for media player events */
 export const MEDIA_PLAYER_CHANNEL = "media-player";
+
+/** Human-readable display labels for each driver */
+export const MEDIA_PLAYER_DRIVER_LABELS: Record<MediaPlayerDriverId, string> = {
+  youtube: "YouTube",
+  artlist: "Artlist",
+};

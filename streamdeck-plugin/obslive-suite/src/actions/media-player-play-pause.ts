@@ -62,6 +62,7 @@ export class MediaPlayerPlayPause extends MediaPlayerBase {
 
 		try {
 			const dataUri = await fetchImageAsBase64(artworkUrl);
+			if (!dataUri.startsWith("data:image/")) return null;
 			this.artworkCache.set(actionId, { url: artworkUrl, dataUri });
 			return dataUri;
 		} catch {

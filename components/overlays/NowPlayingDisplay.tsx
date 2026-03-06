@@ -1,7 +1,8 @@
 "use client";
 
+import { Music } from "lucide-react";
 import { m } from "framer-motion";
-import type { MediaPlayerDriverId } from "@/lib/models/MediaPlayer";
+import { MEDIA_PLAYER_DRIVER_LABELS, type MediaPlayerDriverId } from "@/lib/models/MediaPlayer";
 
 interface NowPlayingDisplayProps {
   artworkUrl: string | null;
@@ -9,11 +10,6 @@ interface NowPlayingDisplayProps {
   artist: string | null;
   driverId: MediaPlayerDriverId | null;
 }
-
-const DRIVER_LABELS: Record<string, string> = {
-  youtube: "YouTube",
-  artlist: "Artlist",
-};
 
 /**
  * Now-playing card positioned bottom-left with slide-in/out animation.
@@ -43,20 +39,7 @@ export function NowPlayingDisplay({ artworkUrl, track, artist, driverId }: NowPl
         />
       ) : (
         <div className="h-[80px] w-[80px] rounded-lg shrink-0 bg-white/10 flex items-center justify-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-8 w-8 text-white/50"
-          >
-            <path d="M9 18V5l12-2v13" />
-            <circle cx="6" cy="18" r="3" />
-            <circle cx="18" cy="16" r="3" />
-          </svg>
+          <Music className="h-8 w-8 text-white/50" strokeWidth={1.5} />
         </div>
       )}
 
@@ -72,7 +55,7 @@ export function NowPlayingDisplay({ artworkUrl, track, artist, driverId }: NowPl
         )}
         {driverId && (
           <div className="text-[11px] text-white/40 mt-1 uppercase tracking-wide">
-            {DRIVER_LABELS[driverId] ?? driverId}
+            {MEDIA_PLAYER_DRIVER_LABELS[driverId] ?? driverId}
           </div>
         )}
       </div>
