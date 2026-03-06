@@ -1,9 +1,10 @@
 import { streamText, convertToModelMessages, stepCountIs } from "ai";
 import type { UIMessage } from "ai";
-import { createAiModel } from "@/lib/services/ai/AiProviderFactory";
+import { createAiModel, AiConfigError } from "@/lib/services/ai/AiProviderFactory";
 import { getAiTools } from "@/lib/services/ai/AiToolBridge";
 import { SYSTEM_PROMPT } from "@/lib/services/ai/systemPrompt";
 import { AI_CHAT } from "@/lib/config/Constants";
+import { ApiResponses } from "@/lib/utils/ApiResponses";
 import { Logger } from "@/lib/utils/Logger";
 
 const logger = new Logger("AiChatAPI");
@@ -29,22 +30,12 @@ export async function POST(req: Request) {
       error instanceof Error ? error.message : "Unknown error";
     logger.error(`AI chat error: ${message}`);
 
-    if (
-      message.includes("not configured") ||
-      message.includes("API key")
-    ) {
-      return Response.json(
-        {
-          error:
-            "LLM provider is not configured. Please configure it in Settings > AI.",
-        },
-        { status: 422 }
+    if (error instanceof AiConfigError) {
+      return ApiResponses.unprocessable(
+        "LLM provider is not configured. Please configure it in Settings > AI."
       );
     }
 
-    return Response.json(
-      { error: `AI chat error: ${message}` },
-      { status: 500 }
-    );
+    return ApiResponses.serverError(`AI chat error: ${message}`);
   }
 }

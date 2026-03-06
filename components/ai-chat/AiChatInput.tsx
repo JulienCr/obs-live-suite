@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 
@@ -31,14 +32,14 @@ export function AiChatInput({ sendMessage, isLoading }: AiChatInputProps) {
 
   return (
     <div className="flex gap-2 items-end border-t p-3">
-      <textarea
+      <Textarea
         ref={textareaRef}
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={onKeyDown}
         placeholder={t("placeholder")}
         rows={1}
-        className="flex-1 resize-none rounded-md border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 max-h-32 overflow-y-auto"
+        className="flex-1 resize-none min-h-0 max-h-32 overflow-y-auto"
         disabled={isLoading}
       />
       <Button

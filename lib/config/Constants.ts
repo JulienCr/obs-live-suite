@@ -665,8 +665,8 @@ export const AI_CHAT = {
   /** Maximum tool-call steps per request */
   MAX_STEPS: 5,
 
-  /** MCP server URL for tool discovery */
-  MCP_URL: `http://localhost:${process.env.MCP_PORT || "3004"}/mcp`,
+  /** MCP server URL for tool discovery (use 127.0.0.1 to avoid IPv6 resolution) */
+  MCP_URL: `http://127.0.0.1:${process.env.MCP_PORT || "3004"}/mcp`,
 
   /** Cache TTL for discovered MCP tools (1 minute) */
   TOOL_CACHE_TTL_MS: 60000,

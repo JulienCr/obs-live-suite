@@ -65,30 +65,26 @@ export async function getAiTools(): Promise<{ aiTools: ToolSet }> {
       new URL(AI_CHAT.MCP_URL)
     );
     await client.connect(transport);
-    const { tools: mcpTools } = await client.listTools();
-    await client.close();
+    let mcpTools;
+    try {
+      ({ tools: mcpTools } = await client.listTools());
+    } finally {
+      try { await client.close(); } catch { /* ignore close errors */ }
+    }
 
     const aiTools: ToolSet = {};
-    const destructiveList: readonly string[] = AI_CHAT.DESTRUCTIVE_TOOLS;
 
     for (const mcpTool of mcpTools) {
       const name = mcpTool.name;
-      const isDestructive = destructiveList.includes(name);
+      const isDestructive = AI_CHAT.DESTRUCTIVE_TOOLS.includes(name);
 
-      if (isDestructive) {
-        aiTools[name] = tool({
-          description: mcpTool.description || name,
-          inputSchema: jsonSchema(mcpTool.inputSchema as never),
-        });
-      } else {
-        aiTools[name] = tool({
-          description: mcpTool.description || name,
-          inputSchema: jsonSchema(mcpTool.inputSchema as never),
-          execute: async (args: Record<string, unknown>) => {
-            return callMcpTool(name, args);
-          },
-        });
-      }
+      aiTools[name] = tool({
+        description: mcpTool.description || name,
+        inputSchema: jsonSchema(mcpTool.inputSchema as never),
+        ...(isDestructive ? {} : {
+          execute: async (args: Record<string, unknown>) => callMcpTool(name, args),
+        }),
+      });
     }
 
     cachedTools = aiTools;
@@ -99,8 +95,7 @@ export async function getAiTools(): Promise<{ aiTools: ToolSet }> {
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     logger.warn(`MCP connection failed, text-only mode: ${msg}`);
-    cachedTools = {};
-    cacheTimestamp = now;
+    // Don't cache failures — allow immediate retry when MCP server recovers
     return { aiTools: {} };
   }
 }

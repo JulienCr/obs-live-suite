@@ -5,6 +5,9 @@ import { useTranslations } from "next-intl";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
+
+const REMARK_PLUGINS = [remarkGfm, remarkBreaks];
+
 import { Button } from "@/components/ui/button";
 import {
   ChevronDown,
@@ -192,7 +195,7 @@ export function AiChatMessages({
                         className="rounded-lg bg-muted px-3 py-2 text-sm prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
                       >
                         <ReactMarkdown
-                          remarkPlugins={[remarkGfm, remarkBreaks]}
+                          remarkPlugins={REMARK_PLUGINS}
                         >
                           {part.text}
                         </ReactMarkdown>

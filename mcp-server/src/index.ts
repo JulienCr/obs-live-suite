@@ -64,7 +64,8 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', name: MCP_SERVER_NAME, version: MCP_SERVER_VERSION });
 });
 
-// Debug endpoint - test fetch connectivity
+// Debug endpoint - test fetch connectivity (dev only)
+if (process.env.NODE_ENV !== 'production') {
 app.get('/debug/fetch', async (_req, res) => {
   const { FRONTEND_URL, BACKEND_URL } = await import('./config.js');
   const results: Record<string, unknown> = {
@@ -89,6 +90,7 @@ app.get('/debug/fetch', async (_req, res) => {
   }
   res.json(results);
 });
+}
 
 app.listen(MCP_PORT, MCP_HOST, () => {
   console.log(`MCP server listening on http://${MCP_HOST}:${MCP_PORT}/mcp`);

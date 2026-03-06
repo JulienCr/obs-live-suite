@@ -1,46 +1,41 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOllama } from "ollama-ai-provider";
-import { SettingsRepository } from "@/lib/repositories/SettingsRepository";
+import { getProviderConfig } from "@/lib/services/llm/providerConfig";
 import { LLMProviderType } from "@/lib/services/llm/LLMProvider";
-import { LLM_URLS } from "@/lib/config/Constants";
 import type { LanguageModel } from "ai";
+
+export class AiConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AiConfigError";
+  }
+}
 
 /**
  * Creates an AI SDK LanguageModel from the LLM settings stored in database.
  * Supports Ollama, OpenAI, and Anthropic providers.
  */
 export function createAiModel(): LanguageModel {
-  const db = SettingsRepository.getInstance();
-  const providerType =
-    (db.getSetting("llm_provider") as LLMProviderType) ||
-    LLMProviderType.OLLAMA;
+  const config = getProviderConfig();
 
-  switch (providerType) {
+  switch (config.type) {
     case LLMProviderType.OPENAI: {
-      const apiKey = db.getSetting("openai_api_key") || "";
-      const model = db.getSetting("openai_model") || "gpt-5-mini";
-      if (!apiKey) throw new Error("OpenAI API key is not configured");
-      const openai = createOpenAI({ apiKey });
-      return openai(model);
+      if (!config.apiKey) throw new AiConfigError("OpenAI API key is not configured");
+      const openai = createOpenAI({ apiKey: config.apiKey });
+      return openai(config.model);
     }
 
     case LLMProviderType.ANTHROPIC: {
-      const apiKey = db.getSetting("anthropic_api_key") || "";
-      const model =
-        db.getSetting("anthropic_model") || "claude-haiku-4-5-20251001";
-      if (!apiKey) throw new Error("Anthropic API key is not configured");
-      const anthropic = createAnthropic({ apiKey });
-      return anthropic(model);
+      if (!config.apiKey) throw new AiConfigError("Anthropic API key is not configured");
+      const anthropic = createAnthropic({ apiKey: config.apiKey });
+      return anthropic(config.model);
     }
 
     case LLMProviderType.OLLAMA:
     default: {
-      const baseURL =
-        db.getSetting("ollama_url") || LLM_URLS.OLLAMA_DEFAULT;
-      const model = db.getSetting("ollama_model") || "mistral:latest";
-      const ollama = createOllama({ baseURL });
-      return ollama(model) as unknown as LanguageModel;
+      const ollama = createOllama({ baseURL: config.baseURL! });
+      return ollama(config.model) as unknown as LanguageModel;
     }
   }
 }
