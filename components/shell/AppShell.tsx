@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAppMode } from "./AppModeContext";
 import { AppSidebar } from "./AppSidebar";
 import { ContentTopBar } from "./ContentTopBar";
+import { AiChatSheet } from "@/components/ai-chat/AiChatSheet";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 
 interface AppShellProps {
@@ -46,6 +47,7 @@ export function AppShell({ children }: AppShellProps) {
           {children}
         </main>
       </div>
+      <AiChatSheet />
     </div>
   );
 }

@@ -655,6 +655,31 @@ export type LayoutPosition = {
 };
 
 // ============================================================================
+// AI CHAT CONSTANTS
+// ============================================================================
+
+/**
+ * AI Chat assistant configuration constants.
+ */
+export const AI_CHAT = {
+  /** Maximum tool-call steps per request */
+  MAX_STEPS: 5,
+
+  /** MCP server URL for tool discovery */
+  MCP_URL: `http://localhost:${process.env.MCP_PORT || "3004"}/mcp`,
+
+  /** Cache TTL for discovered MCP tools (1 minute) */
+  TOOL_CACHE_TTL_MS: 60000,
+
+  /** Tools that require user confirmation before execution */
+  DESTRUCTIVE_TOOLS: [
+    "delete-guest",
+    "delete-poster",
+    "clear-all-overlays",
+  ],
+} as const;
+
+// ============================================================================
 // HELPER FUNCTIONS FOR SQL DEFAULTS
 // ============================================================================
 
