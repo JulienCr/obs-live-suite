@@ -23,7 +23,7 @@ Always follow these rules :
 ```bash
 pnpm dev
 ```
-Runs both frontend (Next.js watch) and backend (tsx watch) concurrently. **IMPORTANT**: Never build without authorization - dev mode has watch enabled.
+Runs frontend (Next.js watch), backend (tsx watch), and MCP server (tsx watch) concurrently. **IMPORTANT**: Never build without authorization - dev mode has watch enabled.
 
 ### Individual Services
 ```bash
@@ -123,6 +123,9 @@ Dashboard → API Route → ChannelManager.publish() → WebSocket → Overlay
 - `OllamaSummarizerService` - LLM summarization via Ollama
 - `WikipediaCacheService` - Wikipedia result caching
 - `WikipediaResolverService` - Wikipedia search and resolution
+- `ai/AiProviderFactory` - Creates AI SDK LanguageModel from DB settings (Ollama/OpenAI/Anthropic)
+- `ai/AiToolBridge` - MCP tool discovery + conversion to AI SDK tools (cached 60s)
+- `ai/systemPrompt` - French system prompt for AI assistant
 
 **lib/adapters/** - External integrations:
 - `obs/OBSConnectionManager` - OBS WebSocket connection with auto-reconnect
@@ -180,6 +183,7 @@ Dashboard → API Route → ChannelManager.publish() → WebSocket → Overlay
 - `/api/quiz/*` - Quiz questions and state
 - `/api/wikipedia/*` - Wikipedia search/resolve/summarize
 - `/api/llm/*` - LLM model listing and summarization
+- `/api/ai/chat` - AI chat assistant (streaming, tool-calling via MCP)
 - `/api/updater/*` - Plugin scanning and updates
 
 ### Data Storage
@@ -300,6 +304,21 @@ Each overlay connects to WebSocket hub and subscribes to its channel.
 - Tests: `mcp-server/__tests__/` with independent Jest setup (ts-jest + custom transform for `import.meta.url`)
 - Run: `pnpm dev:mcp` (dev), `pnpm test:mcp` (tests)
 
+## AI Chat Assistant
+- Conversational AI integrated in the dashboard top bar (Bot icon)
+- Sheet-based side panel (400px right) using Vercel AI SDK v6
+- Providers: Ollama, OpenAI, Anthropic (configured in Settings > AI)
+- Tool calling via MCP server (26 tools auto-discovered)
+- Destructive tools (delete-guest, delete-poster, clear-all) require client-side confirmation
+- Graceful degradation: works in text-only mode if MCP server is down
+- Key files: `lib/services/ai/`, `components/ai-chat/`, `app/api/ai/chat/route.ts`
+- Store: `lib/stores/aiChatStore.ts` (zustand)
+
+### Known Issues / Debugging
+- **IPv6 resolution**: Node 22 resolves `localhost` to `::1` (IPv6), but servers listen on IPv4 only. MCP server config uses `127.0.0.1` explicitly to avoid `ECONNREFUSED`.
+- **MCP stateless mode**: Each tool call creates a new MCP Client + Transport (server has no session persistence between requests).
+- **TLS with mkcert**: `NODE_TLS_REJECT_UNAUTHORIZED=0` is set in `mcp-server/src/index.ts` for dev. Required when HTTPS certificates are detected.
+
 ## Stream Deck Plugin
 - Location: `streamdeck-plugin/obslive-suite/`
 - Source: `streamdeck-plugin/obslive-suite/src/`
@@ -371,6 +390,12 @@ All use fork mode with autorestart and memory limits.
 **components/theme-editor/** - Theme editing:
 - `ThemeEditor.tsx` - Main editor with canvas
 - `ThemeList.tsx`, `ThemeCard.tsx`
+
+**components/ai-chat/** - AI chat assistant:
+- `AiChatSheet.tsx` - Side panel with useChat hook
+- `AiChatMessages.tsx` - Message list with markdown + tool call cards
+- `AiChatInput.tsx` - Chat input with Enter=send
+- `AiChatButton.tsx` - Top bar toggle button
 
 **components/profiles/** - Profile management:
 - `ProfileManager.tsx`

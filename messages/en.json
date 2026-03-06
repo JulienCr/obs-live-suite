@@ -1472,5 +1472,14 @@
     "expand": "Expand sidebar",
     "twitch": "Twitch",
     "streamerbot": "Streamer.bot"
+  },
+  "aiChat": {
+    "title": "AI Assistant",
+    "placeholder": "Ask a question or give an instruction...",
+    "emptyState": "Ask me to show a guest, start a countdown, or any other live production action.",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "error": "An error occurred. Please try again.",
+    "notConfigured": "LLM provider is not configured. Go to Settings > AI to configure it."
   }
 }

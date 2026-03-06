@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Maximize, Minimize, Loader2, Check, MonitorOff, FolderOpen } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { AiChatButton } from "@/components/ai-chat/AiChatButton";
 import { useAppMode } from "@/components/shell/AppModeContext";
 import { HeaderOverflowMenu } from "@/components/dashboard/HeaderOverflowMenu";
 import { WorkspaceSelector } from "@/components/shell/WorkspaceSelector";
@@ -104,6 +105,9 @@ export function ContentTopBar() {
 
       {/* Theme Toggle */}
       <ThemeToggle />
+
+      {/* AI Chat */}
+      <AiChatButton />
 
       {/* Fullscreen Toggle */}
       <Button

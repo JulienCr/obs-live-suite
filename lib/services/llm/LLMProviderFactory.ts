@@ -2,9 +2,9 @@ import { LLMProvider, LLMProviderType, LLMConfig } from "./LLMProvider";
 import { OllamaProvider } from "./OllamaProvider";
 import { OpenAIProvider } from "./OpenAIProvider";
 import { AnthropicProvider } from "./AnthropicProvider";
-import { SettingsRepository } from "../../repositories/SettingsRepository";
+import { getProviderConfig } from "./providerConfig";
 import { Logger } from "../../utils/Logger";
-import { LLM, LLM_URLS } from "../../config/Constants";
+import { LLM } from "../../config/Constants";
 
 /**
  * Factory to create LLM providers based on configuration
@@ -16,26 +16,23 @@ export class LLMProviderFactory {
    * Create a provider from database settings
    */
   static createFromSettings(): LLMProvider {
-    const db = SettingsRepository.getInstance();
-    
-    // Get provider type
-    const providerType = (db.getSetting("llm_provider") as LLMProviderType) || LLMProviderType.OLLAMA;
+    const config = getProviderConfig();
 
-    this.logger.info(`Creating LLM provider: ${providerType}`);
+    this.logger.info(`Creating LLM provider: ${config.type}`);
 
-    switch (providerType) {
+    switch (config.type) {
       case LLMProviderType.OPENAI:
         return new OpenAIProvider({
-          apiKey: db.getSetting("openai_api_key") || "",
-          model: db.getSetting("openai_model") || "gpt-5-mini",
+          apiKey: config.apiKey || "",
+          model: config.model,
           temperature: LLM.DEFAULT_TEMPERATURE,
           timeout: LLM.DEFAULT_TIMEOUT_MS,
         });
 
       case LLMProviderType.ANTHROPIC:
         return new AnthropicProvider({
-          apiKey: db.getSetting("anthropic_api_key") || "",
-          model: db.getSetting("anthropic_model") || "claude-3-5-sonnet-20241022",
+          apiKey: config.apiKey || "",
+          model: config.model,
           temperature: LLM.DEFAULT_TEMPERATURE,
           timeout: LLM.DEFAULT_TIMEOUT_MS,
         });
@@ -43,8 +40,8 @@ export class LLMProviderFactory {
       case LLMProviderType.OLLAMA:
       default:
         return new OllamaProvider({
-          url: db.getSetting("ollama_url") || LLM_URLS.OLLAMA_DEFAULT,
-          model: db.getSetting("ollama_model") || "mistral:latest",
+          url: config.baseURL || "",
+          model: config.model,
           temperature: LLM.DEFAULT_TEMPERATURE,
           timeout: LLM.DEFAULT_TIMEOUT_MS,
         });

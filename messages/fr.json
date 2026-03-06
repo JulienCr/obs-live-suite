@@ -1473,5 +1473,14 @@
     "expand": "Développer le panneau latéral",
     "twitch": "Twitch",
     "streamerbot": "Streamer.bot"
+  },
+  "aiChat": {
+    "title": "Assistant IA",
+    "placeholder": "Posez une question ou donnez une instruction...",
+    "emptyState": "Demandez-moi d'afficher un invité, lancer un countdown, ou toute autre action de production live.",
+    "confirm": "Confirmer",
+    "cancel": "Annuler",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "notConfigured": "Le fournisseur LLM n'est pas configuré. Allez dans Paramètres > IA pour le configurer."
   }
 }
