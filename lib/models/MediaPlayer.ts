@@ -38,6 +38,7 @@ export const MediaPlayerStatusSchema = z.object({
   current: z.string().nullable(),
   total: z.string().nullable(),
   playing: z.boolean(),
+  artworkUrl: z.string().nullable(),
 });
 export type MediaPlayerStatus = z.infer<typeof MediaPlayerStatusSchema>;
 
@@ -132,3 +133,9 @@ export type MediaPlayerDashboardEvent =
 
 /** WS channel name for media player events */
 export const MEDIA_PLAYER_CHANNEL = "media-player";
+
+/** Human-readable display labels for each driver */
+export const MEDIA_PLAYER_DRIVER_LABELS: Record<MediaPlayerDriverId, string> = {
+  youtube: "YouTube",
+  artlist: "Artlist",
+};

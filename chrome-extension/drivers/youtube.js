@@ -56,12 +56,18 @@ function getStatus() {
     document.querySelector("ytd-channel-name yt-formatted-string a");
   const channel = channelEl?.textContent?.trim() || null;
 
+  // Extract video thumbnail from meta tags
+  const ogImage = document.querySelector('meta[property="og:image"]');
+  const imageSrc = document.querySelector('link[rel="image_src"]');
+  const artworkUrl = ogImage?.getAttribute("content") || imageSrc?.getAttribute("href") || null;
+
   return {
     track: title,
     artist: channel,
     current: formatTime(video.currentTime),
     total: formatTime(video.duration),
     playing: !video.paused,
+    artworkUrl,
   };
 }
 

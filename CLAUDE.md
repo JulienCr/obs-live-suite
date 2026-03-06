@@ -269,6 +269,7 @@ Browser source URLs for OBS (size: 1920x1080):
 - Poster BigPicture: `http://localhost:3000/overlays/poster-bigpicture`
 - Quiz: `http://localhost:3000/overlays/quiz`
 - Chat Highlight: `http://localhost:3000/overlays/chat-highlight`
+- Now Playing: `http://localhost:3000/overlays/now-playing`
 - Composite: `http://localhost:3000/overlays/composite`
 
 Each overlay connects to WebSocket hub and subscribes to its channel.
