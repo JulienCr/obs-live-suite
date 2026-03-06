@@ -11,6 +11,41 @@ let cachedTools: ToolSet | null = null;
 let cacheTimestamp = 0;
 
 /**
+ * Creates a fresh MCP client+transport for a single request.
+ * Required because the MCP server runs in stateless mode
+ * (no session persistence between requests).
+ */
+async function callMcpTool(
+  name: string,
+  args: Record<string, unknown>
+) {
+  logger.info(`Calling MCP tool: ${name}`);
+  const client = new Client({
+    name: "obs-live-suite-ai-chat",
+    version: "1.0.0",
+  });
+  const transport = new StreamableHTTPClientTransport(
+    new URL(AI_CHAT.MCP_URL)
+  );
+  try {
+    await client.connect(transport);
+    const result = await client.callTool({ name, arguments: args });
+    logger.info(`MCP tool ${name} completed`);
+    return result.content;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`MCP tool ${name} failed: ${msg}`);
+    throw error;
+  } finally {
+    try {
+      await client.close();
+    } catch {
+      // ignore close errors
+    }
+  }
+}
+
+/**
  * Discovers MCP tools and converts them to AI SDK tool definitions.
  * Destructive tools are returned without an `execute` function,
  * so the client must handle confirmation via addToolOutput().
@@ -26,14 +61,12 @@ export async function getAiTools(): Promise<{ aiTools: ToolSet }> {
       name: "obs-live-suite-ai-chat",
       version: "1.0.0",
     });
-
     const transport = new StreamableHTTPClientTransport(
       new URL(AI_CHAT.MCP_URL)
     );
-
     await client.connect(transport);
-
     const { tools: mcpTools } = await client.listTools();
+    await client.close();
 
     const aiTools: ToolSet = {};
     const destructiveList: readonly string[] = AI_CHAT.DESTRUCTIVE_TOOLS;
@@ -43,7 +76,6 @@ export async function getAiTools(): Promise<{ aiTools: ToolSet }> {
       const isDestructive = destructiveList.includes(name);
 
       if (isDestructive) {
-        // No execute → tool call returned to client for confirmation
         aiTools[name] = tool({
           description: mcpTool.description || name,
           inputSchema: jsonSchema(mcpTool.inputSchema as never),
@@ -53,11 +85,7 @@ export async function getAiTools(): Promise<{ aiTools: ToolSet }> {
           description: mcpTool.description || name,
           inputSchema: jsonSchema(mcpTool.inputSchema as never),
           execute: async (args: Record<string, unknown>) => {
-            const result = await client.callTool({
-              name,
-              arguments: args,
-            });
-            return result.content;
+            return callMcpTool(name, args);
           },
         });
       }
@@ -69,9 +97,8 @@ export async function getAiTools(): Promise<{ aiTools: ToolSet }> {
     logger.info(`Discovered ${Object.keys(aiTools).length} MCP tools`);
     return { aiTools };
   } catch (error) {
-    logger.warn(
-      `MCP connection failed, running in text-only mode: ${error instanceof Error ? error.message : error}`
-    );
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.warn(`MCP connection failed, text-only mode: ${msg}`);
     cachedTools = {};
     cacheTimestamp = now;
     return { aiTools: {} };

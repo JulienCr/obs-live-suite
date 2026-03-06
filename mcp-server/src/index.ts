@@ -1,3 +1,8 @@
+// Accept self-signed certificates (mkcert) before any imports that may fetch
+if (process.env.NODE_ENV !== 'production') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -57,6 +62,32 @@ app.post('/mcp', async (req, res) => {
 // Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', name: MCP_SERVER_NAME, version: MCP_SERVER_VERSION });
+});
+
+// Debug endpoint - test fetch connectivity
+app.get('/debug/fetch', async (_req, res) => {
+  const { FRONTEND_URL, BACKEND_URL } = await import('./config.js');
+  const results: Record<string, unknown> = {
+    FRONTEND_URL,
+    BACKEND_URL,
+    NODE_TLS_REJECT_UNAUTHORIZED: process.env.NODE_TLS_REJECT_UNAUTHORIZED,
+    NODE_ENV: process.env.NODE_ENV,
+  };
+  try {
+    const r = await fetch(`${FRONTEND_URL}/api/assets/guests`, { signal: AbortSignal.timeout(5000) });
+    results.frontendFetch = { ok: r.ok, status: r.status };
+  } catch (e) {
+    const err = e as Error;
+    results.frontendFetch = { error: err.message, cause: (err as NodeJS.ErrnoException).cause };
+  }
+  try {
+    const r = await fetch(`${BACKEND_URL}/api/overlays`, { signal: AbortSignal.timeout(5000) });
+    results.backendFetch = { ok: r.ok, status: r.status };
+  } catch (e) {
+    const err = e as Error;
+    results.backendFetch = { error: err.message, cause: (err as NodeJS.ErrnoException).cause };
+  }
+  res.json(results);
 });
 
 app.listen(MCP_PORT, MCP_HOST, () => {
