@@ -57,6 +57,8 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '150M',
+      max_restarts: 3,
+      min_uptime: '5s',
       windowsHide: true,
       env: {
         NODE_ENV: 'production',
