@@ -1,7 +1,8 @@
 import { type IDockviewPanelProps } from "dockview-react";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { Zap, Pencil, Trash2 } from "lucide-react";
+import { Zap, Pencil, Trash2, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils/cn";
 import { apiPost } from "@/lib/utils/ClientFetch";
 import { DASHBOARD_EVENTS } from "@/lib/config/Constants";
@@ -19,7 +20,6 @@ import {
 import { ConfirmDeleteDialog } from "@/components/ui/ConfirmDeleteDialog";
 
 const config: PanelConfig = { id: "textPresets", context: "dashboard" };
-const MAX_VISIBLE_PRESETS = 10;
 
 /**
  * Text Presets panel for Dockview - quick play text lower thirds
@@ -29,12 +29,19 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
   const tCommon = useTranslations("common");
   const { api: dockviewApi } = useDockview();
   const { textPresets: allPresets, isLoading: loading, deleteTextPreset } = useTextPresets({ enabled: true });
-  const textPresets = allPresets.slice(0, MAX_VISIBLE_PRESETS);
-  const hiddenCount = allPresets.length - textPresets.length;
 
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeTextPresetId, setActiveTextPresetId] = useState<string | null>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const filteredPresets = useMemo(() => {
+    if (!searchQuery.trim()) return allPresets;
+    const q = searchQuery.toLowerCase();
+    return allPresets.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.body.toLowerCase().includes(q)
+    );
+  }, [allPresets, searchQuery]);
 
   // Handle lower third events to track active text preset
   const handleLowerThirdEvent = useCallback((data: LowerThirdEvent) => {
@@ -113,81 +120,87 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
     <BasePanelWrapper config={config}>
       {loading ? (
         <div className="text-sm text-muted-foreground">{tCommon("loading")}</div>
-      ) : textPresets.length === 0 ? (
+      ) : allPresets.length === 0 ? (
         <div className="text-sm text-muted-foreground text-center py-4">
           {t("noPresets")}
         </div>
       ) : (
-        <div
-          className="grid grid-cols-2 gap-2"
-          style={{
-            scrollbarWidth: "thin",
-            scrollbarColor: "hsl(var(--muted)) transparent",
-          }}
-        >
-          {textPresets.map((preset, index) => {
-            const isActive = activeTextPresetId === preset.id;
-            return (
-              <ContextMenu key={preset.id}>
-                <ContextMenuTrigger asChild>
-                  <div
-                    className={cn(
-                      "relative flex items-center gap-2 p-2 rounded-lg transition-all cursor-pointer group border-2",
-                      isActive
-                        ? "bg-muted/50 border-green-500"
-                        : "border-transparent hover:bg-muted/50"
-                    )}
-                    onClick={() => handleQuickShow(preset)}
-                    title={t("showTooltip", {
-                      name: preset.name,
-                      shortcut: index === 9 ? "0" : String(index + 1),
-                    })}
-                  >
-                    <div className="w-5 h-5 rounded flex items-center justify-center bg-primary/10 text-primary text-xs font-bold shrink-0">
-                      {index === 9 ? "0" : index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">
-                        {preset.name}
+        <div className="flex flex-col gap-2 min-h-0 flex-1">
+          <div className="relative">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+              className="h-8 text-sm pr-8"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <div
+            className="grid grid-cols-2 gap-2 overflow-y-auto flex-1"
+            style={{
+              scrollbarWidth: "thin",
+              scrollbarColor: "hsl(var(--muted)) transparent",
+            }}
+          >
+            {filteredPresets.map((preset) => {
+              const isActive = activeTextPresetId === preset.id;
+              return (
+                <ContextMenu key={preset.id}>
+                  <ContextMenuTrigger asChild>
+                    <div
+                      className={cn(
+                        "relative flex items-center gap-2 p-2 rounded-lg transition-all cursor-pointer group border-2",
+                        isActive
+                          ? "bg-muted/50 border-green-500"
+                          : "border-transparent hover:bg-muted/50"
+                      )}
+                      onClick={() => handleQuickShow(preset)}
+                      title={t("showTooltip", { name: preset.name })}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">
+                          {preset.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {preset.body.substring(0, 40)}
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {preset.body.substring(0, 40)}
-                      </div>
-                    </div>
 
-                    {isActive ? (
-                      <div className="shrink-0 flex items-center justify-center w-6 h-6 bg-green-500 rounded-full">
-                        <Zap className="w-3 h-3 text-white fill-white" />
-                      </div>
-                    ) : (
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-6 w-6 flex items-center justify-center">
-                        <Zap className="w-3 h-3 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                  <ContextMenuItem onClick={() => handleEdit(preset)}>
-                    <Pencil className="w-4 h-4 mr-2" />
-                    {t("editPreset")}
-                  </ContextMenuItem>
-                  <ContextMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={() => setDeleteTarget({ id: preset.id, name: preset.name })}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    {t("deletePreset")}
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            );
-          })}
-        </div>
-      )}
-
-      {hiddenCount > 0 && (
-        <div className="text-xs text-muted-foreground text-center py-1">
-          {t("morePresets", { count: hiddenCount })}
+                      {isActive ? (
+                        <div className="shrink-0 flex items-center justify-center w-6 h-6 bg-green-500 rounded-full">
+                          <Zap className="w-3 h-3 text-white fill-white" />
+                        </div>
+                      ) : (
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-6 w-6 flex items-center justify-center">
+                          <Zap className="w-3 h-3 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem onClick={() => handleEdit(preset)}>
+                      <Pencil className="w-4 h-4 mr-2" />
+                      {t("editPreset")}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => setDeleteTarget({ id: preset.id, name: preset.name })}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      {t("deletePreset")}
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              );
+            })}
+          </div>
         </div>
       )}
 

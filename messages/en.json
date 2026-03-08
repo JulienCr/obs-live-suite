@@ -273,13 +273,13 @@
     "textPresets": {
       "title": "Text Presets",
       "noPresets": "No text presets",
-      "showTooltip": "Show {name} lower third (Shortcut: {shortcut})",
+      "showTooltip": "Show {name} lower third",
+      "searchPlaceholder": "Search presets…",
       "editPreset": "Edit",
       "deletePreset": "Delete",
       "confirmDelete": "Delete \"{name}\"?",
       "confirmDeleteDesc": "This text preset will be permanently deleted.",
-      "cancel": "Cancel",
-      "morePresets": "+{count} more in library"
+      "cancel": "Cancel"
     },
     "twitch": {
       "title": "Twitch",

@@ -273,13 +273,13 @@
     "textPresets": {
       "title": "Textes prédéfinis",
       "noPresets": "Aucun texte prédéfini",
-      "showTooltip": "Afficher le synthé {name} (Raccourci : {shortcut})",
+      "showTooltip": "Afficher le synthé {name}",
+      "searchPlaceholder": "Rechercher un texte…",
       "editPreset": "Modifier",
       "deletePreset": "Supprimer",
       "confirmDelete": "Supprimer « {name} » ?",
       "confirmDeleteDesc": "Ce texte prédéfini sera supprimé définitivement.",
-      "cancel": "Annuler",
-      "morePresets": "+{count} de plus dans la bibliothèque"
+      "cancel": "Annuler"
     },
     "twitch": {
       "title": "Twitch",
