@@ -275,6 +275,7 @@
       "noPresets": "No text presets",
       "showTooltip": "Show {name} lower third",
       "searchPlaceholder": "Search presets…",
+      "noResults": "No matching presets",
       "editPreset": "Edit",
       "deletePreset": "Delete",
       "confirmDelete": "Delete \"{name}\"?",

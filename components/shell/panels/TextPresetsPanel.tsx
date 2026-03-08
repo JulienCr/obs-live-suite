@@ -149,7 +149,11 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
               scrollbarColor: "hsl(var(--muted)) transparent",
             }}
           >
-            {filteredPresets.map((preset) => {
+            {filteredPresets.length === 0 ? (
+              <div className="col-span-2 text-sm text-muted-foreground text-center py-4">
+                {t("noResults")}
+              </div>
+            ) : (filteredPresets.map((preset) => {
               const isActive = activeTextPresetId === preset.id;
               return (
                 <ContextMenu key={preset.id}>
@@ -199,7 +203,7 @@ export function TextPresetsPanel(_props: IDockviewPanelProps) {
                   </ContextMenuContent>
                 </ContextMenu>
               );
-            })}
+            }))}
           </div>
         </div>
       )}

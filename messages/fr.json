@@ -275,6 +275,7 @@
       "noPresets": "Aucun texte prédéfini",
       "showTooltip": "Afficher le synthé {name}",
       "searchPlaceholder": "Rechercher un texte…",
+      "noResults": "Aucun résultat",
       "editPreset": "Modifier",
       "deletePreset": "Supprimer",
       "confirmDelete": "Supprimer « {name} » ?",

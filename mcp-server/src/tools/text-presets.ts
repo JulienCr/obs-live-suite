@@ -77,12 +77,11 @@ export function registerTextPresetTools(server: McpServer) {
       duration: z.number().positive().int().optional().describe('Override auto-hide duration in seconds'),
     }),
   }, async ({ id, duration }) => {
-    const body = duration ? { duration } : {};
     const result = await frontendFetch(`/api/actions/lower/text-preset/${id}`, {
       method: 'POST',
-      body: JSON.stringify(body),
+      ...(duration !== undefined && { body: JSON.stringify({ duration }) }),
     });
     if (!result.success) return errorResponse(result.error);
-    return jsonResponse(result.data);
+    return textResponse('Text preset displayed as lower third.');
   });
 }
