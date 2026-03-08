@@ -7,12 +7,14 @@ import { registerCountdownTools } from './countdown.js';
 import { registerPosterOverlayTools } from './poster-overlay.js';
 import { registerChatTools } from './chat.js';
 import { registerClearAllTools } from './clear-all.js';
+import { registerTextPresetTools } from './text-presets.js';
 
 export function registerAllTools(server: McpServer) {
   registerGuestTools(server);
   registerPosterTools(server);
   registerSubvideoTools(server);
   registerLowerThirdTools(server);
+  registerTextPresetTools(server);
   registerCountdownTools(server);
   registerPosterOverlayTools(server);
   registerChatTools(server);
