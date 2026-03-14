@@ -38,6 +38,7 @@ export const POST = withErrorHandler<{ id: string }>(
       }
       const metadata = await YouTubeMetadataService.getInstance().fetchMetadata(videoId);
       if (!metadata?.duration) {
+        console.error(`${LOG_CONTEXT} Failed to fetch YouTube duration for video ${videoId}`);
         return ApiResponses.badRequest(
           "Could not fetch YouTube video duration. Check that the YouTube API key is configured."
         );
@@ -49,8 +50,9 @@ export const POST = withErrorHandler<{ id: string }>(
     }
 
     if (duration === null) {
+      console.error(`${LOG_CONTEXT} Failed to extract duration for poster ${id}`);
       return ApiResponses.badRequest(
-        "Could not extract duration from video file"
+        "Could not extract duration from video"
       );
     }
 
