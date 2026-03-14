@@ -880,7 +880,11 @@
       "changeAvatar": "Changer l'avatar",
       "uploadAvatar": "Télécharger un avatar",
       "dropOrBrowse": "Déposez une image ici ou cliquez pour parcourir",
-      "removeAvatar": "Supprimer l'avatar"
+      "removeAvatar": "Supprimer l'avatar",
+      "importInstagram": "Importer depuis Instagram",
+      "instagramPlaceholder": "Nom d'utilisateur ou URL du profil",
+      "fetchingProfilePic": "Récupération de la photo de profil...",
+      "instagramFetchFailed": "Impossible de récupérer la photo de profil Instagram"
     },
     "imageCropper": {
       "title": "Recadrer l'avatar",
@@ -954,9 +958,9 @@
       "title": "Ajout rapide de média",
       "titleImageOnly": "Ajout rapide d'image",
       "browseFiles": "Parcourir les fichiers",
-      "placeholderFull": "Collez une URL YouTube, image/vidéo, ou Ctrl+V un fichier...",
+      "placeholderFull": "Collez une URL YouTube, Instagram, image/vidéo, ou Ctrl+V un fichier...",
       "placeholderImageOnly": "Collez une URL d'image, ou Ctrl+V un fichier...",
-      "hintFull": "Collez une URL YouTube, image/vidéo, ou Ctrl+V un fichier depuis votre presse-papiers",
+      "hintFull": "Collez une URL YouTube, Instagram, image/vidéo, ou Ctrl+V un fichier depuis votre presse-papiers",
       "hintImageOnly": "Collez une URL d'image, ou Ctrl+V un fichier depuis votre presse-papiers",
       "uploading": "Téléchargement...",
       "processing": "Traitement...",
@@ -975,7 +979,8 @@
         "invalidYoutubeUrl": "URL YouTube invalide. Utilisez youtube.com/watch?v=... ou youtu.be/...",
         "urlTypesNotAllowed": "Seules les URLs de type {types} sont autorisées ici.",
         "invalidUrlImage": "URL invalide. Collez un lien direct vers un fichier image.",
-        "invalidUrlFull": "URL invalide. Collez une URL YouTube ou un lien direct vers un fichier image/vidéo."
+        "invalidUrlFull": "URL invalide. Collez une URL YouTube, Instagram, ou un lien direct vers un fichier image/vidéo.",
+        "instagramFailed": "Impossible de télécharger le média Instagram"
       }
     },
     "textPresets": {

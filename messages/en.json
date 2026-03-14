@@ -880,7 +880,11 @@
       "changeAvatar": "Change Avatar",
       "uploadAvatar": "Upload Avatar",
       "dropOrBrowse": "Drop image here or click to browse",
-      "removeAvatar": "Remove avatar"
+      "removeAvatar": "Remove avatar",
+      "importInstagram": "Import from Instagram",
+      "instagramPlaceholder": "Username or profile URL",
+      "fetchingProfilePic": "Fetching profile picture...",
+      "instagramFetchFailed": "Failed to fetch Instagram profile picture"
     },
     "imageCropper": {
       "title": "Crop Avatar",
@@ -954,9 +958,9 @@
       "title": "Quick Add Media",
       "titleImageOnly": "Quick Add Image",
       "browseFiles": "Browse Files",
-      "placeholderFull": "Paste YouTube URL, image/video URL, or Ctrl+V a file...",
+      "placeholderFull": "Paste YouTube, Instagram, image/video URL, or Ctrl+V a file...",
       "placeholderImageOnly": "Paste image URL, or Ctrl+V a file...",
-      "hintFull": "Paste YouTube URL, image/video URL, or Ctrl+V a file from your clipboard",
+      "hintFull": "Paste YouTube, Instagram, image/video URL, or Ctrl+V a file from your clipboard",
       "hintImageOnly": "Paste an image URL, or Ctrl+V a file from your clipboard",
       "uploading": "Uploading...",
       "processing": "Processing...",
@@ -975,7 +979,8 @@
         "invalidYoutubeUrl": "Invalid YouTube URL. Use youtube.com/watch?v=... or youtu.be/...",
         "urlTypesNotAllowed": "Only {types} URLs are allowed here.",
         "invalidUrlImage": "Invalid URL. Paste a direct link to an image file.",
-        "invalidUrlFull": "Invalid URL. Paste a YouTube URL or a direct link to an image/video file."
+        "invalidUrlFull": "Invalid URL. Paste a YouTube, Instagram URL, or a direct link to an image/video file.",
+        "instagramFailed": "Failed to download Instagram media"
       }
     },
     "textPresets": {

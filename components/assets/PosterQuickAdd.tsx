@@ -6,17 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, Loader2, Image as ImageIcon, Video, Youtube } from "lucide-react";
+import { Upload, Loader2, Image as ImageIcon, Video, Youtube, Instagram } from "lucide-react";
 import {
   isYouTubeUrl,
   extractYouTubeId,
+  isInstagramUrl,
+  getInstagramUrlType,
   isDirectMediaUrl,
   getMediaTypeFromUrl,
   getFilenameFromUrl,
 } from "@/lib/utils/urlDetection";
 import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
-type MediaType = "image" | "video" | "youtube";
+type MediaType = "image" | "video" | "youtube" | "instagram";
 type DisplayMode = "left" | "right" | "bigpicture";
 
 interface Poster {
@@ -43,6 +45,7 @@ interface PreviewState {
   title: string;
   source?: string;
   thumbnailUrl?: string;
+  duration?: number | null;
 }
 
 /**
@@ -218,6 +221,44 @@ export function PosterQuickAdd({
   };
 
   /**
+   * Process Instagram post/reel URL
+   */
+  const handleInstagramUrl = async (url: string) => {
+    setProcessing(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/assets/instagram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, type: "media" }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || t("errors.instagramFailed"));
+      }
+
+      const data = await res.json();
+
+      setPreview({
+        fileUrl: data.url,
+        type: data.type,
+        title: data.title || "Instagram",
+        source: data.source,
+        thumbnailUrl: data.type === "image" ? data.url : undefined,
+        duration: data.duration || null,
+      });
+
+      setUrlInput("");
+    } catch (err) {
+      showError(err instanceof Error ? err.message : t("errors.instagramFailed"));
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  /**
    * Handle URL input change
    */
   const handleUrlInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -236,6 +277,8 @@ export function PosterQuickAdd({
 
     if (isYouTubeUrl(trimmed)) {
       handleYouTubeUrl(trimmed);
+    } else if (isInstagramUrl(trimmed) && getInstagramUrlType(trimmed) !== "profile") {
+      handleInstagramUrl(trimmed);
     } else if (isDirectMediaUrl(trimmed)) {
       handleDirectMediaUrl(trimmed);
     } else {
@@ -315,6 +358,7 @@ export function PosterQuickAdd({
         source: preview.source || "",
         fileUrl: preview.fileUrl,
         type: preview.type,
+        duration: preview.duration || null,
         tags: [],
         isEnabled: true,
       });
@@ -388,6 +432,8 @@ export function PosterQuickAdd({
         return <Video className="w-3 h-3" />;
       case "youtube":
         return <Youtube className="w-3 h-3" />;
+      case "instagram":
+        return <Instagram className="w-3 h-3" />;
       default:
         return null;
     }

@@ -160,3 +160,81 @@ export function getFilenameFromUrl(url: string): string {
     return withoutExt || 'Untitled';
   }
 }
+
+/**
+ * Detects if a URL is an Instagram URL (post, reel, or profile)
+ */
+export function isInstagramUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+
+  // Try to parse as URL
+  try {
+    const urlObj = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
+    return urlObj.hostname === 'instagram.com' || urlObj.hostname === 'www.instagram.com';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Differentiates between Instagram URL types
+ * - 'post': instagram.com/p/CODE
+ * - 'reel': instagram.com/reel/CODE
+ * - 'profile': instagram.com/USERNAME (no /p/ or /reel/ segment)
+ */
+export function getInstagramUrlType(url: string): 'post' | 'reel' | 'profile' | null {
+  if (!isInstagramUrl(url)) return null;
+
+  const trimmed = url.trim();
+  try {
+    const urlObj = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
+    const path = urlObj.pathname;
+
+    if (/^\/p\/[^/]+\/?$/.test(path)) return 'post';
+    if (/^\/reel\/[^/]+\/?$/.test(path)) return 'reel';
+
+    // Profile: /USERNAME or /USERNAME/ (not /p/, /reel/, /explore/, /accounts/, etc.)
+    const systemPaths = ['p', 'reel', 'reels', 'explore', 'accounts', 'about', 'legal', 'developer', 'stories', 'direct', 'tv'];
+    const segments = path.split('/').filter(Boolean);
+    if (segments.length === 1 && !systemPaths.includes(segments[0])) {
+      return 'profile';
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extracts Instagram username from a profile URL or raw username
+ * Works with: instagram.com/USERNAME, instagram.com/USERNAME/, or just "USERNAME"
+ */
+export function extractInstagramUsername(url: string): string | null {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  // If it looks like a URL, parse it
+  if (trimmed.includes('instagram.com')) {
+    try {
+      const urlObj = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
+      const segments = urlObj.pathname.split('/').filter(Boolean);
+      if (segments.length === 1) {
+        return segments[0];
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Raw username (no spaces, no slashes)
+  if (/^[a-zA-Z0-9._]+$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  return null;
+}

@@ -72,6 +72,12 @@ A comprehensive desktop-first web application for managing live show production 
 - pnpm
 - OBS Studio with obs-websocket v5
 
+### Optional (Instagram integration)
+
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) — downloads Instagram reels/videos (`pip install yt-dlp`)
+- [instaloader](https://instaloader.github.io/) — downloads Instagram profile pictures and image posts (`pipx install instaloader`)
+- A logged-in browser session (Chrome by default) for yt-dlp cookie authentication
+
 ## Setup
 
 1. Install dependencies:

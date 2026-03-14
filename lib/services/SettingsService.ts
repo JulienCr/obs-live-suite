@@ -622,4 +622,23 @@ export class SettingsService {
     this.db.setSetting("chat.predefinedMessages", JSON.stringify(messages));
     this.logger.info("Chat predefined messages saved to database");
   }
+
+  // =========================================================================
+  // INSTAGRAM SETTINGS
+  // =========================================================================
+
+  /**
+   * Get the browser to use for Instagram cookies (yt-dlp --cookies-from-browser)
+   */
+  getInstagramCookiesBrowser(): string {
+    return this.db.getSetting("instagram.cookiesBrowser") || "chrome";
+  }
+
+  /**
+   * Save the browser to use for Instagram cookies
+   */
+  saveInstagramCookiesBrowser(browser: string): void {
+    this.db.setSetting("instagram.cookiesBrowser", browser);
+    this.logger.info(`Instagram cookies browser set to: ${browser}`);
+  }
 }

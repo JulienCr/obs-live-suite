@@ -3,8 +3,10 @@
 import { useState, useRef, DragEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ImageCropper } from "./ImageCropper";
-import { Upload, Loader2, X } from "lucide-react";
+import { Upload, Loader2, X, Instagram } from "lucide-react";
+import { extractInstagramUsername } from "@/lib/utils/urlDetection";
 
 interface AvatarUploaderProps {
   currentAvatar?: string;
@@ -22,6 +24,10 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(currentAvatar);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [instagramInput, setInstagramInput] = useState("");
+  const [instagramLoading, setInstagramLoading] = useState(false);
+  const [instagramError, setInstagramError] = useState<string | null>(null);
+  const [showInstagram, setShowInstagram] = useState(false);
 
   const handleDrag = (e: DragEvent) => {
     e.preventDefault();
@@ -98,6 +104,41 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
   const handleRemove = () => {
     setPreviewUrl(undefined);
     onUpload("");
+  };
+
+  const handleInstagramFetch = async () => {
+    const username = extractInstagramUsername(instagramInput.trim());
+    if (!username) {
+      setInstagramError(t("instagramFetchFailed"));
+      return;
+    }
+
+    setInstagramLoading(true);
+    setInstagramError(null);
+
+    try {
+      const res = await fetch("/api/assets/instagram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, type: "profile" }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || t("instagramFetchFailed"));
+      }
+
+      const data = await res.json();
+
+      // Feed into existing crop flow
+      setImageToCrop(data.url);
+      setInstagramInput("");
+      setShowInstagram(false);
+    } catch (err) {
+      setInstagramError(err instanceof Error ? err.message : t("instagramFetchFailed"));
+    } finally {
+      setInstagramLoading(false);
+    }
   };
 
   return (
@@ -181,6 +222,71 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
             <X className="w-4 h-4" />
           </Button>
         )}
+        </div>
+        {/* Instagram Import */}
+        <div className="mt-2">
+          {!showInstagram ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowInstagram(true)}
+              className="text-xs text-muted-foreground gap-1"
+            >
+              <Instagram className="w-3 h-3" />
+              {t("importInstagram")}
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Instagram className="w-4 h-4 text-muted-foreground shrink-0" />
+              <Input
+                type="text"
+                placeholder={t("instagramPlaceholder")}
+                value={instagramInput}
+                onChange={(e) => {
+                  setInstagramInput(e.target.value);
+                  setInstagramError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleInstagramFetch();
+                  if (e.key === "Escape") {
+                    setShowInstagram(false);
+                    setInstagramInput("");
+                    setInstagramError(null);
+                  }
+                }}
+                disabled={instagramLoading}
+                className="h-7 text-xs"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleInstagramFetch}
+                disabled={instagramLoading || !instagramInput.trim()}
+                className="h-7 text-xs shrink-0"
+              >
+                {instagramLoading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  t("importInstagram")
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowInstagram(false);
+                  setInstagramInput("");
+                  setInstagramError(null);
+                }}
+                className="h-7 text-xs shrink-0"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+          {instagramError && (
+            <p className="text-xs text-destructive mt-1">{instagramError}</p>
+          )}
         </div>
       </div>
     </>
