@@ -1,16 +1,15 @@
+import { SettingsService } from "@/lib/services/SettingsService";
 import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
-import type { MonitorInfo } from "@/lib/models/StudioReturn";
 
 const LOG_CONTEXT = "[StudioReturnMonitorsAPI]";
-
-let knownMonitors: MonitorInfo[] = [];
 
 /**
  * GET /api/settings/studio-return/monitors
  * Returns the list of monitors reported by the Tauri app
  */
 export const GET = withSimpleErrorHandler(async () => {
-  return ApiResponses.ok({ monitors: knownMonitors });
+  const monitors = SettingsService.getInstance().getStudioReturnMonitors();
+  return ApiResponses.ok({ monitors });
 }, LOG_CONTEXT);
 
 /**
@@ -25,7 +24,7 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
     return ApiResponses.badRequest("monitors must be an array");
   }
 
-  knownMonitors = monitors;
+  SettingsService.getInstance().saveStudioReturnMonitors(monitors);
 
   return ApiResponses.ok({
     success: true,

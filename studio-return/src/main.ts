@@ -33,6 +33,12 @@ window.__testNotification = (severity) => {
 // ---- Real-time settings from dashboard ----
 onSettingsUpdate((settings) => {
   applySettings(settings as import("./types").StudioReturnSettings, hideNotification);
+
+  // Reposition window immediately via Tauri command (no polling delay)
+  const monitorIndex = (settings as Record<string, unknown>).monitorIndex;
+  if (monitorIndex != null && window.__TAURI_INTERNALS__) {
+    window.__TAURI_INTERNALS__.invoke("reposition_monitor", { monitorIndex });
+  }
 });
 
 // ---- Dismiss handler ----

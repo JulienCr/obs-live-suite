@@ -45,5 +45,8 @@ declare global {
     __applySettings: (settings: StudioReturnSettings) => void;
     __setWsPort: (port: number) => void;
     __testNotification: (severity?: Severity) => void;
+    __TAURI_INTERNALS__?: {
+      invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+    };
   }
 }

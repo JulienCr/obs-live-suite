@@ -10,29 +10,11 @@ import { presenterChannelSettingsSchema } from "../models/PresenterChannel";
 import type { TwitchSettings, TwitchOAuthTokens } from "../models/Twitch";
 import type { PresenterChannelSettings } from "../models/PresenterChannel";
 import type { ChatPredefinedMessage } from "../models/ChatMessages";
-
-// ============================================================================
-// STUDIO RETURN SCHEMAS
-// ============================================================================
-
-/**
- * Studio Return overlay settings schema
- */
-export const StudioReturnSettingsSchema = z.object({
-  monitorIndex: z.number().default(0),
-  displayDuration: z.number().default(10),
-  fontSize: z.number().default(80),
-  enabled: z.boolean().default(true),
-});
-
-export type StudioReturnSettings = z.infer<typeof StudioReturnSettingsSchema>;
-
-export const DEFAULT_STUDIO_RETURN_SETTINGS: StudioReturnSettings = {
-  monitorIndex: 0,
-  displayDuration: 10,
-  fontSize: 80,
-  enabled: true,
-};
+import {
+  StudioReturnSettingsSchema,
+  DEFAULT_STUDIO_RETURN_SETTINGS,
+} from "../models/StudioReturn";
+import type { StudioReturnSettings, MonitorInfo } from "../models/StudioReturn";
 
 // ============================================================================
 // SETTINGS SCHEMAS
@@ -571,6 +553,32 @@ export class SettingsService {
     this.studioReturnStore.set(settings);
     this.logger.info("Studio Return settings saved to database");
     return this.studioReturnStore.get();
+  }
+
+  // =========================================================================
+  // STUDIO RETURN MONITORS
+  // =========================================================================
+
+  /**
+   * Get known monitors reported by the Tauri app
+   */
+  getStudioReturnMonitors(): MonitorInfo[] {
+    const json = this.db.getSetting("studioReturn.monitors");
+    if (json) {
+      try {
+        return JSON.parse(json) as MonitorInfo[];
+      } catch {
+        this.logger.warn("Failed to parse studio return monitors");
+      }
+    }
+    return [];
+  }
+
+  /**
+   * Save monitors reported by the Tauri app
+   */
+  saveStudioReturnMonitors(monitors: MonitorInfo[]): void {
+    this.db.setSetting("studioReturn.monitors", JSON.stringify(monitors));
   }
 
   // =========================================================================

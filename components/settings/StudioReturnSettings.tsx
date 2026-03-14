@@ -12,7 +12,7 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { CueSeverity, CueType, CueFrom } from "@/lib/models/Cue";
 import type { MonitorInfo } from "@/lib/models/StudioReturn";
-import { DEFAULT_STUDIO_RETURN_SETTINGS } from "@/lib/services/SettingsService";
+import { DEFAULT_STUDIO_RETURN_SETTINGS } from "@/lib/models/StudioReturn";
 
 interface StudioReturnSettingsState {
   monitorIndex: number;
