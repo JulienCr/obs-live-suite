@@ -1,26 +1,29 @@
 import { z } from "zod";
+import type { CueSeverity } from "./Cue";
 
 /**
  * Monitor information reported by the Tauri app.
- * Not persisted to DB — refreshed each time the Tauri app starts or polls.
+ * Validated on input from the Tauri app POST endpoint.
  */
-export interface MonitorInfo {
-  index: number;
-  name: string;
-  width: number;
-  height: number;
-  x: number;
-  y: number;
-  isPrimary: boolean;
-}
+export const MonitorInfoSchema = z.object({
+  index: z.number().int().min(0),
+  name: z.string(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  x: z.number().int(),
+  y: z.number().int(),
+  isPrimary: z.boolean(),
+});
+
+export type MonitorInfo = z.infer<typeof MonitorInfoSchema>;
 
 /**
  * Studio Return overlay settings schema
  */
 export const StudioReturnSettingsSchema = z.object({
-  monitorIndex: z.number().default(0),
-  displayDuration: z.number().default(10),
-  fontSize: z.number().default(80),
+  monitorIndex: z.number().int().min(0).default(0),
+  displayDuration: z.number().min(3).max(60).default(10),
+  fontSize: z.number().min(32).max(160).default(80),
   enabled: z.boolean().default(true),
 });
 
@@ -31,3 +34,13 @@ export const DEFAULT_STUDIO_RETURN_SETTINGS: StudioReturnSettings =
 
 /** WebSocket message type for real-time settings push */
 export const STUDIO_RETURN_SETTINGS_EVENT = "studio-return-settings" as const;
+
+/** Content displayed on the Studio Return overlay */
+export interface StudioReturnContent {
+  title: string;
+  body: string;
+  severity: CueSeverity;
+}
+
+/** Delay (ms) before auto-dismissing a countdown that reached zero */
+export const COUNTDOWN_ZERO_DISMISS_MS = 3000;

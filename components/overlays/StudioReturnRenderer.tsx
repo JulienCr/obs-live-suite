@@ -2,23 +2,24 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { StudioReturnDisplay, type StudioReturnContent } from "./StudioReturnDisplay";
+import { StudioReturnDisplay } from "./StudioReturnDisplay";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
-import { CueSeverity } from "@/lib/models/Cue";
+import { CueSeverity, CueType } from "@/lib/models/Cue";
 import type { CountdownPayload } from "@/lib/models/Cue";
 import {
+  COUNTDOWN_ZERO_DISMISS_MS,
   DEFAULT_STUDIO_RETURN_SETTINGS,
   STUDIO_RETURN_SETTINGS_EVENT,
 } from "@/lib/models/StudioReturn";
-import type { StudioReturnSettings } from "@/lib/models/StudioReturn";
+import type { StudioReturnContent, StudioReturnSettings } from "@/lib/models/StudioReturn";
 import { formatTimeShort } from "@/lib/utils/durationParser";
 
 // ------------------------------------------------------------------
-// Types mirroring the presenter channel payloads
+// Types for presenter channel WebSocket messages
 // ------------------------------------------------------------------
 
 interface CuePayload {
-  type: string;
+  type: CueType | string;
   severity?: CueSeverity;
   title?: string;
   body?: string;
@@ -29,7 +30,7 @@ interface CuePayload {
 
 interface PresenterMessage {
   type: string;
-  payload: CuePayload;
+  payload: CuePayload | Partial<StudioReturnSettings>;
 }
 
 // ------------------------------------------------------------------
@@ -84,10 +85,12 @@ export function StudioReturnRenderer() {
     (durationSec: number) => {
       if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current);
       dismissTimeoutRef.current = setTimeout(() => {
+        // Use hide() to clear ALL timers (including any lingering countdown interval)
+        clearAllTimers();
         setContent(null);
       }, durationSec * 1000);
     },
-    [],
+    [clearAllTimers],
   );
 
   // --- Countdown logic ---
@@ -124,8 +127,8 @@ export function StudioReturnRenderer() {
             body: "0:00",
             severity: CueSeverity.URGENT,
           });
-          // Auto-dismiss after 3s
-          dismissTimeoutRef.current = setTimeout(() => setContent(null), 3000);
+          // Auto-dismiss after countdown reaches zero
+          dismissTimeoutRef.current = setTimeout(() => setContent(null), COUNTDOWN_ZERO_DISMISS_MS);
           return;
         }
 
@@ -189,26 +192,29 @@ export function StudioReturnRenderer() {
     (data: PresenterMessage) => {
       // Handle real-time settings updates from dashboard
       if (data.type === STUDIO_RETURN_SETTINGS_EVENT) {
-        const settings = data.payload as unknown as Partial<StudioReturnSettings>;
-        applySettings(settings);
+        applySettings(data.payload as Partial<StudioReturnSettings>);
 
         // Reposition window via Tauri command if available
+        const settingsPayload = data.payload as Partial<StudioReturnSettings>;
         if (
-          settings.monitorIndex != null &&
+          settingsPayload.monitorIndex != null &&
           (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__
         ) {
           const tauri = (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ as {
             invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
           };
-          tauri.invoke("reposition_monitor", { monitorIndex: settings.monitorIndex });
+          tauri.invoke("reposition_monitor", { monitorIndex: settingsPayload.monitorIndex })
+            .catch((err: unknown) => {
+              console.error("[StudioReturn] Failed to reposition monitor via Tauri:", err);
+            });
         }
         return;
       }
 
       if (data.type !== "message") return;
 
-      const payload = data.payload;
-      if (!payload || payload.type === "clear") return;
+      const payload = data.payload as CuePayload;
+      if (!payload || (payload as CuePayload).type === "clear") return;
       if (!payload.studioReturn) return;
 
       // Dismiss signal

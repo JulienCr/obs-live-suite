@@ -34,7 +34,9 @@ wsHub.setOnPresenterJoinCallback((clientId, _role) => {
  */
 router.post("/send", cueHandler(async (req, res) => {
   // Extract studio return flags before Zod validation (not part of Cue schema)
-  const { studioReturn, studioReturnDismiss, ...cueBody } = req.body;
+  const studioReturn = req.body.studioReturn === true;
+  const studioReturnDismiss = req.body.studioReturnDismiss === true;
+  const { studioReturn: _sr, studioReturnDismiss: _srd, ...cueBody } = req.body;
   const input = createCueMessageSchema.parse(cueBody);
   const id = randomUUID();
 

@@ -47,8 +47,8 @@ export function StudioReturnSettings() {
       try {
         const data = await apiGet<{ monitors: MonitorInfo[] }>("/api/settings/studio-return/monitors");
         setMonitors(data.monitors || []);
-      } catch {
-        // Monitors not available yet (Tauri app not running)
+      } catch (err) {
+        console.warn("[StudioReturnSettings] Failed to fetch monitors:", err);
       }
     };
 
@@ -208,9 +208,11 @@ const SEVERITY_COLORS: Record<CueSeverity, string> = {
 
 function TestButton({ severity, label }: { severity: CueSeverity; label: string }) {
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(false);
 
   const sendTest = useCallback(async () => {
     setSending(true);
+    setSendError(false);
     try {
       const payload = buildCuePayload({
         type: CueType.CUE,
@@ -220,21 +222,27 @@ function TestButton({ severity, label }: { severity: CueSeverity; label: string 
       });
       await sendCue(payload, true);
     } catch (e) {
-      console.error("Failed to send test cue:", e);
+      console.error("[StudioReturnSettings] Failed to send test cue:", e);
+      setSendError(true);
     } finally {
       setSending(false);
     }
   }, [severity, label]);
 
   return (
-    <Button
-      onClick={sendTest}
-      disabled={sending}
-      className={`${SEVERITY_COLORS[severity]} text-white`}
-      size="sm"
-    >
-      <Send className="w-3 h-3 mr-1" />
-      {label}
-    </Button>
+    <div className="flex flex-col items-center gap-1">
+      <Button
+        onClick={sendTest}
+        disabled={sending}
+        className={`${SEVERITY_COLORS[severity]} text-white`}
+        size="sm"
+      >
+        <Send className="w-3 h-3 mr-1" />
+        {label}
+      </Button>
+      {sendError && (
+        <span className="text-xs text-destructive">Failed</span>
+      )}
+    </div>
   );
 }

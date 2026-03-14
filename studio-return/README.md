@@ -6,13 +6,15 @@ Built with [Tauri v2](https://v2.tauri.app/) (Rust + vanilla JS). Designed for W
 
 ## How it works
 
-The Studio Return app is a frameless, transparent, click-through window that sits fullscreen on a designated monitor (typically the studio return TV connected via HDMI). It connects to the OBS Live Suite WebSocket hub and displays cue messages sent by the director from the dashboard.
+The Studio Return app is a frameless, transparent, click-through window that sits fullscreen on a designated monitor (typically the studio return TV connected via HDMI). Tauri handles native window management while the rendering is done by the Next.js overlay page (`/overlays/studio-return`).
 
 ```
 Dashboard (CueComposerPanel)
     → POST /api/presenter/cue/send
         → WebSocket hub (port 3003, channel "presenter")
-            → Studio Return app displays notification
+            → Tauri webview (loads Next.js /overlays/studio-return)
+                → StudioReturnRenderer handles WS messages
+                → StudioReturnDisplay renders notification with Framer Motion
 ```
 
 ## Prerequisites
@@ -54,9 +56,11 @@ studio-return/
 │   ├── Cargo.toml
 │   └── tauri.conf.json
 └── src/
-    ├── index.html         # Minimal page structure
-    ├── notification.js    # WebSocket client, message display, settings bridge
-    └── styles.css         # Severity colors, fade animations, backdrop
+    ├── index.html         # Minimal bootstrapper page
+    ├── main.ts            # Bootstrapper — waits for overlay URL from Rust, navigates to Next.js
+    ├── debug.ts           # Debug overlay logging (green panel, click-to-copy)
+    ├── types.ts           # Window interface extensions for Tauri bridges
+    └── styles.css         # Loading indicator, transparent background
 ```
 
 ### Severity styles
@@ -69,20 +73,24 @@ studio-return/
 
 ### WebSocket connection
 
-The app tries multiple URLs in order to handle both HTTPS (mkcert) and plain HTTP environments:
-
-1. `wss://localhost:3003`
-2. `ws://localhost:3003`
-3. `ws://127.0.0.1:3003`
-
-Once connected, it locks to the working URL. Reconnects with exponential backoff on disconnect.
+The Next.js overlay uses `useWebSocketChannel("presenter")` which auto-connects to the WebSocket hub. The Tauri Rust backend probes HTTPS first (for mkcert dev certs), then falls back to HTTP.
 
 ### Settings flow
 
 1. On startup, the Tauri app POSTs the available monitor list to `/api/settings/studio-return/monitors`
 2. It fetches settings from `/api/settings/studio-return` and positions the window accordingly
-3. Every 30s, it re-reports monitors and re-fetches settings
-4. Settings changes (fontSize, displayDuration) are forwarded to the frontend via `window.eval`
+3. The Rust backend sends the overlay URL to the Vite bootstrapper, which navigates to the Next.js page
+4. Every 30s, the Rust backend re-reports monitors and re-fetches settings
+5. Real-time settings changes are pushed via WebSocket (`studio-return-settings` event)
+6. Monitor repositioning is done via Tauri `reposition_monitor` command from JS
+
+### TLS configuration
+
+By default, the Rust HTTP client accepts self-signed certificates (for mkcert dev environments). To enforce strict TLS validation in production:
+
+```bash
+STUDIO_RETURN_STRICT_TLS=true pnpm studio-return:dev
+```
 
 ### Debug mode
 

@@ -2,16 +2,9 @@
 
 import { motion } from "framer-motion";
 import { CueSeverity } from "@/lib/models/Cue";
+import type { StudioReturnContent } from "@/lib/models/StudioReturn";
 
-// ------------------------------------------------------------------
-// Types
-// ------------------------------------------------------------------
-
-export interface StudioReturnContent {
-  title: string;
-  body: string;
-  severity: CueSeverity;
-}
+export type { StudioReturnContent };
 
 interface StudioReturnDisplayProps {
   title: string;

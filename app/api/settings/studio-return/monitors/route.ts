@@ -1,5 +1,7 @@
+import { z } from "zod";
 import { SettingsService } from "@/lib/services/SettingsService";
 import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
+import { MonitorInfoSchema } from "@/lib/models/StudioReturn";
 
 const LOG_CONTEXT = "[StudioReturnMonitorsAPI]";
 
@@ -24,10 +26,11 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
     return ApiResponses.badRequest("monitors must be an array");
   }
 
-  SettingsService.getInstance().saveStudioReturnMonitors(monitors);
+  const validated = z.array(MonitorInfoSchema).parse(monitors);
+  SettingsService.getInstance().saveStudioReturnMonitors(validated);
 
   return ApiResponses.ok({
     success: true,
-    message: `Received ${monitors.length} monitors`,
+    message: `Received ${validated.length} monitors`,
   });
 }, LOG_CONTEXT);

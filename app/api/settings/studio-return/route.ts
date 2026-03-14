@@ -1,6 +1,7 @@
 import { SettingsService } from "@/lib/services/SettingsService";
 import { AppConfig } from "@/lib/config/AppConfig";
 import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
+import { StudioReturnSettingsSchema } from "@/lib/models/StudioReturn";
 import { proxyToBackend } from "@/lib/utils/ProxyHelper";
 
 const LOG_CONTEXT = "[StudioReturnSettingsAPI]";
@@ -23,16 +24,10 @@ export const GET = withSimpleErrorHandler(async () => {
  */
 export const POST = withSimpleErrorHandler(async (request: Request) => {
   const body = await request.json();
-  const { monitorIndex, displayDuration, fontSize, enabled } = body;
+  const input = StudioReturnSettingsSchema.partial().parse(body);
 
   const settingsService = SettingsService.getInstance();
-
-  const updatedSettings = settingsService.saveStudioReturnSettings({
-    ...(monitorIndex !== undefined && { monitorIndex }),
-    ...(displayDuration !== undefined && { displayDuration }),
-    ...(fontSize !== undefined && { fontSize }),
-    ...(enabled !== undefined && { enabled }),
-  });
+  const updatedSettings = settingsService.saveStudioReturnSettings(input);
 
   // Push updated settings to the studio return app via WebSocket (presenter channel)
   try {
@@ -41,8 +36,11 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
       body: updatedSettings,
       logPrefix: LOG_CONTEXT,
     });
-  } catch {
-    // Non-critical — Tauri app will pick up settings on next poll
+  } catch (err) {
+    console.warn(
+      `${LOG_CONTEXT} Failed to push settings to studio return overlay (will be picked up on next poll):`,
+      err,
+    );
   }
 
   return ApiResponses.ok({

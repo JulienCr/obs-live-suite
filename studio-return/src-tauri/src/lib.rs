@@ -65,9 +65,24 @@ async fn probe_backend_url(client: &reqwest::Client, candidate: &str) -> String 
 /// Fetch settings from the backend using a shared client
 async fn fetch_settings(client: &reqwest::Client, base_url: &str) -> Option<SettingsResponse> {
     let url = format!("{}/api/settings/studio-return", base_url);
-    let resp = client.get(&url).send().await.ok()?;
-    let data: SettingsResponse = resp.json().await.ok()?;
-    Some(data)
+    let resp = match client.get(&url).send().await {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("[StudioReturn] Settings fetch error: {}", e);
+            return None;
+        }
+    };
+    if !resp.status().is_success() {
+        eprintln!("[StudioReturn] Settings fetch failed: HTTP {}", resp.status());
+        return None;
+    }
+    match resp.json::<SettingsResponse>().await {
+        Ok(data) => Some(data),
+        Err(e) => {
+            eprintln!("[StudioReturn] Settings JSON parse error: {}", e);
+            None
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize, PartialEq)]
@@ -102,11 +117,20 @@ fn apply_settings(
 
     // Forward settings to the Next.js overlay via eval
     if let Some(window) = app.get_webview_window("main") {
+        let settings_json = match serde_json::to_string(settings) {
+            Ok(json) => json,
+            Err(e) => {
+                eprintln!("[StudioReturn] Failed to serialize settings: {}", e);
+                return;
+            }
+        };
         let js = format!(
             "if (window.__applySettings) window.__applySettings({})",
-            serde_json::to_string(settings).unwrap_or_default()
+            settings_json
         );
-        let _ = window.eval(&js);
+        if let Err(e) = window.eval(&js) {
+            eprintln!("[StudioReturn] Failed to eval settings in webview: {}", e);
+        }
     }
 }
 
@@ -118,7 +142,9 @@ fn send_overlay_url(app: &tauri::AppHandle, url: &str) {
             url
         );
         eprintln!("[StudioReturn] Sending overlay URL to frontend: {}", url);
-        let _ = window.eval(&js);
+        if let Err(e) = window.eval(&js) {
+            eprintln!("[StudioReturn] Failed to send overlay URL to webview: {}", e);
+        }
     }
 }
 
@@ -166,20 +192,29 @@ pub fn run() {
             .build()?;
 
             // Click-through by default
-            let _ = window.set_ignore_cursor_events(true);
+            if let Err(e) = window.set_ignore_cursor_events(true) {
+                eprintln!("[StudioReturn] CRITICAL: Failed to set click-through mode: {}", e);
+            }
 
             // Enable debug overlay if --debug flag was passed
             if debug_mode {
-                let _ = window.eval("window.__DEBUG__ = true;");
+                if let Err(e) = window.eval("window.__DEBUG__ = true;") {
+                    eprintln!("[StudioReturn] Failed to set debug flag: {}", e);
+                }
             }
 
             let handle = app.handle().clone();
 
             // Spawn async task for initial setup + periodic polling
             tauri::async_runtime::spawn(async move {
-                // Accept self-signed certificates (mkcert dev certs)
+                // Accept self-signed certificates only when using mkcert dev certs
+                // (HTTPS probe or explicit USE_HTTPS). In production with real certs,
+                // set STUDIO_RETURN_STRICT_TLS=true to enforce certificate validation.
+                let accept_invalid_certs = std::env::var("STUDIO_RETURN_STRICT_TLS")
+                    .map(|v| v != "true")
+                    .unwrap_or(true);
                 let http_client = reqwest::Client::builder()
-                    .danger_accept_invalid_certs(true)
+                    .danger_accept_invalid_certs(accept_invalid_certs)
                     .build()
                     .unwrap_or_else(|_| reqwest::Client::new());
                 let candidate = get_backend_url();

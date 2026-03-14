@@ -1,4 +1,5 @@
 import { CueType, CueSeverity, CueFrom } from "@/lib/models/Cue";
+import type { CountdownPayload } from "@/lib/models/Cue";
 import { apiPost } from "@/lib/utils/ClientFetch";
 
 export interface CuePayloadOptions {
@@ -10,12 +11,25 @@ export interface CuePayloadOptions {
   countdownSeconds?: number;
 }
 
+/** Shape of the payload sent to /api/presenter/cue/send */
+export interface CueSendPayload {
+  type: CueType;
+  from: CueFrom;
+  body?: string;
+  title?: string;
+  pinned: boolean;
+  severity?: CueSeverity;
+  countdownPayload?: CountdownPayload;
+  studioReturn?: boolean;
+  studioReturnDismiss?: boolean;
+}
+
 /**
  * Build a cue payload from structured options.
  * Shared between CueComposerPanel and RegieInternalChatPanel.
  */
-export function buildCuePayload(opts: CuePayloadOptions): Record<string, unknown> {
-  const payload: Record<string, unknown> = {
+export function buildCuePayload(opts: CuePayloadOptions): CueSendPayload {
+  const payload: CueSendPayload = {
     type: opts.type,
     from: CueFrom.CONTROL,
     body: opts.body?.trim() || undefined,
@@ -46,7 +60,7 @@ export function buildCuePayload(opts: CuePayloadOptions): Record<string, unknown
  * @param studioReturn - Whether to also display on studio return overlay
  */
 export async function sendCue(
-  payload: Record<string, unknown>,
+  payload: CueSendPayload,
   studioReturn = false,
 ): Promise<void> {
   await apiPost("/api/presenter/cue/send", { ...payload, studioReturn });
@@ -60,7 +74,8 @@ export async function dismissStudioReturn(): Promise<void> {
     type: CueType.CUE,
     from: CueFrom.CONTROL,
     body: "",
+    pinned: false,
     studioReturn: true,
     studioReturnDismiss: true,
-  });
+  } satisfies CueSendPayload);
 }

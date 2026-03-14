@@ -19,6 +19,8 @@ export function initDebug(): void {
         const prev = debugEl.style.outline;
         debugEl.style.outline = "2px solid lime";
         setTimeout(() => { debugEl!.style.outline = prev; }, 300);
+      }).catch(() => {
+        // Clipboard API may not be available in Tauri webview
       });
     });
   }
