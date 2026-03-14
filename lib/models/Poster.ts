@@ -9,6 +9,10 @@ export enum PosterType {
   YOUTUBE = "youtube",
 }
 
+export function isVideoPosterType(type: string): boolean {
+  return type === PosterType.VIDEO || type === PosterType.YOUTUBE;
+}
+
 /**
  * End behavior for sub-video clips
  */

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils/cn";
 import { formatTimeShort } from "@/lib/utils/durationParser";
 import type { VideoChapter } from "@/lib/models/Poster";
@@ -138,6 +139,7 @@ export function VideoTimeline({
   highlightedChapterTime,
   className,
 }: VideoTimelineProps) {
+  const t = useTranslations("assets.posters");
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [dragging, setDragging] = useState<"start" | "end" | null>(null);
@@ -255,7 +257,7 @@ export function VideoTimeline({
   if (duration <= 0) {
     return (
       <div className={cn("h-12 bg-muted rounded flex items-center justify-center text-muted-foreground text-sm", className)}>
-        No duration
+        {t("noDuration")}
       </div>
     );
   }

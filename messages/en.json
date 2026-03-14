@@ -824,7 +824,10 @@
       "durationInSeconds": "Duration (in seconds)",
       "durationRequiredForTimeline": "Required to enable timeline",
       "durationPlaceholder": "E.g. 3600 for 1 hour",
-      "durationValueUnknown": "Unknown"
+      "durationValueUnknown": "Unknown",
+      "noDuration": "No duration",
+      "probingDuration": "Detecting duration...",
+      "probeSuccess": "Duration detected"
     },
     "videoEditor": {
       "chapters": "Chapters",

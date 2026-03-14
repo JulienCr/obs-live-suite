@@ -1,5 +1,8 @@
 import { PosterRepository } from "@/lib/repositories/PosterRepository";
 import { getVideoDuration, urlToFilePath } from "@/lib/utils/fileUpload";
+import { extractYouTubeId } from "@/lib/utils/urlDetection";
+import { YouTubeMetadataService } from "@/lib/services/YouTubeMetadataService";
+import { PosterType, isVideoPosterType } from "@/lib/models/Poster";
 import {
   ApiResponses,
   withErrorHandler,
@@ -10,7 +13,7 @@ const LOG_CONTEXT = "[PostersAPI:Probe]";
 
 /**
  * POST /api/assets/posters/[id]/probe
- * Re-extract video duration for an existing poster
+ * Re-extract video duration for an existing poster (video or YouTube)
  */
 export const POST = withErrorHandler<{ id: string }>(
   async (_request: Request, context: RouteContext<{ id: string }>) => {
@@ -22,20 +25,28 @@ export const POST = withErrorHandler<{ id: string }>(
       return ApiResponses.notFound("Poster not found");
     }
 
-    if (poster.type !== "video") {
+    if (!isVideoPosterType(poster.type)) {
       return ApiResponses.badRequest("Not a video poster");
     }
 
-    // YouTube videos cannot be probed
-    if (
-      poster.fileUrl.includes("youtube.com") ||
-      poster.fileUrl.includes("youtu.be")
-    ) {
-      return ApiResponses.badRequest("Cannot probe YouTube videos");
-    }
+    let duration: number | null = null;
 
-    const filePath = urlToFilePath(poster.fileUrl);
-    const duration = await getVideoDuration(filePath);
+    if (poster.type === PosterType.YOUTUBE) {
+      const videoId = extractYouTubeId(poster.fileUrl);
+      if (!videoId) {
+        return ApiResponses.badRequest("Could not extract YouTube video ID");
+      }
+      const metadata = await YouTubeMetadataService.getInstance().fetchMetadata(videoId);
+      if (!metadata?.duration) {
+        return ApiResponses.badRequest(
+          "Could not fetch YouTube video duration. Check that the YouTube API key is configured."
+        );
+      }
+      duration = metadata.duration;
+    } else {
+      const filePath = urlToFilePath(poster.fileUrl);
+      duration = await getVideoDuration(filePath);
+    }
 
     if (duration === null) {
       return ApiResponses.badRequest(

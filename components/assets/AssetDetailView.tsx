@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Film, ImageIcon, Loader2, AlertCircle } from "lucide-react";
@@ -19,6 +19,7 @@ import { apiPatch, apiDelete, apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { formatTimeShort } from "@/lib/utils/durationParser";
 import { toast } from "sonner";
 import type { DbPoster } from "@/lib/models/Database";
+import { isVideoPosterType, PosterType } from "@/lib/models/Poster";
 import type { VideoChapter } from "@/lib/models/Poster";
 import { useQuery } from "@tanstack/react-query";
 import { useVideoKeyboardShortcuts } from "@/lib/hooks";
@@ -61,6 +62,10 @@ export function AssetDetailView({
   const [hoveredClip, setHoveredClip] = useState<DbPoster | null>(null);
   const [hoveredChapter, setHoveredChapter] = useState<VideoChapter | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [probeStatus, setProbeStatus] = useState<"idle" | "probing" | "failed">("idle");
+
+  const isVideoType = isVideoPosterType(poster.type);
+  const isClip = !!parentPoster;
 
   // Fetch tag suggestions
   const { data: tagSuggestions = [] } = useQuery({
@@ -71,6 +76,27 @@ export function AssetDetailView({
     },
     staleTime: 60000,
   });
+
+  // Auto-probe duration on mount for video types without duration
+  useEffect(() => {
+    let mounted = true;
+    if (!isVideoPosterType(poster.type) || isClip || poster.duration) return;
+
+    setProbeStatus("probing");
+    apiPost<{ duration: number }>(`/api/assets/posters/${poster.id}/probe`)
+      .then((res) => {
+        if (!mounted) return;
+        setFormData(prev => ({ ...prev, duration: res.duration }));
+        setProbeStatus("idle");
+        toast.success(t("probeSuccess"));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setProbeStatus("failed");
+      });
+
+    return () => { mounted = false; };
+  }, [poster.id, poster.type, poster.duration, isClip, t]);
 
   // Fetch chapters with React Query (shared cache with ChapterSection)
   const { data: chapters = initialChapters } = useQuery({
@@ -118,15 +144,13 @@ export function AssetDetailView({
     }
   };
 
-  const isVideoType = poster.type === "video" || poster.type === "youtube";
-  const isClip = !!parentPoster;
   // For clips: use parent duration for timeline, for regular videos: use own duration (from formData for real-time updates)
   const timelineDuration = isClip
     ? (parentPoster.duration || 0)
     : (formData.duration || 0);
 
-  // Check if duration is unknown (null or 0) for YouTube videos
-  const hasUnknownDuration = poster.type === "youtube" && timelineDuration === 0;
+  // Duration is unknown only after probe has failed
+  const hasUnknownDuration = isVideoType && timelineDuration === 0 && probeStatus === "failed";
 
   // Enable keyboard shortcuts for videos (not clips)
   useVideoKeyboardShortcuts({
@@ -196,7 +220,12 @@ export function AssetDetailView({
         <div className="lg:col-span-2 space-y-6">
           {isVideoType && (
             <>
-              {hasUnknownDuration ? (
+              {probeStatus === "probing" ? (
+                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>{t("probingDuration")}</span>
+                </div>
+              ) : hasUnknownDuration ? (
                 <Alert className="border-amber-500/50 bg-amber-500/10">
                   <AlertCircle className="h-4 w-4 text-amber-600" />
                   <AlertTitle className="text-amber-900 dark:text-amber-100">
@@ -225,7 +254,7 @@ export function AssetDetailView({
           )}
 
           {/* Image preview for image type */}
-          {poster.type === "image" && (
+          {poster.type === PosterType.IMAGE && (
             <div className="aspect-video bg-muted rounded-lg overflow-hidden">
               <img
                 src={poster.fileUrl}
@@ -272,8 +301,8 @@ export function AssetDetailView({
                 </div>
               </div>
 
-              {/* Duration field for YouTube videos */}
-              {poster.type === "youtube" && (
+              {/* Duration field for video types */}
+              {isVideoType && (
                 <div className="space-y-2">
                   <Label htmlFor="duration">
                     {t("durationInSeconds")}
@@ -359,7 +388,7 @@ export function AssetDetailView({
           )}
 
           {/* Thumbnail regeneration for all videos */}
-          {poster.type === "video" && (
+          {poster.type === PosterType.VIDEO && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">{t("thumbnail")}</CardTitle>
