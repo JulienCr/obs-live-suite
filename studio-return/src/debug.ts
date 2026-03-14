@@ -1,4 +1,5 @@
 const MAX_LINES = 20;
+const lines: string[] = [];
 
 let debugEl: HTMLElement | null = null;
 
@@ -12,11 +13,9 @@ export function debugLog(msg: string): void {
   if (!window.__DEBUG__ || !debugEl) return;
 
   debugEl.style.display = "block";
-  debugEl.textContent =
-    `${new Date().toLocaleTimeString()} ${msg}\n` + debugEl.textContent;
-
-  const lines = debugEl.textContent!.split("\n");
+  lines.unshift(`${new Date().toLocaleTimeString()} ${msg}`);
   if (lines.length > MAX_LINES) {
-    debugEl.textContent = lines.slice(0, MAX_LINES).join("\n");
+    lines.length = MAX_LINES;
   }
+  debugEl.textContent = lines.join("\n");
 }

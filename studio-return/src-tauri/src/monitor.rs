@@ -42,28 +42,44 @@ pub fn list_monitors(app: &AppHandle) -> Vec<MonitorInfo> {
         .collect()
 }
 
-/// Position the main window on the monitor at the given index
-pub fn position_on_monitor(app: &AppHandle, monitor_index: usize) -> Result<(), String> {
-    let monitors = app.available_monitors().map_err(|e| e.to_string())?;
-
-    let monitor = monitors
-        .get(monitor_index)
-        .ok_or_else(|| format!("Monitor index {} out of range ({})", monitor_index, monitors.len()))?;
-
-    let pos = monitor.position();
-    let size = monitor.size();
-
+/// Position the main window on the monitor at the given index.
+/// If `known_monitors` is provided, uses cached data to avoid re-enumerating.
+pub fn position_on_monitor(
+    app: &AppHandle,
+    monitor_index: usize,
+    known_monitors: Option<&[MonitorInfo]>,
+) -> Result<(), String> {
     let window = app
         .get_webview_window("main")
         .ok_or("Main window not found")?;
 
-    window
-        .set_position(PhysicalPosition::new(pos.x, pos.y))
-        .map_err(|e| e.to_string())?;
+    if let Some(monitors) = known_monitors {
+        let info = monitors
+            .get(monitor_index)
+            .ok_or_else(|| format!("Monitor index {} out of range ({})", monitor_index, monitors.len()))?;
 
-    window
-        .set_size(PhysicalSize::new(size.width, size.height))
-        .map_err(|e| e.to_string())?;
+        window
+            .set_position(PhysicalPosition::new(info.x, info.y))
+            .map_err(|e| e.to_string())?;
+        window
+            .set_size(PhysicalSize::new(info.width, info.height))
+            .map_err(|e| e.to_string())?;
+    } else {
+        let monitors = app.available_monitors().map_err(|e| e.to_string())?;
+        let monitor = monitors
+            .get(monitor_index)
+            .ok_or_else(|| format!("Monitor index {} out of range ({})", monitor_index, monitors.len()))?;
+
+        let pos = monitor.position();
+        let size = monitor.size();
+
+        window
+            .set_position(PhysicalPosition::new(pos.x, pos.y))
+            .map_err(|e| e.to_string())?;
+        window
+            .set_size(PhysicalSize::new(size.width, size.height))
+            .map_err(|e| e.to_string())?;
+    }
 
     Ok(())
 }

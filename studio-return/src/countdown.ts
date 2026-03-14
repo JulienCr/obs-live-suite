@@ -5,6 +5,7 @@ import { getNotificationEl, setTitle, setBody } from "./dom";
 import { clearTimers, scheduleDismiss } from "./notification";
 
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
+let countdownUrgent = false;
 
 function formatTime(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
@@ -23,6 +24,7 @@ export function showCountdown(payload: CuePayload): void {
 
   stopCountdown();
   clearTimers();
+  countdownUrgent = false;
 
   const cp = payload.countdownPayload!;
   let remaining: number;
@@ -53,7 +55,8 @@ export function showCountdown(payload: CuePayload): void {
 
     setBody(formatTime(remaining));
 
-    if (remaining <= 10) {
+    if (remaining <= 10 && !countdownUrgent) {
+      countdownUrgent = true;
       getNotificationEl().className = "notification severity-urgent fade-in";
     }
   }, 1000);

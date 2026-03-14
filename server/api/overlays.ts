@@ -303,11 +303,13 @@ router.post("/chat-highlight", overlayHandler(async (req, res) => {
 router.post("/clear-all", overlayHandler(async (_req, res) => {
   logger.info("Panic button triggered - clearing all overlays");
 
-  await channelManager.publish(OverlayChannel.LOWER, LowerThirdEventType.HIDE);
-  await channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.RESET);
-  await channelManager.publish(OverlayChannel.POSTER, PosterEventType.HIDE);
-  await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.HIDE);
-  await channelManager.publish(OverlayChannel.CHAT_HIGHLIGHT, ChatHighlightEventType.HIDE);
+  await Promise.all([
+    channelManager.publish(OverlayChannel.LOWER, LowerThirdEventType.HIDE),
+    channelManager.publish(OverlayChannel.COUNTDOWN, CountdownEventType.RESET),
+    channelManager.publish(OverlayChannel.POSTER, PosterEventType.HIDE),
+    channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.HIDE),
+    channelManager.publish(OverlayChannel.CHAT_HIGHLIGHT, ChatHighlightEventType.HIDE),
+  ]);
 
   res.json({ success: true });
 }, "Clear-all operation failed"));

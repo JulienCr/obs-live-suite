@@ -6,9 +6,9 @@ import { type IDockviewPanelProps } from "dockview-react";
 import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText, Megaphone, MonitorX, Tv, Wrench } from "lucide-react";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { Button } from "@/components/ui/button";
-import { CueType, CueSeverity, CueFrom } from "@/lib/models/Cue";
+import { CueType, CueSeverity } from "@/lib/models/Cue";
 import { cn } from "@/lib/utils";
-import { apiPost } from "@/lib/utils/ClientFetch";
+import { buildCuePayload, sendCue, dismissStudioReturn } from "@/lib/utils/cueClient";
 
 const cueTypeOptions = [
   { value: CueType.CUE, labelKey: "cueTypes.cue", icon: AlertCircle },
@@ -43,35 +43,19 @@ function RegieInternalChatContent() {
     textareaRef.current?.focus();
   }, []);
 
-  const buildPayload = () => {
-    const payload: Record<string, unknown> = {
-      type: cueType,
-      from: CueFrom.CONTROL,
-      body: body.trim() || undefined,
-      pinned,
-    };
-
-    if (cueType === CueType.CUE) {
-      payload.severity = severity;
-    }
-
-    if (cueType === CueType.COUNTDOWN) {
-      payload.countdownPayload = {
-        mode: "duration",
-        durationSec: countdownSeconds,
-      };
-    }
-
-    return payload;
-  };
-
   const handleSend = async (withReturn = false) => {
     if (!body.trim() && cueType !== CueType.COUNTDOWN) return;
 
     setSending(true);
     try {
-      const payload = buildPayload();
-      await apiPost("/api/presenter/cue/send", { ...payload, studioReturn: withReturn });
+      const payload = buildCuePayload({
+        type: cueType,
+        severity,
+        body,
+        pinned,
+        countdownSeconds,
+      });
+      await sendCue(payload, withReturn);
       setBody("");
       setPinned(false);
       textareaRef.current?.focus();
@@ -84,13 +68,7 @@ function RegieInternalChatContent() {
 
   const handleDismissReturn = async () => {
     try {
-      await apiPost("/api/presenter/cue/send", {
-        type: CueType.CUE,
-        from: CueFrom.CONTROL,
-        body: "",
-        studioReturn: true,
-        studioReturnDismiss: true,
-      });
+      await dismissStudioReturn();
     } catch (error) {
       console.error("Failed to dismiss studio return:", error);
     }

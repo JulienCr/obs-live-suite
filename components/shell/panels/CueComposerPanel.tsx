@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CueType, CueSeverity, CueFrom } from "@/lib/models/Cue";
-import { apiPost } from "@/lib/utils/ClientFetch";
+import { CueType, CueSeverity } from "@/lib/models/Cue";
+import { buildCuePayload, sendCue } from "@/lib/utils/cueClient";
 
 const cueTypeOptions = [
   { value: CueType.CUE, label: "Cue", icon: AlertCircle },
@@ -34,36 +34,20 @@ function CueComposerContent() {
   const [countdownSeconds, setCountdownSeconds] = useState(60);
   const [sending, setSending] = useState(false);
 
-  const buildPayload = () => {
-    const payload: Record<string, unknown> = {
-      type: cueType,
-      from: CueFrom.CONTROL,
-      title: title.trim() || undefined,
-      body: body.trim() || undefined,
-      pinned,
-    };
-
-    if (cueType === CueType.CUE) {
-      payload.severity = severity;
-    }
-
-    if (cueType === CueType.COUNTDOWN) {
-      payload.countdownPayload = {
-        mode: "duration",
-        durationSec: countdownSeconds,
-      };
-    }
-
-    return payload;
-  };
-
   const handleSend = async (withReturn = false) => {
     if (!body.trim() && cueType !== CueType.COUNTDOWN) return;
 
     setSending(true);
     try {
-      const payload = buildPayload();
-      await apiPost("/api/presenter/cue/send", { ...payload, studioReturn: withReturn });
+      const payload = buildCuePayload({
+        type: cueType,
+        severity,
+        title,
+        body,
+        pinned,
+        countdownSeconds,
+      });
+      await sendCue(payload, withReturn);
       setTitle("");
       setBody("");
       setPinned(false);

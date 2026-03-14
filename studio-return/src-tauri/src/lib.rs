@@ -23,7 +23,7 @@ async fn fetch_settings(client: &reqwest::Client, base_url: &str) -> Option<Sett
     Some(data)
 }
 
-#[derive(Debug, Clone, Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, Deserialize, serde::Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 struct StudioReturnSettings {
     monitor_index: Option<usize>,
@@ -40,10 +40,14 @@ struct SettingsResponse {
 }
 
 /// Apply settings to the window (monitor position, cursor events, send to frontend)
-fn apply_settings(app: &tauri::AppHandle, settings: &StudioReturnSettings) {
+fn apply_settings(
+    app: &tauri::AppHandle,
+    settings: &StudioReturnSettings,
+    known_monitors: Option<&[MonitorInfo]>,
+) {
     // Reposition window if monitor changed
     if let Some(idx) = settings.monitor_index {
-        if let Err(e) = position_on_monitor(app, idx) {
+        if let Err(e) = position_on_monitor(app, idx, known_monitors) {
             eprintln!("[StudioReturn] Failed to position on monitor {}: {}", idx, e);
         }
     }
@@ -120,18 +124,18 @@ pub fn run() {
                 // Initial settings fetch & position on configured monitor
                 if let Some(response) = fetch_settings(&http_client, &backend_url).await {
                     if let Some(settings) = &response.settings {
-                        apply_settings(&handle, settings);
+                        apply_settings(&handle, settings, Some(&monitors));
                     }
                     if let Some(port) = response.ws_port {
                         send_ws_port(&handle, port);
                     }
                 } else {
                     // No backend yet — position on primary monitor
-                    let _ = position_on_monitor(&handle, 0);
+                    let _ = position_on_monitor(&handle, 0, Some(&monitors));
                 }
 
                 // Poll settings periodically
-                let mut last_monitor_index: Option<usize> = None;
+                let mut last_settings: Option<StudioReturnSettings> = None;
                 let mut last_ws_port: Option<u16> = None;
                 let mut last_monitors: Vec<MonitorInfo> = Vec::new();
                 loop {
@@ -144,23 +148,12 @@ pub fn run() {
                         last_monitors = monitors;
                     }
 
-                    // Fetch and apply settings
+                    // Fetch and apply settings only if changed
                     if let Some(response) = fetch_settings(&http_client, &backend_url).await {
                         if let Some(settings) = &response.settings {
-                            let current_idx = settings.monitor_index;
-                            if current_idx != last_monitor_index {
-                                // Monitor changed — reposition window + forward all settings
-                                apply_settings(&handle, settings);
-                                last_monitor_index = current_idx;
-                            } else {
-                                // Forward non-monitor settings to frontend
-                                if let Some(window) = handle.get_webview_window("main") {
-                                    let js = format!(
-                                        "window.__applySettings({})",
-                                        serde_json::to_string(settings).unwrap_or_default()
-                                    );
-                                    let _ = window.eval(&js);
-                                }
+                            if last_settings.as_ref() != Some(settings) {
+                                apply_settings(&handle, settings, Some(&last_monitors));
+                                last_settings = Some(settings.clone());
                             }
                         }
                         // Only send ws_port when it changes

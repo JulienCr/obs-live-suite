@@ -11,7 +11,8 @@ import { CheckCircle2, Loader2, Monitor, Send } from "lucide-react";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { CueSeverity, CueType, CueFrom } from "@/lib/models/Cue";
-import type { MonitorInfo } from "@/app/api/settings/studio-return/monitors/route";
+import type { MonitorInfo } from "@/lib/models/StudioReturn";
+import { DEFAULT_STUDIO_RETURN_SETTINGS } from "@/lib/services/SettingsService";
 
 interface StudioReturnSettingsState {
   monitorIndex: number;
@@ -24,12 +25,7 @@ interface StudioReturnSettingsResponse {
   settings?: Partial<StudioReturnSettingsState>;
 }
 
-const INITIAL_STATE: StudioReturnSettingsState = {
-  monitorIndex: 0,
-  displayDuration: 10,
-  fontSize: 80,
-  enabled: true,
-};
+const INITIAL_STATE: StudioReturnSettingsState = DEFAULT_STUDIO_RETURN_SETTINGS;
 
 export function StudioReturnSettings() {
   const t = useTranslations("settings.studioReturn");

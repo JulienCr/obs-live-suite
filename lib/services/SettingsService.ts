@@ -27,6 +27,13 @@ export const StudioReturnSettingsSchema = z.object({
 
 export type StudioReturnSettings = z.infer<typeof StudioReturnSettingsSchema>;
 
+export const DEFAULT_STUDIO_RETURN_SETTINGS: StudioReturnSettings = {
+  monitorIndex: 0,
+  displayDuration: 10,
+  fontSize: 80,
+  enabled: true,
+};
+
 // ============================================================================
 // SETTINGS SCHEMAS
 // ============================================================================
