@@ -10,6 +10,11 @@ import { presenterChannelSettingsSchema } from "../models/PresenterChannel";
 import type { TwitchSettings, TwitchOAuthTokens } from "../models/Twitch";
 import type { PresenterChannelSettings } from "../models/PresenterChannel";
 import type { ChatPredefinedMessage } from "../models/ChatMessages";
+import {
+  StudioReturnSettingsSchema,
+  DEFAULT_STUDIO_RETURN_SETTINGS,
+} from "../models/StudioReturn";
+import type { StudioReturnSettings, MonitorInfo } from "../models/StudioReturn";
 
 // ============================================================================
 // SETTINGS SCHEMAS
@@ -104,6 +109,7 @@ export class SettingsService {
   private generalStore: SettingsStore<typeof GeneralSettingsSchema.shape>;
   private twitchStore: SettingsStore<typeof TwitchSettingsSchema.shape>;
   private presenterChannelStore: SettingsStore<typeof presenterChannelSettingsSchema.shape>;
+  private studioReturnStore: SettingsStore<typeof StudioReturnSettingsSchema.shape>;
 
   private constructor() {
     this.db = SettingsRepository.getInstance();
@@ -194,6 +200,14 @@ export class SettingsService {
       this.db,
       "presenter.channel",
       presenterChannelSettingsSchema,
+      this.logger
+    );
+
+    // Initialize Studio Return settings store
+    this.studioReturnStore = new SettingsStore(
+      this.db,
+      "studioReturn",
+      StudioReturnSettingsSchema,
       this.logger
     );
   }
@@ -519,6 +533,52 @@ export class SettingsService {
    */
   clearPresenterChannelSettings(): void {
     this.presenterChannelStore.clear();
+  }
+
+  // =========================================================================
+  // STUDIO RETURN SETTINGS
+  // =========================================================================
+
+  /**
+   * Get Studio Return overlay settings
+   */
+  getStudioReturnSettings(): StudioReturnSettings {
+    return this.studioReturnStore.get();
+  }
+
+  /**
+   * Save Studio Return overlay settings
+   */
+  saveStudioReturnSettings(settings: Partial<StudioReturnSettings>): StudioReturnSettings {
+    this.studioReturnStore.set(settings);
+    this.logger.info("Studio Return settings saved to database");
+    return this.studioReturnStore.get();
+  }
+
+  // =========================================================================
+  // STUDIO RETURN MONITORS
+  // =========================================================================
+
+  /**
+   * Get known monitors reported by the Tauri app
+   */
+  getStudioReturnMonitors(): MonitorInfo[] {
+    const json = this.db.getSetting("studioReturn.monitors");
+    if (json) {
+      try {
+        return JSON.parse(json) as MonitorInfo[];
+      } catch {
+        this.logger.warn("Failed to parse studio return monitors");
+      }
+    }
+    return [];
+  }
+
+  /**
+   * Save monitors reported by the Tauri app
+   */
+  saveStudioReturnMonitors(monitors: MonitorInfo[]): void {
+    this.db.setSetting("studioReturn.monitors", JSON.stringify(monitors));
   }
 
   // =========================================================================

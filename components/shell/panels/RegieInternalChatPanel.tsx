@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { type IDockviewPanelProps } from "dockview-react";
-import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText, Megaphone, Tv, Wrench } from "lucide-react";
+import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText, Megaphone, MonitorX, Tv, Wrench } from "lucide-react";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { Button } from "@/components/ui/button";
-import { CueType, CueSeverity, CueFrom } from "@/lib/models/Cue";
+import { CueType, CueSeverity } from "@/lib/models/Cue";
 import { cn } from "@/lib/utils";
-import { apiPost } from "@/lib/utils/ClientFetch";
+import { buildCuePayload, sendCue, dismissStudioReturn } from "@/lib/utils/cueClient";
 
 const cueTypeOptions = [
   { value: CueType.CUE, labelKey: "cueTypes.cue", icon: AlertCircle },
@@ -43,30 +43,19 @@ function RegieInternalChatContent() {
     textareaRef.current?.focus();
   }, []);
 
-  const handleSend = async () => {
+  const handleSend = async (withReturn = false) => {
     if (!body.trim() && cueType !== CueType.COUNTDOWN) return;
 
     setSending(true);
     try {
-      const payload: Record<string, unknown> = {
+      const payload = buildCuePayload({
         type: cueType,
-        from: CueFrom.CONTROL,
-        body: body.trim() || undefined,
+        severity,
+        body,
         pinned,
-      };
-
-      if (cueType === CueType.CUE) {
-        payload.severity = severity;
-      }
-
-      if (cueType === CueType.COUNTDOWN) {
-        payload.countdownPayload = {
-          mode: "duration",
-          durationSec: countdownSeconds,
-        };
-      }
-
-      await apiPost("/api/presenter/cue/send", payload);
+        countdownSeconds,
+      });
+      await sendCue(payload, withReturn);
       setBody("");
       setPinned(false);
       textareaRef.current?.focus();
@@ -77,10 +66,18 @@ function RegieInternalChatContent() {
     }
   };
 
+  const handleDismissReturn = async () => {
+    try {
+      await dismissStudioReturn();
+    } catch (error) {
+      console.error("Failed to dismiss studio return:", error);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && e.ctrlKey) {
       e.preventDefault();
-      handleSend();
+      handleSend(false);
     }
   };
 
@@ -201,15 +198,35 @@ function RegieInternalChatContent() {
           })}
         </div>
 
-        {/* Send Button */}
+        {/* Clear studio return */}
         <Button
-          onClick={handleSend}
-          disabled={sending || (!body.trim() && cueType !== CueType.COUNTDOWN)}
-          className="px-6"
+          variant="ghost"
+          size="sm"
+          onClick={handleDismissReturn}
+          title={t("clearReturn")}
         >
-          <Send className="h-4 w-4 mr-1" />
-          {sending ? "..." : t("send")}
+          <MonitorX className="h-4 w-4" />
         </Button>
+
+        {/* Send Buttons — split: presenter only / presenter + studio return */}
+        <div className="flex gap-0">
+          <Button
+            onClick={() => handleSend(false)}
+            disabled={sending || (!body.trim() && cueType !== CueType.COUNTDOWN)}
+            className="px-4 rounded-r-none"
+          >
+            <Send className="h-4 w-4 mr-1" />
+            {sending ? "..." : t("send")}
+          </Button>
+          <Button
+            onClick={() => handleSend(true)}
+            disabled={sending || (!body.trim() && cueType !== CueType.COUNTDOWN)}
+            className="rounded-l-none border-l border-l-primary-foreground/20 px-2.5"
+            title={t("sendWithReturn")}
+          >
+            <Tv className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

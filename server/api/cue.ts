@@ -33,7 +33,11 @@ wsHub.setOnPresenterJoinCallback((clientId, _role) => {
  * Send a cue message to the presenter channel
  */
 router.post("/send", cueHandler(async (req, res) => {
-  const input = createCueMessageSchema.parse(req.body);
+  // Extract studio return flags before Zod validation (not part of Cue schema)
+  const studioReturn = req.body.studioReturn === true;
+  const studioReturnDismiss = req.body.studioReturnDismiss === true;
+  const { studioReturn: _sr, studioReturnDismiss: _srd, ...cueBody } = req.body;
+  const input = createCueMessageSchema.parse(cueBody);
   const id = randomUUID();
 
   const message = cueRepo.create({
@@ -54,8 +58,11 @@ router.post("/send", cueHandler(async (req, res) => {
     resolvedBy: null,
   });
 
-  // Publish to presenter channel
-  await channelManager.publishToPresenter(RoomEventType.MESSAGE, message);
+  // Publish to presenter channel, with studioReturn flags for the overlay
+  const payload = studioReturn
+    ? { ...message, studioReturn: true, ...(studioReturnDismiss && { studioReturnDismiss: true }) }
+    : message;
+  await channelManager.publishToPresenter(RoomEventType.MESSAGE, payload);
 
   // Clean up old messages (keep last 100)
   cueRepo.deleteOld(100);
