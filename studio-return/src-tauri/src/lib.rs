@@ -4,8 +4,16 @@ use monitor::{list_monitors, position_on_monitor, report_monitors_to_backend};
 use serde::Deserialize;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
-const BACKEND_URL: &str = "http://127.0.0.1:3000";
+const DEFAULT_APP_PORT: u16 = 3000;
 const SETTINGS_POLL_INTERVAL_SECS: u64 = 30;
+
+fn get_backend_url() -> String {
+    let port = std::env::var("APP_PORT")
+        .ok()
+        .and_then(|s| s.parse::<u16>().ok())
+        .unwrap_or(DEFAULT_APP_PORT);
+    format!("http://127.0.0.1:{}", port)
+}
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,7 +33,7 @@ struct SettingsResponse {
 
 /// Fetch settings from the backend
 async fn fetch_settings() -> Option<SettingsResponse> {
-    let url = format!("{}/api/settings/studio-return", BACKEND_URL);
+    let url = format!("{}/api/settings/studio-return", &get_backend_url());
     let resp = reqwest::get(&url).await.ok()?;
     let data: SettingsResponse = resp.json().await.ok()?;
     Some(data)
@@ -104,7 +112,7 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 // Report monitors to backend
                 let monitors = list_monitors(&handle);
-                report_monitors_to_backend(&monitors, BACKEND_URL).await;
+                report_monitors_to_backend(&monitors, &get_backend_url()).await;
 
                 // Initial settings fetch & position on configured monitor
                 if let Some(response) = fetch_settings().await {
@@ -126,7 +134,7 @@ pub fn run() {
 
                     // Re-report monitors (in case displays changed)
                     let monitors = list_monitors(&handle);
-                    report_monitors_to_backend(&monitors, BACKEND_URL).await;
+                    report_monitors_to_backend(&monitors, &get_backend_url()).await;
 
                     // Fetch and apply settings
                     if let Some(response) = fetch_settings().await {
