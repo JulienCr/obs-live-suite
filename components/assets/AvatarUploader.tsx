@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ImageCropper } from "./ImageCropper";
 import { Upload, Loader2, X, Instagram } from "lucide-react";
 import { extractInstagramUsername } from "@/lib/utils/urlDetection";
+import { apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
 interface AvatarUploaderProps {
   currentAvatar?: string;
@@ -106,6 +107,12 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
     onUpload("");
   };
 
+  const resetInstagram = () => {
+    setShowInstagram(false);
+    setInstagramInput("");
+    setInstagramError(null);
+  };
+
   const handleInstagramFetch = async () => {
     const username = extractInstagramUsername(instagramInput.trim());
     if (!username) {
@@ -117,25 +124,12 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
     setInstagramError(null);
 
     try {
-      const res = await fetch("/api/assets/instagram", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, type: "profile" }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || t("instagramFetchFailed"));
-      }
-
-      const data = await res.json();
-
-      // Feed into existing crop flow
+      const data = await apiPost<{ url: string }>("/api/assets/instagram", { username, type: "profile" });
       setImageToCrop(data.url);
-      setInstagramInput("");
-      setShowInstagram(false);
+      resetInstagram();
     } catch (err) {
-      setInstagramError(err instanceof Error ? err.message : t("instagramFetchFailed"));
+      const msg = isClientFetchError(err) ? err.errorMessage : (err instanceof Error ? err.message : t("instagramFetchFailed"));
+      setInstagramError(msg);
     } finally {
       setInstagramLoading(false);
     }
@@ -248,11 +242,7 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleInstagramFetch();
-                  if (e.key === "Escape") {
-                    setShowInstagram(false);
-                    setInstagramInput("");
-                    setInstagramError(null);
-                  }
+                  if (e.key === "Escape") resetInstagram();
                 }}
                 disabled={instagramLoading}
                 className="h-7 text-xs"
@@ -273,11 +263,7 @@ export function AvatarUploader({ currentAvatar, onUpload, accentColor = "#3b82f6
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  setShowInstagram(false);
-                  setInstagramInput("");
-                  setInstagramError(null);
-                }}
+                onClick={resetInstagram}
                 className="h-7 text-xs shrink-0"
               >
                 <X className="w-3 h-3" />

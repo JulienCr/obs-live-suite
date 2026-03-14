@@ -1,25 +1,29 @@
 import { NextResponse } from "next/server";
 import { readFile, mkdir, readdir, copyFile, rm } from "fs/promises";
 import { join } from "path";
-import { existsSync } from "fs";
 import { randomUUID } from "crypto";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { tmpdir } from "os";
 import { PathManager } from "@/lib/config/PathManager";
+import { SettingsService } from "@/lib/services/SettingsService";
 
 const execFileAsync = promisify(execFile);
 const TIMEOUT_MS = 30000;
+const META_SEPARATOR = "|||";
 
-/**
- * Get the browser to use for cookies from settings, default to "chrome"
- */
-async function getCookiesBrowser(): Promise<string> {
+interface MediaDownloadResult {
+  filePath: string;
+  ext: string;
+  title: string;
+  source: string;
+  type: "image" | "video";
+  duration: number | null;
+}
+
+function getCookiesBrowser(): string {
   try {
-    const { SettingsService } = await import("@/lib/services/SettingsService");
-    const settings = SettingsService.getInstance();
-    const browser = settings.getInstagramCookiesBrowser();
-    return browser || "chrome";
+    return SettingsService.getInstance().getInstagramCookiesBrowser() || "chrome";
   } catch {
     return "chrome";
   }
@@ -39,10 +43,20 @@ function extractShortcode(url: string): string | null {
 }
 
 /**
+ * Ensure an upload directory exists and return it
+ */
+async function ensureUploadDir(subfolder: string): Promise<string> {
+  const dataDir = PathManager.getInstance().getDataDir();
+  const dir = join(dataDir, "uploads", subfolder);
+  await mkdir(dir, { recursive: true });
+  return dir;
+}
+
+/**
  * Download Instagram post/reel media using yt-dlp (videos) with instaloader fallback (images)
  */
-async function downloadMedia(url: string): Promise<{ filePath: string; ext: string; title: string; source: string; type: "image" | "video"; duration: number | null }> {
-  const cookiesBrowser = await getCookiesBrowser();
+async function downloadMedia(url: string): Promise<MediaDownloadResult> {
+  const cookiesBrowser = getCookiesBrowser();
 
   // Try yt-dlp first (works for videos/reels, returns empty for image posts)
   const { stdout: metaJson } = await execFileAsync("yt-dlp", [
@@ -63,13 +77,7 @@ async function downloadMedia(url: string): Promise<{ filePath: string; ext: stri
     const duration = meta.duration ? Math.round(meta.duration) : null;
     const ext = meta.ext || "mp4";
 
-    const pathManager = PathManager.getInstance();
-    const dataDir = pathManager.getDataDir();
-    const uploadDir = join(dataDir, "uploads", "posters");
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
+    const uploadDir = await ensureUploadDir("posters");
     const filename = `${randomUUID()}.${ext}`;
     const filePath = join(uploadDir, filename);
 
@@ -89,7 +97,7 @@ async function downloadMedia(url: string): Promise<{ filePath: string; ext: stri
 /**
  * Download Instagram image post via instaloader (shortcode-based)
  */
-async function downloadMediaViaInstaloader(url: string): Promise<{ filePath: string; ext: string; title: string; source: string; type: "image" | "video"; duration: number | null }> {
+async function downloadMediaViaInstaloader(url: string): Promise<MediaDownloadResult> {
   const shortcode = extractShortcode(url);
   if (!shortcode) {
     throw new Error("Could not extract Instagram shortcode from URL");
@@ -99,7 +107,6 @@ async function downloadMediaViaInstaloader(url: string): Promise<{ filePath: str
   await mkdir(tmpDir, { recursive: true });
 
   try {
-    const META_SEPARATOR = "|||";
     await execFileAsync("instaloader", [
       `--dirname-pattern=${tmpDir}`,
       "--no-metadata-json",
@@ -108,9 +115,15 @@ async function downloadMediaViaInstaloader(url: string): Promise<{ filePath: str
       `-${shortcode}`,
     ], { timeout: TIMEOUT_MS });
 
-    // Parse metadata from the .txt file (format: "username|||caption")
+    // Parse metadata and find media in a single readdir pass
     const files = await readdir(tmpDir);
-    const txtFile = files.find(f => f.endsWith(".txt"));
+    let txtFile: string | undefined;
+    let mediaFile: string | undefined;
+    for (const f of files) {
+      if (!txtFile && f.endsWith(".txt")) txtFile = f;
+      if (!mediaFile && /\.(jpe?g|png|mp4|webm)$/.test(f)) mediaFile = f;
+    }
+
     let ownerUsername = "";
     let caption = "";
     if (txtFile) {
@@ -122,15 +135,8 @@ async function downloadMediaViaInstaloader(url: string): Promise<{ filePath: str
       }
     }
 
-    // Title = first line of caption
     const title = caption.split("\n")[0]?.trim() || "Instagram";
     const source = ownerUsername ? `@${ownerUsername}` : "Instagram";
-
-    // Find downloaded media files
-    const mediaFile = files.find(f =>
-      f.endsWith(".jpg") || f.endsWith(".jpeg") || f.endsWith(".png") ||
-      f.endsWith(".mp4") || f.endsWith(".webm")
-    );
 
     if (!mediaFile) {
       throw new Error("Instaloader downloaded no media files");
@@ -139,26 +145,12 @@ async function downloadMediaViaInstaloader(url: string): Promise<{ filePath: str
     const ext = mediaFile.split(".").pop() || "jpg";
     const isVideo = ext === "mp4" || ext === "webm";
 
-    // Copy to posters upload directory
-    const pathManager = PathManager.getInstance();
-    const dataDir = pathManager.getDataDir();
-    const uploadDir = join(dataDir, "uploads", "posters");
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
+    const uploadDir = await ensureUploadDir("posters");
     const destFilename = `${randomUUID()}.${ext}`;
     const destPath = join(uploadDir, destFilename);
     await copyFile(join(tmpDir, mediaFile), destPath);
 
-    return {
-      filePath: destPath,
-      ext,
-      title,
-      source,
-      type: isVideo ? "video" : "image",
-      duration: null,
-    };
+    return { filePath: destPath, ext, title, source, type: isVideo ? "video" : "image", duration: null };
   } finally {
     await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   }
@@ -181,27 +173,15 @@ async function downloadProfilePic(username: string): Promise<string> {
       username,
     ], { timeout: TIMEOUT_MS });
 
-    // Find the downloaded profile pic
     const profileDir = join(tmpDir, username);
-    if (!existsSync(profileDir)) {
-      throw new Error(`Profile directory not found for ${username}`);
-    }
-
-    const files = await readdir(profileDir);
-    const picFile = files.find(f => f.endsWith(".jpg") || f.endsWith(".jpeg") || f.endsWith(".png"));
+    const files = await readdir(profileDir).catch(() => [] as string[]);
+    const picFile = files.find(f => /\.(jpe?g|png)$/.test(f));
     if (!picFile) {
       throw new Error(`No profile picture found for ${username}`);
     }
 
-    // Copy to guests upload directory
-    const pathManager = PathManager.getInstance();
-    const dataDir = pathManager.getDataDir();
-    const guestsDir = join(dataDir, "uploads", "guests");
-    if (!existsSync(guestsDir)) {
-      await mkdir(guestsDir, { recursive: true });
-    }
-
     const ext = picFile.split(".").pop() || "jpg";
+    const guestsDir = await ensureUploadDir("guests");
     const destFilename = `${randomUUID()}.${ext}`;
     const destPath = join(guestsDir, destFilename);
 
@@ -209,7 +189,6 @@ async function downloadProfilePic(username: string): Promise<string> {
 
     return `/data/uploads/guests/${destFilename}`;
   } finally {
-    // Clean up temp directory
     await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   }
 }

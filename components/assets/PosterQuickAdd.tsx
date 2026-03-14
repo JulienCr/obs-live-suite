@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, Loader2, Image as ImageIcon, Video, Youtube, Instagram } from "lucide-react";
+import { Upload, Loader2, Image as ImageIcon, Video, Youtube } from "lucide-react";
 import {
   isYouTubeUrl,
   extractYouTubeId,
@@ -18,7 +18,7 @@ import {
 } from "@/lib/utils/urlDetection";
 import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 
-type MediaType = "image" | "video" | "youtube" | "instagram";
+type MediaType = "image" | "video" | "youtube";
 type DisplayMode = "left" | "right" | "bigpicture";
 
 interface Poster {
@@ -228,18 +228,10 @@ export function PosterQuickAdd({
     setError(null);
 
     try {
-      const res = await fetch("/api/assets/instagram", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, type: "media" }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || t("errors.instagramFailed"));
-      }
-
-      const data = await res.json();
+      const data = await apiPost<{ url: string; type: MediaType; title: string; source: string; duration: number | null }>(
+        "/api/assets/instagram",
+        { url, type: "media" }
+      );
 
       setPreview({
         fileUrl: data.url,
@@ -252,7 +244,8 @@ export function PosterQuickAdd({
 
       setUrlInput("");
     } catch (err) {
-      showError(err instanceof Error ? err.message : t("errors.instagramFailed"));
+      const errorMessage = isClientFetchError(err) ? err.errorMessage : (err instanceof Error ? err.message : t("errors.instagramFailed"));
+      showError(errorMessage);
     } finally {
       setProcessing(false);
     }
@@ -432,8 +425,6 @@ export function PosterQuickAdd({
         return <Video className="w-3 h-3" />;
       case "youtube":
         return <Youtube className="w-3 h-3" />;
-      case "instagram":
-        return <Instagram className="w-3 h-3" />;
       default:
         return null;
     }

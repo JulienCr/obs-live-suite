@@ -162,21 +162,32 @@ export function getFilenameFromUrl(url: string): string {
 }
 
 /**
+ * Parse an Instagram URL string into a URL object, or return null if not Instagram
+ */
+function parseInstagramUrl(url: string): URL | null {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  try {
+    const urlObj = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
+    if (urlObj.hostname === 'instagram.com' || urlObj.hostname === 'www.instagram.com') {
+      return urlObj;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Detects if a URL is an Instagram URL (post, reel, or profile)
  */
 export function isInstagramUrl(url: string): boolean {
-  if (!url || typeof url !== 'string') return false;
-  const trimmed = url.trim();
-  if (!trimmed) return false;
-
-  // Try to parse as URL
-  try {
-    const urlObj = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
-    return urlObj.hostname === 'instagram.com' || urlObj.hostname === 'www.instagram.com';
-  } catch {
-    return false;
-  }
+  return parseInstagramUrl(url) !== null;
 }
+
+const INSTAGRAM_SYSTEM_PATHS = ['p', 'reel', 'reels', 'explore', 'accounts', 'about', 'legal', 'developer', 'stories', 'direct', 'tv'];
 
 /**
  * Differentiates between Instagram URL types
@@ -185,27 +196,20 @@ export function isInstagramUrl(url: string): boolean {
  * - 'profile': instagram.com/USERNAME (no /p/ or /reel/ segment)
  */
 export function getInstagramUrlType(url: string): 'post' | 'reel' | 'profile' | null {
-  if (!isInstagramUrl(url)) return null;
+  const urlObj = parseInstagramUrl(url);
+  if (!urlObj) return null;
 
-  const trimmed = url.trim();
-  try {
-    const urlObj = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
-    const path = urlObj.pathname;
+  const path = urlObj.pathname;
 
-    if (/^\/p\/[^/]+\/?$/.test(path)) return 'post';
-    if (/^\/reel\/[^/]+\/?$/.test(path)) return 'reel';
+  if (/^\/p\/[^/]+\/?$/.test(path)) return 'post';
+  if (/^\/reel\/[^/]+\/?$/.test(path)) return 'reel';
 
-    // Profile: /USERNAME or /USERNAME/ (not /p/, /reel/, /explore/, /accounts/, etc.)
-    const systemPaths = ['p', 'reel', 'reels', 'explore', 'accounts', 'about', 'legal', 'developer', 'stories', 'direct', 'tv'];
-    const segments = path.split('/').filter(Boolean);
-    if (segments.length === 1 && !systemPaths.includes(segments[0])) {
-      return 'profile';
-    }
-
-    return null;
-  } catch {
-    return null;
+  const segments = path.split('/').filter(Boolean);
+  if (segments.length === 1 && !INSTAGRAM_SYSTEM_PATHS.includes(segments[0])) {
+    return 'profile';
   }
+
+  return null;
 }
 
 /**
