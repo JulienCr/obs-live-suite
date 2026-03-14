@@ -26,9 +26,8 @@ export const StudioReturnSettingsSchema = z.object({
 
 export type StudioReturnSettings = z.infer<typeof StudioReturnSettingsSchema>;
 
-export const DEFAULT_STUDIO_RETURN_SETTINGS: StudioReturnSettings = {
-  monitorIndex: 0,
-  displayDuration: 10,
-  fontSize: 80,
-  enabled: true,
-};
+export const DEFAULT_STUDIO_RETURN_SETTINGS: StudioReturnSettings =
+  StudioReturnSettingsSchema.parse({});
+
+/** WebSocket message type for real-time settings push */
+export const STUDIO_RETURN_SETTINGS_EVENT = "studio-return-settings" as const;

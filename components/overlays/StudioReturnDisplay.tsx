@@ -11,7 +11,6 @@ export interface StudioReturnContent {
   title: string;
   body: string;
   severity: CueSeverity;
-  type: "notification" | "countdown";
 }
 
 interface StudioReturnDisplayProps {

@@ -12,21 +12,14 @@ import { useSettings } from "@/lib/hooks/useSettings";
 import { apiGet } from "@/lib/utils/ClientFetch";
 import { CueSeverity, CueType } from "@/lib/models/Cue";
 import { buildCuePayload, sendCue } from "@/lib/utils/cueClient";
-import type { MonitorInfo } from "@/lib/models/StudioReturn";
+import type { MonitorInfo, StudioReturnSettings as StudioReturnSettingsType } from "@/lib/models/StudioReturn";
 import { DEFAULT_STUDIO_RETURN_SETTINGS } from "@/lib/models/StudioReturn";
 
-interface StudioReturnSettingsState {
-  monitorIndex: number;
-  displayDuration: number;
-  fontSize: number;
-  enabled: boolean;
-}
-
 interface StudioReturnSettingsResponse {
-  settings?: Partial<StudioReturnSettingsState>;
+  settings?: Partial<StudioReturnSettingsType>;
 }
 
-const INITIAL_STATE: StudioReturnSettingsState = DEFAULT_STUDIO_RETURN_SETTINGS;
+const INITIAL_STATE: StudioReturnSettingsType = DEFAULT_STUDIO_RETURN_SETTINGS;
 
 export function StudioReturnSettings() {
   const t = useTranslations("settings.studioReturn");
@@ -34,7 +27,7 @@ export function StudioReturnSettings() {
 
   const { data: settings, setData: setSettings, loading, saving, saveResult, save } = useSettings<
     StudioReturnSettingsResponse,
-    StudioReturnSettingsState
+    StudioReturnSettingsType
   >({
     endpoint: "/api/settings/studio-return",
     initialState: INITIAL_STATE,

@@ -6,7 +6,11 @@ import { StudioReturnDisplay, type StudioReturnContent } from "./StudioReturnDis
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import { CueSeverity } from "@/lib/models/Cue";
 import type { CountdownPayload } from "@/lib/models/Cue";
-import { DEFAULT_STUDIO_RETURN_SETTINGS } from "@/lib/models/StudioReturn";
+import {
+  DEFAULT_STUDIO_RETURN_SETTINGS,
+  STUDIO_RETURN_SETTINGS_EVENT,
+} from "@/lib/models/StudioReturn";
+import type { StudioReturnSettings } from "@/lib/models/StudioReturn";
 import { formatTimeShort } from "@/lib/utils/durationParser";
 
 // ------------------------------------------------------------------
@@ -26,13 +30,6 @@ interface CuePayload {
 interface PresenterMessage {
   type: string;
   payload: CuePayload;
-}
-
-interface StudioReturnSettings {
-  displayDuration?: number | null;
-  fontSize?: number | null;
-  enabled?: boolean | null;
-  monitorIndex?: number | null;
 }
 
 // ------------------------------------------------------------------
@@ -85,6 +82,7 @@ export function StudioReturnRenderer() {
 
   const scheduleFadeOut = useCallback(
     (durationSec: number) => {
+      if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current);
       dismissTimeoutRef.current = setTimeout(() => {
         setContent(null);
       }, durationSec * 1000);
@@ -113,7 +111,6 @@ export function StudioReturnRenderer() {
         title: payload.title || "COUNTDOWN",
         body: formatTimeShort(remaining, true),
         severity: CueSeverity.WARN,
-        type: "countdown",
       });
 
       countdownIntervalRef.current = setInterval(() => {
@@ -126,7 +123,6 @@ export function StudioReturnRenderer() {
             title: payload.title || "COUNTDOWN",
             body: "0:00",
             severity: CueSeverity.URGENT,
-            type: "countdown",
           });
           // Auto-dismiss after 3s
           dismissTimeoutRef.current = setTimeout(() => setContent(null), 3000);
@@ -137,7 +133,6 @@ export function StudioReturnRenderer() {
           title: prev?.title || "COUNTDOWN",
           body: formatTimeShort(remaining, true),
           severity: remaining <= 10 ? CueSeverity.URGENT : CueSeverity.WARN,
-          type: "countdown",
         }));
       }, 1000);
     },
@@ -146,7 +141,7 @@ export function StudioReturnRenderer() {
 
   // --- Settings bridge for Tauri ---
   const applySettings = useCallback(
-    (settings: StudioReturnSettings) => {
+    (settings: Partial<StudioReturnSettings>) => {
       debugLog(`Settings received: ${JSON.stringify(settings)}`);
 
       if (settings.displayDuration != null) {
@@ -170,7 +165,7 @@ export function StudioReturnRenderer() {
   hideRef.current = hide;
 
   useEffect(() => {
-    (window as unknown as Record<string, unknown>).__applySettings = (settings: StudioReturnSettings) => {
+    (window as unknown as Record<string, unknown>).__applySettings = (settings: Partial<StudioReturnSettings>) => {
       applySettingsRef.current(settings);
     };
 
@@ -193,8 +188,8 @@ export function StudioReturnRenderer() {
   const handleMessage = useCallback(
     (data: PresenterMessage) => {
       // Handle real-time settings updates from dashboard
-      if (data.type === "studio-return-settings") {
-        const settings = data.payload as unknown as StudioReturnSettings;
+      if (data.type === STUDIO_RETURN_SETTINGS_EVENT) {
+        const settings = data.payload as unknown as Partial<StudioReturnSettings>;
         applySettings(settings);
 
         // Reposition window via Tauri command if available
@@ -239,7 +234,6 @@ export function StudioReturnRenderer() {
         title: payload.title || "",
         body: payload.body || "",
         severity: payload.severity || CueSeverity.INFO,
-        type: "notification",
       });
       scheduleFadeOut(displayDurationRef.current);
     },

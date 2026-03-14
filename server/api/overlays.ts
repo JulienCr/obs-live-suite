@@ -7,6 +7,7 @@ import { Router } from "express";
 import { ChannelManager } from "../../lib/services/ChannelManager";
 import { WebSocketHub } from "../../lib/services/WebSocketHub";
 import { SettingsService } from "../../lib/services/SettingsService";
+import { STUDIO_RETURN_SETTINGS_EVENT } from "../../lib/models/StudioReturn";
 import { OBSConnectionManager } from "../../lib/adapters/obs/OBSConnectionManager";
 import {
   LowerThirdEventType,
@@ -319,11 +320,11 @@ router.post("/clear-all", overlayHandler(async (_req, res) => {
  * Broadcast updated settings to the studio return app via presenter channel
  */
 router.post("/studio-return-settings", overlayHandler(async (req, res) => {
-  const settings = req.body;
+  const { monitorIndex, displayDuration, fontSize, enabled } = req.body;
   const wsHub = WebSocketHub.getInstance();
   wsHub.broadcast("presenter", {
-    type: "studio-return-settings",
-    payload: settings,
+    type: STUDIO_RETURN_SETTINGS_EVENT,
+    payload: { monitorIndex, displayDuration, fontSize, enabled },
   });
   res.json({ success: true });
 }, "Failed to broadcast studio return settings"));
