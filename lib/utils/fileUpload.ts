@@ -1,9 +1,21 @@
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
-import { existsSync } from "fs";
 import { randomUUID } from "crypto";
 import { spawn } from "child_process";
 import { PathManager } from "../config/PathManager";
+
+type UploadSubfolder = "posters" | "guests" | "quiz";
+
+/**
+ * Ensure an upload subdirectory exists and return its absolute path.
+ * Shared across file-upload routes and external-download routes.
+ */
+export async function getUploadDir(subfolder: UploadSubfolder): Promise<string> {
+  const dataDir = PathManager.getInstance().getDataDir();
+  const dir = join(dataDir, "uploads", subfolder);
+  await mkdir(dir, { recursive: true });
+  return dir;
+}
 
 export interface UploadOptions {
   subfolder: "posters" | "guests" | "quiz";
@@ -42,15 +54,8 @@ export async function uploadFile(
     }
   }
 
-  // Get data directory from PathManager (same location as database)
-  const pathManager = PathManager.getInstance();
-  const dataDir = pathManager.getDataDir();
-  
-  // Create upload directory inside data directory
-  const uploadDir = join(dataDir, "uploads", options.subfolder);
-  if (!existsSync(uploadDir)) {
-    await mkdir(uploadDir, { recursive: true });
-  }
+  // Get (or create) upload directory
+  const uploadDir = await getUploadDir(options.subfolder);
 
   // Generate unique filename
   const ext = file.name.split(".").pop();

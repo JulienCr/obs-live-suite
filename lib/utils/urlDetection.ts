@@ -85,6 +85,10 @@ export function extractYouTubeId(url: string): string | null {
   }
 }
 
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif'];
+const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov'];
+const ALL_MEDIA_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS];
+
 /**
  * Detects if a URL points to a direct media file (image or video)
  * Based on file extension
@@ -97,16 +101,9 @@ export function isDirectMediaUrl(url: string): boolean {
   // Must be a valid URL
   if (!isValidUrl(trimmed)) return false;
 
-  // Image extensions
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif'];
-  // Video extensions
-  const videoExtensions = ['.mp4', '.webm', '.mov'];
-
-  const allExtensions = [...imageExtensions, ...videoExtensions];
-
   // Check if URL ends with any of these extensions (before query params)
   const urlWithoutQuery = trimmed.split('?')[0];
-  return allExtensions.some(ext => urlWithoutQuery.endsWith(ext));
+  return ALL_MEDIA_EXTENSIONS.some(ext => urlWithoutQuery.endsWith(ext));
 }
 
 /**
@@ -118,15 +115,11 @@ export function getMediaTypeFromUrl(url: string): 'image' | 'video' | null {
   const trimmed = url.trim().toLowerCase();
   const urlWithoutQuery = trimmed.split('?')[0];
 
-  // Image extensions
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif'];
-  if (imageExtensions.some(ext => urlWithoutQuery.endsWith(ext))) {
+  if (IMAGE_EXTENSIONS.some(ext => urlWithoutQuery.endsWith(ext))) {
     return 'image';
   }
 
-  // Video extensions
-  const videoExtensions = ['.mp4', '.webm', '.mov'];
-  if (videoExtensions.some(ext => urlWithoutQuery.endsWith(ext))) {
+  if (VIDEO_EXTENSIONS.some(ext => urlWithoutQuery.endsWith(ext))) {
     return 'video';
   }
 
@@ -159,4 +152,91 @@ export function getFilenameFromUrl(url: string): string {
     const withoutExt = filename.replace(/\.[^/.]+$/, '');
     return withoutExt || 'Untitled';
   }
+}
+
+/**
+ * Parse an Instagram URL string into a URL object, or return null if not Instagram
+ */
+function parseInstagramUrl(url: string): URL | null {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  try {
+    const urlObj = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
+    if (urlObj.hostname === 'instagram.com' || urlObj.hostname === 'www.instagram.com') {
+      return urlObj;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Detects if a URL is an Instagram URL (post, reel, or profile)
+ */
+export function isInstagramUrl(url: string): boolean {
+  return parseInstagramUrl(url) !== null;
+}
+
+const INSTAGRAM_SYSTEM_PATHS = ['p', 'reel', 'reels', 'explore', 'accounts', 'about', 'legal', 'developer', 'stories', 'direct', 'tv'];
+
+/**
+ * Differentiates between Instagram URL types
+ * - 'post': instagram.com/p/CODE
+ * - 'reel': instagram.com/reel/CODE
+ * - 'profile': instagram.com/USERNAME (no /p/ or /reel/ segment)
+ */
+export function getInstagramUrlType(url: string): 'post' | 'reel' | 'profile' | null {
+  const urlObj = parseInstagramUrl(url);
+  if (!urlObj) return null;
+
+  const path = urlObj.pathname;
+
+  if (/^\/p\/[^/]+\/?$/.test(path)) return 'post';
+  if (/^\/reel\/[^/]+\/?$/.test(path)) return 'reel';
+
+  const segments = path.split('/').filter(Boolean);
+  if (segments.length === 1 && !INSTAGRAM_SYSTEM_PATHS.includes(segments[0])) {
+    return 'profile';
+  }
+
+  return null;
+}
+
+/**
+ * Extracts shortcode from an Instagram post or reel URL
+ * e.g. instagram.com/p/ABC123/ → "ABC123", instagram.com/reel/XYZ/ → "XYZ"
+ */
+export function extractInstagramShortcode(url: string): string | null {
+  const urlObj = parseInstagramUrl(url);
+  if (!urlObj) return null;
+
+  const match = urlObj.pathname.match(/^\/(p|reel)\/([^/]+)/);
+  return match ? match[2] : null;
+}
+
+/**
+ * Extracts Instagram username from a profile URL or raw username
+ * Works with: instagram.com/USERNAME, instagram.com/USERNAME/, or just "USERNAME"
+ */
+export function extractInstagramUsername(url: string): string | null {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  // If it's an Instagram URL, delegate to shared parser
+  const urlObj = parseInstagramUrl(trimmed);
+  if (urlObj) {
+    const segments = urlObj.pathname.split('/').filter(Boolean);
+    return segments.length === 1 ? segments[0] : null;
+  }
+
+  // Raw username (no spaces, no slashes)
+  if (/^[a-zA-Z0-9._]+$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  return null;
 }

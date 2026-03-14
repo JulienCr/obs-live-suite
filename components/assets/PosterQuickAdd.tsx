@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, ChangeEvent, DragEvent, ClipboardEvent as ReactClipboardEvent } from "react";
+import { useState, useRef, useCallback, ChangeEvent, DragEvent, ClipboardEvent as ReactClipboardEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Upload, Loader2, Image as ImageIcon, Video, Youtube } from "lucide-reac
 import {
   isYouTubeUrl,
   extractYouTubeId,
+  getInstagramUrlType,
   isDirectMediaUrl,
   getMediaTypeFromUrl,
   getFilenameFromUrl,
@@ -43,6 +44,7 @@ interface PreviewState {
   title: string;
   source?: string;
   thumbnailUrl?: string;
+  duration?: number | null;
 }
 
 /**
@@ -70,6 +72,7 @@ export function PosterQuickAdd({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
   const isPickerMode = mode === "picker";
   const isTypeAllowed = (type: MediaType) => allowedTypes.includes(type);
 
@@ -218,6 +221,37 @@ export function PosterQuickAdd({
   };
 
   /**
+   * Process Instagram post/reel URL
+   */
+  const handleInstagramUrl = async (url: string, urlType: "post" | "reel") => {
+    setProcessing(true);
+    setError(null);
+
+    try {
+      const data = await apiPost<{ url: string; type: MediaType; title: string; source: string; duration: number | null }>(
+        "/api/assets/instagram",
+        { url, type: "media", urlType }
+      );
+
+      setPreview({
+        fileUrl: data.url,
+        type: data.type,
+        title: data.title || "Instagram",
+        source: data.source,
+        thumbnailUrl: data.type === "image" ? data.url : undefined,
+        duration: data.duration || null,
+      });
+
+      setUrlInput("");
+    } catch (err) {
+      const errorMessage = isClientFetchError(err) ? err.errorMessage : (err instanceof Error ? err.message : t("errors.instagramFailed"));
+      showError(errorMessage);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  /**
    * Handle URL input change
    */
   const handleUrlInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -228,20 +262,29 @@ export function PosterQuickAdd({
   };
 
   /**
-   * Handle URL input blur or Enter key
+   * Handle URL input blur or Enter key.
+   * Uses a ref guard to prevent double-fire when Enter triggers both
+   * onKeyDown and onBlur (due to the input becoming disabled during processing).
    */
-  const handleUrlInputSubmit = () => {
+  const handleUrlInputSubmit = useCallback(() => {
     const trimmed = urlInput.trim();
-    if (!trimmed) return;
+    if (!trimmed || processing || submittingRef.current) return;
 
+    submittingRef.current = true;
+    // Reset the guard after a tick so future submissions work
+    queueMicrotask(() => { submittingRef.current = false; });
+
+    const instagramType = getInstagramUrlType(trimmed);
     if (isYouTubeUrl(trimmed)) {
       handleYouTubeUrl(trimmed);
+    } else if (instagramType === "post" || instagramType === "reel") {
+      handleInstagramUrl(trimmed, instagramType);
     } else if (isDirectMediaUrl(trimmed)) {
       handleDirectMediaUrl(trimmed);
     } else {
       showError(isImageOnly ? t("errors.invalidUrlImage") : t("errors.invalidUrlFull"));
     }
-  };
+  }, [urlInput, processing, isImageOnly]);
 
   /**
    * Handle paste event in URL input
@@ -315,6 +358,7 @@ export function PosterQuickAdd({
         source: preview.source || "",
         fileUrl: preview.fileUrl,
         type: preview.type,
+        duration: preview.duration || null,
         tags: [],
         isEnabled: true,
       });
@@ -480,13 +524,7 @@ export function PosterQuickAdd({
           <div className="flex gap-3">
             {/* Thumbnail */}
             <div className="w-24 h-24 rounded overflow-hidden bg-muted shrink-0">
-              {preview.type === "youtube" && preview.thumbnailUrl ? (
-                <img
-                  src={preview.thumbnailUrl}
-                  alt={preview.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : preview.type === "image" && preview.thumbnailUrl ? (
+              {preview.thumbnailUrl ? (
                 <img
                   src={preview.thumbnailUrl}
                   alt={preview.title}

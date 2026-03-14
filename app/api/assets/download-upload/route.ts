@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile } from "fs/promises";
 import { join } from "path";
-import { existsSync } from "fs";
 import { randomUUID } from "crypto";
-import { PathManager } from "@/lib/config/PathManager";
 import { IMAGE_TYPES, VIDEO_TYPES } from "@/lib/filetypes";
 import { getMediaTypeFromUrl, getFilenameFromUrl } from "@/lib/utils/urlDetection";
+import { getUploadDir } from "@/lib/utils/fileUpload";
 
 /**
  * POST /api/assets/download-upload
@@ -97,15 +96,8 @@ export async function POST(request: Request) {
       ext = typeMap[contentType] || 'jpg';
     }
 
-    // Get data directory from PathManager
-    const pathManager = PathManager.getInstance();
-    const dataDir = pathManager.getDataDir();
-
-    // Create upload directory
-    const uploadDir = join(dataDir, "uploads", "posters");
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
+    // Get (or create) upload directory
+    const uploadDir = await getUploadDir("posters");
 
     // Generate unique filename
     const filename = `${randomUUID()}.${ext}`;
