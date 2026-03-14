@@ -83,16 +83,15 @@ struct StudioReturnSettings {
 #[serde(rename_all = "camelCase")]
 struct SettingsResponse {
     settings: Option<StudioReturnSettings>,
+    #[allow(dead_code)]
     ws_port: Option<u16>,
 }
 
 /// Apply settings to the window (monitor position, cursor events, send to frontend)
-/// If ws_port is provided, re-sends it after repositioning (window move can reset JS state)
 fn apply_settings(
     app: &tauri::AppHandle,
     settings: &StudioReturnSettings,
     known_monitors: Option<&[MonitorInfo]>,
-    ws_port: Option<u16>,
 ) {
     // Reposition window if monitor changed
     if let Some(idx) = settings.monitor_index {
@@ -101,25 +100,24 @@ fn apply_settings(
         }
     }
 
-    // Forward settings to the frontend via eval
+    // Forward settings to the Next.js overlay via eval
     if let Some(window) = app.get_webview_window("main") {
         let js = format!(
-            "window.__applySettings({})",
+            "if (window.__applySettings) window.__applySettings({})",
             serde_json::to_string(settings).unwrap_or_default()
         );
         let _ = window.eval(&js);
-
-        // Re-send WS port after window move (JS state may be lost)
-        if let Some(port) = ws_port {
-            let _ = window.eval(&format!("window.__setWsPort({})", port));
-        }
     }
 }
 
-/// Send the WebSocket port to the frontend
-fn send_ws_port(app: &tauri::AppHandle, port: u16) {
+/// Send the overlay URL to the bootstrapper frontend so it navigates to the Next.js page
+fn send_overlay_url(app: &tauri::AppHandle, url: &str) {
     if let Some(window) = app.get_webview_window("main") {
-        let js = format!("window.__setWsPort({})", port);
+        let js = format!(
+            "if (window.__setOverlayUrl) window.__setOverlayUrl('{}')",
+            url
+        );
+        eprintln!("[StudioReturn] Sending overlay URL to frontend: {}", url);
         let _ = window.eval(&js);
     }
 }
@@ -193,15 +191,14 @@ pub fn run() {
                 eprintln!("[StudioReturn] Detected {} monitor(s), reporting to backend...", monitors.len());
                 report_monitors_to_backend(&http_client, &monitors, &backend_url).await;
 
+                // Send the overlay URL to the bootstrapper so it navigates to the Next.js page
+                let overlay_url = format!("{}/overlays/studio-return", backend_url);
+                send_overlay_url(&handle, &overlay_url);
+
                 // Initial settings fetch & position on configured monitor
-                let mut current_ws_port: Option<u16> = None;
                 if let Some(response) = fetch_settings(&http_client, &backend_url).await {
-                    current_ws_port = response.ws_port;
-                    if let Some(port) = current_ws_port {
-                        send_ws_port(&handle, port);
-                    }
                     if let Some(settings) = &response.settings {
-                        apply_settings(&handle, settings, Some(&monitors), current_ws_port);
+                        apply_settings(&handle, settings, Some(&monitors));
                     }
                 } else {
                     // No backend yet — position on primary monitor
@@ -223,16 +220,9 @@ pub fn run() {
 
                     // Fetch and apply settings only if changed
                     if let Some(response) = fetch_settings(&http_client, &backend_url).await {
-                        // Update ws_port if changed
-                        if let Some(port) = response.ws_port {
-                            if current_ws_port != Some(port) {
-                                send_ws_port(&handle, port);
-                                current_ws_port = Some(port);
-                            }
-                        }
                         if let Some(settings) = &response.settings {
                             if last_settings.as_ref() != Some(settings) {
-                                apply_settings(&handle, settings, Some(&last_monitors), current_ws_port);
+                                apply_settings(&handle, settings, Some(&last_monitors));
                                 last_settings = Some(settings.clone());
                             }
                         }

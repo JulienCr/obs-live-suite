@@ -1,72 +1,32 @@
+/**
+ * Studio Return — Minimal bootstrapper
+ *
+ * This is the initial page loaded by Tauri's webview.
+ * It waits for the Rust backend to send the Next.js overlay URL,
+ * then navigates to it. The Next.js page handles all rendering.
+ */
+
 import "./styles.css";
 import { initDebug, debugLog } from "./debug";
-import { initDom } from "./dom";
-import { getConfig, applySettings } from "./config";
-import { showNotification, hideNotification } from "./notification";
-import { showCountdown } from "./countdown";
-import { onPresenterMessage, onDismiss, onSettingsUpdate, setWsPort, connectWithDefault } from "./websocket";
 
-// ---- Init DOM ----
+// ---- Init ----
 initDebug();
-initDom();
+debugLog("Bootstrapper loaded, waiting for overlay URL...");
 
-// ---- Apply initial font size ----
-document.documentElement.style.setProperty(
-  "--font-size",
-  `${getConfig().fontSize}px`,
-);
-
-// ---- Tauri bridges ----
-window.__applySettings = (settings) =>
-  applySettings(settings, hideNotification);
-
-window.__setWsPort = (port) => setWsPort(port);
-
-window.__testNotification = (severity) => {
-  showNotification({
-    title: "TEST",
-    body: `Message de test — ${severity || "info"}`,
-    severity: severity || "info",
-  });
+// ---- Tauri bridge: receive overlay URL and navigate ----
+(window as unknown as Record<string, unknown>).__setOverlayUrl = (url: string) => {
+  debugLog(`Navigating to overlay: ${url}`);
+  window.location.href = url;
 };
 
-// ---- Real-time settings from dashboard ----
-onSettingsUpdate((settings) => {
-  applySettings(settings as import("./types").StudioReturnSettings, hideNotification);
+// ---- Tauri bridge: settings (no-op in bootstrapper, exists for Rust eval safety) ----
+(window as unknown as Record<string, unknown>).__applySettings = () => {};
 
-  // Reposition window immediately via Tauri command (no polling delay)
-  const monitorIndex = (settings as Record<string, unknown>).monitorIndex;
-  if (monitorIndex != null && window.__TAURI_INTERNALS__) {
-    window.__TAURI_INTERNALS__.invoke("reposition_monitor", { monitorIndex });
+// ---- Fallback: if no URL received within 10s, try default ----
+setTimeout(() => {
+  if (window.location.pathname === "/" || window.location.pathname === "/index.html") {
+    const fallbackUrl = "http://127.0.0.1:3000/overlays/studio-return";
+    debugLog(`No overlay URL received, falling back to ${fallbackUrl}`);
+    window.location.href = fallbackUrl;
   }
-});
-
-// ---- Dismiss handler ----
-onDismiss(() => {
-  debugLog("Dismiss received — hiding overlay");
-  hideNotification();
-});
-
-// ---- Message routing ----
-onPresenterMessage((payload) => {
-  if (payload.type === "countdown" && payload.countdownPayload) {
-    showCountdown(payload);
-    return;
-  }
-
-  debugLog(
-    `Displaying: severity=${payload.severity || "info"} title=${payload.title || ""}`,
-  );
-
-  showNotification({
-    title: payload.title || "",
-    body: payload.body || "",
-    severity: payload.severity || "info",
-  });
-});
-
-// ---- Connect ----
-debugLog("Studio Return initialized");
-
-// Fallback: if Tauri doesn't send the port within 5s, connect with default
-setTimeout(() => connectWithDefault(), 5000);
+}, 10000);
