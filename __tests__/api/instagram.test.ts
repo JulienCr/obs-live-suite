@@ -87,11 +87,11 @@ describe("POST /api/assets/instagram", () => {
       execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
       readdirMock.mockResolvedValueOnce(["profile_pic.jpg"] as any);
 
-      const res = await POST(makeRequest({ username: "@radiofrance", type: "profile" }));
+      const res = await POST(makeRequest({ username: "@testaccount", type: "profile" }));
       expect(res.status).toBe(200);
       expect(execFileAsyncMock).toHaveBeenCalledWith(
         "instaloader",
-        expect.arrayContaining(["radiofrance"]),
+        expect.arrayContaining(["testaccount"]),
         expect.any(Object)
       );
     });
@@ -105,10 +105,11 @@ describe("POST /api/assets/instagram", () => {
         uploader: "testuser",
         ext: "mp4",
         duration: 15.5,
+        _filename: "/mock/data/uploads/posters/test-uuid.mp4",
       };
 
+      // Single yt-dlp call with --print-json downloads and returns metadata
       execFileAsyncMock.mockResolvedValueOnce({ stdout: JSON.stringify(ytdlpMeta), stderr: "" });
-      execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
 
       const res = await POST(makeRequest({
         url: "https://www.instagram.com/reel/ABC123/",
@@ -126,10 +127,9 @@ describe("POST /api/assets/instagram", () => {
 
     it("falls back to meta.title when description is empty", async () => {
       execFileAsyncMock.mockResolvedValueOnce({
-        stdout: JSON.stringify({ title: "Fallback title", description: "", uploader: "u", ext: "mp4", duration: 10 }),
+        stdout: JSON.stringify({ title: "Fallback title", description: "", uploader: "u", ext: "mp4", duration: 10, _filename: "/mock/data/uploads/posters/test.mp4" }),
         stderr: "",
       });
-      execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
 
       const res = await POST(makeRequest({
         url: "https://www.instagram.com/reel/ABC123/",
@@ -142,11 +142,13 @@ describe("POST /api/assets/instagram", () => {
   });
 
   describe("media download (image via instaloader fallback)", () => {
-    it("falls back to instaloader when yt-dlp returns empty", async () => {
-      execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
+    it("falls back to instaloader when yt-dlp fails (image post)", async () => {
+      // yt-dlp --print-json fails for image-only posts
+      execFileAsyncMock.mockRejectedValueOnce(new Error("No video found"));
+      // instaloader call succeeds
       execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
       readdirMock.mockResolvedValueOnce(["2026-01-30_UTC.txt", "2026-01-30_UTC_1.jpg"] as any);
-      readFileMock.mockResolvedValueOnce("tristan.bideau|||Portrait of the week\n#fantasy" as any);
+      readFileMock.mockResolvedValueOnce("john.doe\t||||\tTest post caption\n#test" as any);
 
       const res = await POST(makeRequest({
         url: "https://www.instagram.com/p/DUJKX_SDBun/",
@@ -156,14 +158,14 @@ describe("POST /api/assets/instagram", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.type).toBe("image");
-      expect(body.title).toBe("Portrait of the week");
-      expect(body.source).toBe("@tristan.bideau");
+      expect(body.title).toBe("Test post caption");
+      expect(body.source).toBe("@john.doe");
       expect(body.duration).toBeNull();
       expect(body.url).toMatch(/^\/data\/uploads\/posters\/.+\.jpg$/);
     });
 
     it("uses 'Instagram' as fallback when no metadata txt", async () => {
-      execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
+      execFileAsyncMock.mockRejectedValueOnce(new Error("No video found"));
       execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
       readdirMock.mockResolvedValueOnce(["photo.jpg"] as any);
 
@@ -183,7 +185,7 @@ describe("POST /api/assets/instagram", () => {
       execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
       readdirMock.mockResolvedValueOnce(["profile_pic.jpg"] as any);
 
-      const res = await POST(makeRequest({ username: "radiofrance", type: "profile" }));
+      const res = await POST(makeRequest({ username: "testaccount", type: "profile" }));
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -194,14 +196,16 @@ describe("POST /api/assets/instagram", () => {
       execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
       readdirMock.mockResolvedValueOnce(["pic.jpg"] as any);
 
-      const res = await POST(makeRequest({ url: "radiofrance", type: "profile" }));
+      const res = await POST(makeRequest({ url: "testaccount", type: "profile" }));
       expect(res.status).toBe(200);
     });
   });
 
   describe("error handling", () => {
-    it("returns 500 on yt-dlp failure", async () => {
+    it("returns 500 when both yt-dlp and instaloader fail", async () => {
+      // yt-dlp fails → falls back to instaloader → instaloader also fails
       execFileAsyncMock.mockRejectedValueOnce(new Error("yt-dlp crashed"));
+      execFileAsyncMock.mockRejectedValueOnce(new Error("instaloader crashed"));
 
       const res = await POST(makeRequest({
         url: "https://www.instagram.com/reel/ABC/",
@@ -210,7 +214,7 @@ describe("POST /api/assets/instagram", () => {
 
       expect(res.status).toBe(500);
       const body = await res.json();
-      expect(body.error).toMatch(/yt-dlp crashed/);
+      expect(body.error).toMatch(/instaloader crashed/);
     });
 
     it("returns 500 on instaloader failure for profile", async () => {
@@ -223,7 +227,9 @@ describe("POST /api/assets/instagram", () => {
       expect(body.error).toMatch(/instaloader failed/);
     });
 
-    it("returns 408 on timeout", async () => {
+    it("returns 408 on timeout from instaloader", async () => {
+      // yt-dlp fails → falls back to instaloader → instaloader times out
+      execFileAsyncMock.mockRejectedValueOnce(new Error("No video found"));
       execFileAsyncMock.mockRejectedValueOnce(new Error("ETIMEOUT"));
 
       const res = await POST(makeRequest({

@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 import { readFile, mkdir, readdir, copyFile, rm } from "fs/promises";
-import { join } from "path";
+import { join, basename, extname } from "path";
 import { randomUUID } from "crypto";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { tmpdir } from "os";
 import { PathManager } from "@/lib/config/PathManager";
 import { SettingsService } from "@/lib/services/SettingsService";
+import { extractInstagramShortcode } from "@/lib/utils/urlDetection";
 
 const execFileAsync = promisify(execFile);
 const TIMEOUT_MS = 30000;
-const META_SEPARATOR = "|||";
+const META_SEPARATOR = "\t||||\t";
 
 interface MediaDownloadResult {
   filePath: string;
@@ -19,27 +20,6 @@ interface MediaDownloadResult {
   source: string;
   type: "image" | "video";
   duration: number | null;
-}
-
-function getCookiesBrowser(): string {
-  try {
-    return SettingsService.getInstance().getInstagramCookiesBrowser() || "chrome";
-  } catch {
-    return "chrome";
-  }
-}
-
-/**
- * Extract shortcode from Instagram URL (/p/CODE/ or /reel/CODE/)
- */
-function extractShortcode(url: string): string | null {
-  try {
-    const urlObj = new URL(url.includes("://") ? url : `https://${url}`);
-    const match = urlObj.pathname.match(/^\/(p|reel)\/([^/]+)/);
-    return match ? match[2] : null;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -56,41 +36,37 @@ async function ensureUploadDir(subfolder: string): Promise<string> {
  * Download Instagram post/reel media using yt-dlp (videos) with instaloader fallback (images)
  */
 async function downloadMedia(url: string): Promise<MediaDownloadResult> {
-  const cookiesBrowser = getCookiesBrowser();
+  const cookiesBrowser = SettingsService.getInstance().getInstagramCookiesBrowser();
 
-  // Try yt-dlp first (works for videos/reels, returns empty for image posts)
-  const { stdout: metaJson } = await execFileAsync("yt-dlp", [
-    "--cookies-from-browser", cookiesBrowser,
-    "--dump-json",
-    "--no-download",
-    url,
-  ], { timeout: TIMEOUT_MS });
+  // Try yt-dlp with --print-json: downloads the file AND outputs metadata in a single pass
+  const uploadDir = await ensureUploadDir("posters");
+  const outputTemplate = join(uploadDir, `${randomUUID()}.%(ext)s`);
 
-  const trimmedMeta = metaJson.trim();
-
-  if (trimmedMeta) {
-    // yt-dlp found video content — download it
-    const meta = JSON.parse(trimmedMeta);
-    const description = meta.description || "";
-    const title = description.split("\n")[0]?.trim() || meta.title || "Instagram media";
-    const source = meta.uploader ? `@${meta.uploader}` : "Instagram";
-    const duration = meta.duration ? Math.round(meta.duration) : null;
-    const ext = meta.ext || "mp4";
-
-    const uploadDir = await ensureUploadDir("posters");
-    const filename = `${randomUUID()}.${ext}`;
-    const filePath = join(uploadDir, filename);
-
-    await execFileAsync("yt-dlp", [
+  try {
+    const { stdout: metaJson } = await execFileAsync("yt-dlp", [
       "--cookies-from-browser", cookiesBrowser,
-      "-o", filePath,
+      "--print-json",
+      "-o", outputTemplate,
       url,
     ], { timeout: TIMEOUT_MS });
 
-    return { filePath, ext, title, source, type: "video", duration };
+    const trimmedMeta = metaJson.trim();
+
+    if (trimmedMeta) {
+      const meta = JSON.parse(trimmedMeta);
+      const description = meta.description || "";
+      const title = description.split("\n")[0]?.trim() || meta.title || "Instagram media";
+      const source = meta.uploader ? `@${meta.uploader}` : "Instagram";
+      const duration = meta.duration ? Math.round(meta.duration) : null;
+      const ext = meta.ext || "mp4";
+      const filePath = meta._filename || meta.requested_downloads?.[0]?.filepath || join(uploadDir, `${basename(outputTemplate, ".%(ext)s")}.${ext}`);
+
+      return { filePath, ext, title, source, type: "video", duration };
+    }
+  } catch {
+    // yt-dlp failed (likely image-only post) — fall back to instaloader
   }
 
-  // yt-dlp returned nothing (image post) — fall back to instaloader
   return downloadMediaViaInstaloader(url);
 }
 
@@ -98,7 +74,7 @@ async function downloadMedia(url: string): Promise<MediaDownloadResult> {
  * Download Instagram image post via instaloader (shortcode-based)
  */
 async function downloadMediaViaInstaloader(url: string): Promise<MediaDownloadResult> {
-  const shortcode = extractShortcode(url);
+  const shortcode = extractInstagramShortcode(url);
   if (!shortcode) {
     throw new Error("Could not extract Instagram shortcode from URL");
   }
@@ -142,7 +118,7 @@ async function downloadMediaViaInstaloader(url: string): Promise<MediaDownloadRe
       throw new Error("Instaloader downloaded no media files");
     }
 
-    const ext = mediaFile.split(".").pop() || "jpg";
+    const ext = extname(mediaFile).slice(1) || "jpg";
     const isVideo = ext === "mp4" || ext === "webm";
 
     const uploadDir = await ensureUploadDir("posters");
@@ -180,7 +156,7 @@ async function downloadProfilePic(username: string): Promise<string> {
       throw new Error(`No profile picture found for ${username}`);
     }
 
-    const ext = picFile.split(".").pop() || "jpg";
+    const ext = extname(picFile).slice(1) || "jpg";
     const guestsDir = await ensureUploadDir("guests");
     const destFilename = `${randomUUID()}.${ext}`;
     const destPath = join(guestsDir, destFilename);
@@ -234,7 +210,7 @@ export async function POST(request: Request) {
       }
 
       const result = await downloadMedia(url);
-      const relativeUrl = `/data/uploads/posters/${result.filePath.split("/").pop()}`;
+      const relativeUrl = `/data/uploads/posters/${basename(result.filePath)}`;
 
       return NextResponse.json({
         url: relativeUrl,

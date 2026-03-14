@@ -266,7 +266,7 @@ export function PosterQuickAdd({
    */
   const handleUrlInputSubmit = () => {
     const trimmed = urlInput.trim();
-    if (!trimmed) return;
+    if (!trimmed || processing) return;
 
     if (isYouTubeUrl(trimmed)) {
       handleYouTubeUrl(trimmed);
@@ -517,13 +517,7 @@ export function PosterQuickAdd({
           <div className="flex gap-3">
             {/* Thumbnail */}
             <div className="w-24 h-24 rounded overflow-hidden bg-muted shrink-0">
-              {preview.type === "youtube" && preview.thumbnailUrl ? (
-                <img
-                  src={preview.thumbnailUrl}
-                  alt={preview.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : preview.type === "image" && preview.thumbnailUrl ? (
+              {preview.thumbnailUrl ? (
                 <img
                   src={preview.thumbnailUrl}
                   alt={preview.title}

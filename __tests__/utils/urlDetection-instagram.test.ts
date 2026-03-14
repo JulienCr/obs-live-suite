@@ -1,10 +1,10 @@
-import { isInstagramUrl, getInstagramUrlType, extractInstagramUsername } from "@/lib/utils/urlDetection";
+import { isInstagramUrl, getInstagramUrlType, extractInstagramUsername, extractInstagramShortcode } from "@/lib/utils/urlDetection";
 
 describe("isInstagramUrl", () => {
   it("detects instagram.com URLs", () => {
     expect(isInstagramUrl("https://www.instagram.com/p/ABC123/")).toBe(true);
     expect(isInstagramUrl("https://instagram.com/reel/ABC123/")).toBe(true);
-    expect(isInstagramUrl("https://www.instagram.com/radiofrance")).toBe(true);
+    expect(isInstagramUrl("https://www.instagram.com/testaccount")).toBe(true);
     expect(isInstagramUrl("instagram.com/p/ABC123")).toBe(true);
   });
 
@@ -28,8 +28,8 @@ describe("getInstagramUrlType", () => {
   });
 
   it("detects profile URLs", () => {
-    expect(getInstagramUrlType("https://www.instagram.com/radiofrance")).toBe("profile");
-    expect(getInstagramUrlType("https://instagram.com/radiofrance/")).toBe("profile");
+    expect(getInstagramUrlType("https://www.instagram.com/testaccount")).toBe("profile");
+    expect(getInstagramUrlType("https://instagram.com/testaccount/")).toBe("profile");
   });
 
   it("returns null for system paths", () => {
@@ -45,13 +45,13 @@ describe("getInstagramUrlType", () => {
 
 describe("extractInstagramUsername", () => {
   it("extracts from profile URLs", () => {
-    expect(extractInstagramUsername("https://www.instagram.com/radiofrance")).toBe("radiofrance");
-    expect(extractInstagramUsername("https://instagram.com/radiofrance/")).toBe("radiofrance");
-    expect(extractInstagramUsername("instagram.com/radiofrance")).toBe("radiofrance");
+    expect(extractInstagramUsername("https://www.instagram.com/testaccount")).toBe("testaccount");
+    expect(extractInstagramUsername("https://instagram.com/testaccount/")).toBe("testaccount");
+    expect(extractInstagramUsername("instagram.com/testaccount")).toBe("testaccount");
   });
 
   it("returns raw username if valid", () => {
-    expect(extractInstagramUsername("radiofrance")).toBe("radiofrance");
+    expect(extractInstagramUsername("testaccount")).toBe("testaccount");
     expect(extractInstagramUsername("user.name_123")).toBe("user.name_123");
   });
 
@@ -63,5 +63,25 @@ describe("extractInstagramUsername", () => {
   it("returns null for invalid input", () => {
     expect(extractInstagramUsername("")).toBe(null);
     expect(extractInstagramUsername("has spaces")).toBe(null);
+  });
+});
+
+describe("extractInstagramShortcode", () => {
+  it("extracts from post URLs", () => {
+    expect(extractInstagramShortcode("https://www.instagram.com/p/ABC123/")).toBe("ABC123");
+    expect(extractInstagramShortcode("https://instagram.com/p/XYZ789")).toBe("XYZ789");
+  });
+
+  it("extracts from reel URLs", () => {
+    expect(extractInstagramShortcode("https://www.instagram.com/reel/DEF456/")).toBe("DEF456");
+  });
+
+  it("returns null for profile URLs", () => {
+    expect(extractInstagramShortcode("https://instagram.com/john_doe")).toBe(null);
+  });
+
+  it("returns null for non-Instagram URLs", () => {
+    expect(extractInstagramShortcode("https://youtube.com/watch?v=123")).toBe(null);
+    expect(extractInstagramShortcode("")).toBe(null);
   });
 });

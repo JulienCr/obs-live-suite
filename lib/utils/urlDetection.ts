@@ -85,6 +85,10 @@ export function extractYouTubeId(url: string): string | null {
   }
 }
 
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif'];
+const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov'];
+const ALL_MEDIA_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS];
+
 /**
  * Detects if a URL points to a direct media file (image or video)
  * Based on file extension
@@ -97,16 +101,9 @@ export function isDirectMediaUrl(url: string): boolean {
   // Must be a valid URL
   if (!isValidUrl(trimmed)) return false;
 
-  // Image extensions
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif'];
-  // Video extensions
-  const videoExtensions = ['.mp4', '.webm', '.mov'];
-
-  const allExtensions = [...imageExtensions, ...videoExtensions];
-
   // Check if URL ends with any of these extensions (before query params)
   const urlWithoutQuery = trimmed.split('?')[0];
-  return allExtensions.some(ext => urlWithoutQuery.endsWith(ext));
+  return ALL_MEDIA_EXTENSIONS.some(ext => urlWithoutQuery.endsWith(ext));
 }
 
 /**
@@ -118,15 +115,11 @@ export function getMediaTypeFromUrl(url: string): 'image' | 'video' | null {
   const trimmed = url.trim().toLowerCase();
   const urlWithoutQuery = trimmed.split('?')[0];
 
-  // Image extensions
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif'];
-  if (imageExtensions.some(ext => urlWithoutQuery.endsWith(ext))) {
+  if (IMAGE_EXTENSIONS.some(ext => urlWithoutQuery.endsWith(ext))) {
     return 'image';
   }
 
-  // Video extensions
-  const videoExtensions = ['.mp4', '.webm', '.mov'];
-  if (videoExtensions.some(ext => urlWithoutQuery.endsWith(ext))) {
+  if (VIDEO_EXTENSIONS.some(ext => urlWithoutQuery.endsWith(ext))) {
     return 'video';
   }
 
@@ -210,6 +203,18 @@ export function getInstagramUrlType(url: string): 'post' | 'reel' | 'profile' | 
   }
 
   return null;
+}
+
+/**
+ * Extracts shortcode from an Instagram post or reel URL
+ * e.g. instagram.com/p/ABC123/ → "ABC123", instagram.com/reel/XYZ/ → "XYZ"
+ */
+export function extractInstagramShortcode(url: string): string | null {
+  const urlObj = parseInstagramUrl(url);
+  if (!urlObj) return null;
+
+  const match = urlObj.pathname.match(/^\/(p|reel)\/([^/]+)/);
+  return match ? match[2] : null;
 }
 
 /**
