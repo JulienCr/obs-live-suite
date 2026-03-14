@@ -344,6 +344,23 @@ describe('formatTimeShort', () => {
       expect(formatTimeShort(90.7)).toBe('1:30');
     });
   });
+
+  describe('compact mode', () => {
+    it('should show bare seconds when under a minute', () => {
+      expect(formatTimeShort(5, true)).toBe('5');
+      expect(formatTimeShort(0, true)).toBe('0');
+      expect(formatTimeShort(59, true)).toBe('59');
+    });
+
+    it('should still show M:SS when minutes > 0', () => {
+      expect(formatTimeShort(60, true)).toBe('1:00');
+      expect(formatTimeShort(125, true)).toBe('2:05');
+    });
+
+    it('should still show H:MM:SS for hours', () => {
+      expect(formatTimeShort(3661, true)).toBe('1:01:01');
+    });
+  });
 });
 
 describe('roundtrip formatting', () => {

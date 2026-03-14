@@ -2,22 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { StudioReturnDisplay, type StudioReturnContent, type Severity } from "./StudioReturnDisplay";
+import { StudioReturnDisplay, type StudioReturnContent } from "./StudioReturnDisplay";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
+import { CueSeverity } from "@/lib/models/Cue";
+import type { CountdownPayload } from "@/lib/models/Cue";
+import { DEFAULT_STUDIO_RETURN_SETTINGS } from "@/lib/models/StudioReturn";
+import { formatTimeShort } from "@/lib/utils/durationParser";
 
 // ------------------------------------------------------------------
 // Types mirroring the presenter channel payloads
 // ------------------------------------------------------------------
 
-interface CountdownPayload {
-  mode: "duration" | "targetTime";
-  durationSec?: number;
-  targetTime?: string;
-}
-
 interface CuePayload {
   type: string;
-  severity?: Severity;
+  severity?: CueSeverity;
   title?: string;
   body?: string;
   studioReturn?: boolean;
@@ -38,31 +36,28 @@ interface StudioReturnSettings {
 }
 
 // ------------------------------------------------------------------
-// Defaults
-// ------------------------------------------------------------------
-
-const DEFAULT_DISPLAY_DURATION = 10;
-const DEFAULT_FONT_SIZE = 80;
-
-// ------------------------------------------------------------------
 // Component
 // ------------------------------------------------------------------
 
 export function StudioReturnRenderer() {
   const [content, setContent] = useState<StudioReturnContent | null>(null);
-  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
-  const [enabled, setEnabled] = useState(true);
+  const [fontSize, setFontSize] = useState(DEFAULT_STUDIO_RETURN_SETTINGS.fontSize);
   const [debugLines, setDebugLines] = useState<string[]>([]);
   const [debugVisible, setDebugVisible] = useState(false);
 
-  const displayDurationRef = useRef(DEFAULT_DISPLAY_DURATION);
+  const enabledRef = useRef(true);
+  const displayDurationRef = useRef(DEFAULT_STUDIO_RETURN_SETTINGS.displayDuration);
   const dismissTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const fadeOutTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const countdownIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const debugVisibleRef = useRef(false);
+
+  // Keep refs in sync with state
+  useEffect(() => { debugVisibleRef.current = debugVisible; }, [debugVisible]);
 
   // --- Debug logging ---
   const debugLog = useCallback((msg: string) => {
     console.log(`[StudioReturn] ${msg}`);
+    if (!debugVisibleRef.current) return;
     setDebugLines((prev) => {
       const line = `${new Date().toLocaleTimeString()} ${msg}`;
       const next = [line, ...prev];
@@ -76,10 +71,6 @@ export function StudioReturnRenderer() {
     if (dismissTimeoutRef.current) {
       clearTimeout(dismissTimeoutRef.current);
       dismissTimeoutRef.current = undefined;
-    }
-    if (fadeOutTimeoutRef.current) {
-      clearTimeout(fadeOutTimeoutRef.current);
-      fadeOutTimeoutRef.current = undefined;
     }
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
@@ -95,7 +86,6 @@ export function StudioReturnRenderer() {
   const scheduleFadeOut = useCallback(
     (durationSec: number) => {
       dismissTimeoutRef.current = setTimeout(() => {
-        // Start fade-out by setting a flag — AnimatePresence handles the animation
         setContent(null);
       }, durationSec * 1000);
     },
@@ -119,16 +109,10 @@ export function StudioReturnRenderer() {
         remaining = cp.durationSec ?? 60;
       }
 
-      const formatTime = (totalSeconds: number): string => {
-        const m = Math.floor(totalSeconds / 60);
-        const s = totalSeconds % 60;
-        return m > 0 ? `${m}:${s < 10 ? "0" : ""}${s}` : `${s}`;
-      };
-
       setContent({
         title: payload.title || "COUNTDOWN",
-        body: formatTime(remaining),
-        severity: "warn",
+        body: formatTimeShort(remaining, true),
+        severity: CueSeverity.WARN,
         type: "countdown",
       });
 
@@ -141,7 +125,7 @@ export function StudioReturnRenderer() {
           setContent({
             title: payload.title || "COUNTDOWN",
             body: "0:00",
-            severity: "urgent",
+            severity: CueSeverity.URGENT,
             type: "countdown",
           });
           // Auto-dismiss after 3s
@@ -151,8 +135,8 @@ export function StudioReturnRenderer() {
 
         setContent((prev) => ({
           title: prev?.title || "COUNTDOWN",
-          body: formatTime(remaining),
-          severity: remaining <= 10 ? "urgent" : "warn",
+          body: formatTimeShort(remaining, true),
+          severity: remaining <= 10 ? CueSeverity.URGENT : CueSeverity.WARN,
           type: "countdown",
         }));
       }, 1000);
@@ -172,22 +156,26 @@ export function StudioReturnRenderer() {
         setFontSize(settings.fontSize);
       }
       if (settings.enabled != null) {
-        setEnabled(settings.enabled);
+        enabledRef.current = settings.enabled;
         if (!settings.enabled) hide();
       }
     },
     [debugLog, hide],
   );
 
-  // --- Expose Tauri bridges on window ---
+  // --- Expose Tauri bridges on window (stable via refs) ---
+  const applySettingsRef = useRef(applySettings);
+  applySettingsRef.current = applySettings;
+  const hideRef = useRef(hide);
+  hideRef.current = hide;
+
   useEffect(() => {
-    // Tauri calls these via window.eval()
     (window as unknown as Record<string, unknown>).__applySettings = (settings: StudioReturnSettings) => {
-      applySettings(settings);
+      applySettingsRef.current(settings);
     };
 
     (window as unknown as Record<string, unknown>).__studioReturnDismiss = () => {
-      hide();
+      hideRef.current();
     };
 
     // Check for Tauri debug flag
@@ -199,7 +187,7 @@ export function StudioReturnRenderer() {
       delete (window as unknown as Record<string, unknown>).__applySettings;
       delete (window as unknown as Record<string, unknown>).__studioReturnDismiss;
     };
-  }, [applySettings, hide]);
+  }, []);
 
   // --- WebSocket message handler ---
   const handleMessage = useCallback(
@@ -235,7 +223,7 @@ export function StudioReturnRenderer() {
         return;
       }
 
-      if (!enabled) return;
+      if (!enabledRef.current) return;
 
       // Countdown
       if (payload.type === "countdown" && payload.countdownPayload) {
@@ -250,12 +238,12 @@ export function StudioReturnRenderer() {
       setContent({
         title: payload.title || "",
         body: payload.body || "",
-        severity: payload.severity || "info",
+        severity: payload.severity || CueSeverity.INFO,
         type: "notification",
       });
       scheduleFadeOut(displayDurationRef.current);
     },
-    [applySettings, clearAllTimers, debugLog, enabled, hide, scheduleFadeOut, startCountdown],
+    [applySettings, clearAllTimers, debugLog, hide, scheduleFadeOut, startCountdown],
   );
 
   useWebSocketChannel<PresenterMessage>("presenter", handleMessage, {
@@ -271,7 +259,6 @@ export function StudioReturnRenderer() {
             title={content.title}
             body={content.body}
             severity={content.severity}
-            type={content.type}
             fontSize={fontSize}
           />
         )}

@@ -1,25 +1,23 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { CueSeverity } from "@/lib/models/Cue";
 
 // ------------------------------------------------------------------
 // Types
 // ------------------------------------------------------------------
 
-export type Severity = "info" | "warn" | "urgent";
-
 export interface StudioReturnContent {
   title: string;
   body: string;
-  severity: Severity;
+  severity: CueSeverity;
   type: "notification" | "countdown";
 }
 
 interface StudioReturnDisplayProps {
   title: string;
   body: string;
-  severity: Severity;
-  type: "notification" | "countdown";
+  severity: CueSeverity;
   fontSize?: number;
 }
 
@@ -27,10 +25,10 @@ interface StudioReturnDisplayProps {
 // Severity colors (matching the original CSS)
 // ------------------------------------------------------------------
 
-const SEVERITY_COLORS: Record<Severity, string> = {
-  info: "#3b82f6",
-  warn: "#f59e0b",
-  urgent: "#ef4444",
+const SEVERITY_COLORS: Record<CueSeverity, string> = {
+  [CueSeverity.INFO]: "#3b82f6",
+  [CueSeverity.WARN]: "#f59e0b",
+  [CueSeverity.URGENT]: "#ef4444",
 };
 
 // ------------------------------------------------------------------
@@ -62,7 +60,7 @@ export function StudioReturnDisplay({
     >
       <motion.div
         animate={
-          severity === "urgent"
+          severity === CueSeverity.URGENT
             ? {
                 borderColor: [accentColor, "#ff6b6b", accentColor],
                 boxShadow: [
@@ -74,7 +72,7 @@ export function StudioReturnDisplay({
             : undefined
         }
         transition={
-          severity === "urgent"
+          severity === CueSeverity.URGENT
             ? { duration: 1, ease: "easeInOut", repeat: Infinity }
             : undefined
         }

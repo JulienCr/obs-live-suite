@@ -9,8 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { CheckCircle2, Loader2, Monitor, Send } from "lucide-react";
 import { useSettings } from "@/lib/hooks/useSettings";
-import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
-import { CueSeverity, CueType, CueFrom } from "@/lib/models/Cue";
+import { apiGet } from "@/lib/utils/ClientFetch";
+import { CueSeverity, CueType } from "@/lib/models/Cue";
+import { buildCuePayload, sendCue } from "@/lib/utils/cueClient";
 import type { MonitorInfo } from "@/lib/models/StudioReturn";
 import { DEFAULT_STUDIO_RETURN_SETTINGS } from "@/lib/models/StudioReturn";
 
@@ -218,14 +219,13 @@ function TestButton({ severity, label }: { severity: CueSeverity; label: string 
   const sendTest = useCallback(async () => {
     setSending(true);
     try {
-      await apiPost("/api/presenter/cue/send", {
+      const payload = buildCuePayload({
         type: CueType.CUE,
-        from: CueFrom.CONTROL,
         severity,
         title: "TEST",
         body: `Test ${label} — Studio Return`,
-        studioReturn: true,
       });
+      await sendCue(payload, true);
     } catch (e) {
       console.error("Failed to send test cue:", e);
     } finally {

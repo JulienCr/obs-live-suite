@@ -214,14 +214,20 @@ export function parseISO8601Duration(isoDuration: string): number {
 /**
  * Formats seconds as M:SS or H:MM:SS (only when hours > 0).
  * Used for video timeline display, poster cards, quiz timers, etc.
+ *
+ * When `compact` is true, omits the leading "0:" for sub-minute values
+ * (e.g. 5 → "5" instead of "0:05"). Useful for large overlay displays.
  */
-export function formatTimeShort(seconds: number): string {
+export function formatTimeShort(seconds: number, compact?: boolean): string {
   const totalSeconds = Math.floor(seconds);
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = totalSeconds % 60;
   if (h > 0) {
     return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+  if (compact && m === 0) {
+    return `${s}`;
   }
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
