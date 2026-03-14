@@ -236,10 +236,11 @@ describe("POST /api/assets/instagram", () => {
       expect(res.status).toBe(500);
     });
 
-    it("returns 408 on timeout from instaloader", async () => {
+    it("returns 408 on timeout from instaloader (killed process)", async () => {
       // yt-dlp fails → falls back to instaloader → instaloader times out
       execFileAsyncMock.mockRejectedValueOnce(new Error("No video found"));
-      execFileAsyncMock.mockRejectedValueOnce(new Error("ETIMEOUT"));
+      const timeoutErr = Object.assign(new Error("Command timed out"), { killed: true });
+      execFileAsyncMock.mockRejectedValueOnce(timeoutErr);
 
       const res = await POST(makeRequest({
         url: "https://www.instagram.com/reel/ABC/",
@@ -247,6 +248,57 @@ describe("POST /api/assets/instagram", () => {
       }));
 
       expect(res.status).toBe(408);
+    });
+
+    it("returns 408 on timeout with ETIMEDOUT code", async () => {
+      execFileAsyncMock.mockRejectedValueOnce(new Error("No video found"));
+      const timeoutErr = Object.assign(new Error("connect ETIMEDOUT"), { code: "ETIMEDOUT" });
+      execFileAsyncMock.mockRejectedValueOnce(timeoutErr);
+
+      const res = await POST(makeRequest({
+        url: "https://www.instagram.com/reel/ABC/",
+        type: "media",
+      }));
+
+      expect(res.status).toBe(408);
+    });
+
+    it("returns 408 on profile download timeout", async () => {
+      const timeoutErr = Object.assign(new Error("Command timed out"), { killed: true });
+      execFileAsyncMock.mockRejectedValueOnce(timeoutErr);
+
+      const res = await POST(makeRequest({ username: "slowaccount", type: "profile" }));
+
+      expect(res.status).toBe(408);
+      const body = await res.json();
+      expect(body.error).toMatch(/timeout/i);
+    });
+
+    it("returns 500 when instaloader finds no media (shortcode valid but empty)", async () => {
+      // yt-dlp fails → instaloader runs but downloads no media files
+      execFileAsyncMock.mockRejectedValueOnce(new Error("No video found"));
+      execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
+      readdirMock.mockResolvedValueOnce(["metadata.txt"] as any);
+      readFileMock.mockResolvedValueOnce("owner\t||||\tcaption" as any);
+
+      const res = await POST(makeRequest({
+        url: "https://www.instagram.com/p/ABC123/",
+        type: "media",
+      }));
+
+      expect(res.status).toBe(500);
+    });
+
+    it("returns 500 when shortcode extraction fails for media", async () => {
+      // yt-dlp fails → instaloader path can't extract shortcode from malformed URL
+      execFileAsyncMock.mockRejectedValueOnce(new Error("No video found"));
+
+      const res = await POST(makeRequest({
+        url: "https://www.instagram.com/explore/tags/test/",
+        type: "media",
+      }));
+
+      expect(res.status).toBe(500);
     });
   });
 });

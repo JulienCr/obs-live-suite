@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, ChangeEvent, DragEvent, ClipboardEvent as ReactClipboardEvent } from "react";
+import { useState, useRef, useCallback, ChangeEvent, DragEvent, ClipboardEvent as ReactClipboardEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,6 +72,7 @@ export function PosterQuickAdd({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
   const isPickerMode = mode === "picker";
   const isTypeAllowed = (type: MediaType) => allowedTypes.includes(type);
 
@@ -261,11 +262,17 @@ export function PosterQuickAdd({
   };
 
   /**
-   * Handle URL input blur or Enter key
+   * Handle URL input blur or Enter key.
+   * Uses a ref guard to prevent double-fire when Enter triggers both
+   * onKeyDown and onBlur (due to the input becoming disabled during processing).
    */
-  const handleUrlInputSubmit = () => {
+  const handleUrlInputSubmit = useCallback(() => {
     const trimmed = urlInput.trim();
-    if (!trimmed || processing) return;
+    if (!trimmed || processing || submittingRef.current) return;
+
+    submittingRef.current = true;
+    // Reset the guard after a tick so future submissions work
+    queueMicrotask(() => { submittingRef.current = false; });
 
     const instagramType = getInstagramUrlType(trimmed);
     if (isYouTubeUrl(trimmed)) {
@@ -277,7 +284,7 @@ export function PosterQuickAdd({
     } else {
       showError(isImageOnly ? t("errors.invalidUrlImage") : t("errors.invalidUrlFull"));
     }
-  };
+  }, [urlInput, processing, isImageOnly]);
 
   /**
    * Handle paste event in URL input

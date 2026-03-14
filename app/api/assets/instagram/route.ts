@@ -165,7 +165,9 @@ async function downloadProfilePic(username: string): Promise<string> {
 }
 
 function isTimeoutError(error: unknown): boolean {
-  return error instanceof Error && error.message.includes("ETIMEOUT");
+  if (!(error instanceof Error)) return false;
+  const err = error as NodeJS.ErrnoException & { killed?: boolean };
+  return err.killed === true || err.code === "ETIMEDOUT" || err.message.includes("ETIMEDOUT");
 }
 
 /**
