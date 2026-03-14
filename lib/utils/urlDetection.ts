@@ -226,18 +226,11 @@ export function extractInstagramUsername(url: string): string | null {
   const trimmed = url.trim();
   if (!trimmed) return null;
 
-  // If it looks like a URL, parse it
-  if (trimmed.includes('instagram.com')) {
-    try {
-      const urlObj = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
-      const segments = urlObj.pathname.split('/').filter(Boolean);
-      if (segments.length === 1) {
-        return segments[0];
-      }
-      return null;
-    } catch {
-      return null;
-    }
+  // If it's an Instagram URL, delegate to shared parser
+  const urlObj = parseInstagramUrl(trimmed);
+  if (urlObj) {
+    const segments = urlObj.pathname.split('/').filter(Boolean);
+    return segments.length === 1 ? segments[0] : null;
   }
 
   // Raw username (no spaces, no slashes)

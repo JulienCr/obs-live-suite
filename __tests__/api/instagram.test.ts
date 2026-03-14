@@ -4,8 +4,8 @@
 jest.mock("child_process");
 jest.mock("fs", () => ({ existsSync: jest.fn(() => true) }));
 jest.mock("fs/promises");
-jest.mock("@/lib/config/PathManager", () => ({
-  PathManager: { getInstance: () => ({ getDataDir: () => "/mock/data" }) },
+jest.mock("@/lib/utils/fileUpload", () => ({
+  getUploadDir: jest.fn(async (subfolder: string) => `/mock/data/uploads/${subfolder}`),
 }));
 jest.mock("@/lib/services/SettingsService", () => ({
   SettingsService: { getInstance: () => ({ getInstagramCookiesBrowser: () => "chrome" }) },
@@ -164,6 +164,27 @@ describe("POST /api/assets/instagram", () => {
       expect(body.url).toMatch(/^\/data\/uploads\/posters\/.+\.jpg$/);
     });
 
+    it("skips yt-dlp when urlType is 'post'", async () => {
+      // Only instaloader should be called (no yt-dlp rejection needed)
+      execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
+      readdirMock.mockResolvedValueOnce(["photo.jpg"] as any);
+
+      const res = await POST(makeRequest({
+        url: "https://www.instagram.com/p/ABC123/",
+        type: "media",
+        urlType: "post",
+      }));
+
+      expect(res.status).toBe(200);
+      // Should have called instaloader only once (no yt-dlp attempt)
+      expect(execFileAsyncMock).toHaveBeenCalledTimes(1);
+      expect(execFileAsyncMock).toHaveBeenCalledWith(
+        "instaloader",
+        expect.any(Array),
+        expect.any(Object)
+      );
+    });
+
     it("uses 'Instagram' as fallback when no metadata txt", async () => {
       execFileAsyncMock.mockRejectedValueOnce(new Error("No video found"));
       execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
@@ -191,14 +212,6 @@ describe("POST /api/assets/instagram", () => {
       const body = await res.json();
       expect(body.url).toMatch(/^\/data\/uploads\/guests\/.+\.jpg$/);
     });
-
-    it("uses url field as username fallback", async () => {
-      execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
-      readdirMock.mockResolvedValueOnce(["pic.jpg"] as any);
-
-      const res = await POST(makeRequest({ url: "testaccount", type: "profile" }));
-      expect(res.status).toBe(200);
-    });
   });
 
   describe("error handling", () => {
@@ -213,8 +226,6 @@ describe("POST /api/assets/instagram", () => {
       }));
 
       expect(res.status).toBe(500);
-      const body = await res.json();
-      expect(body.error).toMatch(/instaloader crashed/);
     });
 
     it("returns 500 on instaloader failure for profile", async () => {
@@ -223,8 +234,6 @@ describe("POST /api/assets/instagram", () => {
       const res = await POST(makeRequest({ username: "nonexistent", type: "profile" }));
 
       expect(res.status).toBe(500);
-      const body = await res.json();
-      expect(body.error).toMatch(/instaloader failed/);
     });
 
     it("returns 408 on timeout from instaloader", async () => {

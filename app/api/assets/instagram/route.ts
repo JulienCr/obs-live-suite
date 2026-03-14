@@ -5,9 +5,10 @@ import { randomUUID } from "crypto";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { tmpdir } from "os";
-import { PathManager } from "@/lib/config/PathManager";
 import { SettingsService } from "@/lib/services/SettingsService";
 import { extractInstagramShortcode } from "@/lib/utils/urlDetection";
+import { getUploadDir } from "@/lib/utils/fileUpload";
+import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
 
 const execFileAsync = promisify(execFile);
 const TIMEOUT_MS = 30000;
@@ -23,23 +24,17 @@ interface MediaDownloadResult {
 }
 
 /**
- * Ensure an upload directory exists and return it
- */
-async function ensureUploadDir(subfolder: string): Promise<string> {
-  const dataDir = PathManager.getInstance().getDataDir();
-  const dir = join(dataDir, "uploads", subfolder);
-  await mkdir(dir, { recursive: true });
-  return dir;
-}
-
-/**
  * Download Instagram post/reel media using yt-dlp (videos) with instaloader fallback (images)
+ * When urlType is 'post', skips yt-dlp and goes directly to instaloader (image posts don't need yt-dlp).
  */
-async function downloadMedia(url: string): Promise<MediaDownloadResult> {
-  const cookiesBrowser = SettingsService.getInstance().getInstagramCookiesBrowser();
+async function downloadMedia(url: string, urlType?: "post" | "reel"): Promise<MediaDownloadResult> {
+  // Skip yt-dlp for known image posts — it would fail and waste up to 30s
+  if (urlType === "post") {
+    return downloadMediaViaInstaloader(url);
+  }
 
-  // Try yt-dlp with --print-json: downloads the file AND outputs metadata in a single pass
-  const uploadDir = await ensureUploadDir("posters");
+  const cookiesBrowser = SettingsService.getInstance().getInstagramCookiesBrowser();
+  const uploadDir = await getUploadDir("posters");
   const outputTemplate = join(uploadDir, `${randomUUID()}.%(ext)s`);
 
   try {
@@ -64,7 +59,7 @@ async function downloadMedia(url: string): Promise<MediaDownloadResult> {
       return { filePath, ext, title, source, type: "video", duration };
     }
   } catch {
-    // yt-dlp failed (likely image-only post) — fall back to instaloader
+    // yt-dlp failed (likely image-only post or unsupported format) — fall back to instaloader
   }
 
   return downloadMediaViaInstaloader(url);
@@ -121,7 +116,7 @@ async function downloadMediaViaInstaloader(url: string): Promise<MediaDownloadRe
     const ext = extname(mediaFile).slice(1) || "jpg";
     const isVideo = ext === "mp4" || ext === "webm";
 
-    const uploadDir = await ensureUploadDir("posters");
+    const uploadDir = await getUploadDir("posters");
     const destFilename = `${randomUUID()}.${ext}`;
     const destPath = join(uploadDir, destFilename);
     await copyFile(join(tmpDir, mediaFile), destPath);
@@ -157,7 +152,7 @@ async function downloadProfilePic(username: string): Promise<string> {
     }
 
     const ext = extname(picFile).slice(1) || "jpg";
-    const guestsDir = await ensureUploadDir("guests");
+    const guestsDir = await getUploadDir("guests");
     const destFilename = `${randomUUID()}.${ext}`;
     const destPath = join(guestsDir, destFilename);
 
@@ -169,74 +164,69 @@ async function downloadProfilePic(username: string): Promise<string> {
   }
 }
 
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("ETIMEOUT");
+}
+
 /**
  * POST /api/assets/instagram
  * Downloads Instagram media (posts/reels) or profile pictures
  */
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { url, username, type } = body;
+export const POST = withSimpleErrorHandler(async (request: Request) => {
+  const body = await request.json();
+  const { url, username, type, urlType } = body;
 
-    if (type === "profile") {
-      // Profile picture download
-      const targetUsername = username || url;
-      if (!targetUsername || typeof targetUsername !== "string") {
-        return NextResponse.json(
-          { error: "No username provided" },
-          { status: 400 }
-        );
-      }
+  if (type === "profile") {
+    if (!username || typeof username !== "string") {
+      return ApiResponses.badRequest("No username provided");
+    }
 
-      // Clean username (remove @ prefix if present)
-      const cleanUsername = targetUsername.replace(/^@/, "").trim();
-      if (!cleanUsername || !/^[a-zA-Z0-9._]+$/.test(cleanUsername)) {
-        return NextResponse.json(
-          { error: "Invalid Instagram username" },
-          { status: 400 }
-        );
-      }
+    // Clean username (remove @ prefix if present)
+    const cleanUsername = username.replace(/^@/, "").trim();
+    if (!cleanUsername || !/^[a-zA-Z0-9._]+$/.test(cleanUsername)) {
+      return ApiResponses.badRequest("Invalid Instagram username");
+    }
 
+    try {
       const imageUrl = await downloadProfilePic(cleanUsername);
-      return NextResponse.json({ url: imageUrl });
-
-    } else if (type === "media") {
-      // Post/reel media download
-      if (!url || typeof url !== "string") {
+      return ApiResponses.ok({ url: imageUrl });
+    } catch (error) {
+      if (isTimeoutError(error)) {
         return NextResponse.json(
-          { error: "No URL provided" },
-          { status: 400 }
+          { error: "Download timeout (30s). The Instagram content took too long to download." },
+          { status: 408 }
         );
       }
+      throw error;
+    }
 
-      const result = await downloadMedia(url);
+  } else if (type === "media") {
+    if (!url || typeof url !== "string") {
+      return ApiResponses.badRequest("No URL provided");
+    }
+
+    try {
+      const result = await downloadMedia(url, urlType);
       const relativeUrl = `/data/uploads/posters/${basename(result.filePath)}`;
 
-      return NextResponse.json({
+      return ApiResponses.ok({
         url: relativeUrl,
         type: result.type,
         title: result.title,
         source: result.source,
         duration: result.duration,
       });
-
-    } else {
-      return NextResponse.json(
-        { error: "Invalid type. Use 'media' or 'profile'" },
-        { status: 400 }
-      );
-    }
-  } catch (error) {
-    console.error("Instagram download error:", error);
-
-    if (error instanceof Error && error.message.includes("ETIMEOUT")) {
-      return NextResponse.json(
-        { error: "Download timeout (30s). The Instagram content took too long to download." },
-        { status: 408 }
-      );
+    } catch (error) {
+      if (isTimeoutError(error)) {
+        return NextResponse.json(
+          { error: "Download timeout (30s). The Instagram content took too long to download." },
+          { status: 408 }
+        );
+      }
+      throw error;
     }
 
-    const message = error instanceof Error ? error.message : "Failed to download Instagram content";
-    return NextResponse.json({ error: message }, { status: 500 });
+  } else {
+    return ApiResponses.badRequest("Invalid type. Use 'media' or 'profile'");
   }
-}
+}, "[InstagramAPI]");

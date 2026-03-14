@@ -10,7 +10,6 @@ import { Upload, Loader2, Image as ImageIcon, Video, Youtube } from "lucide-reac
 import {
   isYouTubeUrl,
   extractYouTubeId,
-  isInstagramUrl,
   getInstagramUrlType,
   isDirectMediaUrl,
   getMediaTypeFromUrl,
@@ -223,14 +222,14 @@ export function PosterQuickAdd({
   /**
    * Process Instagram post/reel URL
    */
-  const handleInstagramUrl = async (url: string) => {
+  const handleInstagramUrl = async (url: string, urlType: "post" | "reel") => {
     setProcessing(true);
     setError(null);
 
     try {
       const data = await apiPost<{ url: string; type: MediaType; title: string; source: string; duration: number | null }>(
         "/api/assets/instagram",
-        { url, type: "media" }
+        { url, type: "media", urlType }
       );
 
       setPreview({
@@ -268,10 +267,11 @@ export function PosterQuickAdd({
     const trimmed = urlInput.trim();
     if (!trimmed || processing) return;
 
+    const instagramType = getInstagramUrlType(trimmed);
     if (isYouTubeUrl(trimmed)) {
       handleYouTubeUrl(trimmed);
-    } else if (isInstagramUrl(trimmed) && getInstagramUrlType(trimmed) !== "profile") {
-      handleInstagramUrl(trimmed);
+    } else if (instagramType === "post" || instagramType === "reel") {
+      handleInstagramUrl(trimmed, instagramType);
     } else if (isDirectMediaUrl(trimmed)) {
       handleDirectMediaUrl(trimmed);
     } else {
