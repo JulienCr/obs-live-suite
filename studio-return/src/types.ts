@@ -18,6 +18,7 @@ export interface CuePayload {
   title?: string;
   body?: string;
   studioReturn?: boolean;
+  studioReturnDismiss?: boolean;
   countdownPayload?: CountdownPayload;
 }
 

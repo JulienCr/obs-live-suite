@@ -1341,6 +1341,7 @@
     "placeholder": "Message... (Ctrl+Enter to send)",
     "send": "Send",
     "sendWithReturn": "Send + Studio Return",
+    "clearReturn": "Clear studio return",
     "templates": {
       "ad": "Ad",
       "adBody": "Ad break in 30 seconds",

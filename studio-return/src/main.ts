@@ -4,7 +4,7 @@ import { initDom } from "./dom";
 import { getConfig, applySettings } from "./config";
 import { showNotification, hideNotification } from "./notification";
 import { showCountdown } from "./countdown";
-import { onPresenterMessage, setWsPort, connectWithDefault } from "./websocket";
+import { onPresenterMessage, onDismiss, setWsPort, connectWithDefault } from "./websocket";
 
 // ---- Init DOM ----
 initDebug();
@@ -29,6 +29,12 @@ window.__testNotification = (severity) => {
     severity: severity || "info",
   });
 };
+
+// ---- Dismiss handler ----
+onDismiss(() => {
+  debugLog("Dismiss received — hiding overlay");
+  hideNotification();
+});
 
 // ---- Message routing ----
 onPresenterMessage((payload) => {

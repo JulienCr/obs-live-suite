@@ -9,6 +9,7 @@ let wsUrls: string[] = [];
 let wsUrlIndex = 0;
 let reconnectDelay = 1000;
 let messageHandler: ((payload: CuePayload) => void) | null = null;
+let dismissHandler: (() => void) | null = null;
 let started = false;
 
 function buildUrls(port: number): string[] {
@@ -23,6 +24,10 @@ export function onPresenterMessage(
   handler: (payload: CuePayload) => void,
 ): void {
   messageHandler = handler;
+}
+
+export function onDismiss(handler: () => void): void {
+  dismissHandler = handler;
 }
 
 /**
@@ -97,6 +102,12 @@ function connect(): void {
       const payload = data.payload;
       if (!payload || payload.type === "clear") return;
       if (!payload.studioReturn) return;
+
+      // Dismiss signal — hide everything on the return overlay
+      if (payload.studioReturnDismiss) {
+        dismissHandler?.();
+        return;
+      }
 
       messageHandler?.(payload);
     } catch (e) {

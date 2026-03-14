@@ -1342,6 +1342,7 @@
     "placeholder": "Message... (Ctrl+Entrée pour envoyer)",
     "send": "Envoyer",
     "sendWithReturn": "Envoyer + Retour plateau",
+    "clearReturn": "Masquer le retour plateau",
     "templates": {
       "ad": "Pub",
       "adBody": "Pause publicitaire dans 30 secondes",

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { type IDockviewPanelProps } from "dockview-react";
-import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText, Megaphone, Tv, Wrench } from "lucide-react";
+import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText, Megaphone, MonitorX, Tv, Wrench } from "lucide-react";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { Button } from "@/components/ui/button";
 import { CueType, CueSeverity, CueFrom } from "@/lib/models/Cue";
@@ -79,6 +79,20 @@ function RegieInternalChatContent() {
       console.error("Failed to send message:", error);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleDismissReturn = async () => {
+    try {
+      await apiPost("/api/presenter/cue/send", {
+        type: CueType.CUE,
+        from: CueFrom.CONTROL,
+        body: "",
+        studioReturn: true,
+        studioReturnDismiss: true,
+      });
+    } catch (error) {
+      console.error("Failed to dismiss studio return:", error);
     }
   };
 
@@ -205,6 +219,16 @@ function RegieInternalChatContent() {
             );
           })}
         </div>
+
+        {/* Clear studio return */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleDismissReturn}
+          title={t("clearReturn")}
+        >
+          <MonitorX className="h-4 w-4" />
+        </Button>
 
         {/* Send Buttons — split: presenter only / presenter + studio return */}
         <div className="flex gap-0">
