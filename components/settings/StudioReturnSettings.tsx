@@ -10,16 +10,8 @@ import { Slider } from "@/components/ui/slider";
 import { CheckCircle2, Loader2, Monitor, Send } from "lucide-react";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
-
-interface MonitorInfo {
-  index: number;
-  name: string;
-  width: number;
-  height: number;
-  x: number;
-  y: number;
-  isPrimary: boolean;
-}
+import { CueSeverity, CueType, CueFrom } from "@/lib/models/Cue";
+import type { MonitorInfo } from "@/app/api/settings/studio-return/monitors/route";
 
 interface StudioReturnSettingsState {
   monitorIndex: number;
@@ -50,10 +42,10 @@ export function StudioReturnSettings() {
     endpoint: "/api/settings/studio-return",
     initialState: INITIAL_STATE,
     fromResponse: (res) => ({
-      monitorIndex: res.settings?.monitorIndex ?? 0,
-      displayDuration: res.settings?.displayDuration ?? 10,
-      fontSize: res.settings?.fontSize ?? 80,
-      enabled: res.settings?.enabled ?? true,
+      monitorIndex: res.settings?.monitorIndex ?? INITIAL_STATE.monitorIndex,
+      displayDuration: res.settings?.displayDuration ?? INITIAL_STATE.displayDuration,
+      fontSize: res.settings?.fontSize ?? INITIAL_STATE.fontSize,
+      enabled: res.settings?.enabled ?? INITIAL_STATE.enabled,
     }),
     successMessage: t("settingsSaved"),
     errorMessage: t("saveFailed"),
@@ -71,7 +63,9 @@ export function StudioReturnSettings() {
     };
 
     fetchMonitors();
-    const interval = setInterval(fetchMonitors, 10000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") fetchMonitors();
+    }, 30_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -185,9 +179,9 @@ export function StudioReturnSettings() {
           {t("testNotificationDescription")}
         </p>
         <div className="flex gap-2">
-          <TestButton severity="info" label="Info" />
-          <TestButton severity="warn" label="Warn" />
-          <TestButton severity="urgent" label="Urgent" />
+          <TestButton severity={CueSeverity.INFO} label="Info" />
+          <TestButton severity={CueSeverity.WARN} label="Warn" />
+          <TestButton severity={CueSeverity.URGENT} label="Urgent" />
         </div>
       </div>
 
@@ -216,15 +210,21 @@ export function StudioReturnSettings() {
   );
 }
 
-function TestButton({ severity, label }: { severity: string; label: string }) {
+const SEVERITY_COLORS: Record<CueSeverity, string> = {
+  [CueSeverity.INFO]: "bg-blue-600 hover:bg-blue-700",
+  [CueSeverity.WARN]: "bg-amber-500 hover:bg-amber-600",
+  [CueSeverity.URGENT]: "bg-red-600 hover:bg-red-700",
+};
+
+function TestButton({ severity, label }: { severity: CueSeverity; label: string }) {
   const [sending, setSending] = useState(false);
 
   const sendTest = useCallback(async () => {
     setSending(true);
     try {
       await apiPost("/api/presenter/cue/send", {
-        type: "cue",
-        from: "control",
+        type: CueType.CUE,
+        from: CueFrom.CONTROL,
         severity,
         title: "TEST",
         body: `Test ${label} — Studio Return`,
@@ -237,17 +237,11 @@ function TestButton({ severity, label }: { severity: string; label: string }) {
     }
   }, [severity, label]);
 
-  const colors: Record<string, string> = {
-    info: "bg-blue-600 hover:bg-blue-700",
-    warn: "bg-amber-500 hover:bg-amber-600",
-    urgent: "bg-red-600 hover:bg-red-700",
-  };
-
   return (
     <Button
       onClick={sendTest}
       disabled={sending}
-      className={`${colors[severity] || ""} text-white`}
+      className={`${SEVERITY_COLORS[severity]} text-white`}
       size="sm"
     >
       <Send className="w-3 h-3 mr-1" />

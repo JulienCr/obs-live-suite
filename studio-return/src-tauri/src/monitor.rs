@@ -1,7 +1,7 @@
 use serde::Serialize;
 use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct MonitorInfo {
     pub index: usize,
     pub name: String,
@@ -69,10 +69,9 @@ pub fn position_on_monitor(app: &AppHandle, monitor_index: usize) -> Result<(), 
 }
 
 /// Report monitors to the backend API
-pub async fn report_monitors_to_backend(monitors: &[MonitorInfo], base_url: &str) {
+pub async fn report_monitors_to_backend(client: &reqwest::Client, monitors: &[MonitorInfo], base_url: &str) {
     let url = format!("{}/api/settings/studio-return/monitors", base_url);
 
-    let client = reqwest::Client::new();
     match client
         .post(&url)
         .json(&serde_json::json!({ "monitors": monitors }))

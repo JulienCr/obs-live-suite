@@ -560,9 +560,10 @@ export class SettingsService {
   /**
    * Save Studio Return overlay settings
    */
-  saveStudioReturnSettings(settings: Partial<StudioReturnSettings>): void {
+  saveStudioReturnSettings(settings: Partial<StudioReturnSettings>): StudioReturnSettings {
     this.studioReturnStore.set(settings);
     this.logger.info("Studio Return settings saved to database");
+    return this.studioReturnStore.get();
   }
 
   // =========================================================================

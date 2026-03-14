@@ -27,7 +27,7 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
 
   const settingsService = SettingsService.getInstance();
 
-  settingsService.saveStudioReturnSettings({
+  const updatedSettings = settingsService.saveStudioReturnSettings({
     ...(monitorIndex !== undefined && { monitorIndex }),
     ...(displayDuration !== undefined && { displayDuration }),
     ...(fontSize !== undefined && { fontSize }),
@@ -35,7 +35,6 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
   });
 
   // Push updated settings to the studio return app via WebSocket (presenter channel)
-  const updatedSettings = settingsService.getStudioReturnSettings();
   try {
     await proxyToBackend("/api/overlays/studio-return-settings", {
       method: "POST",

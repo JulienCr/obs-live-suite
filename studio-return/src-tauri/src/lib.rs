@@ -1,6 +1,6 @@
 mod monitor;
 
-use monitor::{list_monitors, position_on_monitor, report_monitors_to_backend};
+use monitor::{list_monitors, position_on_monitor, report_monitors_to_backend, MonitorInfo};
 use serde::Deserialize;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -13,6 +13,14 @@ fn get_backend_url() -> String {
         .and_then(|s| s.parse::<u16>().ok())
         .unwrap_or(DEFAULT_APP_PORT);
     format!("http://127.0.0.1:{}", port)
+}
+
+/// Fetch settings from the backend using a shared client
+async fn fetch_settings(client: &reqwest::Client, base_url: &str) -> Option<SettingsResponse> {
+    let url = format!("{}/api/settings/studio-return", base_url);
+    let resp = client.get(&url).send().await.ok()?;
+    let data: SettingsResponse = resp.json().await.ok()?;
+    Some(data)
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
@@ -29,14 +37,6 @@ struct StudioReturnSettings {
 struct SettingsResponse {
     settings: Option<StudioReturnSettings>,
     ws_port: Option<u16>,
-}
-
-/// Fetch settings from the backend
-async fn fetch_settings() -> Option<SettingsResponse> {
-    let url = format!("{}/api/settings/studio-return", &get_backend_url());
-    let resp = reqwest::get(&url).await.ok()?;
-    let data: SettingsResponse = resp.json().await.ok()?;
-    Some(data)
 }
 
 /// Apply settings to the window (monitor position, cursor events, send to frontend)
@@ -110,12 +110,15 @@ pub fn run() {
 
             // Spawn async task for initial setup + periodic polling
             tauri::async_runtime::spawn(async move {
+                let http_client = reqwest::Client::new();
+                let backend_url = get_backend_url();
+
                 // Report monitors to backend
                 let monitors = list_monitors(&handle);
-                report_monitors_to_backend(&monitors, &get_backend_url()).await;
+                report_monitors_to_backend(&http_client, &monitors, &backend_url).await;
 
                 // Initial settings fetch & position on configured monitor
-                if let Some(response) = fetch_settings().await {
+                if let Some(response) = fetch_settings(&http_client, &backend_url).await {
                     if let Some(settings) = &response.settings {
                         apply_settings(&handle, settings);
                     }
@@ -129,21 +132,28 @@ pub fn run() {
 
                 // Poll settings periodically
                 let mut last_monitor_index: Option<usize> = None;
+                let mut last_ws_port: Option<u16> = None;
+                let mut last_monitors: Vec<MonitorInfo> = Vec::new();
                 loop {
                     tokio::time::sleep(std::time::Duration::from_secs(SETTINGS_POLL_INTERVAL_SECS)).await;
 
-                    // Re-report monitors (in case displays changed)
+                    // Re-report monitors only if changed
                     let monitors = list_monitors(&handle);
-                    report_monitors_to_backend(&monitors, &get_backend_url()).await;
+                    if monitors != last_monitors {
+                        report_monitors_to_backend(&http_client, &monitors, &backend_url).await;
+                        last_monitors = monitors;
+                    }
 
                     // Fetch and apply settings
-                    if let Some(response) = fetch_settings().await {
+                    if let Some(response) = fetch_settings(&http_client, &backend_url).await {
                         if let Some(settings) = &response.settings {
                             let current_idx = settings.monitor_index;
                             if current_idx != last_monitor_index {
+                                // Monitor changed — reposition window + forward all settings
                                 apply_settings(&handle, settings);
                                 last_monitor_index = current_idx;
                             } else {
+                                // Forward non-monitor settings to frontend
                                 if let Some(window) = handle.get_webview_window("main") {
                                     let js = format!(
                                         "window.__applySettings({})",
@@ -153,9 +163,12 @@ pub fn run() {
                                 }
                             }
                         }
-                        // ws_port only needs to be sent once, but re-sending is harmless
+                        // Only send ws_port when it changes
                         if let Some(port) = response.ws_port {
-                            send_ws_port(&handle, port);
+                            if last_ws_port != Some(port) {
+                                send_ws_port(&handle, port);
+                                last_ws_port = Some(port);
+                            }
                         }
                     }
                 }
