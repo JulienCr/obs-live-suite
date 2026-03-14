@@ -79,3 +79,9 @@ server/static/
 .grepai/
 _local/
 .worktrees/
+
+# Studio Return (Tauri)
+studio-return/src-tauri/target/
+studio-return/src-tauri/gen/
+studio-return/dist/
+studio-return/node_modules/

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
-import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText } from "lucide-react";
+import { Send, Pin, AlertCircle, Info, AlertTriangle, Clock, FileText, Tv } from "lucide-react";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,34 +34,36 @@ function CueComposerContent() {
   const [countdownSeconds, setCountdownSeconds] = useState(60);
   const [sending, setSending] = useState(false);
 
-  const handleSend = async () => {
+  const buildPayload = () => {
+    const payload: Record<string, unknown> = {
+      type: cueType,
+      from: CueFrom.CONTROL,
+      title: title.trim() || undefined,
+      body: body.trim() || undefined,
+      pinned,
+    };
+
+    if (cueType === CueType.CUE) {
+      payload.severity = severity;
+    }
+
+    if (cueType === CueType.COUNTDOWN) {
+      payload.countdownPayload = {
+        mode: "duration",
+        durationSec: countdownSeconds,
+      };
+    }
+
+    return payload;
+  };
+
+  const handleSend = async (withReturn = false) => {
     if (!body.trim() && cueType !== CueType.COUNTDOWN) return;
 
     setSending(true);
     try {
-      const payload: Record<string, unknown> = {
-        type: cueType,
-        from: CueFrom.CONTROL,
-        title: title.trim() || undefined,
-        body: body.trim() || undefined,
-        pinned,
-      };
-
-      // Add severity for cue type
-      if (cueType === CueType.CUE) {
-        payload.severity = severity;
-      }
-
-      // Add countdown payload
-      if (cueType === CueType.COUNTDOWN) {
-        payload.countdownPayload = {
-          mode: "duration",
-          durationSec: countdownSeconds,
-        };
-      }
-
-      await apiPost("/api/presenter/cue/send", payload);
-      // Clear form
+      const payload = buildPayload();
+      await apiPost("/api/presenter/cue/send", { ...payload, studioReturn: withReturn });
       setTitle("");
       setBody("");
       setPinned(false);
@@ -206,15 +208,25 @@ function CueComposerContent() {
         </div>
       </div>
 
-      {/* Send Button */}
-      <Button
-        className="w-full"
-        onClick={handleSend}
-        disabled={sending || (!body.trim() && cueType !== CueType.COUNTDOWN)}
-      >
-        <Send className="h-4 w-4 mr-2" />
-        {sending ? "Sending..." : "Send Cue"}
-      </Button>
+      {/* Send Buttons — split: presenter only / presenter + studio return */}
+      <div className="flex w-full gap-0">
+        <Button
+          className="flex-1 rounded-r-none"
+          onClick={() => handleSend(false)}
+          disabled={sending || (!body.trim() && cueType !== CueType.COUNTDOWN)}
+        >
+          <Send className="h-4 w-4 mr-2" />
+          {sending ? "Sending..." : "Send Cue"}
+        </Button>
+        <Button
+          className="rounded-l-none border-l border-l-primary-foreground/20 px-3"
+          onClick={() => handleSend(true)}
+          disabled={sending || (!body.trim() && cueType !== CueType.COUNTDOWN)}
+          title="Send + Studio Return"
+        >
+          <Tv className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }

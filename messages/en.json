@@ -390,7 +390,8 @@
       "paths": "Paths",
       "backup": "Backup",
       "plugins": "Plugins",
-      "helpSupport": "Help & Support"
+      "helpSupport": "Help & Support",
+      "studioReturn": "Studio Return"
     }
   },
   "settings": {
@@ -689,6 +690,27 @@
       "maxMessagesReached": "Maximum of 20 messages reached",
       "empty": "No messages configured",
       "emptyHint": "Add predefined messages to quickly send to chat"
+    },
+    "studioReturn": {
+      "title": "Studio Return",
+      "description": "Configure the studio return overlay to display director messages on the studio monitor.",
+      "loading": "Loading settings...",
+      "saving": "Saving...",
+      "saveSettings": "Save settings",
+      "settingsSaved": "Settings saved successfully!",
+      "saveFailed": "Failed to save settings",
+      "enabled": "Enable overlay",
+      "enabledDescription": "Enable or disable notification display on the studio return monitor.",
+      "monitor": "Target monitor",
+      "monitorDescription": "Choose the monitor on which to display notifications. The list is populated by the Tauri app.",
+      "primary": "primary",
+      "noMonitors": "No monitors detected. Launch the Studio Return app to populate this list.",
+      "displayDuration": "Display duration",
+      "displayDurationDescription": "Duration in seconds before the message automatically disappears.",
+      "fontSize": "Font size",
+      "fontSizeDescription": "Font size in pixels for displayed messages.",
+      "testNotification": "Send test notification",
+      "testNotificationDescription": "Send a test message to verify the Studio Return overlay is working."
     }
   },
   "assets": {
@@ -1318,6 +1340,7 @@
     "duration": "Duration",
     "placeholder": "Message... (Ctrl+Enter to send)",
     "send": "Send",
+    "sendWithReturn": "Send + Studio Return",
     "templates": {
       "ad": "Ad",
       "adBody": "Ad break in 30 seconds",

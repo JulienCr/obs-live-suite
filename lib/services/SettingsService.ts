@@ -12,6 +12,22 @@ import type { PresenterChannelSettings } from "../models/PresenterChannel";
 import type { ChatPredefinedMessage } from "../models/ChatMessages";
 
 // ============================================================================
+// STUDIO RETURN SCHEMAS
+// ============================================================================
+
+/**
+ * Studio Return overlay settings schema
+ */
+export const StudioReturnSettingsSchema = z.object({
+  monitorIndex: z.number().default(0),
+  displayDuration: z.number().default(10),
+  fontSize: z.number().default(80),
+  enabled: z.boolean().default(true),
+});
+
+export type StudioReturnSettings = z.infer<typeof StudioReturnSettingsSchema>;
+
+// ============================================================================
 // SETTINGS SCHEMAS
 // ============================================================================
 
@@ -104,6 +120,7 @@ export class SettingsService {
   private generalStore: SettingsStore<typeof GeneralSettingsSchema.shape>;
   private twitchStore: SettingsStore<typeof TwitchSettingsSchema.shape>;
   private presenterChannelStore: SettingsStore<typeof presenterChannelSettingsSchema.shape>;
+  private studioReturnStore: SettingsStore<typeof StudioReturnSettingsSchema.shape>;
 
   private constructor() {
     this.db = SettingsRepository.getInstance();
@@ -194,6 +211,14 @@ export class SettingsService {
       this.db,
       "presenter.channel",
       presenterChannelSettingsSchema,
+      this.logger
+    );
+
+    // Initialize Studio Return settings store
+    this.studioReturnStore = new SettingsStore(
+      this.db,
+      "studioReturn",
+      StudioReturnSettingsSchema,
       this.logger
     );
   }
@@ -519,6 +544,25 @@ export class SettingsService {
    */
   clearPresenterChannelSettings(): void {
     this.presenterChannelStore.clear();
+  }
+
+  // =========================================================================
+  // STUDIO RETURN SETTINGS
+  // =========================================================================
+
+  /**
+   * Get Studio Return overlay settings
+   */
+  getStudioReturnSettings(): StudioReturnSettings {
+    return this.studioReturnStore.get();
+  }
+
+  /**
+   * Save Studio Return overlay settings
+   */
+  saveStudioReturnSettings(settings: Partial<StudioReturnSettings>): void {
+    this.studioReturnStore.set(settings);
+    this.logger.info("Studio Return settings saved to database");
   }
 
   // =========================================================================

@@ -31,6 +31,8 @@ pnpm dev:frontend    # Next.js dev server only
 pnpm dev:backend     # Backend server only
 pnpm backend         # Backend without watch
 pnpm dev:mcp         # MCP server (tsx watch)
+pnpm studio-return:dev   # Studio Return Tauri app (dev)
+pnpm studio-return:build # Studio Return Tauri app (production)
 ```
 
 ### Testing
@@ -325,6 +327,47 @@ Each overlay connects to WebSocket hub and subscribes to its channel.
 - Source: `streamdeck-plugin/obslive-suite/src/`
 - Build output: `streamdeck-plugin/obslive-suite/com.julien-cruau.obslive-suite.sdPlugin/`
 - Actions: lower-third-guest, countdown-start, poster-show, quiz controls, panic
+
+## Studio Return (Tauri App)
+Transparent always-on-top overlay for the studio return monitor. Displays director cue messages over the OBS program output via HDMI.
+
+- Location: `studio-return/` (workspace package)
+- Rust backend: `studio-return/src-tauri/src/` (monitor detection, settings polling, window management)
+- Frontend: `studio-return/src/` (vanilla JS — WebSocket client, notification display, CSS animations)
+- Config: `studio-return/src-tauri/tauri.conf.json` (requires `macOSPrivateApi: true` for transparency on macOS)
+
+### Commands
+```bash
+pnpm studio-return:dev            # Dev mode (cargo tauri dev)
+pnpm studio-return:dev -- -- --debug  # Dev mode with debug overlay
+pnpm studio-return:build          # Production build
+```
+
+### How it works
+1. Connects to the WebSocket hub (port 3003) and subscribes to the `presenter` channel
+2. Displays cue messages (sent from the CueComposerPanel) as large centered text with severity colors
+3. Auto-dismisses after configurable duration
+4. Window is click-through when no notification is visible
+5. Polls `/api/settings/studio-return` every 30s for settings changes (monitor, duration, fontSize)
+6. Reports available monitors to `/api/settings/studio-return/monitors` for the dashboard dropdown
+
+### WebSocket connection
+Tries `wss://localhost:3003` → `ws://localhost:3003` → `ws://127.0.0.1:3003` (auto-fallback for HTTPS/IPv6 environments). Locks to the first working URL.
+
+### Settings
+Dashboard page: Settings > Studio Return (`/settings/studio-return`)
+- Monitor selection (populated by the Tauri app)
+- Display duration (3-60s)
+- Font size (32-160px)
+- Enabled toggle
+- Test notification buttons (Info / Warn / Urgent)
+
+API: `/api/settings/studio-return/` (GET/POST settings), `/api/settings/studio-return/monitors/` (GET/POST monitor list, in-memory)
+
+### Known constraints
+- macOS requires `macOSPrivateApi: true` + `macos-private-api` Cargo feature for window transparency
+- WebSocket hub may listen on IPv6 only (Node 22) — the WSS/WS fallback chain handles this
+- The `--debug` flag enables a green debug overlay (bottom-left) showing WebSocket connection status and message flow
 
 ## PM2 Deployment
 `ecosystem.config.cjs` defines three apps:

@@ -41,6 +41,7 @@ import {
   ChevronDown,
   ChevronRight,
   MessageSquare,
+  Monitor,
   Send,
 } from "lucide-react";
 import { useAppMode } from "@/components/shell/AppModeContext";
@@ -105,6 +106,7 @@ const NAVIGATION_SECTIONS: NavSection[] = [
     items: [
       { labelKey: "overlays", href: "/settings/overlays", icon: Layers },
       { labelKey: "presenterChannel", href: "/settings/presenter", icon: MessageSquare },
+      { labelKey: "studioReturn", href: "/settings/studio-return", icon: Monitor },
       { labelKey: "chatMessages", href: "/settings/chat-messages", icon: Send },
     ],
   },

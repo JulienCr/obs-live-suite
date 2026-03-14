@@ -32,7 +32,9 @@
     "streamdeck:ids": "node scripts/list-streamdeck-ids.js",
     "backup:appdata": "node scripts/backup-appdata.js",
     "dev:mcp": "cd mcp-server && pnpm dev",
-    "test:mcp": "pnpm --filter obs-live-suite-mcp test"
+    "test:mcp": "pnpm --filter obs-live-suite-mcp test",
+    "studio-return:dev": "cd studio-return && pnpm dev",
+    "studio-return:build": "cd studio-return && pnpm build"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.58",

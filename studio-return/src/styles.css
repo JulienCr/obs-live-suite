@@ -1,0 +1,142 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+}
+
+/* ============================================
+   Notification container
+   ============================================ */
+
+.notification {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.notification.hidden {
+  display: none;
+}
+
+/* ============================================
+   Backdrop (semi-transparent background)
+   ============================================ */
+
+.notification-backdrop {
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 24px;
+  padding: 48px 64px;
+  max-width: 85vw;
+  max-height: 80vh;
+  text-align: center;
+  border: 4px solid var(--accent-color, #3b82f6);
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   Title
+   ============================================ */
+
+.notification-title {
+  color: var(--accent-color, #3b82f6);
+  font-size: calc(var(--font-size, 80px) * 0.6);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 16px;
+}
+
+.notification-title:empty {
+  display: none;
+}
+
+/* ============================================
+   Body text
+   ============================================ */
+
+.notification-body {
+  color: #ffffff;
+  font-size: var(--font-size, 80px);
+  font-weight: 600;
+  line-height: 1.2;
+  word-wrap: break-word;
+}
+
+/* ============================================
+   Severity colors
+   ============================================ */
+
+/* Info (default) — blue */
+.notification.severity-info {
+  --accent-color: #3b82f6;
+}
+
+/* Warn — yellow/amber */
+.notification.severity-warn {
+  --accent-color: #f59e0b;
+}
+
+/* Urgent — red with pulse */
+.notification.severity-urgent {
+  --accent-color: #ef4444;
+}
+
+.notification.severity-urgent .notification-backdrop {
+  animation: pulse-border 1s ease-in-out infinite;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+.notification.fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.notification.fade-out {
+  animation: fadeOut 0.5s ease-in forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: #ef4444;
+    box-shadow: 0 0 60px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 80px rgba(239, 68, 68, 0.6);
+  }
+}

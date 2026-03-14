@@ -390,7 +390,8 @@
       "paths": "Chemins",
       "backup": "Sauvegarde",
       "plugins": "Plugins",
-      "helpSupport": "Aide et support"
+      "helpSupport": "Aide et support",
+      "studioReturn": "Retour plateau"
     }
   },
   "settings": {
@@ -689,6 +690,27 @@
       "maxMessagesReached": "Maximum de 20 messages atteint",
       "empty": "Aucun message configuré",
       "emptyHint": "Ajoutez des messages prédéfinis pour les envoyer rapidement"
+    },
+    "studioReturn": {
+      "title": "Retour plateau",
+      "description": "Configurer l'overlay de retour plateau pour afficher les messages du réalisateur sur le moniteur studio.",
+      "loading": "Chargement des paramètres...",
+      "saving": "Enregistrement...",
+      "saveSettings": "Enregistrer les paramètres",
+      "settingsSaved": "Paramètres enregistrés avec succès !",
+      "saveFailed": "Échec de l'enregistrement des paramètres",
+      "enabled": "Activer l'overlay",
+      "enabledDescription": "Activer ou désactiver l'affichage des notifications sur le retour plateau.",
+      "monitor": "Moniteur cible",
+      "monitorDescription": "Choisir le moniteur sur lequel afficher les notifications. La liste est remplie par l'application Tauri.",
+      "primary": "principal",
+      "noMonitors": "Aucun moniteur détecté. Lancez l'application Studio Return pour peupler cette liste.",
+      "displayDuration": "Durée d'affichage",
+      "displayDurationDescription": "Durée en secondes avant la disparition automatique du message.",
+      "fontSize": "Taille du texte",
+      "fontSizeDescription": "Taille de la police en pixels pour les messages affichés.",
+      "testNotification": "Envoyer une notification de test",
+      "testNotificationDescription": "Envoyer un message de test pour vérifier que l'overlay Studio Return fonctionne."
     }
   },
   "assets": {
@@ -1319,6 +1341,7 @@
     "duration": "Durée",
     "placeholder": "Message... (Ctrl+Entrée pour envoyer)",
     "send": "Envoyer",
+    "sendWithReturn": "Envoyer + Retour plateau",
     "templates": {
       "ad": "Pub",
       "adBody": "Pause publicitaire dans 30 secondes",

@@ -43,30 +43,35 @@ function RegieInternalChatContent() {
     textareaRef.current?.focus();
   }, []);
 
-  const handleSend = async () => {
+  const buildPayload = () => {
+    const payload: Record<string, unknown> = {
+      type: cueType,
+      from: CueFrom.CONTROL,
+      body: body.trim() || undefined,
+      pinned,
+    };
+
+    if (cueType === CueType.CUE) {
+      payload.severity = severity;
+    }
+
+    if (cueType === CueType.COUNTDOWN) {
+      payload.countdownPayload = {
+        mode: "duration",
+        durationSec: countdownSeconds,
+      };
+    }
+
+    return payload;
+  };
+
+  const handleSend = async (withReturn = false) => {
     if (!body.trim() && cueType !== CueType.COUNTDOWN) return;
 
     setSending(true);
     try {
-      const payload: Record<string, unknown> = {
-        type: cueType,
-        from: CueFrom.CONTROL,
-        body: body.trim() || undefined,
-        pinned,
-      };
-
-      if (cueType === CueType.CUE) {
-        payload.severity = severity;
-      }
-
-      if (cueType === CueType.COUNTDOWN) {
-        payload.countdownPayload = {
-          mode: "duration",
-          durationSec: countdownSeconds,
-        };
-      }
-
-      await apiPost("/api/presenter/cue/send", payload);
+      const payload = buildPayload();
+      await apiPost("/api/presenter/cue/send", { ...payload, studioReturn: withReturn });
       setBody("");
       setPinned(false);
       textareaRef.current?.focus();
@@ -80,7 +85,7 @@ function RegieInternalChatContent() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && e.ctrlKey) {
       e.preventDefault();
-      handleSend();
+      handleSend(false);
     }
   };
 
@@ -201,15 +206,25 @@ function RegieInternalChatContent() {
           })}
         </div>
 
-        {/* Send Button */}
-        <Button
-          onClick={handleSend}
-          disabled={sending || (!body.trim() && cueType !== CueType.COUNTDOWN)}
-          className="px-6"
-        >
-          <Send className="h-4 w-4 mr-1" />
-          {sending ? "..." : t("send")}
-        </Button>
+        {/* Send Buttons — split: presenter only / presenter + studio return */}
+        <div className="flex gap-0">
+          <Button
+            onClick={() => handleSend(false)}
+            disabled={sending || (!body.trim() && cueType !== CueType.COUNTDOWN)}
+            className="px-4 rounded-r-none"
+          >
+            <Send className="h-4 w-4 mr-1" />
+            {sending ? "..." : t("send")}
+          </Button>
+          <Button
+            onClick={() => handleSend(true)}
+            disabled={sending || (!body.trim() && cueType !== CueType.COUNTDOWN)}
+            className="rounded-l-none border-l border-l-primary-foreground/20 px-2.5"
+            title={t("sendWithReturn")}
+          >
+            <Tv className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
