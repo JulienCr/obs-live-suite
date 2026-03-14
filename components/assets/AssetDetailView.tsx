@@ -79,10 +79,11 @@ export function AssetDetailView({
 
   // Auto-probe duration on mount for video types without duration
   useEffect(() => {
-    setProbeStatus("idle");
-
     let mounted = true;
-    if (!isVideoType || isClip || poster.duration) return;
+    if (!isVideoType || isClip || poster.duration) {
+      setProbeStatus("idle");
+      return () => { mounted = false; };
+    }
 
     setProbeStatus("probing");
     apiPost<{ duration: number }>(`/api/assets/posters/${poster.id}/probe`)
@@ -98,7 +99,8 @@ export function AssetDetailView({
       });
 
     return () => { mounted = false; };
-  }, [poster.id, poster.type, poster.duration, isVideoType, isClip, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poster.id, poster.type, poster.duration]);
 
   // Fetch chapters with React Query (shared cache with ChapterSection)
   const { data: chapters = initialChapters } = useQuery({

@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { VideoChapter } from "@/lib/models/Poster";
+import { isVideoPosterType, type VideoChapter } from "@/lib/models/Poster";
 import { cn } from "@/lib/utils/cn";
 import { formatTimeShort } from "@/lib/utils/durationParser";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
@@ -190,7 +190,7 @@ export function PosterContent({ className }: PosterContentProps) {
           setDisplayMode(mode || null);
           setActiveSide(mode === "bigpicture" ? null : (mode || null));
           setActiveType(poster.type);
-          setShowControls(poster.type === "video" || poster.type === "youtube");
+          setShowControls(isVideoPosterType(poster.type));
         }
       }
     },
@@ -358,7 +358,7 @@ export function PosterContent({ className }: PosterContentProps) {
       setActiveType(poster.type);
 
       // Show controls if video or youtube
-      if (poster.type === "video" || poster.type === "youtube") {
+      if (isVideoPosterType(poster.type)) {
         setShowControls(true);
       }
     } catch (error) {
