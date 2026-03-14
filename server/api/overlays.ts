@@ -5,6 +5,7 @@
  */
 import { Router } from "express";
 import { ChannelManager } from "../../lib/services/ChannelManager";
+import { WebSocketHub } from "../../lib/services/WebSocketHub";
 import { SettingsService } from "../../lib/services/SettingsService";
 import { OBSConnectionManager } from "../../lib/adapters/obs/OBSConnectionManager";
 import {
@@ -310,5 +311,19 @@ router.post("/clear-all", overlayHandler(async (_req, res) => {
 
   res.json({ success: true });
 }, "Clear-all operation failed"));
+
+/**
+ * POST /api/overlays/studio-return-settings
+ * Broadcast updated settings to the studio return app via presenter channel
+ */
+router.post("/studio-return-settings", overlayHandler(async (req, res) => {
+  const settings = req.body;
+  const wsHub = WebSocketHub.getInstance();
+  wsHub.broadcast("presenter", {
+    type: "studio-return-settings",
+    payload: settings,
+  });
+  res.json({ success: true });
+}, "Failed to broadcast studio return settings"));
 
 export default router;

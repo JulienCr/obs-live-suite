@@ -4,7 +4,7 @@ import { initDom } from "./dom";
 import { getConfig, applySettings } from "./config";
 import { showNotification, hideNotification } from "./notification";
 import { showCountdown } from "./countdown";
-import { onPresenterMessage, onDismiss, setWsPort, connectWithDefault } from "./websocket";
+import { onPresenterMessage, onDismiss, onSettingsUpdate, setWsPort, connectWithDefault } from "./websocket";
 
 // ---- Init DOM ----
 initDebug();
@@ -29,6 +29,11 @@ window.__testNotification = (severity) => {
     severity: severity || "info",
   });
 };
+
+// ---- Real-time settings from dashboard ----
+onSettingsUpdate((settings) => {
+  applySettings(settings as import("./types").StudioReturnSettings, hideNotification);
+});
 
 // ---- Dismiss handler ----
 onDismiss(() => {

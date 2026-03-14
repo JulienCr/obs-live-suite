@@ -4,7 +4,7 @@ use monitor::{list_monitors, position_on_monitor, report_monitors_to_backend};
 use serde::Deserialize;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
-const BACKEND_URL: &str = "http://localhost:3000";
+const BACKEND_URL: &str = "http://127.0.0.1:3000";
 const SETTINGS_POLL_INTERVAL_SECS: u64 = 30;
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]

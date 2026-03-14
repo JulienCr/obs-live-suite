@@ -10,6 +10,7 @@ let wsUrlIndex = 0;
 let reconnectDelay = 1000;
 let messageHandler: ((payload: CuePayload) => void) | null = null;
 let dismissHandler: (() => void) | null = null;
+let settingsHandler: ((settings: Record<string, unknown>) => void) | null = null;
 let started = false;
 
 function buildUrls(port: number): string[] {
@@ -28,6 +29,12 @@ export function onPresenterMessage(
 
 export function onDismiss(handler: () => void): void {
   dismissHandler = handler;
+}
+
+export function onSettingsUpdate(
+  handler: (settings: Record<string, unknown>) => void,
+): void {
+  settingsHandler = handler;
 }
 
 /**
@@ -97,6 +104,13 @@ function connect(): void {
       if (msg.channel !== "presenter") return;
 
       const data = msg.data;
+
+      // Handle real-time settings updates from dashboard
+      if (data?.type === "studio-return-settings") {
+        settingsHandler?.(data.payload as unknown as Record<string, unknown>);
+        return;
+      }
+
       if (!data || data.type !== "message") return;
 
       const payload = data.payload;

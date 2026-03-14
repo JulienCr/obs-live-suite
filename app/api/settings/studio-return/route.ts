@@ -1,6 +1,7 @@
 import { SettingsService } from "@/lib/services/SettingsService";
 import { AppConfig } from "@/lib/config/AppConfig";
 import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
+import { proxyToBackend } from "@/lib/utils/ProxyHelper";
 
 const LOG_CONTEXT = "[StudioReturnSettingsAPI]";
 
@@ -32,6 +33,18 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
     ...(fontSize !== undefined && { fontSize }),
     ...(enabled !== undefined && { enabled }),
   });
+
+  // Push updated settings to the studio return app via WebSocket (presenter channel)
+  const updatedSettings = settingsService.getStudioReturnSettings();
+  try {
+    await proxyToBackend("/api/overlays/studio-return-settings", {
+      method: "POST",
+      body: updatedSettings,
+      logPrefix: LOG_CONTEXT,
+    });
+  } catch {
+    // Non-critical — Tauri app will pick up settings on next poll
+  }
 
   return ApiResponses.ok({
     success: true,
