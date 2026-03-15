@@ -316,6 +316,20 @@ router.post("/clear-all", overlayHandler(async (_req, res) => {
 }, "Clear-all operation failed"));
 
 /**
+ * POST /api/overlays/reload
+ * Force-reload all OBS browser sources via OBS WebSocket
+ */
+router.post("/reload", overlayHandler(async (_req, res) => {
+  logger.info("Reload triggered - refreshing all OBS browser sources");
+
+  const { OBSSourceController } = await import("../../lib/adapters/obs/OBSSourceController");
+  const sourceController = OBSSourceController.getInstance();
+  const refreshed = await sourceController.refreshAllBrowserSources();
+
+  res.json({ success: true, refreshed });
+}, "Reload browser sources failed"));
+
+/**
  * POST /api/overlays/studio-return-settings
  * Broadcast updated settings to the studio return app via presenter channel
  */

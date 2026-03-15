@@ -12,4 +12,14 @@ export function registerClearAllTools(server: McpServer) {
     if (!result.success) return errorResponse(result.error);
     return textResponse('All overlays cleared.');
   });
+
+  server.registerTool('reload-overlays', {
+    title: 'Reload Overlays',
+    description: 'Force-reload all OBS browser sources via OBS WebSocket. Useful when browser sources are stuck on an old version.',
+    inputSchema: z.object({}),
+  }, async () => {
+    const result = await backendFetch('/api/overlays/reload', { method: 'POST' });
+    if (!result.success) return errorResponse(result.error);
+    return textResponse('All overlay pages reloaded.');
+  });
 }
