@@ -82,6 +82,39 @@ export class OBSSourceController {
   }
 
   /**
+   * Refresh all browser sources in OBS
+   * Lists every browser_source input and batch-refreshes them.
+   * Returns the list of refreshed source names.
+   */
+  async refreshAllBrowserSources(): Promise<string[]> {
+    const obs = this.connectionManager.getOBS();
+
+    const { inputs } = await obs.call("GetInputList", {
+      inputKind: "browser_source",
+    });
+
+    if (inputs.length === 0) {
+      this.logger.info("No browser sources found to refresh");
+      return [];
+    }
+
+    const names = inputs.map((i) => i.inputName as string);
+
+    await obs.callBatch(
+      inputs.map((input) => ({
+        requestType: "PressInputPropertiesButton" as const,
+        requestData: {
+          inputName: input.inputName as string,
+          propertyName: "refreshnocache",
+        },
+      }))
+    );
+
+    this.logger.info(`Refreshed ${names.length} browser sources: ${names.join(", ")}`);
+    return names;
+  }
+
+  /**
    * Check if source exists
    */
   async sourceExists(sourceName: string): Promise<boolean> {

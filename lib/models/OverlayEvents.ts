@@ -23,13 +23,6 @@ export enum OverlayChannel {
 }
 
 /**
- * System-level event types sent across all overlay channels
- */
-export enum SystemEventType {
-  RELOAD = "reload",
-}
-
-/**
  * Room event types for presenter dashboard
  */
 export enum RoomEventType {

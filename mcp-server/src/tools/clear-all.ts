@@ -15,7 +15,7 @@ export function registerClearAllTools(server: McpServer) {
 
   server.registerTool('reload-overlays', {
     title: 'Reload Overlays',
-    description: 'Force-reload all overlay browser sources (lower third, countdown, poster, quiz, chat highlight). Useful when OBS browser sources are stuck on an old version.',
+    description: 'Force-reload all OBS browser sources via OBS WebSocket. Useful when browser sources are stuck on an old version.',
     inputSchema: z.object({}),
   }, async () => {
     const result = await backendFetch('/api/overlays/reload', { method: 'POST' });

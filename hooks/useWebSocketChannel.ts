@@ -302,12 +302,6 @@ export function useWebSocketChannel<T = unknown>(
 
           // Only process messages for subscribed channels
           if (channels.includes(message.channel)) {
-            // Intercept system reload events — force page refresh
-            if ((message.data as { type?: string })?.type === "reload") {
-              window.location.reload();
-              return;
-            }
-
             if (isMultiChannel) {
               // Multi-channel: pass (channel, data) to callback
               (onMessageRef.current as (channel: string, data: T) => void)(
