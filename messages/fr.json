@@ -339,6 +339,7 @@
       "minimal": "Minimal",
       "switchToAdmin": "Passer en mode ADMIN",
       "switchToLive": "Passer en mode LIVE",
+      "reloadOverlays": "Recharger les overlays",
       "keyboardShortcuts": "Raccourcis clavier",
       "help": "Aide",
       "about": "À propos",

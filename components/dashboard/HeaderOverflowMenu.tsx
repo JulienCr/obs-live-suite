@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Keyboard, HelpCircle, Info, Layout } from "lucide-react";
+import { MoreVertical, Keyboard, HelpCircle, Info, Layout, RefreshCw } from "lucide-react";
 import { useAppMode } from "@/components/shell/AppModeContext";
 import { useOptionalLayoutPresets } from "@/components/shell/LayoutPresetsContext";
 
@@ -56,6 +56,12 @@ export function HeaderOverflowMenu() {
             </>
           )}
 
+          <DropdownMenuItem onClick={() => {
+            fetch("/api/overlays/reload", { method: "POST" });
+          }}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            {t("reloadOverlays")}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push("/shortcuts")}>
             <Keyboard className="w-4 h-4 mr-2" />
             {t("keyboardShortcuts")}

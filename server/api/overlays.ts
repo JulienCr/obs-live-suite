@@ -14,6 +14,7 @@ import {
   CountdownEventType,
   PosterEventType,
   ChatHighlightEventType,
+  SystemEventType,
   OverlayChannel
 } from "../../lib/models/OverlayEvents";
 import { lowerThirdShowPayloadSchema, chatHighlightShowPayloadSchema } from "../../lib/models/OverlayEvents";
@@ -314,6 +315,31 @@ router.post("/clear-all", overlayHandler(async (_req, res) => {
 
   res.json({ success: true });
 }, "Clear-all operation failed"));
+
+/**
+ * POST /api/overlays/reload
+ * Force-reload all overlay browser sources
+ */
+router.post("/reload", overlayHandler(async (_req, res) => {
+  logger.info("Reload triggered - refreshing all overlay pages");
+
+  const overlayChannels = [
+    OverlayChannel.LOWER,
+    OverlayChannel.COUNTDOWN,
+    OverlayChannel.POSTER,
+    OverlayChannel.POSTER_BIGPICTURE,
+    OverlayChannel.CHAT_HIGHLIGHT,
+    OverlayChannel.QUIZ,
+  ];
+
+  await Promise.all(
+    overlayChannels.map((ch) =>
+      channelManager.publish(ch, SystemEventType.RELOAD)
+    )
+  );
+
+  res.json({ success: true });
+}, "Reload overlays operation failed"));
 
 /**
  * POST /api/overlays/studio-return-settings
