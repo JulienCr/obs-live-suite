@@ -109,7 +109,7 @@ Settings API: `GET/POST /api/settings/word-harvest-midi`
 
 ## Sound Effects
 
-4 WAV files in `public/sounds/`. Played from the dashboard panel (not the overlay — OBS browser sources may block autoplay).
+4 WAV files in `public/sounds/`. Played from the overlay renderer (`WordHarvestRenderer`).
 
 | Sound | File | Event |
 |---|---|---|
@@ -165,5 +165,4 @@ interface WordHarvestState {
 ## Known Limitations
 
 - **No persistence**: State is in-memory. Backend restart = game reset.
-- **MIDI double notes**: Windows MIDI Services (pre-release) WinRT 1.0 compat layer may echo messages. Not a code issue.
-- **Sound in overlay**: OBS browser sources may block autoplay. Sounds are triggered from the dashboard panel instead.
+- **Sound autoplay**: Sounds are triggered from the overlay renderer. OBS browser sources generally allow autoplay, but some configurations may block it.
