@@ -680,6 +680,45 @@ export const AI_CHAT = {
 } as const;
 
 // ============================================================================
+// WORD HARVEST CONSTANTS
+// ============================================================================
+
+/**
+ * Word Harvest game configuration constants.
+ */
+export const WORD_HARVEST = {
+  /** Default number of words to collect */
+  DEFAULT_TARGET_COUNT: 10,
+
+  /** Minimum allowed target count */
+  MIN_TARGET_COUNT: 3,
+
+  /** Maximum allowed target count */
+  MAX_TARGET_COUNT: 50,
+
+  /** Minimum word length (characters) */
+  MIN_WORD_LENGTH: 2,
+
+  /** Maximum word length (characters) */
+  MAX_WORD_LENGTH: 30,
+
+  /** Regex to extract words from chat messages: #word or !mot word */
+  WORD_COMMAND_REGEX: /^[#!](?:mot\s+)?(\S+)$/i,
+
+  /** Sound: word approved pop */
+  SOUND_WORD_APPROVED: "/sounds/word-harvest-approved.wav",
+
+  /** Sound: celebration jingle (target reached) */
+  SOUND_CELEBRATION: "/sounds/word-harvest-complete.wav",
+
+  /** Sound: word struck through (used in improv) */
+  SOUND_WORD_USED: "/sounds/word-harvest-used.wav",
+
+  /** Sound: impro starts */
+  SOUND_IMPRO_START: "/sounds/word-harvest-impro-start.wav",
+} as const;
+
+// ============================================================================
 // HELPER FUNCTIONS FOR SQL DEFAULTS
 // ============================================================================
 

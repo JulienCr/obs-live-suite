@@ -16,7 +16,8 @@
       "chatMessages": "Chat Messages",
       "textPresets": "Quick LT",
       "mediaPlayerArtlist": "Artlist Player",
-      "mediaPlayerYoutube": "YouTube Player"
+      "mediaPlayerYoutube": "YouTube Player",
+      "wordHarvest": "Word Harvest"
     },
     "header": {
       "connected": "Connected",
@@ -64,6 +65,7 @@
       "showTextPresetsPanel": "Show Quick LT Panel",
       "showMediaPlayerArtlistPanel": "Show Artlist Player Panel",
       "showMediaPlayerYoutubePanel": "Show YouTube Player Panel",
+      "showWordHarvestPanel": "Show Word Harvest Panel",
       "noResults": "No results found"
     },
     "workspaces": {
@@ -380,6 +382,7 @@
       "overlays": "Overlays",
       "presenterChannel": "Presenter Channel",
       "chatMessages": "Chat Messages",
+      "wordHarvest": "Word Harvest",
       "obs": "OBS",
       "twitch": "Twitch",
       "streamerbot": "Streamer.bot",
@@ -1028,6 +1031,31 @@
       "enable": "Enable",
       "disable": "Disable",
       "delete": "Delete"
+    }
+  },
+  "wordHarvest": {
+    "title": "Word Harvest",
+    "start": "Start",
+    "stop": "Stop",
+    "reset": "Reset",
+    "resetConfirm": "Reset the word harvest?",
+    "targetCount": "Target word count",
+    "pendingWords": "Pending words",
+    "approvedWords": "Approved words",
+    "approve": "Approve",
+    "reject": "Reject",
+    "showOverlay": "Show overlay",
+    "hideOverlay": "Hide overlay",
+    "wordsUsed": "{count}/{total} words used",
+    "noPending": "No pending words",
+    "noWords": "No approved words",
+    "submittedBy": "by {name}",
+    "phase": {
+      "idle": "Idle",
+      "collecting": "Collecting",
+      "complete": "Complete",
+      "performing": "Performing",
+      "done": "Done"
     }
   },
   "quiz": {

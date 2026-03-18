@@ -56,6 +56,7 @@ export class StreamerbotGateway extends ConnectionManager {
   private wsHub: WebSocketHub;
   private lastEventTime?: number;
   private currentStreamerbotError?: StreamerbotConnectionError;
+  private chatListeners = new Set<(message: ChatMessage) => void>();
 
   private constructor() {
     super({ loggerName: "StreamerbotGateway" });
@@ -143,6 +144,7 @@ export class StreamerbotGateway extends ConnectionManager {
       this.lastEventTime = Date.now();
       this.persistMessage(message);
       this.broadcastMessage(message);
+      this.notifyChatListeners(message);
     } catch (error) {
       this.logger.error("Failed to normalize Streamer.bot event", error);
     }
@@ -186,6 +188,33 @@ export class StreamerbotGateway extends ConnectionManager {
       payload,
       timestamp: Date.now(),
     });
+  }
+
+  /**
+   * Register a listener for incoming chat messages
+   */
+  addChatListener(callback: (message: ChatMessage) => void): void {
+    this.chatListeners.add(callback);
+  }
+
+  /**
+   * Remove a previously registered chat listener
+   */
+  removeChatListener(callback: (message: ChatMessage) => void): void {
+    this.chatListeners.delete(callback);
+  }
+
+  /**
+   * Notify all registered chat listeners
+   */
+  private notifyChatListeners(message: ChatMessage): void {
+    for (const listener of this.chatListeners) {
+      try {
+        listener(message);
+      } catch (error) {
+        this.logger.error("Chat listener error", error);
+      }
+    }
   }
 
   /**

@@ -16,7 +16,8 @@
       "chatMessages": "Messages Chat",
       "textPresets": "Textes rapides",
       "mediaPlayerArtlist": "Player Artlist",
-      "mediaPlayerYoutube": "Player YouTube"
+      "mediaPlayerYoutube": "Player YouTube",
+      "wordHarvest": "Récolte de mots"
     },
     "header": {
       "connected": "Connecté",
@@ -64,6 +65,7 @@
       "showTextPresetsPanel": "Afficher le panneau Textes rapides",
       "showMediaPlayerArtlistPanel": "Afficher le panneau Player Artlist",
       "showMediaPlayerYoutubePanel": "Afficher le panneau Player YouTube",
+      "showWordHarvestPanel": "Afficher le panneau Récolte de mots",
       "noResults": "Aucun résultat"
     },
     "workspaces": {
@@ -380,6 +382,7 @@
       "overlays": "Overlays",
       "presenterChannel": "Canal présentateur",
       "chatMessages": "Messages Chat",
+      "wordHarvest": "Récolte de mots",
       "obs": "OBS",
       "twitch": "Twitch",
       "streamerbot": "Streamer.bot",
@@ -1028,6 +1031,31 @@
       "enable": "Activer",
       "disable": "Désactiver",
       "delete": "Supprimer"
+    }
+  },
+  "wordHarvest": {
+    "title": "Récolte de mots",
+    "start": "Démarrer",
+    "stop": "Arrêter",
+    "reset": "Réinitialiser",
+    "resetConfirm": "Réinitialiser la récolte de mots ?",
+    "targetCount": "Nombre de mots cible",
+    "pendingWords": "Mots en attente",
+    "approvedWords": "Mots validés",
+    "approve": "Valider",
+    "reject": "Rejeter",
+    "showOverlay": "Afficher l'overlay",
+    "hideOverlay": "Masquer l'overlay",
+    "wordsUsed": "{count}/{total} mots utilisés",
+    "noPending": "Aucun mot en attente",
+    "noWords": "Aucun mot validé",
+    "submittedBy": "par {name}",
+    "phase": {
+      "idle": "Inactif",
+      "collecting": "Collecte",
+      "complete": "Complet",
+      "performing": "Impro",
+      "done": "Terminé"
     }
   },
   "quiz": {

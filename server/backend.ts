@@ -33,6 +33,7 @@ import overlaysRouter from "./api/overlays";
 import obsRouter from "./api/obs";
 import twitchRouter from "./api/twitch";
 import mediaPlayerRouter from "./api/media-player";
+import wordHarvestRouter from "./api/word-harvest";
 import { APP_PORT, BACKEND_PORT, WS_PORT } from "../lib/config/urls";
 import { createServerWithFallback } from "../lib/utils/CertificateManager";
 import { expressError } from "../lib/utils/apiError";
@@ -99,6 +100,9 @@ class BackendServer {
 
     // Media Player driver control
     this.app.use('/api/media-player', mediaPlayerRouter);
+
+    // Word Harvest game
+    this.app.use('/api/word-harvest', wordHarvestRouter);
 
     // 404 handler MUST be added LAST (after all routes)
     this.app.use((req, res) => {

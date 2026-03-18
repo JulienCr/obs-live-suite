@@ -27,6 +27,7 @@ import { TwitchPanel } from "./panels/TwitchPanel";
 import { ChatMessagesPanel } from "./panels/ChatMessagesPanel";
 import { TextPresetsPanel } from "./panels/TextPresetsPanel";
 import { MediaPlayerPanel } from "./panels/MediaPlayerPanel";
+import { WordHarvestPanel } from "./panels/WordHarvestPanel";
 import { DockviewContext } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { usePanelColorsStore, useWorkspacesStore, useDockviewStore } from "@/lib/stores";
@@ -59,6 +60,7 @@ const components = {
   textPresets: TextPresetsPanel,
   mediaPlayerArtlist: MediaPlayerPanel,
   mediaPlayerYoutube: MediaPlayerPanel,
+  wordHarvest: WordHarvestPanel,
 } satisfies Record<PanelId, React.ComponentType<any>>;
 
 const tabComponents = {
