@@ -402,7 +402,8 @@
       "uploadLogo": "Importer un logo",
       "removeLogo": "Retirer le logo",
       "preview": "Aperçu",
-      "playPreview": "Lancer l'aperçu"
+      "playPreview": "Lancer l'aperçu",
+      "duplicate": "Dupliquer"
     }
   },
   "navigation": {

@@ -402,7 +402,8 @@
       "uploadLogo": "Upload Logo",
       "removeLogo": "Remove Logo",
       "preview": "Preview",
-      "playPreview": "Play Preview"
+      "playPreview": "Play Preview",
+      "duplicate": "Duplicate"
     }
   },
   "navigation": {

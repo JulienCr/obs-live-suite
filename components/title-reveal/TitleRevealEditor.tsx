@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,26 +8,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { TitleRevealLineEditor } from "./TitleRevealLineEditor";
-import { TitleRevealPreview } from "./TitleRevealPreview";
+import { FontFamilyCombobox } from "./FontFamilyCombobox";
+import { FontSizeCombobox } from "./FontSizeCombobox";
 import type { TitleReveal, TitleRevealLine } from "@/lib/queries/useTitleReveals";
+import type { TitleRevealAnimConfig } from "@/lib/titleReveal";
 import { TITLE_REVEAL } from "@/lib/config/Constants";
+
+export type TitleRevealSaveData = {
+  name: string;
+  lines: TitleRevealLine[];
+  logoUrl: string | null;
+  fontFamily: string;
+  fontSize: number;
+  rotation: number;
+  colorText: string;
+  colorGhostBlue: string;
+  colorGhostNavy: string;
+  duration: number;
+};
 
 interface TitleRevealEditorProps {
   initial: TitleReveal | null;
-  onSave: (data: {
-    name: string;
-    lines: TitleRevealLine[];
-    logoUrl: string | null;
-    fontFamily: string;
-    fontSize: number;
-    rotation: number;
-    colorText: string;
-    colorGhostBlue: string;
-    colorGhostNavy: string;
-    duration: number;
-  }) => void;
+  onSave: (data: TitleRevealSaveData) => void;
   onCancel: () => void;
   uploadLogo: (file: File) => Promise<string>;
+  onConfigChange?: (config: TitleRevealAnimConfig) => void;
 }
 
 const DEFAULT_LINE: TitleRevealLine = {
@@ -38,7 +43,7 @@ const DEFAULT_LINE: TitleRevealLine = {
   offsetY: 0,
 };
 
-export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo }: TitleRevealEditorProps) {
+export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, onConfigChange }: TitleRevealEditorProps) {
   const t = useTranslations("dashboard.titleReveal");
 
   const [name, setName] = useState(initial?.name ?? "");
@@ -54,6 +59,13 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo }: Tit
   const [colorGhostNavy, setColorGhostNavy] = useState(initial?.colorGhostNavy ?? "#1B2A6B");
   const [logoUrl, setLogoUrl] = useState<string | null>(initial?.logoUrl ?? null);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Expose current config to parent for the side preview
+  const previewConfig = useMemo<TitleRevealAnimConfig>(
+    () => ({ lines, fontFamily, fontSize, rotation, duration, colorText, colorGhostBlue, colorGhostNavy, logoUrl }),
+    [lines, fontFamily, fontSize, rotation, duration, colorText, colorGhostBlue, colorGhostNavy, logoUrl]
+  );
+  useEffect(() => { onConfigChange?.(previewConfig); }, [previewConfig, onConfigChange]);
 
   const handleLineChange = useCallback((index: number, updated: TitleRevealLine) => {
     setLines((prev) => prev.map((l, i) => (i === index ? updated : l)));
@@ -137,23 +149,19 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo }: Tit
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="tr-fontFamily">{t("fontFamily")}</Label>
-            <Input
-              id="tr-fontFamily"
+            <Label>{t("fontFamily")}</Label>
+            <FontFamilyCombobox
               value={fontFamily}
-              onChange={(e) => setFontFamily(e.target.value)}
-              placeholder={t("fontFamilyPlaceholder")}
+              onChange={setFontFamily}
+              className="w-full"
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="tr-fontSize">{t("fontSize")}</Label>
-            <Input
-              id="tr-fontSize"
-              type="number"
-              min={10}
-              max={300}
+            <Label>{t("fontSize")}</Label>
+            <FontSizeCombobox
               value={fontSize}
-              onChange={(e) => setFontSize(Number(e.target.value))}
+              onChange={setFontSize}
+              className="w-full"
             />
           </div>
         </div>
@@ -244,14 +252,6 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo }: Tit
             )}
           </div>
         </div>
-      </div>
-
-      {/* Preview */}
-      <div className="border-t pt-3 space-y-1.5">
-        <Label>{t("preview")}</Label>
-        <TitleRevealPreview
-          config={{ lines, fontFamily, fontSize, rotation, duration, colorText, colorGhostBlue, colorGhostNavy, logoUrl }}
-        />
       </div>
 
       {/* Actions */}

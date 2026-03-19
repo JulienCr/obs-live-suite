@@ -5,6 +5,8 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FontSizeCombobox } from "./FontSizeCombobox";
+import { ShiftStepInput } from "./ShiftStepInput";
 import type { TitleRevealLine } from "@/lib/queries/useTitleReveals";
 
 interface TitleRevealLineEditorProps {
@@ -55,13 +57,10 @@ export function TitleRevealLineEditor({
       <div className="grid grid-cols-4 gap-2">
         <div className="space-y-1">
           <Label className="text-xs">{t("fontSize")}</Label>
-          <Input
-            type="number"
-            min={10}
-            max={300}
+          <FontSizeCombobox
             value={line.fontSize}
-            onChange={(e) => update({ fontSize: Number(e.target.value) })}
-            className="text-xs h-7"
+            onChange={(v) => update({ fontSize: v })}
+            className="text-xs h-8 w-full"
           />
         </div>
 
@@ -73,7 +72,7 @@ export function TitleRevealLineEditor({
                 key={a}
                 variant={line.alignment === a ? "default" : "outline"}
                 size="sm"
-                className="h-7 flex-1 px-1 text-xs"
+                className="h-8 flex-1 px-1 text-xs"
                 onClick={() => update({ alignment: a })}
               >
                 {a.toUpperCase()}
@@ -84,21 +83,17 @@ export function TitleRevealLineEditor({
 
         <div className="space-y-1">
           <Label className="text-xs">{t("offsetX")}</Label>
-          <Input
-            type="number"
+          <ShiftStepInput
             value={line.offsetX}
-            onChange={(e) => update({ offsetX: Number(e.target.value) })}
-            className="text-xs h-7"
+            onChange={(v) => update({ offsetX: v })}
           />
         </div>
 
         <div className="space-y-1">
           <Label className="text-xs">{t("offsetY")}</Label>
-          <Input
-            type="number"
+          <ShiftStepInput
             value={line.offsetY}
-            onChange={(e) => update({ offsetY: Number(e.target.value) })}
-            className="text-xs h-7"
+            onChange={(v) => update({ offsetY: v })}
           />
         </div>
       </div>
