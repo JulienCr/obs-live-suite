@@ -17,7 +17,8 @@
       "textPresets": "Textes rapides",
       "mediaPlayerArtlist": "Player Artlist",
       "mediaPlayerYoutube": "Player YouTube",
-      "wordHarvest": "Récolte de mots"
+      "wordHarvest": "Récolte de mots",
+      "titleReveal": "Titre animé"
     },
     "header": {
       "connected": "Connecté",
@@ -66,6 +67,7 @@
       "showMediaPlayerArtlistPanel": "Afficher le panneau Player Artlist",
       "showMediaPlayerYoutubePanel": "Afficher le panneau Player YouTube",
       "showWordHarvestPanel": "Afficher le panneau Récolte de mots",
+      "showTitleRevealPanel": "Afficher le panneau Titre animé",
       "noResults": "Aucun résultat"
     },
     "workspaces": {
@@ -363,6 +365,44 @@
       "addFirst": "Ajoutez des messages dans les paramètres ou cliquez sur Modifier",
       "titlePlaceholder": "Titre",
       "messagePlaceholder": "Message..."
+    },
+    "titleReveal": {
+      "title": "Titre animé",
+      "noTitles": "Aucun titre animé",
+      "newTitle": "Nouveau titre",
+      "editTitle": "Modifier le titre",
+      "play": "Lancer",
+      "hide": "Masquer",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "confirmDelete": "Supprimer « {name} » ?",
+      "confirmDeleteDesc": "Ce titre animé sera définitivement supprimé.",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "name": "Nom",
+      "namePlaceholder": "Nom du titre...",
+      "lines": "Lignes",
+      "addLine": "Ajouter une ligne",
+      "removeLine": "Supprimer",
+      "text": "Texte",
+      "textPlaceholder": "Saisir le texte...",
+      "fontSize": "Taille de police",
+      "alignment": "Alignement",
+      "offsetX": "Décalage X",
+      "offsetY": "Décalage Y",
+      "globalSettings": "Paramètres globaux",
+      "fontFamily": "Police de caractères",
+      "fontFamilyPlaceholder": "ex. Permanent Marker",
+      "rotation": "Rotation",
+      "duration": "Durée (s)",
+      "colorText": "Couleur du texte",
+      "colorGhostBlue": "Bleu fantôme",
+      "colorGhostNavy": "Bleu marine fantôme",
+      "logo": "Logo",
+      "uploadLogo": "Importer un logo",
+      "removeLogo": "Retirer le logo",
+      "preview": "Aperçu",
+      "playPreview": "Lancer l'aperçu"
     }
   },
   "navigation": {

@@ -204,3 +204,18 @@ export function enrichChatHighlightPayload<T extends Record<string, unknown>>(
   };
 }
 
+/**
+ * Enrich a title reveal payload with active theme data
+ * Pass-through for now — title reveal uses its own colors from the config.
+ * Prepared for future theme integration.
+ * @param payload Existing payload
+ * @returns Same payload unchanged
+ */
+export function enrichTitleRevealPayload<T extends Record<string, unknown>>(
+  payload: T
+): T {
+  // Pass-through for now — title reveal uses its own colors from the config.
+  // Prepared for future theme integration.
+  return payload;
+}
+

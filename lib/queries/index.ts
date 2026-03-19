@@ -45,3 +45,11 @@ export { useThemes } from "./useThemes";
 export type { ThemeSummary } from "./useThemes";
 
 export { useTwitchAuthStatus } from "./useTwitchAuthStatus";
+
+export { useTitleReveals } from "./useTitleReveals";
+export type {
+  TitleReveal,
+  TitleRevealLine,
+  CreateTitleRevealInput,
+  UpdateTitleRevealInput,
+} from "./useTitleReveals";

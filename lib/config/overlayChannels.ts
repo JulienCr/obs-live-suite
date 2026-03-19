@@ -12,6 +12,7 @@ export const OVERLAY_CHANNEL_ENDPOINTS: Record<OverlayChannel, string> = {
   [OverlayChannel.QUIZ]: "/api/overlays/quiz",
   [OverlayChannel.SYSTEM]: "/api/overlays/system",
   [OverlayChannel.WORD_HARVEST]: "/api/overlays/word-harvest",
+  [OverlayChannel.TITLE_REVEAL]: "/api/overlays/title-reveal",
 };
 
 /**
@@ -34,4 +35,5 @@ export const OVERLAY_STATE_CHANNELS: OverlayChannel[] = [
   OverlayChannel.COUNTDOWN,
   OverlayChannel.CHAT_HIGHLIGHT,
   OverlayChannel.WORD_HARVEST,
+  OverlayChannel.TITLE_REVEAL,
 ];

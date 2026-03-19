@@ -45,6 +45,12 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.posters.all, "detail", id] as const,
   },
 
+  titleReveals: {
+    all: ["titleReveals"] as const,
+    list: () => [...queryKeys.titleReveals.all, "list"] as const,
+    detail: (id: string) => [...queryKeys.titleReveals.all, "detail", id] as const,
+  },
+
   themes: {
     all: ["themes"] as const,
     list: () => [...queryKeys.themes.all, "list"] as const,

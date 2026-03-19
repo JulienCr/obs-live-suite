@@ -524,6 +524,25 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_workspaces_name ON workspaces(name);
       CREATE INDEX IF NOT EXISTS idx_workspaces_isDefault ON workspaces(isDefault);
       CREATE INDEX IF NOT EXISTS idx_text_presets_name ON text_presets(name);
+
+      CREATE TABLE IF NOT EXISTS title_reveals (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        lines TEXT NOT NULL,
+        logoUrl TEXT,
+        fontFamily TEXT NOT NULL DEFAULT 'Permanent Marker',
+        fontSize INTEGER NOT NULL DEFAULT 80,
+        rotation REAL NOT NULL DEFAULT -5,
+        colorText TEXT NOT NULL DEFAULT '#F5A623',
+        colorGhostBlue TEXT NOT NULL DEFAULT '#7B8DB5',
+        colorGhostNavy TEXT NOT NULL DEFAULT '#1B2A6B',
+        duration REAL NOT NULL DEFAULT 8.5,
+        sortOrder INTEGER NOT NULL DEFAULT 0,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_title_reveals_sortOrder ON title_reveals(sortOrder, name);
     `);
 
     this.logger.info("Database tables initialized");

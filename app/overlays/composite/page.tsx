@@ -4,6 +4,7 @@ import { CountdownRenderer } from "@/components/overlays/CountdownRenderer";
 import { LowerThirdRenderer } from "@/components/overlays/LowerThirdRenderer";
 import { PosterRenderer } from "@/components/overlays/PosterRenderer";
 import { ChatHighlightRenderer } from "@/components/overlays/ChatHighlightRenderer";
+import { TitleRevealRenderer } from "@/components/overlays/TitleRevealRenderer";
 import { WordHarvestRenderer } from "@/components/overlays/WordHarvestRenderer";
 
 /**
@@ -14,6 +15,8 @@ import { WordHarvestRenderer } from "@/components/overlays/WordHarvestRenderer";
  * - Countdown timer
  * - Poster display
  * - Chat Highlight overlay
+ * - Title Reveal overlay
+ * - Word Harvest overlay
  *
  * Each overlay manages its own WebSocket connection and visibility state independently.
  * Use this for a single OBS browser source, or use individual overlay pages for more control.
@@ -29,6 +32,9 @@ export default function CompositeOverlayPage() {
 
       {/* Chat Highlight for displaying Twitch/YouTube messages */}
       <ChatHighlightRenderer />
+
+      {/* Title Reveal for full-screen animated titles */}
+      <TitleRevealRenderer />
 
       {/* Word Harvest for improv word collection game */}
       <WordHarvestRenderer />

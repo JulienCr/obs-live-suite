@@ -24,6 +24,7 @@ export enum OverlayChannel {
   SYSTEM = "system",
   CHAT_HIGHLIGHT = "chat-highlight",
   WORD_HARVEST = "word-harvest",
+  TITLE_REVEAL = "title-reveal",
 }
 
 /**
@@ -83,6 +84,14 @@ export enum PosterEventType {
  */
 export enum ChatHighlightEventType {
   SHOW = "show",
+  HIDE = "hide",
+}
+
+/**
+ * Title reveal event types
+ */
+export enum TitleRevealEventType {
+  PLAY = "play",
   HIDE = "hide",
 }
 
@@ -293,6 +302,36 @@ export const chatHighlightShowPayloadSchema = z.object({
 });
 
 export type ChatHighlightShowPayload = z.infer<typeof chatHighlightShowPayloadSchema>;
+
+/**
+ * Title reveal line schema
+ */
+export const titleRevealLinePayloadSchema = z.object({
+  text: z.string(),
+  fontSize: z.number().int().positive().default(80),
+  alignment: z.enum(["l", "c", "r"]).default("l"),
+  offsetX: z.number().default(0),
+  offsetY: z.number().default(0),
+});
+
+/**
+ * Title reveal play event payload
+ */
+export const titleRevealPlayPayloadSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().optional(),
+  lines: z.array(titleRevealLinePayloadSchema).min(1),
+  logoUrl: z.string().nullable().optional(),
+  fontFamily: z.string().default("Permanent Marker"),
+  fontSize: z.number().int().positive().default(80),
+  rotation: z.number().default(-5),
+  colorText: z.string().default("#F5A623"),
+  colorGhostBlue: z.string().default("#7B8DB5"),
+  colorGhostNavy: z.string().default("#1B2A6B"),
+  duration: z.number().positive().default(8.5),
+});
+
+export type TitleRevealPlayPayload = z.infer<typeof titleRevealPlayPayloadSchema>;
 
 /**
  * Base overlay event schema
@@ -726,6 +765,37 @@ export type ChatHighlightEvent =
   | ChatHighlightHideEvent;
 
 // -----------------------------------------------------------------------------
+// Title Reveal Events
+// -----------------------------------------------------------------------------
+
+/**
+ * Event to play a title reveal animation.
+ * Contains all configuration needed to render the title.
+ */
+export interface TitleRevealPlayEvent {
+  type: "play";
+  payload: TitleRevealPlayPayload;
+  id: string;
+}
+
+/**
+ * Event to hide the title reveal overlay.
+ * Triggers the disappear animation immediately.
+ */
+export interface TitleRevealHideEvent {
+  type: "hide";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Discriminated union of all title reveal events.
+ */
+export type TitleRevealEvent =
+  | TitleRevealPlayEvent
+  | TitleRevealHideEvent;
+
+// -----------------------------------------------------------------------------
 // Generic Overlay Event Union
 // -----------------------------------------------------------------------------
 
@@ -738,13 +808,15 @@ export type TypedOverlayEvent =
   | CountdownEvent
   | PosterEvent
   | ChatHighlightEvent
-  | WordHarvestEvent;
+  | WordHarvestEvent
+  | TitleRevealEvent;
 
 // Event type sets for type guards - more maintainable than chained comparisons
 const LOWER_THIRD_EVENT_TYPES = new Set(["show", "hide", "update"]);
 const COUNTDOWN_EVENT_TYPES = new Set(["set", "start", "pause", "reset", "update", "add-time", "tick"]);
 const POSTER_EVENT_TYPES = new Set(["show", "hide", "next", "previous", "play", "pause", "seek", "mute", "unmute", "chapter-next", "chapter-previous", "chapter-jump"]);
 const CHAT_HIGHLIGHT_EVENT_TYPES = new Set(["show", "hide"]);
+const TITLE_REVEAL_EVENT_TYPES = new Set(["play", "hide"]);
 
 /**
  * Type guard to check if an event is a lower third event.
@@ -772,6 +844,13 @@ export function isPosterEvent(event: { type: string }): event is PosterEvent {
  */
 export function isChatHighlightEvent(event: { type: string }): event is ChatHighlightEvent {
   return CHAT_HIGHLIGHT_EVENT_TYPES.has(event.type);
+}
+
+/**
+ * Type guard to check if an event is a title reveal event.
+ */
+export function isTitleRevealEvent(event: { type: string }): event is TitleRevealEvent {
+  return TITLE_REVEAL_EVENT_TYPES.has(event.type);
 }
 
 // Re-export VideoChapter for convenience

@@ -18,6 +18,7 @@ import {
   UserCheck,
   Music,
   Wheat,
+  Sparkles,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -42,6 +43,7 @@ export const PANEL_IDS = [
   "mediaPlayerArtlist",
   "mediaPlayerYoutube",
   "wordHarvest",
+  "titleReveal",
 ] as const;
 
 export type PanelId = (typeof PANEL_IDS)[number];
@@ -136,6 +138,10 @@ export const PANEL_REGISTRY: Record<PanelId, PanelMeta> = {
   wordHarvest: {
     icon: Wheat,
     commandPaletteKeywords: ["panel", "widget", "word", "harvest", "recolte", "mots", "improv", "add"],
+  },
+  titleReveal: {
+    icon: Sparkles,
+    commandPaletteKeywords: ["panel", "widget", "title", "reveal", "animation", "titre", "add"],
   },
 };
 
