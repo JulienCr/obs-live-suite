@@ -10,6 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import { TitleRevealLineEditor } from "./TitleRevealLineEditor";
 import { TitleRevealPreview } from "./TitleRevealPreview";
 import type { TitleReveal, TitleRevealLine } from "@/lib/queries/useTitleReveals";
+import { TITLE_REVEAL } from "@/lib/config/Constants";
 
 interface TitleRevealEditorProps {
   initial: TitleReveal | null;
@@ -231,17 +232,15 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo }: Tit
                 disabled={isUploading}
               />
             </label>
+            <img src={logoUrl ?? TITLE_REVEAL.DEFAULT_LOGO_URL} alt="Logo" className="h-8 w-8 rounded object-contain" />
             {logoUrl && (
-              <>
-                <img src={logoUrl} alt="Logo" className="h-8 w-8 rounded object-contain" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setLogoUrl(null)}
-                >
-                  {t("removeLogo")}
-                </Button>
-              </>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLogoUrl(null)}
+              >
+                {t("removeLogo")}
+              </Button>
             )}
           </div>
         </div>

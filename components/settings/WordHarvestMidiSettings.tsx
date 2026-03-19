@@ -11,8 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, Music, Volume2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import type { WordHarvestMidiSettings as MidiSettingsState, WordHarvestMidiEvent as MidiEventConfig } from "@/lib/services/SettingsService";
-import { DEFAULT_WORD_HARVEST_MIDI_SETTINGS } from "@/lib/services/SettingsService";
+import type { WordHarvestMidiSettings as MidiSettingsState, WordHarvestMidiEvent as MidiEventConfig } from "@/lib/models/WordHarvest";
+import { DEFAULT_WORD_HARVEST_MIDI_SETTINGS } from "@/lib/models/WordHarvest";
 
 type MidiEventKey = keyof Omit<MidiSettingsState, "outputName">;
 
