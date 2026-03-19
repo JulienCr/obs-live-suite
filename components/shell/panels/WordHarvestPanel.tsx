@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Play, Square, Check, X, Eye, EyeOff, RotateCcw, PartyPopper } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import { useWordHarvestMidi, type MidiEventName } from "@/hooks/useWordHarvestMidi";
@@ -22,14 +23,6 @@ const PHASE_COLORS: Record<WordHarvestPhase, string> = {
   complete: "bg-green-500",
   performing: "bg-orange-500",
   done: "bg-green-500",
-};
-
-const PHASE_LABELS: Record<WordHarvestPhase, string> = {
-  idle: "En attente",
-  collecting: "Collecte",
-  complete: "Complet",
-  performing: "Performance",
-  done: "Termine",
 };
 
 const DEFAULT_STATE: WordHarvestState = {
@@ -49,6 +42,7 @@ const WS_TO_MIDI: Partial<Record<WordHarvestEventType, MidiEventName>> = {
 };
 
 export function WordHarvestPanel(_props: IDockviewPanelProps) {
+  const t = useTranslations("wordHarvest");
   const [state, setState] = useState<WordHarvestState>(DEFAULT_STATE);
   const [targetCount, setTargetCount] = useState<number>(WORD_HARVEST.DEFAULT_TARGET_COUNT);
   const { sendMidiEvent } = useWordHarvestMidi();
@@ -185,24 +179,24 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
         {/* Header: Phase badge + Start/Stop */}
         <div className="flex items-center justify-between">
           <Badge className={`${PHASE_COLORS[state.phase]} text-white`}>
-            {PHASE_LABELS[state.phase]}
+            {t(`phase.${state.phase}`)}
           </Badge>
           {isIdle ? (
             <Button variant="default" size="sm" onClick={handleStart}>
               <Play className="w-4 h-4 mr-2" />
-              Demarrer
+              {t("start")}
             </Button>
           ) : (
             <Button variant="destructive" size="sm" onClick={handleStop}>
               <Square className="w-4 h-4 mr-2" />
-              Arreter
+              {t("stop")}
             </Button>
           )}
         </div>
 
         {/* Config: Target word count */}
         <div className="space-y-1">
-          <label className="text-sm font-medium">Nombre de mots cible</label>
+          <label className="text-sm font-medium">{t("targetCount")}</label>
           <Input
             type="number"
             min={WORD_HARVEST.MIN_TARGET_COUNT}
@@ -217,7 +211,7 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
         {state.phase === "collecting" && state.pendingWords.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium">
-              Mots en attente ({state.pendingWords.length})
+              {t("pendingWords")} ({state.pendingWords.length})
             </h4>
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {state.pendingWords.map((word) => (
@@ -259,7 +253,7 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
         {totalApproved > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium">
-              Mots approuves — {usedCount}/{totalApproved} mots utilises
+              {t("approvedWords")} — {t("wordsUsed", { count: usedCount, total: totalApproved })}
             </h4>
             <div className="space-y-1 max-h-60 overflow-y-auto">
               {state.approvedWords.map((word, index) => (
@@ -290,7 +284,7 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
             onClick={handleStartPerforming}
           >
             <Play className="w-4 h-4 mr-2" />
-            Lancer l&apos;impro !
+            {t("startImprov")}
           </Button>
         )}
 
@@ -303,7 +297,7 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
             onClick={handleFinale}
           >
             <PartyPopper className="w-4 h-4 mr-2" />
-            Lancer le final !
+            {t("triggerFinale")}
           </Button>
         )}
 
@@ -317,7 +311,7 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
               onClick={handleHideOverlay}
             >
               <EyeOff className="w-4 h-4 mr-2" />
-              Masquer overlay
+              {t("hideOverlay")}
             </Button>
           ) : (
             <Button
@@ -327,7 +321,7 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
               onClick={handleShowOverlay}
             >
               <Eye className="w-4 h-4 mr-2" />
-              Afficher overlay
+              {t("showOverlay")}
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={handleReset}>

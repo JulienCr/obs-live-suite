@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, Music, Volume2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { WordHarvestMidiSettings as MidiSettingsState, WordHarvestMidiEvent as MidiEventConfig } from "@/lib/services/SettingsService";
 import { DEFAULT_WORD_HARVEST_MIDI_SETTINGS } from "@/lib/services/SettingsService";
 
@@ -19,26 +20,19 @@ const EVENT_KEYS: MidiEventKey[] = [
   "wordApproved", "wordUsed", "celebration", "improStart",
 ];
 
-const EVENT_LABELS: Record<MidiEventKey, { label: string; description: string }> = {
-  wordApproved: { label: "Mot validé", description: "Quand un mot est approuvé par la régie" },
-  wordUsed: { label: "Mot barré", description: "Quand un mot est utilisé dans l'impro" },
-  celebration: { label: "Objectif atteint", description: "Quand tous les mots cibles sont récoltés" },
-  improStart: { label: "Début impro", description: "Quand la phase d'impro démarre" },
-};
-
 function MidiEventRow({
   eventKey,
   config,
   onChange,
   onTest,
+  t,
 }: {
   eventKey: MidiEventKey;
   config: MidiEventConfig;
   onChange: (key: MidiEventKey, field: keyof MidiEventConfig, value: number | boolean) => void;
   onTest: (key: MidiEventKey) => void;
+  t: ReturnType<typeof useTranslations<"wordHarvest.settings">>;
 }) {
-  const info = EVENT_LABELS[eventKey];
-
   return (
     <div className="flex items-center gap-4 py-3 border-b last:border-0">
       <Switch
@@ -47,12 +41,12 @@ function MidiEventRow({
       />
 
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-sm">{info.label}</div>
-        <div className="text-xs text-muted-foreground">{info.description}</div>
+        <div className="font-medium text-sm">{t(`events.${eventKey}`)}</div>
+        <div className="text-xs text-muted-foreground">{t(`events.${eventKey}Desc`)}</div>
       </div>
 
       <div className="space-y-1 w-16">
-        <Label className="text-xs text-muted-foreground">Ch</Label>
+        <Label className="text-xs text-muted-foreground">{t("channel")}</Label>
         <Input
           type="number"
           min={1}
@@ -98,7 +92,7 @@ function MidiEventRow({
           className="h-8 w-8"
           disabled={!config.enabled}
           onClick={() => onTest(eventKey)}
-          title="Tester"
+          title={t("test")}
         >
           <Volume2 className="w-3.5 h-3.5" />
         </Button>
@@ -108,6 +102,7 @@ function MidiEventRow({
 }
 
 export function WordHarvestMidiSettings() {
+  const t = useTranslations("wordHarvest.settings");
   const { available: midiAvailable, outputs: midiOutputs, sendCC } = useMidi();
 
   const { data: settings, setData: setSettings, loading, saving, saveResult, save } =
@@ -116,7 +111,7 @@ export function WordHarvestMidiSettings() {
       initialState: DEFAULT_WORD_HARVEST_MIDI_SETTINGS,
       fromResponse: (res) => res.settings ?? DEFAULT_WORD_HARVEST_MIDI_SETTINGS,
       saveMethod: "POST",
-      successMessage: "Paramètres MIDI sauvegardés",
+      successMessage: t("savedSuccess"),
     });
 
   const handleChange = (
@@ -137,7 +132,7 @@ export function WordHarvestMidiSettings() {
   }, [settings, sendCC]);
 
   if (loading) {
-    return <div className="text-sm text-muted-foreground p-4">Chargement...</div>;
+    return <div className="text-sm text-muted-foreground p-4">{t("loading")}</div>;
   }
 
   return (
@@ -145,23 +140,23 @@ export function WordHarvestMidiSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Music className="w-5 h-5" />
-          MIDI — Récolte de mots
+          {t("midiTitle")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Configurez les messages MIDI CC envoyés pour chaque événement du jeu.
+          {t("midiDescription")}
         </p>
 
         <div className="space-y-1">
-          <Label className="text-sm font-medium">Sortie MIDI</Label>
+          <Label className="text-sm font-medium">{t("midiOutput")}</Label>
           {!midiAvailable ? (
             <p className="text-xs text-muted-foreground">
-              Web MIDI non disponible dans ce navigateur.
+              {t("midiNotAvailable")}
             </p>
           ) : midiOutputs.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              Aucun périphérique MIDI détecté. Connectez un device et rafraîchissez.
+              {t("noMidiDevices")}
             </p>
           ) : (
             <Select
@@ -171,10 +166,10 @@ export function WordHarvestMidiSettings() {
               }
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Sélectionner une sortie MIDI" />
+                <SelectValue placeholder={t("selectMidiOutput")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__auto__">Auto (premier disponible)</SelectItem>
+                <SelectItem value="__auto__">{t("autoFirstAvailable")}</SelectItem>
                 {midiOutputs.map((name) => (
                   <SelectItem key={name} value={name}>{name}</SelectItem>
                 ))}
@@ -190,13 +185,14 @@ export function WordHarvestMidiSettings() {
             config={settings[key]}
             onChange={handleChange}
             onTest={handleTest}
+            t={t}
           />
         ))}
 
         <div className="flex items-center gap-2 pt-4">
           <Button onClick={save} disabled={saving} size="sm">
             <Save className="w-4 h-4 mr-2" />
-            {saving ? "Sauvegarde..." : "Sauvegarder"}
+            {saving ? t("saving") : t("save")}
           </Button>
           {saveResult && (
             <span className={`text-xs ${saveResult.success ? "text-green-600" : "text-red-600"}`}>
