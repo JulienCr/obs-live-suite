@@ -308,14 +308,6 @@ describe("WordHarvestManager", () => {
       );
     });
 
-    it("auto-transitions to performing after 5s", () => {
-      manager.approveWord(manager.getState().pendingWords[0].id);
-      manager.approveWord(manager.getState().pendingWords[0].id);
-      expect(manager.getState().phase).toBe("complete");
-      jest.advanceTimersByTime(5000);
-      expect(manager.getState().phase).toBe("performing");
-    });
-
     it("unregisters chat listener on completion", () => {
       manager.approveWord(manager.getState().pendingWords[0].id);
       manager.approveWord(manager.getState().pendingWords[0].id);
@@ -325,17 +317,12 @@ describe("WordHarvestManager", () => {
 
   describe("markWordUsed / unmarkWordUsed", () => {
     beforeEach(() => {
-      jest.useFakeTimers();
       manager.startGame(2);
       capturedChatListener!(createMockChatMessage("#bateau"));
       capturedChatListener!(createMockChatMessage("#soleil"));
       manager.approveWord(manager.getState().pendingWords[0].id);
       manager.approveWord(manager.getState().pendingWords[0].id);
-      jest.advanceTimersByTime(5000); // Move to "performing"
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
+      manager.startPerforming(); // Manual transition to "performing"
     });
 
     it("marks word as used", () => {

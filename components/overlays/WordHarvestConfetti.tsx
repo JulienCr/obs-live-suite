@@ -23,8 +23,9 @@ export function WordHarvestConfetti({ active, onComplete }: WordHarvestConfettiP
     });
 
     const delays = [0, 400, 800];
+    const timers: ReturnType<typeof setTimeout>[] = [];
     delays.forEach((delay) => {
-      setTimeout(() => {
+      timers.push(setTimeout(() => {
         myConfetti({
           particleCount: 150,
           spread: 160,
@@ -33,15 +34,15 @@ export function WordHarvestConfetti({ active, onComplete }: WordHarvestConfettiP
           gravity: 0.8,
           ticks: 200,
         });
-      }, delay);
+      }, delay));
     });
 
     // Signal completion after confetti settles
-    const timer = setTimeout(() => {
+    timers.push(setTimeout(() => {
       onComplete?.();
-    }, 4000);
+    }, 4000));
 
-    return () => clearTimeout(timer);
+    return () => timers.forEach(clearTimeout);
   }, [active, onComplete]);
 
   // Reset firedRef when deactivated

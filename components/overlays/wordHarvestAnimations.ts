@@ -75,18 +75,6 @@ export const wordUsedVariants: Variants = {
 };
 
 // =============================================================================
-// Strikethrough Line — draws left to right
-// =============================================================================
-
-export const strikethroughVariants: Variants = {
-  hidden: { scaleX: 0 },
-  visible: {
-    scaleX: 1,
-    transition: { duration: 0.4, delay: 0.15, ease: "easeOut" },
-  },
-};
-
-// =============================================================================
 // Title Entry — spring drop from above (intro + celebration)
 // =============================================================================
 

@@ -10,29 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, Music, Volume2 } from "lucide-react";
-
-interface MidiEventConfig {
-  enabled: boolean;
-  channel: number;
-  cc: number;
-  value: number;
-}
-
-interface MidiSettingsState {
-  outputName: string;
-  wordApproved: MidiEventConfig;
-  wordUsed: MidiEventConfig;
-  celebration: MidiEventConfig;
-  improStart: MidiEventConfig;
-}
-
-const DEFAULT_STATE: MidiSettingsState = {
-  outputName: "",
-  wordApproved: { enabled: false, channel: 1, cc: 60, value: 127 },
-  wordUsed: { enabled: false, channel: 1, cc: 62, value: 127 },
-  celebration: { enabled: false, channel: 1, cc: 72, value: 127 },
-  improStart: { enabled: false, channel: 1, cc: 64, value: 127 },
-};
+import type { WordHarvestMidiSettings as MidiSettingsState, WordHarvestMidiEvent as MidiEventConfig } from "@/lib/services/SettingsService";
+import { DEFAULT_WORD_HARVEST_MIDI_SETTINGS } from "@/lib/services/SettingsService";
 
 type MidiEventKey = keyof Omit<MidiSettingsState, "outputName">;
 
@@ -134,8 +113,8 @@ export function WordHarvestMidiSettings() {
   const { data: settings, setData: setSettings, loading, saving, saveResult, save } =
     useSettings<{ settings: MidiSettingsState }, MidiSettingsState>({
       endpoint: "/api/settings/word-harvest-midi",
-      initialState: DEFAULT_STATE,
-      fromResponse: (res) => res.settings ?? DEFAULT_STATE,
+      initialState: DEFAULT_WORD_HARVEST_MIDI_SETTINGS,
+      fromResponse: (res) => res.settings ?? DEFAULT_WORD_HARVEST_MIDI_SETTINGS,
       saveMethod: "POST",
       successMessage: "Paramètres MIDI sauvegardés",
     });

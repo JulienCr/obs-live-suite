@@ -2,31 +2,10 @@
 
 import { useEffect, useCallback, useRef } from "react";
 import { useMidi } from "./useMidi";
+import type { WordHarvestMidiSettings } from "@/lib/services/SettingsService";
+import { DEFAULT_WORD_HARVEST_MIDI_SETTINGS } from "@/lib/services/SettingsService";
 
-interface MidiEventConfig {
-  enabled: boolean;
-  channel: number;
-  cc: number;
-  value: number;
-}
-
-interface MidiSettings {
-  outputName: string;
-  wordApproved: MidiEventConfig;
-  wordUsed: MidiEventConfig;
-  celebration: MidiEventConfig;
-  improStart: MidiEventConfig;
-}
-
-export type MidiEventName = keyof Omit<MidiSettings, "outputName">;
-
-const DEFAULT_SETTINGS: MidiSettings = {
-  outputName: "",
-  wordApproved: { enabled: false, channel: 1, cc: 60, value: 127 },
-  wordUsed: { enabled: false, channel: 1, cc: 62, value: 127 },
-  celebration: { enabled: false, channel: 1, cc: 72, value: 127 },
-  improStart: { enabled: false, channel: 1, cc: 64, value: 127 },
-};
+export type MidiEventName = keyof Omit<WordHarvestMidiSettings, "outputName">;
 
 /**
  * Word Harvest MIDI hook: loads settings from API, sends CC via useMidi.
@@ -34,7 +13,7 @@ const DEFAULT_SETTINGS: MidiSettings = {
  */
 export function useWordHarvestMidi() {
   const { available, sendCC } = useMidi();
-  const settingsRef = useRef<MidiSettings>(DEFAULT_SETTINGS);
+  const settingsRef = useRef<WordHarvestMidiSettings>(DEFAULT_WORD_HARVEST_MIDI_SETTINGS);
 
   // Load MIDI settings from API
   useEffect(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { m, AnimatePresence, useAnimationControls } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import type { HarvestWord, WordHarvestPhase } from "@/lib/models/WordHarvest";
 import { WordHarvestTitle } from "./WordHarvestTitle";
 import { WordHarvestSparkles } from "./WordHarvestSparkles";
@@ -12,9 +12,7 @@ import {
   breathingVariants,
   overlayFadeOutVariants,
 } from "./wordHarvestAnimations";
-
-const FONT_URL =
-  "https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap";
+import { WORD_HARVEST } from "@/lib/config/Constants";
 
 interface WordHarvestDisplayProps {
   words: HarvestWord[];
@@ -34,15 +32,13 @@ export function WordHarvestDisplay({
   allUsed,
 }: WordHarvestDisplayProps) {
   const listControls = useAnimationControls();
-  const fontLoaded = useRef(false);
 
-  // Load Permanent Marker font once
+  // Load Permanent Marker font once (module-level guard prevents duplicate <link> on remount)
   useEffect(() => {
-    if (fontLoaded.current) return;
-    fontLoaded.current = true;
+    if (document.querySelector(`link[href="${WORD_HARVEST.FONT_URL}"]`)) return;
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = FONT_URL;
+    link.href = WORD_HARVEST.FONT_URL;
     document.head.appendChild(link);
   }, []);
 

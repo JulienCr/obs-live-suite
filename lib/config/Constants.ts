@@ -716,6 +716,9 @@ export const WORD_HARVEST = {
 
   /** Sound: impro starts */
   SOUND_IMPRO_START: "/sounds/word-harvest-impro-start.wav",
+
+  /** Google Fonts URL for Permanent Marker */
+  FONT_URL: "https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap",
 } as const;
 
 // ============================================================================

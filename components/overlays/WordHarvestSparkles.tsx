@@ -5,6 +5,9 @@ import { m } from "framer-motion";
 import { sparkleVariant, SPARKLE_COLORS } from "./wordHarvestAnimations";
 
 const SPARKLE_COUNT = 12;
+const SPARKLE_VARIANTS = Array.from({ length: SPARKLE_COUNT }, (_, i) =>
+  sparkleVariant(i, SPARKLE_COUNT)
+);
 
 interface WordHarvestSparklesProps {
   active: boolean;
@@ -39,7 +42,7 @@ export function WordHarvestSparkles({ active }: WordHarvestSparklesProps) {
       {Array.from({ length: SPARKLE_COUNT }, (_, i) => (
         <m.div
           key={i}
-          variants={sparkleVariant(i, SPARKLE_COUNT)}
+          variants={SPARKLE_VARIANTS[i]}
           initial="initial"
           animate="animate"
           style={{

@@ -38,7 +38,12 @@ export function useMidi() {
       () => { if (!cancelled) setAvailable(false); }
     );
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (midiAccessRef.current) {
+        midiAccessRef.current.onstatechange = null;
+      }
+    };
   }, []);
 
   /**
@@ -68,7 +73,6 @@ export function useMidi() {
     const cc = params.cc & 0x7f;
     const val = params.value & 0x7f;
 
-    console.log(`[MIDI] CC: ch=${ch + 1} cc=${cc} val=${val} → ${output.name}`);
     output.send([statusByte, cc, val]);
   }, []);
 

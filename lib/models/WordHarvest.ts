@@ -116,20 +116,18 @@ export const wordHarvestWordUsedPayloadSchema = z.object({
 
 export type WordHarvestWordUsedPayload = z.infer<typeof wordHarvestWordUsedPayloadSchema>;
 
-export const wordHarvestCelebrationPayloadSchema = z.object({
+/** Shared schema for events that carry only targetCount */
+const wordHarvestTargetCountPayloadSchema = z.object({
   targetCount: z.number(),
 });
 
+export const wordHarvestCelebrationPayloadSchema = wordHarvestTargetCountPayloadSchema;
 export type WordHarvestCelebrationPayload = z.infer<typeof wordHarvestCelebrationPayloadSchema>;
 
-export const wordHarvestStartPerformingPayloadSchema = z.object({
-  targetCount: z.number(),
-});
+export const wordHarvestStartPerformingPayloadSchema = wordHarvestTargetCountPayloadSchema;
 export type WordHarvestStartPerformingPayload = z.infer<typeof wordHarvestStartPerformingPayloadSchema>;
 
-export const wordHarvestAllUsedPayloadSchema = z.object({
-  targetCount: z.number(),
-});
+export const wordHarvestAllUsedPayloadSchema = wordHarvestTargetCountPayloadSchema;
 export type WordHarvestAllUsedPayload = z.infer<typeof wordHarvestAllUsedPayloadSchema>;
 
 // =============================================================================

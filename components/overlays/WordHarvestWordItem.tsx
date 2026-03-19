@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { m, useAnimationControls } from "framer-motion";
 import type { HarvestWord } from "@/lib/models/WordHarvest";
 import {
   wordEntryVariants,
   wordUsedVariants,
-  strikethroughVariants,
   letterExplodeVariant,
   letterWobbleVariant,
   WORD_ITEM_COLOR,
@@ -15,7 +14,6 @@ import {
 
 const FONT_FAMILY = "'Permanent Marker', cursive";
 const FONT_SIZE = 32;
-const SHOW_STRIKETHROUGH = false;
 
 interface WordHarvestWordItemProps {
   word: HarvestWord;
@@ -23,33 +21,9 @@ interface WordHarvestWordItemProps {
   exploding: boolean;
 }
 
-/** Generate a wobbly SVG path that looks like a quick marker stroke */
-function markerStrikePath(width: number): string {
-  const segments = 5;
-  const step = width / segments;
-  let d = `M2 6`;
-  for (let i = 1; i <= segments; i++) {
-    const x = Math.round(i * step);
-    // Alternate y between 4 and 8 for a subtle wave
-    const y = i % 2 === 0 ? 4 : 8;
-    const cpX = Math.round(x - step * 0.5);
-    const cpY = i % 2 === 0 ? 9 : 3;
-    d += ` Q${cpX} ${cpY}, ${x} ${y}`;
-  }
-  return d;
-}
-
-/** Simple seeded pseudo-random (deterministic per word index) */
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed * 9301 + 49297) * 49297;
-  return x - Math.floor(x);
-}
-
 export function WordHarvestWordItem({ word, index, exploding }: WordHarvestWordItemProps) {
   const usedControls = useAnimationControls();
   const entryFlashed = useRef(false);
-  const wordRef = useRef<HTMLDivElement>(null);
-  const [wordWidth, setWordWidth] = useState(0);
 
   // Flash bright on first mount then settle
   useEffect(() => {
@@ -66,17 +40,6 @@ export function WordHarvestWordItem({ word, index, exploding }: WordHarvestWordI
   useEffect(() => {
     usedControls.start(word.used ? "used" : "unused");
   }, [word.used, usedControls]);
-
-  // Measure actual word width
-  useEffect(() => {
-    if (wordRef.current) {
-      setWordWidth(wordRef.current.scrollWidth);
-    }
-  });
-
-  // Subtle per-word randomness for strike position/rotation (deterministic)
-  const strikeRotate = useMemo(() => (seededRandom(index) - 0.5) * 2.5, [index]); // -1.25 to +1.25 deg
-  const strikeYShift = useMemo(() => (seededRandom(index + 100) - 0.5) * 4, [index]); // -2 to +2 px
 
   const displayText = `${index + 1}. ${word.word}`;
   const letters = useMemo(() => displayText.split(""), [displayText]);
@@ -126,7 +89,6 @@ export function WordHarvestWordItem({ word, index, exploding }: WordHarvestWordI
       layout
     >
       <m.div
-        ref={wordRef}
         variants={wordUsedVariants}
         animate={usedControls}
         style={{
@@ -154,35 +116,6 @@ export function WordHarvestWordItem({ word, index, exploding }: WordHarvestWordI
             {char}
           </m.span>
         ))}
-
-        {/* Hand-drawn marker strikethrough — sized to actual word width */}
-        {SHOW_STRIKETHROUGH && wordWidth > 0 && (
-          <m.svg
-            variants={strikethroughVariants}
-            initial="hidden"
-            animate={word.used ? "visible" : "hidden"}
-            viewBox={`0 0 ${wordWidth + 8} 12`}
-            style={{
-              position: "absolute",
-              left: -4,
-              top: "48%",
-              height: 14,
-              width: wordWidth + 8,
-              transformOrigin: "left",
-              overflow: "visible",
-              transform: `translateY(${strikeYShift}px) rotate(${strikeRotate}deg)`,
-            }}
-          >
-            <path
-              d={markerStrikePath(wordWidth + 8)}
-              fill="none"
-              stroke="rgba(255, 80, 60, 0.85)"
-              strokeWidth="3.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </m.svg>
-        )}
       </m.div>
     </m.div>
   );

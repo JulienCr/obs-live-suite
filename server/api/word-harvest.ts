@@ -28,9 +28,10 @@ router.get("/state", (_req, res) => {
  */
 router.post("/start", (req, res) => {
   try {
+    const manager = getManager();
     const parsed = startGamePayloadSchema.parse(req.body || {});
-    getManager().startGame(parsed.targetCount);
-    res.json(getManager().getState());
+    manager.startGame(parsed.targetCount);
+    res.json(manager.getState());
   } catch (error) {
     expressError(res, error, "Failed to start word harvest", { context: LOG_CONTEXT });
   }
@@ -42,8 +43,9 @@ router.post("/start", (req, res) => {
  */
 router.post("/stop", (_req, res) => {
   try {
-    getManager().stopGame();
-    res.json(getManager().getState());
+    const manager = getManager();
+    manager.stopGame();
+    res.json(manager.getState());
   } catch (error) {
     expressError(res, error, "Failed to stop word harvest", { context: LOG_CONTEXT });
   }
@@ -55,8 +57,9 @@ router.post("/stop", (_req, res) => {
  */
 router.post("/start-performing", (_req, res) => {
   try {
-    getManager().startPerforming();
-    res.json(getManager().getState());
+    const manager = getManager();
+    manager.startPerforming();
+    res.json(manager.getState());
   } catch (error) {
     expressError(res, error, "Failed to start performing", { context: LOG_CONTEXT });
   }
@@ -94,8 +97,9 @@ router.post("/reset", (_req, res) => {
  */
 router.post("/approve/:wordId", (req, res) => {
   try {
-    getManager().approveWord(req.params.wordId);
-    res.json(getManager().getState());
+    const manager = getManager();
+    manager.approveWord(req.params.wordId);
+    res.json(manager.getState());
   } catch (error) {
     expressError(res, error, "Failed to approve word", { context: LOG_CONTEXT });
   }
@@ -107,8 +111,9 @@ router.post("/approve/:wordId", (req, res) => {
  */
 router.post("/reject/:wordId", (req, res) => {
   try {
-    getManager().rejectWord(req.params.wordId);
-    res.json(getManager().getState());
+    const manager = getManager();
+    manager.rejectWord(req.params.wordId);
+    res.json(manager.getState());
   } catch (error) {
     expressError(res, error, "Failed to reject word", { context: LOG_CONTEXT });
   }
@@ -120,8 +125,9 @@ router.post("/reject/:wordId", (req, res) => {
  */
 router.post("/use/:wordId", (req, res) => {
   try {
-    getManager().markWordUsed(req.params.wordId);
-    res.json(getManager().getState());
+    const manager = getManager();
+    manager.markWordUsed(req.params.wordId);
+    res.json(manager.getState());
   } catch (error) {
     expressError(res, error, "Failed to mark word as used", { context: LOG_CONTEXT });
   }
@@ -133,8 +139,9 @@ router.post("/use/:wordId", (req, res) => {
  */
 router.post("/unuse/:wordId", (req, res) => {
   try {
-    getManager().unmarkWordUsed(req.params.wordId);
-    res.json(getManager().getState());
+    const manager = getManager();
+    manager.unmarkWordUsed(req.params.wordId);
+    res.json(manager.getState());
   } catch (error) {
     expressError(res, error, "Failed to unmark word", { context: LOG_CONTEXT });
   }

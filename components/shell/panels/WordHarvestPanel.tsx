@@ -9,30 +9,14 @@ import { Play, Square, Check, X, Eye, EyeOff, RotateCcw, PartyPopper } from "luc
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import { useWordHarvestMidi, type MidiEventName } from "@/hooks/useWordHarvestMidi";
+import { WordHarvestEventType, type WordHarvestPhase, type HarvestWord, type WordHarvestState } from "@/lib/models/WordHarvest";
+import { WORD_HARVEST } from "@/lib/config/Constants";
 
 const config: PanelConfig = { id: "wordHarvest", context: "dashboard" };
 
 const API_BASE = "/api/word-harvest";
 
-type Phase = "idle" | "collecting" | "complete" | "performing" | "done";
-
-interface HarvestWordData {
-  id: string;
-  word: string;
-  displayName: string;
-  used: boolean;
-  status: string;
-}
-
-interface WordHarvestState {
-  phase: Phase;
-  targetCount: number;
-  pendingWords: HarvestWordData[];
-  approvedWords: HarvestWordData[];
-  visible: boolean;
-}
-
-const PHASE_COLORS: Record<Phase, string> = {
+const PHASE_COLORS: Record<WordHarvestPhase, string> = {
   idle: "bg-gray-500",
   collecting: "bg-blue-500",
   complete: "bg-green-500",
@@ -40,7 +24,7 @@ const PHASE_COLORS: Record<Phase, string> = {
   done: "bg-green-500",
 };
 
-const PHASE_LABELS: Record<Phase, string> = {
+const PHASE_LABELS: Record<WordHarvestPhase, string> = {
   idle: "En attente",
   collecting: "Collecte",
   complete: "Complet",
@@ -50,25 +34,25 @@ const PHASE_LABELS: Record<Phase, string> = {
 
 const DEFAULT_STATE: WordHarvestState = {
   phase: "idle",
-  targetCount: 10,
+  targetCount: WORD_HARVEST.DEFAULT_TARGET_COUNT,
   pendingWords: [],
   approvedWords: [],
   visible: false,
 };
 
 /** Map WebSocket event types to MIDI event names */
-const WS_TO_MIDI: Record<string, MidiEventName> = {
-  "word-approved": "wordApproved",
-  "word-used": "wordUsed",
-  "celebration": "celebration",
-  "start-performing": "improStart",
+const WS_TO_MIDI: Partial<Record<WordHarvestEventType, MidiEventName>> = {
+  [WordHarvestEventType.WORD_APPROVED]: "wordApproved",
+  [WordHarvestEventType.WORD_USED]: "wordUsed",
+  [WordHarvestEventType.CELEBRATION]: "celebration",
+  [WordHarvestEventType.START_PERFORMING]: "improStart",
 };
 
 export function WordHarvestPanel(_props: IDockviewPanelProps) {
   const [state, setState] = useState<WordHarvestState>(DEFAULT_STATE);
-  const [targetCount, setTargetCount] = useState(10);
+  const [targetCount, setTargetCount] = useState<number>(WORD_HARVEST.DEFAULT_TARGET_COUNT);
   const { sendMidiEvent } = useWordHarvestMidi();
-  const prevPhaseRef = useRef<Phase>("idle");
+  const prevPhaseRef = useRef<WordHarvestPhase>("idle");
 
   const fetchState = useCallback(async () => {
     try {
@@ -90,7 +74,7 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
     }
   }, [sendMidiEvent]);
 
-  const handleWsEvent = useCallback((data: { type: string }) => {
+  const handleWsEvent = useCallback((data: { type: WordHarvestEventType }) => {
     // Send MIDI for matching event types
     const midiEvent = WS_TO_MIDI[data.type];
     if (midiEvent) {
@@ -150,7 +134,7 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
     }
   }, []);
 
-  const handleToggleUsed = useCallback(async (word: HarvestWordData) => {
+  const handleToggleUsed = useCallback(async (word: HarvestWord) => {
     const endpoint = word.used ? "unuse" : "use";
     try {
       await fetch(`${API_BASE}/${endpoint}/${word.id}`, { method: "POST" });
@@ -221,10 +205,10 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
           <label className="text-sm font-medium">Nombre de mots cible</label>
           <Input
             type="number"
-            min={3}
-            max={50}
+            min={WORD_HARVEST.MIN_TARGET_COUNT}
+            max={WORD_HARVEST.MAX_TARGET_COUNT}
             value={targetCount}
-            onChange={(e) => setTargetCount(Math.max(3, Math.min(50, parseInt(e.target.value) || 10)))}
+            onChange={(e) => setTargetCount(Math.max(WORD_HARVEST.MIN_TARGET_COUNT, Math.min(WORD_HARVEST.MAX_TARGET_COUNT, parseInt(e.target.value) || WORD_HARVEST.DEFAULT_TARGET_COUNT)))}
             disabled={!isIdle}
           />
         </div>
