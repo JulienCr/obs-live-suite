@@ -1,99 +1,115 @@
 "use client";
 
-import { m, AnimatePresence } from "framer-motion";
-import type { HarvestWord } from "@/lib/models/WordHarvest";
+import { m, AnimatePresence, useAnimationControls } from "framer-motion";
+import { useEffect, useRef } from "react";
+import type { HarvestWord, WordHarvestPhase } from "@/lib/models/WordHarvest";
+import { WordHarvestTitle } from "./WordHarvestTitle";
+import { WordHarvestSparkles } from "./WordHarvestSparkles";
+import { WordHarvestWordItem } from "./WordHarvestWordItem";
+import { WordHarvestConfetti } from "./WordHarvestConfetti";
 import {
-  wordEntryVariants,
-  celebrationVariants,
+  listShakeVariants,
+  breathingVariants,
+  overlayFadeOutVariants,
 } from "./wordHarvestAnimations";
+
+const FONT_URL =
+  "https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap";
 
 interface WordHarvestDisplayProps {
   words: HarvestWord[];
-  celebrating: boolean;
+  phase: WordHarvestPhase;
   targetCount: number;
+  celebrating: boolean;
+  titleVariant: "intro" | "celebration" | "go" | null;
+  allUsed: boolean;
 }
 
 export function WordHarvestDisplay({
   words,
-  celebrating,
+  phase,
   targetCount,
+  celebrating,
+  titleVariant,
+  allUsed,
 }: WordHarvestDisplayProps) {
+  const listControls = useAnimationControls();
+  const fontLoaded = useRef(false);
+
+  // Load Permanent Marker font once
+  useEffect(() => {
+    if (fontLoaded.current) return;
+    fontLoaded.current = true;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = FONT_URL;
+    document.head.appendChild(link);
+  }, []);
+
+  // Manage list animation state based on phase
+  useEffect(() => {
+    if (allUsed) return;
+
+    if (celebrating) {
+      listControls.start("shake").then(() => {
+        if (phase === "complete") {
+          listControls.start("breathing");
+        }
+      });
+    } else if (phase === "performing" || phase === "collecting") {
+      listControls.start("idle");
+    }
+  }, [celebrating, phase, allUsed, listControls]);
+
   return (
-    <>
-      {/* Word list - right side, vertically centered */}
+    <m.div
+      variants={overlayFadeOutVariants}
+      initial="visible"
+      animate={allUsed ? "fadeOut" : "visible"}
+    >
+      {/* Title overlay (intro / celebration / go) */}
+      <WordHarvestTitle variant={titleVariant} targetCount={targetCount} />
+
+      {/* Sparkles during title moments */}
+      <WordHarvestSparkles active={titleVariant !== null} />
+
+      {/* Word list — right side, always vertically centered */}
       <div
         style={{
           position: "fixed",
           right: 60,
-          top: "50%",
-          transform: "translateY(-50%)",
+          top: 0,
+          bottom: 0,
           display: "flex",
-          flexDirection: "column",
-          gap: 8,
+          alignItems: "center",
           zIndex: 10,
+          pointerEvents: "none",
         }}
       >
-        <AnimatePresence mode="popLayout">
-          {words.map((word, index) => (
-            <m.div
-              key={word.id}
-              variants={wordEntryVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              layout
-              style={{
-                padding: "8px 20px",
-                borderRadius: 8,
-                background: "rgba(0, 0, 0, 0.6)",
-                color: "white",
-                fontSize: 28,
-                fontWeight: 600,
-                whiteSpace: "nowrap",
-                textDecoration: word.used ? "line-through" : "none",
-                opacity: word.used ? 0.4 : 1,
-                transition: "opacity 0.3s ease, text-decoration 0.3s ease",
-              }}
-            >
-              {index + 1}. {word.word}
-            </m.div>
-          ))}
-        </AnimatePresence>
+        <m.div
+          variants={{ ...listShakeVariants, ...breathingVariants }}
+          animate={listControls}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}
+        >
+          <AnimatePresence mode="popLayout">
+            {words.map((word, index) => (
+              <WordHarvestWordItem
+                key={word.id}
+                word={word}
+                index={index}
+                exploding={allUsed}
+              />
+            ))}
+          </AnimatePresence>
+        </m.div>
       </div>
 
-      {/* Celebration overlay - centered on screen */}
-      <AnimatePresence>
-        {celebrating && (
-          <m.div
-            key="celebration"
-            variants={celebrationVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            style={{
-              position: "fixed",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 20,
-              pointerEvents: "none",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 96,
-                fontWeight: 800,
-                color: "white",
-                textShadow:
-                  "0 0 40px rgba(255, 200, 0, 0.8), 0 4px 12px rgba(0, 0, 0, 0.5)",
-              }}
-            >
-              {targetCount} mots !
-            </div>
-          </m.div>
-        )}
-      </AnimatePresence>
-    </>
+      {/* Confetti for finale */}
+      <WordHarvestConfetti active={allUsed} />
+    </m.div>
   );
 }

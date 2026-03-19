@@ -5,7 +5,11 @@ import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import { OverlayMotionProvider } from "./OverlayMotionProvider";
 import { WordHarvestDisplay } from "./WordHarvestDisplay";
 import { WordHarvestEventType } from "@/lib/models/WordHarvest";
-import type { HarvestWord, WordHarvestEvent } from "@/lib/models/WordHarvest";
+import type {
+  HarvestWord,
+  WordHarvestEvent,
+  WordHarvestPhase,
+} from "@/lib/models/WordHarvest";
 import { WORD_HARVEST } from "@/lib/config/Constants";
 
 function playSound(url: string) {
@@ -25,32 +29,45 @@ export function WordHarvestRenderer() {
   const [visible, setVisible] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [targetCount, setTargetCount] = useState(0);
+  const [phase, setPhase] = useState<WordHarvestPhase>("idle");
+  const [showTitle, setShowTitle] = useState<"intro" | "celebration" | "go" | null>(null);
+  const [allUsed, setAllUsed] = useState(false);
 
-  const prevPhaseRef = useRef<string>("idle");
-  const celebrationTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const prevPhaseRef = useRef<WordHarvestPhase>("idle");
+  const titleTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const goTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
+  const fadeoutTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const sendAckRef = useRef<(eventId: string, success?: boolean) => void>(
     () => {}
   );
 
   const handleEvent = useCallback((data: WordHarvestEvent) => {
     switch (data.type) {
-      case WordHarvestEventType.STATE_UPDATE:
+      case WordHarvestEventType.STATE_UPDATE: {
         setWords(data.payload.approvedWords);
         setVisible(data.payload.visible);
         setTargetCount(data.payload.targetCount);
-        // Play impro start sound when transitioning to performing phase
-        if (prevPhaseRef.current !== "performing" && data.payload.phase === "performing") {
-          playSound(WORD_HARVEST.SOUND_IMPRO_START);
+        setPhase(data.payload.phase);
 
+        // Show intro title when transitioning to collecting
+        if (
+          prevPhaseRef.current === "idle" &&
+          data.payload.phase === "collecting"
+        ) {
+          setShowTitle("intro");
+          titleTimeout.current = setTimeout(() => {
+            setShowTitle(null);
+          }, 2500);
         }
+
         prevPhaseRef.current = data.payload.phase;
         break;
+      }
 
       case WordHarvestEventType.WORD_APPROVED:
         setWords(data.payload.approvedWords);
         setTargetCount(data.payload.targetCount);
         playSound(WORD_HARVEST.SOUND_WORD_APPROVED);
-
         break;
 
       case WordHarvestEventType.WORD_USED:
@@ -62,7 +79,6 @@ export function WordHarvestRenderer() {
           )
         );
         playSound(WORD_HARVEST.SOUND_WORD_USED);
-
         break;
 
       case WordHarvestEventType.WORD_UNUSED:
@@ -78,14 +94,35 @@ export function WordHarvestRenderer() {
       case WordHarvestEventType.CELEBRATION:
         setCelebrating(true);
         setTargetCount(data.payload.targetCount);
+        setPhase("complete");
         playSound(WORD_HARVEST.SOUND_CELEBRATION);
 
-        if (celebrationTimeout.current) {
-          clearTimeout(celebrationTimeout.current);
-        }
-        celebrationTimeout.current = setTimeout(() => {
-          setCelebrating(false);
-        }, 5000);
+        // Show celebration title, then clear after 3s (breathing continues)
+        setShowTitle("celebration");
+        titleTimeout.current = setTimeout(() => {
+          setShowTitle(null);
+        }, 3000);
+        break;
+
+      case WordHarvestEventType.START_PERFORMING:
+        setCelebrating(false);
+        setPhase("performing");
+        setShowTitle("go");
+        playSound(WORD_HARVEST.SOUND_IMPRO_START);
+
+        goTimeout.current = setTimeout(() => {
+          setShowTitle(null);
+        }, 2500);
+        break;
+
+      case WordHarvestEventType.ALL_USED:
+        setAllUsed(true);
+        setPhase("done");
+
+        // Fade out overlay after explosion + confetti settle
+        fadeoutTimeout.current = setTimeout(() => {
+          setVisible(false);
+        }, 5500);
         break;
 
       case WordHarvestEventType.HIDE:
@@ -96,7 +133,10 @@ export function WordHarvestRenderer() {
         setWords([]);
         setVisible(false);
         setCelebrating(false);
+        setAllUsed(false);
         setTargetCount(0);
+        setPhase("idle");
+        setShowTitle(null);
         break;
     }
 
@@ -113,9 +153,9 @@ export function WordHarvestRenderer() {
 
   useEffect(() => {
     return () => {
-      if (celebrationTimeout.current) {
-        clearTimeout(celebrationTimeout.current);
-      }
+      if (titleTimeout.current) clearTimeout(titleTimeout.current);
+      if (goTimeout.current) clearTimeout(goTimeout.current);
+      if (fadeoutTimeout.current) clearTimeout(fadeoutTimeout.current);
     };
   }, []);
 
@@ -124,8 +164,11 @@ export function WordHarvestRenderer() {
       {visible && (
         <WordHarvestDisplay
           words={words}
-          celebrating={celebrating}
+          phase={phase}
           targetCount={targetCount}
+          celebrating={celebrating}
+          titleVariant={showTitle}
+          allUsed={allUsed}
         />
       )}
     </OverlayMotionProvider>

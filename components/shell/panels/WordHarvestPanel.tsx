@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Play, Square, Check, X, Eye, EyeOff, RotateCcw } from "lucide-react";
+import { Play, Square, Check, X, Eye, EyeOff, RotateCcw, PartyPopper } from "lucide-react";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import { useWordHarvestMidi, type MidiEventName } from "@/hooks/useWordHarvestMidi";
@@ -61,6 +61,7 @@ const WS_TO_MIDI: Record<string, MidiEventName> = {
   "word-approved": "wordApproved",
   "word-used": "wordUsed",
   "celebration": "celebration",
+  "start-performing": "improStart",
 };
 
 export function WordHarvestPanel(_props: IDockviewPanelProps) {
@@ -155,6 +156,22 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
       await fetch(`${API_BASE}/${endpoint}/${word.id}`, { method: "POST" });
     } catch (error) {
       console.error("Error toggling word used state:", error);
+    }
+  }, []);
+
+  const handleStartPerforming = useCallback(async () => {
+    try {
+      await fetch(`${API_BASE}/start-performing`, { method: "POST" });
+    } catch (error) {
+      console.error("Error starting improv:", error);
+    }
+  }, []);
+
+  const handleFinale = useCallback(async () => {
+    try {
+      await fetch(`${API_BASE}/finale`, { method: "POST" });
+    } catch (error) {
+      console.error("Error triggering finale:", error);
     }
   }, []);
 
@@ -278,6 +295,32 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
               ))}
             </div>
           </div>
+        )}
+
+        {/* Start improv button (complete phase) */}
+        {state.phase === "complete" && (
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+            onClick={handleStartPerforming}
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Lancer l&apos;impro !
+          </Button>
+        )}
+
+        {/* Trigger finale button (done phase — all words used, regie decides when) */}
+        {state.phase === "done" && (
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full bg-pink-600 hover:bg-pink-700 text-white"
+            onClick={handleFinale}
+          >
+            <PartyPopper className="w-4 h-4 mr-2" />
+            Lancer le final !
+          </Button>
         )}
 
         {/* Footer: Overlay toggle + Reset */}
