@@ -26,6 +26,8 @@ export enum WordHarvestEventType {
   WORD_USED = "word-used",
   WORD_UNUSED = "word-unused",
   CELEBRATION = "celebration",
+  START_PERFORMING = "start-performing",
+  ALL_USED = "all-used",
   HIDE = "hide",
   RESET = "reset",
 }
@@ -120,6 +122,16 @@ export const wordHarvestCelebrationPayloadSchema = z.object({
 
 export type WordHarvestCelebrationPayload = z.infer<typeof wordHarvestCelebrationPayloadSchema>;
 
+export const wordHarvestStartPerformingPayloadSchema = z.object({
+  targetCount: z.number(),
+});
+export type WordHarvestStartPerformingPayload = z.infer<typeof wordHarvestStartPerformingPayloadSchema>;
+
+export const wordHarvestAllUsedPayloadSchema = z.object({
+  targetCount: z.number(),
+});
+export type WordHarvestAllUsedPayload = z.infer<typeof wordHarvestAllUsedPayloadSchema>;
+
 // =============================================================================
 // Discriminated Union Event Types (for overlay renderer)
 // =============================================================================
@@ -166,6 +178,18 @@ export interface WordHarvestCelebrationEvent {
   id: string;
 }
 
+export interface WordHarvestStartPerformingEvent {
+  type: typeof WordHarvestEventType.START_PERFORMING;
+  payload: WordHarvestStartPerformingPayload;
+  id: string;
+}
+
+export interface WordHarvestAllUsedEvent {
+  type: typeof WordHarvestEventType.ALL_USED;
+  payload: WordHarvestAllUsedPayload;
+  id: string;
+}
+
 export interface WordHarvestHideEvent {
   type: typeof WordHarvestEventType.HIDE;
   payload?: undefined;
@@ -186,6 +210,8 @@ export type WordHarvestEvent =
   | WordHarvestWordUsedEvent
   | WordHarvestWordUnusedEvent
   | WordHarvestCelebrationEvent
+  | WordHarvestStartPerformingEvent
+  | WordHarvestAllUsedEvent
   | WordHarvestHideEvent
   | WordHarvestResetEvent;
 

@@ -19,8 +19,8 @@ import {
  *
  * During "collecting", chat messages matching #word or !mot word are queued
  * for moderation. The regie approves/rejects words. When the target count
- * is reached, the game transitions to "complete" (celebration), then
- * auto-transitions to "performing" where the regie strikes through used words.
+ * is reached, the game transitions to "complete" (celebration). The regie
+ * then manually triggers "performing" where they strike through used words.
  */
 export class WordHarvestManager {
   private static instance: WordHarvestManager;
@@ -173,10 +173,10 @@ export class WordHarvestManager {
     this.logger.info(`Word used: "${word.word}"`);
     this.publishEvent(WordHarvestEventType.WORD_USED, { wordId, used: true });
 
-    // Check if all words are used
+    // Check if all words are used — transition to "done" but wait for regie to trigger finale
     if (this.approvedWords.every((w) => w.used)) {
       this.phase = "done";
-      this.logger.info("All words used! Game done.");
+      this.logger.info("All words used! Waiting for regie to trigger finale.");
       this.publishStateUpdate();
     }
   }
@@ -203,6 +203,35 @@ export class WordHarvestManager {
     this.logger.info(`Word unmarked: "${word.word}"`);
     this.publishEvent(WordHarvestEventType.WORD_UNUSED, { wordId, used: false });
     this.publishStateUpdate();
+  }
+
+  startPerforming(): void {
+    if (this.phase !== "complete") {
+      throw new Error(`Cannot start performing in phase "${this.phase}"`);
+    }
+    this.phase = "performing";
+    this.logger.info("Improv started by regie");
+    this.publishEvent(WordHarvestEventType.START_PERFORMING, {
+      targetCount: this.targetCount,
+    });
+    this.publishStateUpdate();
+  }
+
+  triggerFinale(): void {
+    if (this.phase !== "done") {
+      throw new Error(`Cannot trigger finale in phase "${this.phase}"`);
+    }
+    this.logger.info("Finale triggered by regie — ending game");
+    this.publishEvent(WordHarvestEventType.ALL_USED, {
+      targetCount: this.targetCount,
+    });
+
+    // End the game after finale
+    this.phase = "idle";
+    this.visible = false;
+    this.pendingWords = [];
+    this.approvedWords = [];
+    this.seenWords.clear();
   }
 
   showOverlay(): void {
@@ -289,14 +318,6 @@ export class WordHarvestManager {
     this.publishEvent(WordHarvestEventType.CELEBRATION, {
       targetCount: this.targetCount,
     });
-
-    // Auto-transition to "performing" after a short delay
-    setTimeout(() => {
-      if (this.phase === "complete") {
-        this.phase = "performing";
-        this.publishStateUpdate();
-      }
-    }, 5000);
   }
 
   // ===========================================================================

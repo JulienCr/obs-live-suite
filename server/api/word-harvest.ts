@@ -50,6 +50,32 @@ router.post("/stop", (_req, res) => {
 });
 
 /**
+ * POST /api/word-harvest/start-performing
+ * Start the improv performance phase (regie manual trigger)
+ */
+router.post("/start-performing", (_req, res) => {
+  try {
+    getManager().startPerforming();
+    res.json(getManager().getState());
+  } catch (error) {
+    expressError(res, error, "Failed to start performing", { context: LOG_CONTEXT });
+  }
+});
+
+/**
+ * POST /api/word-harvest/finale
+ * Trigger the finale animation (regie manual trigger after all words used)
+ */
+router.post("/finale", (_req, res) => {
+  try {
+    getManager().triggerFinale();
+    res.json({ ok: true });
+  } catch (error) {
+    expressError(res, error, "Failed to trigger finale", { context: LOG_CONTEXT });
+  }
+});
+
+/**
  * POST /api/word-harvest/reset
  * Reset the word harvest game
  */
