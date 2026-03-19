@@ -14,6 +14,8 @@ import {
 } from "./wordHarvestAnimations";
 import { WORD_HARVEST } from "@/lib/config/Constants";
 
+let fontInjected = false;
+
 interface WordHarvestDisplayProps {
   words: HarvestWord[];
   phase: WordHarvestPhase;
@@ -35,7 +37,8 @@ export function WordHarvestDisplay({
 
   // Load Permanent Marker font once (module-level guard prevents duplicate <link> on remount)
   useEffect(() => {
-    if (document.querySelector(`link[href="${WORD_HARVEST.FONT_URL}"]`)) return;
+    if (fontInjected) return;
+    fontInjected = true;
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = WORD_HARVEST.FONT_URL;

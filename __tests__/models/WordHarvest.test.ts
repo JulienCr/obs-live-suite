@@ -17,8 +17,8 @@ describe("startGamePayloadSchema", () => {
     expect(result.targetCount).toBe(WORD_HARVEST.DEFAULT_TARGET_COUNT);
   });
 
-  it("applies default for empty body", () => {
-    const result = startGamePayloadSchema.parse({});
+  it("applies default when targetCount is undefined", () => {
+    const result = startGamePayloadSchema.parse({ targetCount: undefined });
     expect(result.targetCount).toBe(WORD_HARVEST.DEFAULT_TARGET_COUNT);
   });
 

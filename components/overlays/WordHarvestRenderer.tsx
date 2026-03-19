@@ -12,9 +12,17 @@ import type {
 } from "@/lib/models/WordHarvest";
 import { WORD_HARVEST } from "@/lib/config/Constants";
 
+const audioCache = new Map<string, HTMLAudioElement>();
+
 function playSound(url: string) {
   try {
-    new Audio(url).play();
+    let audio = audioCache.get(url);
+    if (!audio) {
+      audio = new Audio(url);
+      audioCache.set(url, audio);
+    }
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
   } catch {
     // Audio may fail in some browser source configs
   }

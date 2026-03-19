@@ -25,14 +25,13 @@ function MidiEventRow({
   config,
   onChange,
   onTest,
-  t,
 }: {
   eventKey: MidiEventKey;
   config: MidiEventConfig;
   onChange: (key: MidiEventKey, field: keyof MidiEventConfig, value: number | boolean) => void;
   onTest: (key: MidiEventKey) => void;
-  t: ReturnType<typeof useTranslations<"wordHarvest.settings">>;
 }) {
+  const t = useTranslations("wordHarvest.settings");
   return (
     <div className="flex items-center gap-4 py-3 border-b last:border-0">
       <Switch
@@ -185,7 +184,6 @@ export function WordHarvestMidiSettings() {
             config={settings[key]}
             onChange={handleChange}
             onTest={handleTest}
-            t={t}
           />
         ))}
 

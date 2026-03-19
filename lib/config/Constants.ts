@@ -703,7 +703,7 @@ export const WORD_HARVEST = {
   MAX_WORD_LENGTH: 30,
 
   /** Regex to extract words from chat messages: #word or !mot word */
-  WORD_COMMAND_REGEX: /^[#!](?:mot\s+)?(\S+)$/i,
+  WORD_COMMAND_REGEX: /^(?:#(\S+)|!mot\s+(\S+))$/i,
 
   /** Sound: word approved pop */
   SOUND_WORD_APPROVED: "/sounds/word-harvest-approved.wav",

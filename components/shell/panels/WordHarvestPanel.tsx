@@ -1,7 +1,7 @@
 "use client";
 
 import { type IDockviewPanelProps } from "dockview-react";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -46,18 +46,12 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
   const [state, setState] = useState<WordHarvestState>(DEFAULT_STATE);
   const [targetCount, setTargetCount] = useState<number>(WORD_HARVEST.DEFAULT_TARGET_COUNT);
   const { sendMidiEvent } = useWordHarvestMidi();
-  const prevPhaseRef = useRef<WordHarvestPhase>("idle");
 
   const fetchState = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/state`);
       if (res.ok) {
         const data = await res.json();
-        // Detect phase transition to "performing" for impro start MIDI
-        if (prevPhaseRef.current !== "performing" && data.phase === "performing") {
-          sendMidiEvent("improStart");
-        }
-        prevPhaseRef.current = data.phase;
         setState(data);
         if (data.targetCount) {
           setTargetCount(data.targetCount);
@@ -66,7 +60,7 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
     } catch (error) {
       console.error("Error fetching word harvest state:", error);
     }
-  }, [sendMidiEvent]);
+  }, []);
 
   const handleWsEvent = useCallback((data: { type: WordHarvestEventType }) => {
     // Send MIDI for matching event types

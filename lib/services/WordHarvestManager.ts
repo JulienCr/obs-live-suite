@@ -90,6 +90,9 @@ export class WordHarvestManager {
     this.unregisterChatListener();
     this.phase = "idle";
     this.visible = false;
+    this.pendingWords = [];
+    this.approvedWords = [];
+    this.seenWords.clear();
 
     this.logger.info("Word harvest stopped");
     this.publishEvent(WordHarvestEventType.HIDE);
@@ -107,6 +110,7 @@ export class WordHarvestManager {
 
     this.logger.info("Word harvest reset");
     this.publishEvent(WordHarvestEventType.RESET);
+    this.publishStateUpdate();
   }
 
   approveWord(wordId: string): void {
@@ -157,7 +161,7 @@ export class WordHarvestManager {
   }
 
   markWordUsed(wordId: string): void {
-    if (this.phase !== "performing" && this.phase !== "complete") {
+    if (this.phase !== "performing") {
       throw new Error(`Cannot mark words in phase "${this.phase}"`);
     }
 
@@ -232,6 +236,7 @@ export class WordHarvestManager {
     this.pendingWords = [];
     this.approvedWords = [];
     this.seenWords.clear();
+    this.publishStateUpdate();
   }
 
   showOverlay(): void {
@@ -303,7 +308,8 @@ export class WordHarvestManager {
   /** Extract a word from a chat message, or null if not a word command */
   extractWord(text: string): string | null {
     const match = text.trim().match(WORD_HARVEST.WORD_COMMAND_REGEX);
-    return match ? match[1] : null;
+    if (!match) return null;
+    return match[1] ?? match[2] ?? null;
   }
 
   // ===========================================================================

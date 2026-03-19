@@ -4,7 +4,7 @@ import { withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
 const LOG_CONTEXT = "[WordHarvestAPI:Start]";
 
 export const POST = withSimpleErrorHandler(async (request: Request) => {
-  const body = await request.json();
+  const body = await request.json().catch(() => ({}));
   return proxyToBackend("/api/word-harvest/start", {
     method: "POST",
     body,

@@ -14,6 +14,7 @@ interface WordHarvestTitleProps {
   onExitComplete?: () => void;
 }
 
+// Overlay text is intentionally in French (show language) — not routed through i18n
 export function WordHarvestTitle({ variant, targetCount, onExitComplete }: WordHarvestTitleProps) {
   const text = variant === "go"
     ? `${targetCount} mots ! Go !`

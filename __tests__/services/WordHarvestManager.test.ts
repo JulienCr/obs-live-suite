@@ -111,6 +111,30 @@ describe("WordHarvestManager", () => {
       expect(manager.getState().visible).toBe(false);
     });
 
+    it("clears pending and approved words", () => {
+      manager.startGame(5);
+      capturedChatListener!(createMockChatMessage("#bateau"));
+      capturedChatListener!(createMockChatMessage("#soleil"));
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      expect(manager.getState().approvedWords).toHaveLength(1);
+      expect(manager.getState().pendingWords).toHaveLength(1);
+
+      manager.stopGame();
+      expect(manager.getState().pendingWords).toHaveLength(0);
+      expect(manager.getState().approvedWords).toHaveLength(0);
+    });
+
+    it("clears seenWords so words can be resubmitted in new game", () => {
+      manager.startGame(5);
+      capturedChatListener!(createMockChatMessage("#bateau"));
+      expect(manager.getState().pendingWords).toHaveLength(1);
+
+      manager.stopGame();
+      manager.startGame(5);
+      capturedChatListener!(createMockChatMessage("#bateau"));
+      expect(manager.getState().pendingWords).toHaveLength(1);
+    });
+
     it("unregisters chat listener", () => {
       manager.startGame();
       manager.stopGame();
@@ -144,6 +168,17 @@ describe("WordHarvestManager", () => {
         undefined
       );
     });
+
+    it("publishes state update after reset", () => {
+      manager.startGame();
+      mockPublish.mockClear();
+      manager.resetGame();
+      expect(mockPublish).toHaveBeenCalledWith(
+        OverlayChannel.WORD_HARVEST,
+        WordHarvestEventType.STATE_UPDATE,
+        expect.objectContaining({ phase: "idle" })
+      );
+    });
   });
 
   describe("extractWord", () => {
@@ -169,6 +204,26 @@ describe("WordHarvestManager", () => {
 
     it("handles !MOT (case-insensitive)", () => {
       expect(manager.extractWord("!MOT test")).toBe("test");
+    });
+
+    it("rejects !command without mot prefix", () => {
+      expect(manager.extractWord("!bateau")).toBeNull();
+    });
+
+    it("rejects !a (quiz command)", () => {
+      expect(manager.extractWord("!a")).toBeNull();
+    });
+
+    it("rejects !rep (quiz command)", () => {
+      expect(manager.extractWord("!rep something")).toBeNull();
+    });
+
+    it("rejects !mot without a word", () => {
+      expect(manager.extractWord("!mot")).toBeNull();
+    });
+
+    it("rejects multi-word after hash", () => {
+      expect(manager.extractWord("#hello world")).toBeNull();
     });
   });
 
@@ -269,8 +324,12 @@ describe("WordHarvestManager", () => {
       expect(manager.getState().pendingWords).toHaveLength(1); // Only soleil
     });
 
-    it("throws for unknown word id", () => {
+    it("throws for unknown word id on approve", () => {
       expect(() => manager.approveWord("unknown")).toThrow('Word "unknown" not found in pending queue');
+    });
+
+    it("throws for unknown word id on reject", () => {
+      expect(() => manager.rejectWord("unknown")).toThrow('Word "unknown" not found in pending queue');
     });
 
     it("throws when not collecting", () => {
@@ -471,6 +530,25 @@ describe("WordHarvestManager", () => {
       expect(() => manager.triggerFinale()).toThrow('Cannot trigger finale in phase "performing"');
     });
 
+    it("publishes state update after finale", () => {
+      mockPublish.mockClear();
+      manager.triggerFinale();
+      expect(mockPublish).toHaveBeenCalledWith(
+        OverlayChannel.WORD_HARVEST,
+        WordHarvestEventType.STATE_UPDATE,
+        expect.objectContaining({ phase: "idle" })
+      );
+    });
+
+    it("clears seenWords so words can be reused in new game", () => {
+      manager.triggerFinale();
+      manager.startGame(2);
+      // Submit same words from the first game
+      capturedChatListener!(createMockChatMessage("#bateau"));
+      capturedChatListener!(createMockChatMessage("#soleil"));
+      expect(manager.getState().pendingWords).toHaveLength(2);
+    });
+
     it("allows starting a new game after finale", () => {
       manager.triggerFinale();
       expect(manager.getState().phase).toBe("idle");
@@ -481,7 +559,7 @@ describe("WordHarvestManager", () => {
   });
 
   describe("markWordUsed additional cases", () => {
-    it("works in complete phase", () => {
+    it("throws in complete phase", () => {
       manager.startGame(2);
       capturedChatListener!(createMockChatMessage("#bateau"));
       capturedChatListener!(createMockChatMessage("#soleil"));
@@ -490,8 +568,7 @@ describe("WordHarvestManager", () => {
       expect(manager.getState().phase).toBe("complete");
 
       const wordId = manager.getState().approvedWords[0].id;
-      manager.markWordUsed(wordId);
-      expect(manager.getState().approvedWords[0].used).toBe(true);
+      expect(() => manager.markWordUsed(wordId)).toThrow('Cannot mark words in phase "complete"');
     });
 
     it("throws in idle phase", () => {
@@ -501,23 +578,6 @@ describe("WordHarvestManager", () => {
     it("throws in collecting phase", () => {
       manager.startGame(5);
       expect(() => manager.markWordUsed("any")).toThrow('Cannot mark words in phase "collecting"');
-    });
-
-    it("publishes ALL_USED state transition when all marked in complete phase", () => {
-      manager.startGame(1);
-      capturedChatListener!(createMockChatMessage("#bateau"));
-      manager.approveWord(manager.getState().pendingWords[0].id);
-      expect(manager.getState().phase).toBe("complete");
-
-      const wordId = manager.getState().approvedWords[0].id;
-      mockPublish.mockClear();
-      manager.markWordUsed(wordId);
-      expect(manager.getState().phase).toBe("done");
-      expect(mockPublish).toHaveBeenCalledWith(
-        OverlayChannel.WORD_HARVEST,
-        WordHarvestEventType.STATE_UPDATE,
-        expect.objectContaining({ phase: "done" })
-      );
     });
   });
 
@@ -676,10 +736,14 @@ describe("WordHarvestManager", () => {
       expect(manager.getState().pendingWords).toHaveLength(0);
       expect(manager.getState().visible).toBe(false);
 
-      // Start new game
-      manager.startGame(3);
+      // Start new game — same words from game 1 should be accepted (seenWords cleared)
+      manager.startGame(2);
       expect(manager.getState().phase).toBe("collecting");
-      expect(manager.getState().targetCount).toBe(3);
+      expect(manager.getState().targetCount).toBe(2);
+
+      capturedChatListener!(createMockChatMessage("#bateau", "alice"));
+      capturedChatListener!(createMockChatMessage("#soleil", "bob"));
+      expect(manager.getState().pendingWords).toHaveLength(2);
     });
   });
 });

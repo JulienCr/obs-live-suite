@@ -218,7 +218,7 @@ export const GO_TEXT_STYLE = {
   background: "linear-gradient(135deg, #FF6347, #FF8C00, #FFD700)",
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent",
-  filter: "drop-shadow(0 4px 12px rgba(255, 99, 71, 0.5))",
+  textShadow: "0 4px 12px rgba(255, 99, 71, 0.5)",
 };
 
 // =============================================================================

@@ -12,6 +12,7 @@ interface WordHarvestConfettiProps {
 export function WordHarvestConfetti({ active, onComplete }: WordHarvestConfettiProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const firedRef = useRef(false);
+  const confettiRef = useRef<confetti.CreateTypes | null>(null);
 
   useEffect(() => {
     if (!active || firedRef.current || !canvasRef.current) return;
@@ -21,6 +22,7 @@ export function WordHarvestConfetti({ active, onComplete }: WordHarvestConfettiP
       resize: true,
       useWorker: true,
     });
+    confettiRef.current = myConfetti;
 
     const delays = [0, 400, 800];
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -42,7 +44,11 @@ export function WordHarvestConfetti({ active, onComplete }: WordHarvestConfettiP
       onComplete?.();
     }, 4000));
 
-    return () => timers.forEach(clearTimeout);
+    return () => {
+      timers.forEach(clearTimeout);
+      confettiRef.current?.reset();
+      confettiRef.current = null;
+    };
   }, [active, onComplete]);
 
   // Reset firedRef when deactivated

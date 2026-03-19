@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { m } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { sparkleVariant, SPARKLE_COLORS } from "./wordHarvestAnimations";
 
 const SPARKLE_COUNT = 12;
@@ -25,35 +25,39 @@ export function WordHarvestSparkles({ active }: WordHarvestSparklesProps) {
     setShow(false);
   }, [active]);
 
-  if (!show) return null;
-
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 19,
-        pointerEvents: "none",
-      }}
-    >
-      {Array.from({ length: SPARKLE_COUNT }, (_, i) => (
-        <m.div
-          key={i}
-          variants={SPARKLE_VARIANTS[i]}
-          initial="initial"
-          animate="animate"
+    <AnimatePresence>
+      {show && (
+        <div
+          key="sparkles"
           style={{
-            position: "absolute",
-            width: 10 + (i % 3) * 4,
-            height: 10 + (i % 3) * 4,
-            borderRadius: "50%",
-            background: SPARKLE_COLORS[i % SPARKLE_COLORS.length],
+            position: "fixed",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 19,
+            pointerEvents: "none",
           }}
-        />
-      ))}
-    </div>
+        >
+          {Array.from({ length: SPARKLE_COUNT }, (_, i) => (
+            <m.div
+              key={i}
+              variants={SPARKLE_VARIANTS[i]}
+              initial="initial"
+              animate="animate"
+              exit={{ opacity: 0, scale: 0 }}
+              style={{
+                position: "absolute",
+                width: 10 + (i % 3) * 4,
+                height: 10 + (i % 3) * 4,
+                borderRadius: "50%",
+                background: SPARKLE_COLORS[i % SPARKLE_COLORS.length],
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

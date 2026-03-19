@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { m, useAnimationControls } from "framer-motion";
 import type { HarvestWord } from "@/lib/models/WordHarvest";
 import {
   wordEntryVariants,
   wordUsedVariants,
   letterExplodeVariant,
-  letterWobbleVariant,
   WORD_ITEM_COLOR,
   WORD_ITEM_SHADOW,
 } from "./wordHarvestAnimations";
@@ -15,13 +14,26 @@ import {
 const FONT_FAMILY = "'Permanent Marker', cursive";
 const FONT_SIZE = 32;
 
+/** Subtle wobble applied to the whole word container (not per-letter) */
+const wordWobbleVariants = {
+  initial: { rotate: 0 },
+  wobble: {
+    rotate: [-1, 1, -1],
+    transition: {
+      duration: 3,
+      repeat: Infinity,
+      ease: "easeInOut" as const,
+    },
+  },
+};
+
 interface WordHarvestWordItemProps {
   word: HarvestWord;
   index: number;
   exploding: boolean;
 }
 
-export function WordHarvestWordItem({ word, index, exploding }: WordHarvestWordItemProps) {
+function WordHarvestWordItemInner({ word, index, exploding }: WordHarvestWordItemProps) {
   const usedControls = useAnimationControls();
   const entryFlashed = useRef(false);
 
@@ -45,10 +57,6 @@ export function WordHarvestWordItem({ word, index, exploding }: WordHarvestWordI
   const letters = useMemo(() => displayText.split(""), [displayText]);
   const explodeVariants = useMemo(
     () => letters.map((_, i) => letterExplodeVariant(i, letters.length)),
-    [letters]
-  );
-  const wobbleVariants = useMemo(
-    () => letters.map((_, i) => letterWobbleVariant(i)),
     [letters]
   );
 
@@ -79,14 +87,14 @@ export function WordHarvestWordItem({ word, index, exploding }: WordHarvestWordI
     );
   }
 
-  // --- Normal state: floating letters ---
+  // --- Normal state: whole-word wobble, static letters ---
   return (
     <m.div
       variants={wordEntryVariants}
       initial="initial"
       animate="animate"
       exit="exit"
-      layout
+      layout="position"
     >
       <m.div
         variants={wordUsedVariants}
@@ -99,24 +107,28 @@ export function WordHarvestWordItem({ word, index, exploding }: WordHarvestWordI
           color: WORD_ITEM_COLOR,
         }}
       >
-        {letters.map((char, i) => (
-          <m.span
-            key={i}
-            variants={wobbleVariants[i]}
-            initial="initial"
-            animate="wobble"
-            style={{
-              display: "inline-block",
-              fontFamily: FONT_FAMILY,
-              fontSize: FONT_SIZE,
-              textShadow: WORD_ITEM_SHADOW,
-              whiteSpace: "pre",
-            }}
-          >
-            {char}
-          </m.span>
-        ))}
+        <m.span
+          variants={wordWobbleVariants}
+          initial="initial"
+          animate="wobble"
+          style={{
+            display: "inline-block",
+            fontFamily: FONT_FAMILY,
+            fontSize: FONT_SIZE,
+            textShadow: WORD_ITEM_SHADOW,
+            whiteSpace: "pre",
+          }}
+        >
+          {displayText}
+        </m.span>
       </m.div>
     </m.div>
   );
 }
+
+export const WordHarvestWordItem = memo(WordHarvestWordItemInner, (prev, next) =>
+  prev.word.id === next.word.id &&
+  prev.word.used === next.word.used &&
+  prev.index === next.index &&
+  prev.exploding === next.exploding
+);
