@@ -371,19 +371,315 @@ describe("WordHarvestManager", () => {
     });
   });
 
+  describe("startPerforming", () => {
+    beforeEach(() => {
+      manager.startGame(2);
+      capturedChatListener!(createMockChatMessage("#bateau"));
+      capturedChatListener!(createMockChatMessage("#soleil"));
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      manager.approveWord(manager.getState().pendingWords[0].id);
+    });
+
+    it("transitions from complete to performing", () => {
+      expect(manager.getState().phase).toBe("complete");
+      manager.startPerforming();
+      expect(manager.getState().phase).toBe("performing");
+    });
+
+    it("publishes START_PERFORMING event with targetCount", () => {
+      mockPublish.mockClear();
+      manager.startPerforming();
+      expect(mockPublish).toHaveBeenCalledWith(
+        OverlayChannel.WORD_HARVEST,
+        WordHarvestEventType.START_PERFORMING,
+        { targetCount: 2 }
+      );
+    });
+
+    it("publishes STATE_UPDATE after START_PERFORMING", () => {
+      mockPublish.mockClear();
+      manager.startPerforming();
+      expect(mockPublish).toHaveBeenCalledWith(
+        OverlayChannel.WORD_HARVEST,
+        WordHarvestEventType.STATE_UPDATE,
+        expect.objectContaining({ phase: "performing" })
+      );
+    });
+
+    it("throws if in idle phase", () => {
+      manager.resetGame();
+      expect(() => manager.startPerforming()).toThrow('Cannot start performing in phase "idle"');
+    });
+
+    it("throws if in collecting phase", () => {
+      manager.resetGame();
+      manager.startGame(5);
+      expect(() => manager.startPerforming()).toThrow('Cannot start performing in phase "collecting"');
+    });
+
+    it("throws if already performing", () => {
+      manager.startPerforming();
+      expect(() => manager.startPerforming()).toThrow('Cannot start performing in phase "performing"');
+    });
+  });
+
+  describe("triggerFinale", () => {
+    beforeEach(() => {
+      manager.startGame(2);
+      capturedChatListener!(createMockChatMessage("#bateau"));
+      capturedChatListener!(createMockChatMessage("#soleil"));
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      manager.startPerforming();
+      manager.markWordUsed(manager.getState().approvedWords[0].id);
+      manager.markWordUsed(manager.getState().approvedWords[1].id);
+      // Now in "done" phase
+    });
+
+    it("publishes ALL_USED event with targetCount", () => {
+      mockPublish.mockClear();
+      manager.triggerFinale();
+      expect(mockPublish).toHaveBeenCalledWith(
+        OverlayChannel.WORD_HARVEST,
+        WordHarvestEventType.ALL_USED,
+        { targetCount: 2 }
+      );
+    });
+
+    it("resets all state after finale", () => {
+      manager.triggerFinale();
+      const state = manager.getState();
+      expect(state.phase).toBe("idle");
+      expect(state.visible).toBe(false);
+      expect(state.pendingWords).toHaveLength(0);
+      expect(state.approvedWords).toHaveLength(0);
+    });
+
+    it("throws if not in done phase", () => {
+      manager.triggerFinale(); // Now idle
+      expect(() => manager.triggerFinale()).toThrow('Cannot trigger finale in phase "idle"');
+    });
+
+    it("throws if in performing phase", () => {
+      // Reset and get to performing
+      (WordHarvestManager as any).instance = undefined;
+      manager = WordHarvestManager.getInstance();
+      manager.startGame(1);
+      capturedChatListener!(createMockChatMessage("#test"));
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      manager.startPerforming();
+      expect(() => manager.triggerFinale()).toThrow('Cannot trigger finale in phase "performing"');
+    });
+
+    it("allows starting a new game after finale", () => {
+      manager.triggerFinale();
+      expect(manager.getState().phase).toBe("idle");
+      manager.startGame(5);
+      expect(manager.getState().phase).toBe("collecting");
+      expect(manager.getState().targetCount).toBe(5);
+    });
+  });
+
+  describe("markWordUsed additional cases", () => {
+    it("works in complete phase", () => {
+      manager.startGame(2);
+      capturedChatListener!(createMockChatMessage("#bateau"));
+      capturedChatListener!(createMockChatMessage("#soleil"));
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      expect(manager.getState().phase).toBe("complete");
+
+      const wordId = manager.getState().approvedWords[0].id;
+      manager.markWordUsed(wordId);
+      expect(manager.getState().approvedWords[0].used).toBe(true);
+    });
+
+    it("throws in idle phase", () => {
+      expect(() => manager.markWordUsed("any")).toThrow('Cannot mark words in phase "idle"');
+    });
+
+    it("throws in collecting phase", () => {
+      manager.startGame(5);
+      expect(() => manager.markWordUsed("any")).toThrow('Cannot mark words in phase "collecting"');
+    });
+
+    it("publishes ALL_USED state transition when all marked in complete phase", () => {
+      manager.startGame(1);
+      capturedChatListener!(createMockChatMessage("#bateau"));
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      expect(manager.getState().phase).toBe("complete");
+
+      const wordId = manager.getState().approvedWords[0].id;
+      mockPublish.mockClear();
+      manager.markWordUsed(wordId);
+      expect(manager.getState().phase).toBe("done");
+      expect(mockPublish).toHaveBeenCalledWith(
+        OverlayChannel.WORD_HARVEST,
+        WordHarvestEventType.STATE_UPDATE,
+        expect.objectContaining({ phase: "done" })
+      );
+    });
+  });
+
+  describe("unmarkWordUsed additional cases", () => {
+    beforeEach(() => {
+      manager.startGame(2);
+      capturedChatListener!(createMockChatMessage("#bateau"));
+      capturedChatListener!(createMockChatMessage("#soleil"));
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      manager.startPerforming();
+    });
+
+    it("throws for unknown wordId", () => {
+      expect(() => manager.unmarkWordUsed("unknown")).toThrow('Word "unknown" not found in approved list');
+    });
+
+    it("throws in idle phase", () => {
+      manager.resetGame();
+      expect(() => manager.unmarkWordUsed("any")).toThrow('Cannot unmark words in phase "idle"');
+    });
+
+    it("throws in collecting phase", () => {
+      manager.resetGame();
+      manager.startGame(5);
+      expect(() => manager.unmarkWordUsed("any")).toThrow('Cannot unmark words in phase "collecting"');
+    });
+
+    it("throws in complete phase", () => {
+      // Reset to get to complete
+      manager.resetGame();
+      manager.startGame(1);
+      capturedChatListener!(createMockChatMessage("#test"));
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      expect(manager.getState().phase).toBe("complete");
+      expect(() => manager.unmarkWordUsed(manager.getState().approvedWords[0].id)).toThrow(
+        'Cannot unmark words in phase "complete"'
+      );
+    });
+
+    it("no-op if word already unused", () => {
+      const wordId = manager.getState().approvedWords[0].id;
+      expect(manager.getState().approvedWords[0].used).toBe(false);
+      mockPublish.mockClear();
+      manager.unmarkWordUsed(wordId);
+      expect(mockPublish).not.toHaveBeenCalled();
+    });
+
+    it("publishes WORD_UNUSED event", () => {
+      const wordId = manager.getState().approvedWords[0].id;
+      manager.markWordUsed(wordId);
+      mockPublish.mockClear();
+      manager.unmarkWordUsed(wordId);
+      expect(mockPublish).toHaveBeenCalledWith(
+        OverlayChannel.WORD_HARVEST,
+        WordHarvestEventType.WORD_UNUSED,
+        { wordId, used: false }
+      );
+    });
+  });
+
   describe("showOverlay / hideOverlay", () => {
-    it("toggles visibility", () => {
+    it("showOverlay sets visible to true", () => {
       manager.showOverlay();
       expect(manager.getState().visible).toBe(true);
+    });
 
+    it("showOverlay publishes STATE_UPDATE", () => {
+      mockPublish.mockClear();
+      manager.showOverlay();
+      expect(mockPublish).toHaveBeenCalledWith(
+        OverlayChannel.WORD_HARVEST,
+        WordHarvestEventType.STATE_UPDATE,
+        expect.objectContaining({ visible: true })
+      );
+    });
+
+    it("hideOverlay sets visible to false", () => {
+      manager.showOverlay();
       manager.hideOverlay();
-      // hideOverlay publishes HIDE event but doesn't trigger getState update via setState
-      // The event tells the overlay to hide
+      expect(manager.getState().visible).toBe(false);
+    });
+
+    it("hideOverlay publishes HIDE event", () => {
+      mockPublish.mockClear();
+      manager.hideOverlay();
       expect(mockPublish).toHaveBeenCalledWith(
         OverlayChannel.WORD_HARVEST,
         WordHarvestEventType.HIDE,
         undefined
       );
+    });
+  });
+
+  describe("chat processing edge cases", () => {
+    beforeEach(() => {
+      manager.startGame(5);
+    });
+
+    it("ignores too-long words (>30 chars)", () => {
+      capturedChatListener!(createMockChatMessage("#" + "a".repeat(31)));
+      expect(manager.getState().pendingWords).toHaveLength(0);
+    });
+
+    it("dedup persists after rejection — re-submit from different user ignored", () => {
+      capturedChatListener!(createMockChatMessage("#bateau", "user1"));
+      const wordId = manager.getState().pendingWords[0].id;
+      manager.rejectWord(wordId);
+
+      capturedChatListener!(createMockChatMessage("#bateau", "user2"));
+      expect(manager.getState().pendingWords).toHaveLength(0);
+    });
+
+    it("accepts word at exactly max length", () => {
+      capturedChatListener!(createMockChatMessage("#" + "a".repeat(30)));
+      expect(manager.getState().pendingWords).toHaveLength(1);
+    });
+
+    it("accepts word at exactly min length", () => {
+      capturedChatListener!(createMockChatMessage("#ab"));
+      expect(manager.getState().pendingWords).toHaveLength(1);
+    });
+  });
+
+  describe("full lifecycle", () => {
+    it("idle → collecting → complete → performing → done → finale → idle → new game", () => {
+      // Start
+      expect(manager.getState().phase).toBe("idle");
+      manager.startGame(2);
+      expect(manager.getState().phase).toBe("collecting");
+
+      // Collect words
+      capturedChatListener!(createMockChatMessage("#bateau", "alice"));
+      capturedChatListener!(createMockChatMessage("#soleil", "bob"));
+      expect(manager.getState().pendingWords).toHaveLength(2);
+
+      // Approve to target
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      manager.approveWord(manager.getState().pendingWords[0].id);
+      expect(manager.getState().phase).toBe("complete");
+      expect(manager.getState().approvedWords).toHaveLength(2);
+
+      // Start performing
+      manager.startPerforming();
+      expect(manager.getState().phase).toBe("performing");
+
+      // Mark all used
+      manager.markWordUsed(manager.getState().approvedWords[0].id);
+      manager.markWordUsed(manager.getState().approvedWords[1].id);
+      expect(manager.getState().phase).toBe("done");
+
+      // Trigger finale
+      manager.triggerFinale();
+      expect(manager.getState().phase).toBe("idle");
+      expect(manager.getState().approvedWords).toHaveLength(0);
+      expect(manager.getState().pendingWords).toHaveLength(0);
+      expect(manager.getState().visible).toBe(false);
+
+      // Start new game
+      manager.startGame(3);
+      expect(manager.getState().phase).toBe("collecting");
+      expect(manager.getState().targetCount).toBe(3);
     });
   });
 });
