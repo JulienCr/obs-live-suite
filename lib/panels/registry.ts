@@ -17,6 +17,7 @@ import {
   SendHorizontal,
   UserCheck,
   Music,
+  Wheat,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -40,6 +41,7 @@ export const PANEL_IDS = [
   "textPresets",
   "mediaPlayerArtlist",
   "mediaPlayerYoutube",
+  "wordHarvest",
 ] as const;
 
 export type PanelId = (typeof PANEL_IDS)[number];
@@ -130,6 +132,10 @@ export const PANEL_REGISTRY: Record<PanelId, PanelMeta> = {
     icon: Music,
     params: { driverId: "youtube" },
     commandPaletteKeywords: ["panel", "widget", "media", "player", "youtube", "video", "add"],
+  },
+  wordHarvest: {
+    icon: Wheat,
+    commandPaletteKeywords: ["panel", "widget", "word", "harvest", "recolte", "mots", "improv", "add"],
   },
 };
 

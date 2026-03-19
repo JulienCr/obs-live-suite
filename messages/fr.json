@@ -16,7 +16,8 @@
       "chatMessages": "Messages Chat",
       "textPresets": "Textes rapides",
       "mediaPlayerArtlist": "Player Artlist",
-      "mediaPlayerYoutube": "Player YouTube"
+      "mediaPlayerYoutube": "Player YouTube",
+      "wordHarvest": "Récolte de mots"
     },
     "header": {
       "connected": "Connecté",
@@ -64,6 +65,7 @@
       "showTextPresetsPanel": "Afficher le panneau Textes rapides",
       "showMediaPlayerArtlistPanel": "Afficher le panneau Player Artlist",
       "showMediaPlayerYoutubePanel": "Afficher le panneau Player YouTube",
+      "showWordHarvestPanel": "Afficher le panneau Récolte de mots",
       "noResults": "Aucun résultat"
     },
     "workspaces": {
@@ -380,6 +382,7 @@
       "overlays": "Overlays",
       "presenterChannel": "Canal présentateur",
       "chatMessages": "Messages Chat",
+      "wordHarvest": "Récolte de mots",
       "obs": "OBS",
       "twitch": "Twitch",
       "streamerbot": "Streamer.bot",
@@ -1028,6 +1031,59 @@
       "enable": "Activer",
       "disable": "Désactiver",
       "delete": "Supprimer"
+    }
+  },
+  "wordHarvest": {
+    "title": "Récolte de mots",
+    "start": "Démarrer",
+    "stop": "Arrêter",
+    "reset": "Réinitialiser",
+    "resetConfirm": "Réinitialiser la récolte de mots ?",
+    "targetCount": "Nombre de mots cible",
+    "pendingWords": "Mots en attente",
+    "approvedWords": "Mots validés",
+    "approve": "Valider",
+    "reject": "Rejeter",
+    "showOverlay": "Afficher l'overlay",
+    "hideOverlay": "Masquer l'overlay",
+    "wordsUsed": "{count}/{total} mots utilisés",
+    "noPending": "Aucun mot en attente",
+    "noWords": "Aucun mot validé",
+    "submittedBy": "par {name}",
+    "startImprov": "Lancer l'impro !",
+    "triggerFinale": "Lancer le final !",
+    "phase": {
+      "idle": "Inactif",
+      "collecting": "Collecte",
+      "complete": "Complet",
+      "performing": "Impro",
+      "done": "Terminé"
+    },
+    "settings": {
+      "description": "Configuration MIDI pour les événements du jeu de récolte de mots pendant les impros.",
+      "midiTitle": "MIDI — Récolte de mots",
+      "midiDescription": "Configurez les messages MIDI CC envoyés pour chaque événement du jeu.",
+      "midiOutput": "Sortie MIDI",
+      "midiNotAvailable": "Web MIDI non disponible dans ce navigateur.",
+      "noMidiDevices": "Aucun périphérique MIDI détecté. Connectez un device et rafraîchissez.",
+      "selectMidiOutput": "Sélectionner une sortie MIDI",
+      "autoFirstAvailable": "Auto (premier disponible)",
+      "channel": "Ch",
+      "test": "Tester",
+      "loading": "Chargement...",
+      "saving": "Sauvegarde...",
+      "save": "Sauvegarder",
+      "savedSuccess": "Paramètres MIDI sauvegardés",
+      "events": {
+        "wordApproved": "Mot validé",
+        "wordApprovedDesc": "Quand un mot est approuvé par la régie",
+        "wordUsed": "Mot barré",
+        "wordUsedDesc": "Quand un mot est utilisé dans l'impro",
+        "celebration": "Objectif atteint",
+        "celebrationDesc": "Quand tous les mots cibles sont récoltés",
+        "improStart": "Début impro",
+        "improStartDesc": "Quand la phase d'impro démarre"
+      }
     }
   },
   "quiz": {

@@ -16,7 +16,8 @@
       "chatMessages": "Chat Messages",
       "textPresets": "Quick LT",
       "mediaPlayerArtlist": "Artlist Player",
-      "mediaPlayerYoutube": "YouTube Player"
+      "mediaPlayerYoutube": "YouTube Player",
+      "wordHarvest": "Word Harvest"
     },
     "header": {
       "connected": "Connected",
@@ -64,6 +65,7 @@
       "showTextPresetsPanel": "Show Quick LT Panel",
       "showMediaPlayerArtlistPanel": "Show Artlist Player Panel",
       "showMediaPlayerYoutubePanel": "Show YouTube Player Panel",
+      "showWordHarvestPanel": "Show Word Harvest Panel",
       "noResults": "No results found"
     },
     "workspaces": {
@@ -380,6 +382,7 @@
       "overlays": "Overlays",
       "presenterChannel": "Presenter Channel",
       "chatMessages": "Chat Messages",
+      "wordHarvest": "Word Harvest",
       "obs": "OBS",
       "twitch": "Twitch",
       "streamerbot": "Streamer.bot",
@@ -1028,6 +1031,59 @@
       "enable": "Enable",
       "disable": "Disable",
       "delete": "Delete"
+    }
+  },
+  "wordHarvest": {
+    "title": "Word Harvest",
+    "start": "Start",
+    "stop": "Stop",
+    "reset": "Reset",
+    "resetConfirm": "Reset the word harvest?",
+    "targetCount": "Target word count",
+    "pendingWords": "Pending words",
+    "approvedWords": "Approved words",
+    "approve": "Approve",
+    "reject": "Reject",
+    "showOverlay": "Show overlay",
+    "hideOverlay": "Hide overlay",
+    "wordsUsed": "{count}/{total} words used",
+    "noPending": "No pending words",
+    "noWords": "No approved words",
+    "submittedBy": "by {name}",
+    "startImprov": "Start improv!",
+    "triggerFinale": "Trigger finale!",
+    "phase": {
+      "idle": "Idle",
+      "collecting": "Collecting",
+      "complete": "Complete",
+      "performing": "Performing",
+      "done": "Done"
+    },
+    "settings": {
+      "description": "MIDI configuration for word harvest game events during improv shows.",
+      "midiTitle": "MIDI — Word Harvest",
+      "midiDescription": "Configure MIDI CC messages sent for each game event.",
+      "midiOutput": "MIDI Output",
+      "midiNotAvailable": "Web MIDI not available in this browser.",
+      "noMidiDevices": "No MIDI devices detected. Connect a device and refresh.",
+      "selectMidiOutput": "Select a MIDI output",
+      "autoFirstAvailable": "Auto (first available)",
+      "channel": "Ch",
+      "test": "Test",
+      "loading": "Loading...",
+      "saving": "Saving...",
+      "save": "Save",
+      "savedSuccess": "MIDI settings saved",
+      "events": {
+        "wordApproved": "Word approved",
+        "wordApprovedDesc": "When a word is approved by the director",
+        "wordUsed": "Word struck",
+        "wordUsedDesc": "When a word is used in improv",
+        "celebration": "Target reached",
+        "celebrationDesc": "When all target words are collected",
+        "improStart": "Improv start",
+        "improStartDesc": "When the improv phase starts"
+      }
     }
   },
   "quiz": {

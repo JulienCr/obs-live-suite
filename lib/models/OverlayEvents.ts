@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { videoChapterSchema, endBehaviorSchema, VideoChapter } from "./Poster";
+import type { WordHarvestEvent } from "./WordHarvest";
+export type { WordHarvestEvent } from "./WordHarvest";
+export { isWordHarvestEvent, WordHarvestEventType } from "./WordHarvest";
 
 /**
  * Event source - where the event originated
@@ -20,6 +23,7 @@ export enum OverlayChannel {
   QUIZ = "quiz",
   SYSTEM = "system",
   CHAT_HIGHLIGHT = "chat-highlight",
+  WORD_HARVEST = "word-harvest",
 }
 
 /**
@@ -733,7 +737,8 @@ export type TypedOverlayEvent =
   | LowerThirdEvent
   | CountdownEvent
   | PosterEvent
-  | ChatHighlightEvent;
+  | ChatHighlightEvent
+  | WordHarvestEvent;
 
 // Event type sets for type guards - more maintainable than chained comparisons
 const LOWER_THIRD_EVENT_TYPES = new Set(["show", "hide", "update"]);

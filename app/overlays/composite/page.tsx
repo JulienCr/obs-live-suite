@@ -4,6 +4,7 @@ import { CountdownRenderer } from "@/components/overlays/CountdownRenderer";
 import { LowerThirdRenderer } from "@/components/overlays/LowerThirdRenderer";
 import { PosterRenderer } from "@/components/overlays/PosterRenderer";
 import { ChatHighlightRenderer } from "@/components/overlays/ChatHighlightRenderer";
+import { WordHarvestRenderer } from "@/components/overlays/WordHarvestRenderer";
 
 /**
  * Composite overlay page that combines all overlays into a single OBS Browser Source
@@ -28,6 +29,9 @@ export default function CompositeOverlayPage() {
 
       {/* Chat Highlight for displaying Twitch/YouTube messages */}
       <ChatHighlightRenderer />
+
+      {/* Word Harvest for improv word collection game */}
+      <WordHarvestRenderer />
 
       {/* Countdown is rendered last (top layer) */}
       <CountdownRenderer />

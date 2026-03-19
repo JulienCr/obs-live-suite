@@ -43,6 +43,7 @@ import {
   MessageSquare,
   Monitor,
   Send,
+  Wheat,
 } from "lucide-react";
 import { useAppMode } from "@/components/shell/AppModeContext";
 import { useOBSStatus, useStreamerbotStatus, useTwitchAuthStatus } from "@/lib/queries";
@@ -108,6 +109,7 @@ const NAVIGATION_SECTIONS: NavSection[] = [
       { labelKey: "presenterChannel", href: "/settings/presenter", icon: MessageSquare },
       { labelKey: "studioReturn", href: "/settings/studio-return", icon: Monitor },
       { labelKey: "chatMessages", href: "/settings/chat-messages", icon: Send },
+      { labelKey: "wordHarvest", href: "/settings/word-harvest", icon: Wheat },
     ],
   },
   {

@@ -88,6 +88,38 @@ export const GeneralSettingsSchema = z.object({
 
 export type GeneralSettings = z.infer<typeof GeneralSettingsSchema>;
 
+/**
+ * MIDI mapping for a single word harvest event
+ */
+const wordHarvestMidiEventSchema = z.object({
+  enabled: z.boolean().default(false),
+  channel: z.number().int().min(1).max(16).default(1),
+  cc: z.number().int().min(0).max(127).default(60),
+  value: z.number().int().min(0).max(127).default(127),
+});
+
+/**
+ * Word Harvest MIDI settings schema
+ */
+export const WordHarvestMidiSettingsSchema = z.object({
+  outputName: z.string().default(""),
+  wordApproved: wordHarvestMidiEventSchema.default({}),
+  wordUsed: wordHarvestMidiEventSchema.default({}),
+  celebration: wordHarvestMidiEventSchema.default({}),
+  improStart: wordHarvestMidiEventSchema.default({}),
+});
+
+export type WordHarvestMidiSettings = z.infer<typeof WordHarvestMidiSettingsSchema>;
+export type WordHarvestMidiEvent = z.infer<typeof wordHarvestMidiEventSchema>;
+
+export const DEFAULT_WORD_HARVEST_MIDI_SETTINGS: WordHarvestMidiSettings = {
+  outputName: "",
+  wordApproved: { enabled: false, channel: 1, cc: 60, value: 127 },
+  wordUsed: { enabled: false, channel: 1, cc: 62, value: 127 },
+  celebration: { enabled: false, channel: 1, cc: 72, value: 127 },
+  improStart: { enabled: false, channel: 1, cc: 64, value: 127 },
+};
+
 // ============================================================================
 // SETTINGS SERVICE
 // ============================================================================
@@ -110,6 +142,7 @@ export class SettingsService {
   private twitchStore: SettingsStore<typeof TwitchSettingsSchema.shape>;
   private presenterChannelStore: SettingsStore<typeof presenterChannelSettingsSchema.shape>;
   private studioReturnStore: SettingsStore<typeof StudioReturnSettingsSchema.shape>;
+  private wordHarvestMidiStore: SettingsStore<typeof WordHarvestMidiSettingsSchema.shape>;
 
   private constructor() {
     this.db = SettingsRepository.getInstance();
@@ -208,6 +241,14 @@ export class SettingsService {
       this.db,
       "studioReturn",
       StudioReturnSettingsSchema,
+      this.logger
+    );
+
+    // Initialize Word Harvest MIDI settings store
+    this.wordHarvestMidiStore = new SettingsStore(
+      this.db,
+      "wordHarvestMidi",
+      WordHarvestMidiSettingsSchema,
       this.logger
     );
   }
@@ -579,6 +620,25 @@ export class SettingsService {
    */
   saveStudioReturnMonitors(monitors: MonitorInfo[]): void {
     this.db.setSetting("studioReturn.monitors", JSON.stringify(monitors));
+  }
+
+  // =========================================================================
+  // WORD HARVEST MIDI SETTINGS
+  // =========================================================================
+
+  /**
+   * Get word harvest MIDI settings
+   */
+  getWordHarvestMidiSettings(): WordHarvestMidiSettings {
+    return this.wordHarvestMidiStore.get();
+  }
+
+  /**
+   * Save word harvest MIDI settings
+   */
+  saveWordHarvestMidiSettings(settings: Partial<WordHarvestMidiSettings>): void {
+    this.wordHarvestMidiStore.set(settings);
+    this.logger.info("Word harvest MIDI settings saved");
   }
 
   // =========================================================================
