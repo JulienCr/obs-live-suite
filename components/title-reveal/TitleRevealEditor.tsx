@@ -34,6 +34,11 @@ export type TitleRevealSaveData = {
 
 interface TitleRevealEditorProps {
   initial: TitleReveal | null;
+  defaults?: {
+    defaultLogoUrl?: string | null;
+    defaultSoundUrl?: string | null;
+    defaultDuration?: number;
+  };
   onSave: (data: TitleRevealSaveData) => void;
   onCancel: () => void;
   uploadLogo: (file: File) => Promise<string>;
@@ -49,7 +54,7 @@ const DEFAULT_LINE: TitleRevealLine = {
   offsetY: 0,
 };
 
-export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, uploadSound, onConfigChange }: TitleRevealEditorProps) {
+export function TitleRevealEditor({ initial, defaults, onSave, onCancel, uploadLogo, uploadSound, onConfigChange }: TitleRevealEditorProps) {
   const t = useTranslations("dashboard.titleReveal");
 
   const [name, setName] = useState(initial?.name ?? "");
@@ -59,13 +64,13 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, uploa
   const [fontFamily, setFontFamily] = useState(initial?.fontFamily ?? "Permanent Marker");
   const [fontSize, setFontSize] = useState(initial?.fontSize ?? 80);
   const [rotation, setRotation] = useState(initial?.rotation ?? -5);
-  const [duration, setDuration] = useState(initial?.duration ?? 8.5);
+  const [duration, setDuration] = useState(initial?.duration ?? defaults?.defaultDuration ?? 8.5);
   const [colorText, setColorText] = useState(initial?.colorText ?? "#F5A623");
   const [colorGhostBlue, setColorGhostBlue] = useState(initial?.colorGhostBlue ?? "#7B8DB5");
   const [colorGhostNavy, setColorGhostNavy] = useState(initial?.colorGhostNavy ?? "#1B2A6B");
-  const [logoUrl, setLogoUrl] = useState<string | null>(initial?.logoUrl ?? null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(initial?.logoUrl ?? defaults?.defaultLogoUrl ?? null);
   const [isUploading, setIsUploading] = useState(false);
-  const [soundUrl, setSoundUrl] = useState<string | null>(initial?.soundUrl ?? null);
+  const [soundUrl, setSoundUrl] = useState<string | null>(initial?.soundUrl ?? defaults?.defaultSoundUrl ?? null);
   const [isSoundUploading, setIsSoundUploading] = useState(false);
   const [midiEnabled, setMidiEnabled] = useState(initial?.midiEnabled ?? false);
   const [midiChannel, setMidiChannel] = useState(initial?.midiChannel ?? 1);

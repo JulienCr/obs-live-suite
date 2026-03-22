@@ -253,6 +253,7 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
               </DialogHeader>
               <TitleRevealEditor
                 initial={editingItem}
+                defaults={editingItem ? undefined : defaultsRef.current}
                 onSave={handleSave}
                 onCancel={() => {
                   setEditorOpen(false);
