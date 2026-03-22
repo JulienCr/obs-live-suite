@@ -67,6 +67,7 @@ export type UpdateTitleRevealInput = z.infer<typeof updateTitleRevealSchema>;
 export const TitleRevealDefaultsSchema = z.object({
   defaultLogoUrl: z.string().nullable().default(null),
   defaultSoundUrl: z.string().nullable().default(null),
+  defaultDuration: z.number().positive().default(6.5),
   midiEnabled: z.boolean().default(false),
   midiChannel: z.number().int().min(1).max(16).default(1),
   midiCc: z.number().int().min(0).max(127).default(60),

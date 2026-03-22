@@ -773,6 +773,8 @@
       "defaultLogo": "Logo par défaut",
       "defaultLogoDesc": "Logo utilisé quand un titre n'en définit pas un spécifiquement.",
       "uploadLogo": "Importer un logo",
+      "defaultDuration": "Durée par défaut (s)",
+      "defaultDurationDesc": "Durée d'affichage utilisée quand un titre n'en définit pas une spécifiquement.",
       "defaultSound": "Son par défaut",
       "defaultSoundDesc": "Son joué dans l'overlay quand un titre n'en définit pas un spécifiquement.",
       "uploadSound": "Importer un son",

@@ -131,6 +131,27 @@ export function TitleRevealDefaultsSettings() {
         </CardContent>
       </Card>
 
+      {/* Default Duration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            {t("defaultDuration")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">{t("defaultDurationDesc")}</p>
+          <Input
+            type="number"
+            min={1}
+            max={60}
+            step={0.5}
+            value={settings.defaultDuration}
+            onChange={(e) => setSettings((prev) => ({ ...prev, defaultDuration: Number(e.target.value) }))}
+            className="w-32"
+          />
+        </CardContent>
+      </Card>
+
       {/* Default Sound */}
       <Card>
         <CardHeader>

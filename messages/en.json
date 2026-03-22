@@ -773,6 +773,8 @@
       "defaultLogo": "Default Logo",
       "defaultLogoDesc": "Logo used when a title reveal doesn't define its own.",
       "uploadLogo": "Upload Logo",
+      "defaultDuration": "Default Duration (s)",
+      "defaultDurationDesc": "Display duration used when a title reveal doesn't define its own.",
       "defaultSound": "Default Sound",
       "defaultSoundDesc": "Sound played in the overlay when a title reveal doesn't define its own.",
       "uploadSound": "Upload Sound",

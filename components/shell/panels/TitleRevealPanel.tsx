@@ -87,8 +87,10 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
     const midiCc = item.midiEnabled ? item.midiCc : defaults.midiCc;
     const midiValue = item.midiEnabled ? item.midiValue : defaults.midiValue;
 
-    const { id, name, lines, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration } = item;
-    playTitleReveal({ id, name, lines, logoUrl: effectiveLogoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration, soundUrl: effectiveSoundUrl });
+    const effectiveDuration = item.duration ?? defaults.defaultDuration;
+
+    const { id, name, lines, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy } = item;
+    playTitleReveal({ id, name, lines, logoUrl: effectiveLogoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration: effectiveDuration, soundUrl: effectiveSoundUrl });
 
     // Send MIDI CC if enabled (per-item or default)
     if (midiEnabled) {
