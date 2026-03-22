@@ -13,6 +13,7 @@ export const OVERLAY_CHANNEL_ENDPOINTS: Record<OverlayChannel, string> = {
   [OverlayChannel.SYSTEM]: "/api/overlays/system",
   [OverlayChannel.WORD_HARVEST]: "/api/overlays/word-harvest",
   [OverlayChannel.TITLE_REVEAL]: "/api/overlays/title-reveal",
+  [OverlayChannel.SOMMAIRE]: "/api/overlays/sommaire",
 };
 
 /**

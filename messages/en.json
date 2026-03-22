@@ -18,7 +18,8 @@
       "mediaPlayerArtlist": "Artlist Player",
       "mediaPlayerYoutube": "YouTube Player",
       "wordHarvest": "Word Harvest",
-      "titleReveal": "Title Reveal"
+      "titleReveal": "Title Reveal",
+      "sommaire": "Table of Contents"
     },
     "header": {
       "connected": "Connected",
@@ -68,6 +69,7 @@
       "showMediaPlayerYoutubePanel": "Show YouTube Player Panel",
       "showWordHarvestPanel": "Show Word Harvest Panel",
       "showTitleRevealPanel": "Show Title Reveal Panel",
+      "showSommairePanel": "Show Table of Contents Panel",
       "noResults": "No results found"
     },
     "workspaces": {
@@ -413,6 +415,14 @@
       "midiCc": "MIDI CC",
       "midiValue": "MIDI Value",
       "testMidi": "Test MIDI"
+    },
+    "sommaire": {
+      "title": "Table of Contents",
+      "show": "Show",
+      "hide": "Hide",
+      "none": "None",
+      "noCategories": "No categories found. Use # for categories.",
+      "error": "Error controlling sommaire"
     }
   },
   "navigation": {

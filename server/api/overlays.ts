@@ -15,9 +15,11 @@ import {
   PosterEventType,
   ChatHighlightEventType,
   TitleRevealEventType,
+  SommaireEventType,
   OverlayChannel
 } from "../../lib/models/OverlayEvents";
-import { lowerThirdShowPayloadSchema, chatHighlightShowPayloadSchema, titleRevealPlayPayloadSchema } from "../../lib/models/OverlayEvents";
+import { lowerThirdShowPayloadSchema, chatHighlightShowPayloadSchema, titleRevealPlayPayloadSchema, sommaireShowPayloadSchema } from "../../lib/models/OverlayEvents";
+import { sommaireHighlightPayloadSchema } from "../../lib/models/Sommaire";
 import { enrichLowerThirdPayload, enrichCountdownPayload, enrichPosterPayload, enrichChatHighlightPayload, enrichTitleRevealPayload } from "../../lib/utils/themeEnrichment";
 import { updatePosterSourceInOBS } from "./obs-helpers";
 import { Logger } from "../../lib/utils/Logger";
@@ -324,6 +326,35 @@ router.post("/title-reveal", overlayHandler(async (req, res) => {
 }, "Title reveal operation failed"));
 
 /**
+ * POST /api/overlays/sommaire
+ * Control sommaire (table of contents) overlay
+ */
+router.post("/sommaire", overlayHandler(async (req, res) => {
+  const { action, payload } = req.body;
+
+  switch (action) {
+    case "show":
+      const validated = sommaireShowPayloadSchema.parse(payload);
+      await channelManager.publish(OverlayChannel.SOMMAIRE, SommaireEventType.SHOW, validated);
+      break;
+
+    case "hide":
+      await channelManager.publish(OverlayChannel.SOMMAIRE, SommaireEventType.HIDE);
+      break;
+
+    case "highlight":
+      const highlightPayload = sommaireHighlightPayloadSchema.parse(payload);
+      await channelManager.publish(OverlayChannel.SOMMAIRE, SommaireEventType.HIGHLIGHT, highlightPayload);
+      break;
+
+    default:
+      return res.status(400).json({ error: "Invalid action" });
+  }
+
+  res.json({ success: true });
+}, "Sommaire operation failed"));
+
+/**
  * POST /api/overlays/clear-all
  * Panic button - clears all overlays immediately
  */
@@ -337,6 +368,7 @@ router.post("/clear-all", overlayHandler(async (_req, res) => {
     channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.HIDE),
     channelManager.publish(OverlayChannel.CHAT_HIGHLIGHT, ChatHighlightEventType.HIDE),
     channelManager.publish(OverlayChannel.TITLE_REVEAL, TitleRevealEventType.HIDE),
+    channelManager.publish(OverlayChannel.SOMMAIRE, SommaireEventType.HIDE),
   ]);
 
   res.json({ success: true });

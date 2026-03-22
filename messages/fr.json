@@ -18,7 +18,8 @@
       "mediaPlayerArtlist": "Player Artlist",
       "mediaPlayerYoutube": "Player YouTube",
       "wordHarvest": "Récolte de mots",
-      "titleReveal": "Titre animé"
+      "titleReveal": "Titre animé",
+      "sommaire": "Sommaire"
     },
     "header": {
       "connected": "Connecté",
@@ -68,6 +69,7 @@
       "showMediaPlayerYoutubePanel": "Afficher le panneau Player YouTube",
       "showWordHarvestPanel": "Afficher le panneau Récolte de mots",
       "showTitleRevealPanel": "Afficher le panneau Titre animé",
+      "showSommairePanel": "Afficher le panneau Sommaire",
       "noResults": "Aucun résultat"
     },
     "workspaces": {
@@ -413,6 +415,14 @@
       "midiCc": "CC MIDI",
       "midiValue": "Valeur MIDI",
       "testMidi": "Tester MIDI"
+    },
+    "sommaire": {
+      "title": "Sommaire",
+      "show": "Afficher",
+      "hide": "Masquer",
+      "none": "Aucun",
+      "noCategories": "Aucune catégorie trouvée. Utilisez # pour les catégories.",
+      "error": "Erreur lors du contrôle du sommaire"
     }
   },
   "navigation": {
