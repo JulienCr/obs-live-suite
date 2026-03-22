@@ -222,3 +222,33 @@ const WORD_HARVEST_EVENT_TYPES = new Set(Object.values(WordHarvestEventType));
 export function isWordHarvestEvent(event: { type: string }): event is WordHarvestEvent {
   return WORD_HARVEST_EVENT_TYPES.has(event.type as WordHarvestEventType);
 }
+
+// =============================================================================
+// Word Harvest MIDI Settings (shared between client & server)
+// =============================================================================
+
+const wordHarvestMidiEventSchema = z.object({
+  enabled: z.boolean().default(false),
+  channel: z.number().int().min(1).max(16).default(1),
+  cc: z.number().int().min(0).max(127).default(60),
+  value: z.number().int().min(0).max(127).default(127),
+});
+
+export const WordHarvestMidiSettingsSchema = z.object({
+  outputName: z.string().default(""),
+  wordApproved: wordHarvestMidiEventSchema.default({}),
+  wordUsed: wordHarvestMidiEventSchema.default({}),
+  celebration: wordHarvestMidiEventSchema.default({}),
+  improStart: wordHarvestMidiEventSchema.default({}),
+});
+
+export type WordHarvestMidiSettings = z.infer<typeof WordHarvestMidiSettingsSchema>;
+export type WordHarvestMidiEvent = z.infer<typeof wordHarvestMidiEventSchema>;
+
+export const DEFAULT_WORD_HARVEST_MIDI_SETTINGS: WordHarvestMidiSettings = {
+  outputName: "",
+  wordApproved: { enabled: false, channel: 1, cc: 60, value: 127 },
+  wordUsed: { enabled: false, channel: 1, cc: 62, value: 127 },
+  celebration: { enabled: false, channel: 1, cc: 72, value: 127 },
+  improStart: { enabled: false, channel: 1, cc: 64, value: 127 },
+};

@@ -2,8 +2,8 @@
 
 import { useEffect, useCallback, useRef } from "react";
 import { useMidi } from "./useMidi";
-import type { WordHarvestMidiSettings } from "@/lib/services/SettingsService";
-import { DEFAULT_WORD_HARVEST_MIDI_SETTINGS } from "@/lib/services/SettingsService";
+import type { WordHarvestMidiSettings } from "@/lib/models/WordHarvest";
+import { DEFAULT_WORD_HARVEST_MIDI_SETTINGS } from "@/lib/models/WordHarvest";
 
 export type MidiEventName = keyof Omit<WordHarvestMidiSettings, "outputName">;
 

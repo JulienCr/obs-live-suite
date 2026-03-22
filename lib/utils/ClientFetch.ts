@@ -197,13 +197,14 @@ export async function apiPost<T>(
 ): Promise<T> {
   const { timeout, signal, headers = {} } = options;
 
+  const isFormData = data instanceof FormData;
   const response = await fetchWithTimeout(endpoint, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...headers,
     },
-    body: data !== undefined ? JSON.stringify(data) : undefined,
+    body: isFormData ? data : data !== undefined ? JSON.stringify(data) : undefined,
     timeout,
     signal,
   });
@@ -242,13 +243,14 @@ export async function apiPut<T>(
 ): Promise<T> {
   const { timeout, signal, headers = {} } = options;
 
+  const isFormData = data instanceof FormData;
   const response = await fetchWithTimeout(endpoint, {
     method: "PUT",
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...headers,
     },
-    body: data !== undefined ? JSON.stringify(data) : undefined,
+    body: isFormData ? data : data !== undefined ? JSON.stringify(data) : undefined,
     timeout,
     signal,
   });

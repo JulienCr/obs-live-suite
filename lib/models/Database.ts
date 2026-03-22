@@ -357,3 +357,36 @@ export interface DbWorkspaceSummary {
   isBuiltIn: boolean;
   sortOrder: number;
 }
+
+// Title Reveals (full-screen title animation)
+export interface DbTitleReveal {
+  id: string;
+  name: string;
+  lines: Array<{
+    text: string;
+    fontSize: number;
+    alignment: "l" | "c" | "r";
+    offsetX: number;
+    offsetY: number;
+  }>;
+  logoUrl: string | null;
+  fontFamily: string;
+  fontSize: number;
+  rotation: number;
+  colorText: string;
+  colorGhostBlue: string;
+  colorGhostNavy: string;
+  duration: number;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type DbTitleRevealInput = Omit<DbTitleReveal, 'createdAt' | 'updatedAt'> & {
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+export type DbTitleRevealUpdate = Partial<Omit<DbTitleReveal, 'id' | 'createdAt'>> & {
+  updatedAt?: Date;
+};

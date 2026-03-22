@@ -14,10 +14,11 @@ import {
   CountdownEventType,
   PosterEventType,
   ChatHighlightEventType,
+  TitleRevealEventType,
   OverlayChannel
 } from "../../lib/models/OverlayEvents";
-import { lowerThirdShowPayloadSchema, chatHighlightShowPayloadSchema } from "../../lib/models/OverlayEvents";
-import { enrichLowerThirdPayload, enrichCountdownPayload, enrichPosterPayload, enrichChatHighlightPayload } from "../../lib/utils/themeEnrichment";
+import { lowerThirdShowPayloadSchema, chatHighlightShowPayloadSchema, titleRevealPlayPayloadSchema } from "../../lib/models/OverlayEvents";
+import { enrichLowerThirdPayload, enrichCountdownPayload, enrichPosterPayload, enrichChatHighlightPayload, enrichTitleRevealPayload } from "../../lib/utils/themeEnrichment";
 import { updatePosterSourceInOBS } from "./obs-helpers";
 import { Logger } from "../../lib/utils/Logger";
 import { createContextHandler } from "../utils/expressRouteHandler";
@@ -298,6 +299,31 @@ router.post("/chat-highlight", overlayHandler(async (req, res) => {
 }, "Chat highlight operation failed"));
 
 /**
+ * POST /api/overlays/title-reveal
+ * Control title reveal overlay
+ */
+router.post("/title-reveal", overlayHandler(async (req, res) => {
+  const { action, payload } = req.body;
+
+  switch (action) {
+    case "play":
+      const validated = titleRevealPlayPayloadSchema.parse(payload);
+      const enrichedPayload = enrichTitleRevealPayload(validated);
+      await channelManager.publish(OverlayChannel.TITLE_REVEAL, TitleRevealEventType.PLAY, enrichedPayload);
+      break;
+
+    case "hide":
+      await channelManager.publish(OverlayChannel.TITLE_REVEAL, TitleRevealEventType.HIDE);
+      break;
+
+    default:
+      return res.status(400).json({ error: "Invalid action" });
+  }
+
+  res.json({ success: true });
+}, "Title reveal operation failed"));
+
+/**
  * POST /api/overlays/clear-all
  * Panic button - clears all overlays immediately
  */
@@ -310,6 +336,7 @@ router.post("/clear-all", overlayHandler(async (_req, res) => {
     channelManager.publish(OverlayChannel.POSTER, PosterEventType.HIDE),
     channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.HIDE),
     channelManager.publish(OverlayChannel.CHAT_HIGHLIGHT, ChatHighlightEventType.HIDE),
+    channelManager.publish(OverlayChannel.TITLE_REVEAL, TitleRevealEventType.HIDE),
   ]);
 
   res.json({ success: true });

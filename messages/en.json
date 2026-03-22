@@ -17,7 +17,8 @@
       "textPresets": "Quick LT",
       "mediaPlayerArtlist": "Artlist Player",
       "mediaPlayerYoutube": "YouTube Player",
-      "wordHarvest": "Word Harvest"
+      "wordHarvest": "Word Harvest",
+      "titleReveal": "Title Reveal"
     },
     "header": {
       "connected": "Connected",
@@ -66,6 +67,7 @@
       "showMediaPlayerArtlistPanel": "Show Artlist Player Panel",
       "showMediaPlayerYoutubePanel": "Show YouTube Player Panel",
       "showWordHarvestPanel": "Show Word Harvest Panel",
+      "showTitleRevealPanel": "Show Title Reveal Panel",
       "noResults": "No results found"
     },
     "workspaces": {
@@ -363,6 +365,45 @@
       "addFirst": "Add messages in settings or click Edit",
       "titlePlaceholder": "Title",
       "messagePlaceholder": "Message..."
+    },
+    "titleReveal": {
+      "title": "Title Reveal",
+      "noTitles": "No title reveals",
+      "newTitle": "New Title",
+      "editTitle": "Edit Title",
+      "play": "Play",
+      "hide": "Hide",
+      "edit": "Edit",
+      "delete": "Delete",
+      "confirmDelete": "Delete \"{name}\"?",
+      "confirmDeleteDesc": "This title reveal will be permanently deleted.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "name": "Name",
+      "namePlaceholder": "Enter title name...",
+      "lines": "Lines",
+      "addLine": "Add Line",
+      "removeLine": "Remove",
+      "text": "Text",
+      "textPlaceholder": "Enter text...",
+      "fontSize": "Font Size",
+      "alignment": "Alignment",
+      "offsetX": "Offset X",
+      "offsetY": "Offset Y",
+      "globalSettings": "Global Settings",
+      "fontFamily": "Font Family",
+      "fontFamilyPlaceholder": "e.g. Permanent Marker",
+      "rotation": "Rotation",
+      "duration": "Duration (s)",
+      "colorText": "Text Color",
+      "colorGhostBlue": "Ghost Blue",
+      "colorGhostNavy": "Ghost Navy",
+      "logo": "Logo",
+      "uploadLogo": "Upload Logo",
+      "removeLogo": "Remove Logo",
+      "preview": "Preview",
+      "playPreview": "Play Preview",
+      "duplicate": "Duplicate"
     }
   },
   "navigation": {

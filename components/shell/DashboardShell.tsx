@@ -28,6 +28,7 @@ import { ChatMessagesPanel } from "./panels/ChatMessagesPanel";
 import { TextPresetsPanel } from "./panels/TextPresetsPanel";
 import { MediaPlayerPanel } from "./panels/MediaPlayerPanel";
 import { WordHarvestPanel } from "./panels/WordHarvestPanel";
+import { TitleRevealPanel } from "./panels/TitleRevealPanel";
 import { DockviewContext } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { usePanelColorsStore, useWorkspacesStore, useDockviewStore } from "@/lib/stores";
@@ -61,6 +62,7 @@ const components = {
   mediaPlayerArtlist: MediaPlayerPanel,
   mediaPlayerYoutube: MediaPlayerPanel,
   wordHarvest: WordHarvestPanel,
+  titleReveal: TitleRevealPanel,
 } satisfies Record<PanelId, React.ComponentType<any>>;
 
 const tabComponents = {

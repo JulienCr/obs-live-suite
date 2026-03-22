@@ -78,6 +78,7 @@
     "dockview-react": "^4.13.1",
     "express": "^5.2.1",
     "framer-motion": "^12.34.2",
+    "gsap": "^3.14.2",
     "lucide-react": "^0.445.0",
     "next": "^15.5.12",
     "next-intl": "^4.8.3",
