@@ -14,7 +14,6 @@ import { FontSizeCombobox } from "./FontSizeCombobox";
 import type { TitleReveal, TitleRevealLine } from "@/lib/queries/useTitleReveals";
 import type { TitleRevealAnimConfig } from "@/lib/titleReveal";
 
-
 export type TitleRevealSaveData = {
   name: string;
   lines: TitleRevealLine[];
@@ -335,7 +334,7 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, uploa
                   min={1}
                   max={16}
                   value={midiChannel}
-                  onChange={(e) => setMidiChannel(Number(e.target.value))}
+                  onChange={(e) => setMidiChannel(Math.max(1, Math.min(16, parseInt(e.target.value) || 1)))}
                 />
               </div>
               <div className="space-y-1.5">
@@ -345,7 +344,7 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, uploa
                   min={0}
                   max={127}
                   value={midiCc}
-                  onChange={(e) => setMidiCc(Number(e.target.value))}
+                  onChange={(e) => setMidiCc(Math.max(0, Math.min(127, parseInt(e.target.value) || 0)))}
                 />
               </div>
               <div className="space-y-1.5">
@@ -355,7 +354,7 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, uploa
                   min={0}
                   max={127}
                   value={midiValue}
-                  onChange={(e) => setMidiValue(Number(e.target.value))}
+                  onChange={(e) => setMidiValue(Math.max(0, Math.min(127, parseInt(e.target.value) || 0)))}
                 />
               </div>
             </div>

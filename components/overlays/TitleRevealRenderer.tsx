@@ -10,23 +10,8 @@ import { TITLE_REVEAL_DEFAULTS } from "@/lib/titleReveal/animationDefaults";
 import type { TitleRevealAnimConfig } from "@/lib/titleReveal/types";
 import type { TitleRevealEvent } from "@/lib/models/OverlayEvents";
 import { OverlayChannel } from "@/lib/models/OverlayEvents";
+import { playSound } from "@/lib/utils/audioPlayer";
 import "@/components/overlays/title-reveal-styles.css";
-
-const audioCache = new Map<string, HTMLAudioElement>();
-
-function playSound(url: string) {
-  try {
-    let audio = audioCache.get(url);
-    if (!audio) {
-      audio = new Audio(url);
-      audioCache.set(url, audio);
-    }
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  } catch {
-    // Audio may fail in some browser source configs
-  }
-}
 
 /**
  * TitleRevealRenderer manages WebSocket connection and GSAP animation

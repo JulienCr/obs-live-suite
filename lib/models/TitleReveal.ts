@@ -75,11 +75,4 @@ export const TitleRevealDefaultsSchema = z.object({
 
 export type TitleRevealDefaults = z.infer<typeof TitleRevealDefaultsSchema>;
 
-export const DEFAULT_TITLE_REVEAL_DEFAULTS: TitleRevealDefaults = {
-  defaultLogoUrl: null,
-  defaultSoundUrl: null,
-  midiEnabled: false,
-  midiChannel: 1,
-  midiCc: 60,
-  midiValue: 127,
-};
+export const DEFAULT_TITLE_REVEAL_DEFAULTS: TitleRevealDefaults = TitleRevealDefaultsSchema.parse({});

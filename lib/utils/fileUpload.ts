@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { spawn } from "child_process";
 import { PathManager } from "../config/PathManager";
 
-type UploadSubfolder = "posters" | "guests" | "quiz" | "title-logos";
+type UploadSubfolder = "posters" | "guests" | "quiz" | "title-logos" | "title-sounds";
 
 /**
  * Ensure an upload subdirectory exists and return its absolute path.
@@ -18,7 +18,7 @@ export async function getUploadDir(subfolder: UploadSubfolder): Promise<string> 
 }
 
 export interface UploadOptions {
-  subfolder: "posters" | "guests" | "quiz" | "title-logos";
+  subfolder: UploadSubfolder;
   allowedTypes: string[];
   maxSizeMB?: number;
 }

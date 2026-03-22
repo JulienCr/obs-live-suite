@@ -3,17 +3,7 @@ import {
   ApiResponses,
   withSimpleErrorHandler,
 } from "@/lib/utils/ApiResponses";
-
-const AUDIO_TYPES = [
-  "audio/mpeg",
-  "audio/mp3",
-  "audio/wav",
-  "audio/ogg",
-  "audio/webm",
-  "audio/aac",
-  "audio/flac",
-  "audio/x-wav",
-];
+import { AUDIO_TYPES } from "@/lib/filetypes";
 
 const LOG_CONTEXT = "[TitleRevealsAPI:UploadSound]";
 

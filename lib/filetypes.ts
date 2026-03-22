@@ -12,3 +12,14 @@ export const VIDEO_TYPES = [
   "video/webm",
   "video/quicktime",
 ];
+
+export const AUDIO_TYPES = [
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/ogg",
+  "audio/webm",
+  "audio/aac",
+  "audio/flac",
+  "audio/x-wav",
+];

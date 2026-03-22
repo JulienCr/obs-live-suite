@@ -12,6 +12,9 @@ import type { TitleReveal } from "@/lib/queries/useTitleReveals";
 import { TitleRevealEditor } from "@/components/title-reveal/TitleRevealEditor";
 import { TitleRevealPreview } from "@/components/title-reveal/TitleRevealPreview";
 import type { TitleRevealAnimConfig } from "@/lib/titleReveal";
+import type { TitleRevealSaveData } from "@/components/title-reveal/TitleRevealEditor";
+import type { TitleRevealDefaults } from "@/lib/models/TitleReveal";
+import { DEFAULT_TITLE_REVEAL_DEFAULTS } from "@/lib/models/TitleReveal";
 import { toast } from "sonner";
 import { useMidi } from "@/hooks/useMidi";
 import {
@@ -42,21 +45,7 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
 
   const { sendCC } = useMidi();
   const midiOutputRef = useRef("");
-  const defaultsRef = useRef<{
-    defaultLogoUrl: string | null;
-    defaultSoundUrl: string | null;
-    midiEnabled: boolean;
-    midiChannel: number;
-    midiCc: number;
-    midiValue: number;
-  }>({
-    defaultLogoUrl: null,
-    defaultSoundUrl: null,
-    midiEnabled: false,
-    midiChannel: 1,
-    midiCc: 60,
-    midiValue: 127,
-  });
+  const defaultsRef = useRef<TitleRevealDefaults>(DEFAULT_TITLE_REVEAL_DEFAULTS);
 
   useEffect(() => {
     // Load title reveal defaults
@@ -136,23 +125,7 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
     setDeleteTarget(null);
   };
 
-  const handleSave = async (data: {
-    name: string;
-    lines: TitleReveal["lines"];
-    logoUrl: string | null;
-    fontFamily: string;
-    fontSize: number;
-    rotation: number;
-    colorText: string;
-    colorGhostBlue: string;
-    colorGhostNavy: string;
-    duration: number;
-    soundUrl: string | null;
-    midiEnabled: boolean;
-    midiChannel: number;
-    midiCc: number;
-    midiValue: number;
-  }) => {
+  const handleSave = async (data: TitleRevealSaveData) => {
     try {
       if (editingItem) {
         await updateTitleRevealAsync({ id: editingItem.id, ...data });
