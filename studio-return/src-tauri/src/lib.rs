@@ -7,29 +7,105 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 const DEFAULT_APP_PORT: u16 = 3000;
 const SETTINGS_POLL_INTERVAL_SECS: u64 = 30;
 
+// ---- Config file support ----
+
+/// Configuration loaded from `config.json` next to the executable.
+#[derive(Debug, Deserialize, Default)]
+struct Config {
+    /// Full URL (e.g. "https://edison:3000") — overrides host/port/use_https
+    url: Option<String>,
+    /// Hostname (default: "127.0.0.1")
+    host: Option<String>,
+    /// Port (default: 3000)
+    port: Option<u16>,
+    /// Force HTTPS if true
+    use_https: Option<bool>,
+}
+
+/// Load `config.json` from next to the executable, or from the current working directory.
+fn load_config() -> Config {
+    let candidates = [
+        std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|d| d.join("config.json"))),
+        std::env::current_dir()
+            .ok()
+            .map(|d| d.join("config.json")),
+    ];
+
+    for candidate in candidates.iter().flatten() {
+        if candidate.exists() {
+            match std::fs::read_to_string(candidate) {
+                Ok(contents) => match serde_json::from_str::<Config>(&contents) {
+                    Ok(config) => {
+                        eprintln!("[StudioReturn] Loaded config from {}", candidate.display());
+                        return config;
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "[StudioReturn] Warning: failed to parse {}: {}",
+                            candidate.display(),
+                            e
+                        );
+                    }
+                },
+                Err(e) => {
+                    eprintln!(
+                        "[StudioReturn] Warning: failed to read {}: {}",
+                        candidate.display(),
+                        e
+                    );
+                }
+            }
+        }
+    }
+
+    Config::default()
+}
+
 fn get_backend_url() -> String {
-    // Explicit APP_URL takes priority (e.g. "https://edison:3000")
+    let config = load_config();
+
+    // 1. Config file `url` field takes highest priority
+    if let Some(url) = config.url {
+        let url = url.trim_end_matches('/').to_string();
+        eprintln!("[StudioReturn] Using config file url={}", url);
+        return url;
+    }
+
+    // 2. Explicit APP_URL env var
     if let Ok(url) = std::env::var("APP_URL") {
         let url = url.trim_end_matches('/').to_string();
         eprintln!("[StudioReturn] Using APP_URL={}", url);
         return url;
     }
 
-    let port = std::env::var("APP_PORT")
-        .ok()
-        .and_then(|s| s.parse::<u16>().ok())
-        .unwrap_or(DEFAULT_APP_PORT);
-    let host = std::env::var("APP_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+    // 3. Build from individual fields (config file fields override env vars)
+    let port = config.port.unwrap_or_else(|| {
+        std::env::var("APP_PORT")
+            .ok()
+            .and_then(|s| s.parse::<u16>().ok())
+            .unwrap_or(DEFAULT_APP_PORT)
+    });
+    let host = config
+        .host
+        .unwrap_or_else(|| std::env::var("APP_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()));
 
-    // USE_HTTPS env var forces protocol
-    if let Ok(val) = std::env::var("USE_HTTPS") {
-        let protocol = if val == "true" { "https" } else { "http" };
+    // 4. Protocol from config file or USE_HTTPS env var
+    let use_https = config.use_https.or_else(|| {
+        std::env::var("USE_HTTPS")
+            .ok()
+            .map(|v| v == "true")
+    });
+
+    if let Some(https) = use_https {
+        let protocol = if https { "https" } else { "http" };
         let url = format!("{}://{}:{}", protocol, host, port);
-        eprintln!("[StudioReturn] Resolved backend_url={} (USE_HTTPS={})", url, val);
+        eprintln!("[StudioReturn] Resolved backend_url={}", url);
         return url;
     }
 
-    // No explicit config — return empty, will be resolved by probe
+    // No explicit protocol — return probe marker for HTTPS/HTTP auto-detection
     format!("PROBE://{}:{}", host, port)
 }
 
