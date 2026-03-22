@@ -329,6 +329,7 @@ export const titleRevealPlayPayloadSchema = z.object({
   colorGhostBlue: z.string().default("#7B8DB5"),
   colorGhostNavy: z.string().default("#1B2A6B"),
   duration: z.number().positive().default(8.5),
+  soundUrl: z.string().nullable().optional(),
 });
 
 export type TitleRevealPlayPayload = z.infer<typeof titleRevealPlayPayloadSchema>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
 import { useTranslations } from "next-intl";
 import { Play, EyeOff, Pencil, Trash2, Plus, Loader2, Copy } from "lucide-react";
@@ -13,6 +13,7 @@ import { TitleRevealEditor } from "@/components/title-reveal/TitleRevealEditor";
 import { TitleRevealPreview } from "@/components/title-reveal/TitleRevealPreview";
 import type { TitleRevealAnimConfig } from "@/lib/titleReveal";
 import { toast } from "sonner";
+import { useMidi } from "@/hooks/useMidi";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +37,22 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
     createTitleRevealAsync,
     updateTitleRevealAsync,
     uploadLogo,
+    uploadSound,
   } = useTitleReveals();
+
+  const { sendCC } = useMidi();
+  const midiOutputRef = useRef("");
+
+  useEffect(() => {
+    fetch("/api/settings/word-harvest-midi")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.settings?.outputName) {
+          midiOutputRef.current = data.settings.outputName;
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TitleReveal | null>(null);
@@ -48,8 +64,17 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
   }, []);
 
   const handlePlay = (item: TitleReveal) => {
-    const { id, name, lines, logoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration } = item;
-    playTitleReveal({ id, name, lines, logoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration });
+    const { id, name, lines, logoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration, soundUrl } = item;
+    playTitleReveal({ id, name, lines, logoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration, soundUrl });
+
+    // Send MIDI CC if enabled
+    if (item.midiEnabled) {
+      sendCC(midiOutputRef.current, {
+        channel: item.midiChannel,
+        cc: item.midiCc,
+        value: item.midiValue,
+      });
+    }
   };
 
   const handleEdit = (item: TitleReveal) => {
@@ -88,6 +113,11 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
     colorGhostBlue: string;
     colorGhostNavy: string;
     duration: number;
+    soundUrl: string | null;
+    midiEnabled: boolean;
+    midiChannel: number;
+    midiCc: number;
+    midiValue: number;
   }) => {
     try {
       if (editingItem) {
@@ -220,6 +250,7 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
                   setEditingItem(null);
                 }}
                 uploadLogo={uploadLogo}
+                uploadSound={uploadSound}
                 onConfigChange={handleConfigChange}
               />
             </div>

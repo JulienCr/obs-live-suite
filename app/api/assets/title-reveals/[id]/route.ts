@@ -62,14 +62,17 @@ export const DELETE = withErrorHandler<{ id: string }>(
       return ApiResponses.notFound(`Title reveal with ID ${id}`);
     }
 
-    // Delete associated logo file if it exists
+    // Delete associated files if they exist
     const titleReveal = repo.getById(id);
-    if (titleReveal && titleReveal.logoUrl) {
-      try {
-        const filePath = urlToFilePath(titleReveal.logoUrl);
-        await unlink(filePath);
-      } catch {
-        // File may already be deleted — not critical
+    if (titleReveal) {
+      for (const url of [titleReveal.logoUrl, titleReveal.soundUrl]) {
+        if (!url) continue;
+        try {
+          const filePath = urlToFilePath(url);
+          await unlink(filePath);
+        } catch {
+          // File may already be deleted — not critical
+        }
       }
     }
 

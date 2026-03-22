@@ -191,6 +191,37 @@ export class DatabaseService {
         column: "scheme",
         definition: "TEXT NOT NULL DEFAULT 'neutral'",
       },
+      // Title reveal sound/MIDI columns
+      {
+        name: "title_reveals_soundUrl",
+        table: "title_reveals",
+        column: "soundUrl",
+        definition: "TEXT DEFAULT NULL",
+      },
+      {
+        name: "title_reveals_midiEnabled",
+        table: "title_reveals",
+        column: "midiEnabled",
+        definition: "INTEGER NOT NULL DEFAULT 0",
+      },
+      {
+        name: "title_reveals_midiChannel",
+        table: "title_reveals",
+        column: "midiChannel",
+        definition: "INTEGER NOT NULL DEFAULT 1",
+      },
+      {
+        name: "title_reveals_midiCc",
+        table: "title_reveals",
+        column: "midiCc",
+        definition: "INTEGER NOT NULL DEFAULT 60",
+      },
+      {
+        name: "title_reveals_midiValue",
+        table: "title_reveals",
+        column: "midiValue",
+        definition: "INTEGER NOT NULL DEFAULT 127",
+      },
     ];
 
     migrationRunner.runColumnMigrations(columnMigrations);

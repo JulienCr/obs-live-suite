@@ -403,7 +403,16 @@
       "removeLogo": "Retirer le logo",
       "preview": "Aperçu",
       "playPreview": "Lancer l'aperçu",
-      "duplicate": "Dupliquer"
+      "duplicate": "Dupliquer",
+      "sound": "Son",
+      "uploadSound": "Importer un son",
+      "removeSound": "Retirer le son",
+      "testSound": "Tester le son",
+      "midiEnabled": "Activer MIDI",
+      "midiChannel": "Canal MIDI",
+      "midiCc": "CC MIDI",
+      "midiValue": "Valeur MIDI",
+      "testMidi": "Tester MIDI"
     }
   },
   "navigation": {

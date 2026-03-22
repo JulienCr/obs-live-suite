@@ -12,6 +12,22 @@ import type { TitleRevealEvent } from "@/lib/models/OverlayEvents";
 import { OverlayChannel } from "@/lib/models/OverlayEvents";
 import "@/components/overlays/title-reveal-styles.css";
 
+const audioCache = new Map<string, HTMLAudioElement>();
+
+function playSound(url: string) {
+  try {
+    let audio = audioCache.get(url);
+    if (!audio) {
+      audio = new Audio(url);
+      audioCache.set(url, audio);
+    }
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  } catch {
+    // Audio may fail in some browser source configs
+  }
+}
+
 /**
  * TitleRevealRenderer manages WebSocket connection and GSAP animation
  * for full-screen title reveal overlays.
@@ -42,6 +58,11 @@ export function TitleRevealRenderer() {
 
         // Clean up any existing animation
         cleanup();
+
+        // Play sound if configured
+        if (data.payload.soundUrl) {
+          playSound(data.payload.soundUrl);
+        }
 
         const { lines, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration } = data.payload;
         const config: TitleRevealAnimConfig = {
