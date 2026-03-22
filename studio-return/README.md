@@ -44,6 +44,29 @@ Settings are managed from the OBS Live Suite dashboard: **Settings > Studio Retu
 
 Test buttons (Info / Warn / Urgent) are available in the settings page to verify the overlay works.
 
+### Server URL (`config.json`)
+
+When running the OBS Live Suite server on a different machine, place a `config.json` next to the executable:
+
+```json
+{
+  "url": "https://edison:3000"
+}
+```
+
+All fields are optional:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | string | Full server URL — overrides all other fields |
+| `host` | string | Hostname (default: `127.0.0.1`) |
+| `port` | number | Port (default: `3000`) |
+| `use_https` | bool | Force HTTPS if true |
+
+Resolution priority: `config.json` `url` → env `APP_URL` → individual fields → env vars → defaults (`http://127.0.0.1:3000`).
+
+Without a config file, the app probes HTTPS then falls back to HTTP on `127.0.0.1:3000`.
+
 ## Architecture
 
 ```

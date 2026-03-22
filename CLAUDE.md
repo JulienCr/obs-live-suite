@@ -364,6 +364,15 @@ Dashboard page: Settings > Studio Return (`/settings/studio-return`)
 
 API: `/api/settings/studio-return/` (GET/POST settings), `/api/settings/studio-return/monitors/` (GET/POST monitor list, in-memory)
 
+### Config file (`config.json`)
+Place a `config.json` next to the built executable (or in `studio-return/` for dev) to configure the server URL:
+```json
+{ "url": "https://edison:3000" }
+```
+Fields (all optional): `url` (full URL, highest priority), `host`, `port`, `use_https`.
+Priority: config file `url` > env `APP_URL` > individual config fields > env vars > defaults (`127.0.0.1:3000`).
+Without config file, behavior is unchanged (probe HTTPS then HTTP on `127.0.0.1:3000`).
+
 ### Known constraints
 - macOS requires `macOSPrivateApi: true` + `macos-private-api` Cargo feature for window transparency
 - WebSocket hub may listen on IPv6 only (Node 22) — the WSS/WS fallback chain handles this
