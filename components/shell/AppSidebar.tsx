@@ -110,6 +110,7 @@ const NAVIGATION_SECTIONS: NavSection[] = [
       { labelKey: "studioReturn", href: "/settings/studio-return", icon: Monitor },
       { labelKey: "chatMessages", href: "/settings/chat-messages", icon: Send },
       { labelKey: "wordHarvest", href: "/settings/word-harvest", icon: Wheat },
+      { labelKey: "titleReveal", href: "/settings/title-reveal", icon: Type },
     ],
   },
   {

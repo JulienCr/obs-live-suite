@@ -59,3 +59,27 @@ export const updateTitleRevealSchema = titleRevealConfigSchema
   .required({ id: true });
 
 export type UpdateTitleRevealInput = z.infer<typeof updateTitleRevealSchema>;
+
+// ---------------------------------------------------------------------------
+// Title Reveal Defaults (admin settings)
+// ---------------------------------------------------------------------------
+
+export const TitleRevealDefaultsSchema = z.object({
+  defaultLogoUrl: z.string().nullable().default(null),
+  defaultSoundUrl: z.string().nullable().default(null),
+  midiEnabled: z.boolean().default(false),
+  midiChannel: z.number().int().min(1).max(16).default(1),
+  midiCc: z.number().int().min(0).max(127).default(60),
+  midiValue: z.number().int().min(0).max(127).default(127),
+});
+
+export type TitleRevealDefaults = z.infer<typeof TitleRevealDefaultsSchema>;
+
+export const DEFAULT_TITLE_REVEAL_DEFAULTS: TitleRevealDefaults = {
+  defaultLogoUrl: null,
+  defaultSoundUrl: null,
+  midiEnabled: false,
+  midiChannel: 1,
+  midiCc: 60,
+  midiValue: 127,
+};

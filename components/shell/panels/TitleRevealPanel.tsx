@@ -42,8 +42,33 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
 
   const { sendCC } = useMidi();
   const midiOutputRef = useRef("");
+  const defaultsRef = useRef<{
+    defaultLogoUrl: string | null;
+    defaultSoundUrl: string | null;
+    midiEnabled: boolean;
+    midiChannel: number;
+    midiCc: number;
+    midiValue: number;
+  }>({
+    defaultLogoUrl: null,
+    defaultSoundUrl: null,
+    midiEnabled: false,
+    midiChannel: 1,
+    midiCc: 60,
+    midiValue: 127,
+  });
 
   useEffect(() => {
+    // Load title reveal defaults
+    fetch("/api/settings/title-reveal-defaults")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.settings) {
+          defaultsRef.current = data.settings;
+        }
+      })
+      .catch(() => {});
+    // Load MIDI output name from word harvest settings (shared)
     fetch("/api/settings/word-harvest-midi")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
@@ -64,15 +89,24 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
   }, []);
 
   const handlePlay = (item: TitleReveal) => {
-    const { id, name, lines, logoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration, soundUrl } = item;
-    playTitleReveal({ id, name, lines, logoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration, soundUrl });
+    const defaults = defaultsRef.current;
+    // Resolve per-item values with admin defaults as fallback
+    const effectiveLogoUrl = item.logoUrl ?? defaults.defaultLogoUrl;
+    const effectiveSoundUrl = item.soundUrl ?? defaults.defaultSoundUrl;
+    const midiEnabled = item.midiEnabled || defaults.midiEnabled;
+    const midiChannel = item.midiEnabled ? item.midiChannel : defaults.midiChannel;
+    const midiCc = item.midiEnabled ? item.midiCc : defaults.midiCc;
+    const midiValue = item.midiEnabled ? item.midiValue : defaults.midiValue;
 
-    // Send MIDI CC if enabled
-    if (item.midiEnabled) {
+    const { id, name, lines, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration } = item;
+    playTitleReveal({ id, name, lines, logoUrl: effectiveLogoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration, soundUrl: effectiveSoundUrl });
+
+    // Send MIDI CC if enabled (per-item or default)
+    if (midiEnabled) {
       sendCC(midiOutputRef.current, {
-        channel: item.midiChannel,
-        cc: item.midiCc,
-        value: item.midiValue,
+        channel: midiChannel,
+        cc: midiCc,
+        value: midiValue,
       });
     }
   };

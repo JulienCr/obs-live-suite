@@ -13,7 +13,7 @@ import { FontFamilyCombobox } from "./FontFamilyCombobox";
 import { FontSizeCombobox } from "./FontSizeCombobox";
 import type { TitleReveal, TitleRevealLine } from "@/lib/queries/useTitleReveals";
 import type { TitleRevealAnimConfig } from "@/lib/titleReveal";
-import { TITLE_REVEAL } from "@/lib/config/Constants";
+
 
 export type TitleRevealSaveData = {
   name: string;
@@ -278,7 +278,7 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, uploa
                 disabled={isUploading}
               />
             </label>
-            <img src={logoUrl ?? TITLE_REVEAL.DEFAULT_LOGO_URL} alt="Logo" className="h-8 w-8 rounded object-contain" />
+            {logoUrl && <img src={logoUrl} alt="Logo" className="h-8 w-8 rounded object-contain" />}
             {logoUrl && (
               <Button
                 variant="ghost"

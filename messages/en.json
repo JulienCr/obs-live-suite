@@ -433,6 +433,7 @@
       "presenterChannel": "Presenter Channel",
       "chatMessages": "Chat Messages",
       "wordHarvest": "Word Harvest",
+      "titleReveal": "Title Reveal",
       "obs": "OBS",
       "twitch": "Twitch",
       "streamerbot": "Streamer.bot",
@@ -765,6 +766,30 @@
       "fontSizeDescription": "Font size in pixels for displayed messages.",
       "testNotification": "Send test notification",
       "testNotificationDescription": "Send a test message to verify the Studio Return overlay is working."
+    },
+    "titleReveal": {
+      "title": "Title Reveal",
+      "description": "Configure default values for title reveals: logo, sound and MIDI.",
+      "defaultLogo": "Default Logo",
+      "defaultLogoDesc": "Logo used when a title reveal doesn't define its own.",
+      "uploadLogo": "Upload Logo",
+      "defaultSound": "Default Sound",
+      "defaultSoundDesc": "Sound played in the overlay when a title reveal doesn't define its own.",
+      "uploadSound": "Upload Sound",
+      "testSound": "Test",
+      "remove": "Remove",
+      "defaultMidi": "Default MIDI",
+      "defaultMidiDesc": "MIDI CC message sent when playing a title reveal, unless the title defines its own MIDI.",
+      "midiEnabled": "Enable MIDI",
+      "midiChannel": "Channel",
+      "midiCc": "CC",
+      "midiValue": "Value",
+      "midiNotAvailable": "Web MIDI is not available in this browser.",
+      "testMidi": "Test MIDI",
+      "save": "Save",
+      "saving": "Saving...",
+      "loading": "Loading...",
+      "savedSuccess": "Settings saved"
     }
   },
   "assets": {
