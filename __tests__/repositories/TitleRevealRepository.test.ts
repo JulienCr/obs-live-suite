@@ -51,6 +51,11 @@ describe("TitleRevealRepository", () => {
     colorGhostBlue: "#7B8DB5",
     colorGhostNavy: "#1B2A6B",
     duration: 8.5,
+    soundUrl: null,
+    midiEnabled: 0,
+    midiChannel: 1,
+    midiCc: 60,
+    midiValue: 127,
     sortOrder: 0,
     createdAt: "2024-01-15T10:00:00.000Z",
     updatedAt: "2024-01-15T12:00:00.000Z",
@@ -142,6 +147,11 @@ describe("TitleRevealRepository", () => {
         colorGhostBlue: "#7B8DB5",
         colorGhostNavy: "#1B2A6B",
         duration: 8.5,
+        soundUrl: null,
+        midiEnabled: false,
+        midiChannel: 1,
+        midiCc: 60,
+        midiValue: 127,
         sortOrder: 0,
       };
 
@@ -160,6 +170,11 @@ describe("TitleRevealRepository", () => {
         "#7B8DB5",
         "#1B2A6B",
         8.5,
+        null,  // soundUrl
+        0,     // midiEnabled
+        1,     // midiChannel
+        60,    // midiCc
+        127,   // midiValue
         0,
         expect.any(String), // createdAt
         expect.any(String)  // updatedAt
@@ -183,6 +198,11 @@ describe("TitleRevealRepository", () => {
         colorGhostBlue: "#7B8DB5",
         colorGhostNavy: "#1B2A6B",
         duration: 8.5,
+        soundUrl: null,
+        midiEnabled: false,
+        midiChannel: 1,
+        midiCc: 60,
+        midiValue: 127,
         sortOrder: 0,
       };
 
@@ -211,6 +231,11 @@ describe("TitleRevealRepository", () => {
         "#7B8DB5",
         "#1B2A6B",
         8.5,
+        null,  // soundUrl
+        0,     // midiEnabled
+        1,     // midiChannel
+        60,    // midiCc
+        127,   // midiValue
         0,
         expect.any(String), // updatedAt
         "tr-1"

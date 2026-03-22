@@ -70,7 +70,7 @@ const typeCoercers = {
    */
   toNumber: (value: string | null): number | undefined => {
     if (value === null || value === undefined || value === "") return undefined;
-    const num = parseInt(value, 10);
+    const num = Number(value);
     return isNaN(num) ? undefined : num;
   },
 
