@@ -5,6 +5,7 @@ import {
   withErrorHandler,
   RouteContext,
 } from "@/lib/utils/ApiResponses";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 const LOG_CONTEXT = "[TextPresetsAPI]";
 
@@ -36,6 +37,7 @@ export const PATCH = withErrorHandler<{ id: string }>(
       updatedAt: new Date(),
     });
     const textPreset = repo.getById(id);
+    broadcastDataChange("textPresets", "updated", request, id);
     return ApiResponses.ok({ textPreset });
   },
   LOG_CONTEXT
@@ -46,13 +48,14 @@ export const PATCH = withErrorHandler<{ id: string }>(
  * Delete text preset
  */
 export const DELETE = withErrorHandler<{ id: string }>(
-  async (_request: Request, context: RouteContext<{ id: string }>) => {
+  async (request: Request, context: RouteContext<{ id: string }>) => {
     const { id } = await context.params;
     const repo = TextPresetRepository.getInstance();
     if (!repo.exists(id)) {
       return ApiResponses.notFound(`Text preset with ID ${id}`);
     }
     repo.delete(id);
+    broadcastDataChange("textPresets", "deleted", request, id);
     return ApiResponses.ok({ success: true });
   },
   LOG_CONTEXT

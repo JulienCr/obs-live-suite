@@ -13,6 +13,7 @@
  */
 
 import { fetchWithTimeout, TimeoutError } from "./fetchWithTimeout";
+import { CLIENT_ID } from "./clientId";
 
 /**
  * Structured error class for client-side API errors.
@@ -153,7 +154,7 @@ export async function apiGet<T>(
 
   const response = await fetchWithTimeout(endpoint, {
     method: "GET",
-    headers,
+    headers: { "x-client-id": CLIENT_ID, ...headers },
     timeout,
     signal,
   });
@@ -201,6 +202,7 @@ export async function apiPost<T>(
   const response = await fetchWithTimeout(endpoint, {
     method: "POST",
     headers: {
+      "x-client-id": CLIENT_ID,
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...headers,
     },
@@ -247,6 +249,7 @@ export async function apiPut<T>(
   const response = await fetchWithTimeout(endpoint, {
     method: "PUT",
     headers: {
+      "x-client-id": CLIENT_ID,
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...headers,
     },
@@ -289,6 +292,7 @@ export async function apiPatch<T>(
   const response = await fetchWithTimeout(endpoint, {
     method: "PATCH",
     headers: {
+      "x-client-id": CLIENT_ID,
       "Content-Type": "application/json",
       ...headers,
     },
@@ -329,7 +333,7 @@ export async function apiDelete<T>(
 
   const response = await fetchWithTimeout(endpoint, {
     method: "DELETE",
-    headers,
+    headers: { "x-client-id": CLIENT_ID, ...headers },
     timeout,
     signal,
   });

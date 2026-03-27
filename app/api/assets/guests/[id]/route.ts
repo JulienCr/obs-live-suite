@@ -5,6 +5,7 @@ import {
   withErrorHandler,
   RouteContext,
 } from "@/lib/utils/ApiResponses";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 const LOG_CONTEXT = "[GuestsAPI]";
 
@@ -35,6 +36,7 @@ export const PATCH = withErrorHandler<{ id: string }>(
       updatedAt: new Date(),
     });
     const guest = guestRepo.getById(id);
+    broadcastDataChange("guests", "updated", request, id);
     return ApiResponses.ok({ guest });
   },
   LOG_CONTEXT
@@ -45,10 +47,11 @@ export const PATCH = withErrorHandler<{ id: string }>(
  * Delete guest
  */
 export const DELETE = withErrorHandler<{ id: string }>(
-  async (_request: Request, context: RouteContext<{ id: string }>) => {
+  async (request: Request, context: RouteContext<{ id: string }>) => {
     const { id } = await context.params;
     const guestRepo = GuestRepository.getInstance();
     guestRepo.delete(id);
+    broadcastDataChange("guests", "deleted", request, id);
     return ApiResponses.ok({ success: true });
   },
   LOG_CONTEXT

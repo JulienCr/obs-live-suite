@@ -5,6 +5,7 @@ import {
   withErrorHandler,
   RouteContext,
 } from "@/lib/utils/ApiResponses";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 const LOG_CONTEXT = "[PostersAPI]";
 
@@ -56,6 +57,7 @@ export const PATCH = withErrorHandler<{ id: string }>(
     });
 
     const poster = posterRepo.getById(id);
+    broadcastDataChange("posters", "updated", request, id);
     return ApiResponses.ok({ poster });
   },
   LOG_CONTEXT
@@ -66,11 +68,12 @@ export const PATCH = withErrorHandler<{ id: string }>(
  * Delete poster
  */
 export const DELETE = withErrorHandler<{ id: string }>(
-  async (_request: Request, context: RouteContext<{ id: string }>) => {
+  async (request: Request, context: RouteContext<{ id: string }>) => {
     const { id } = await context.params;
     const posterRepo = PosterRepository.getInstance();
     posterRepo.delete(id);
 
+    broadcastDataChange("posters", "deleted", request, id);
     return ApiResponses.ok({ success: true });
   },
   LOG_CONTEXT

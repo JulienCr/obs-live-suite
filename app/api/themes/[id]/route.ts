@@ -3,6 +3,7 @@ import { ThemeRepository } from "@/lib/repositories/ThemeRepository";
 import { ProfileRepository } from "@/lib/repositories/ProfileRepository";
 import { updateThemeSchema, ThemeModel } from "@/lib/models/Theme";
 import { ApiResponses } from "@/lib/utils/ApiResponses";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -50,6 +51,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     themeRepo.update(id, theme.toJSON());
 
+    broadcastDataChange("themes", "updated", request, id);
     return ApiResponses.ok({ theme: theme.toJSON() });
   } catch (error) {
     console.error("[API] Failed to update theme:", error);
@@ -83,6 +85,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     themeRepo.delete(id);
 
+    broadcastDataChange("themes", "deleted", request, id);
     return ApiResponses.ok({ success: true });
   } catch (error) {
     console.error("[API] Failed to delete theme:", error);

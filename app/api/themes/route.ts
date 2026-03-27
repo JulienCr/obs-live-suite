@@ -3,6 +3,7 @@ import { ThemeRepository } from "@/lib/repositories/ThemeRepository";
 import { v4 as uuidv4 } from "uuid";
 import { createThemeSchema, ThemeModel } from "@/lib/models/Theme";
 import { ApiResponses } from "@/lib/utils/ApiResponses";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 /**
  * GET all themes
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
     const themeRepo = ThemeRepository.getInstance();
     themeRepo.create(theme.toJSON());
 
+    broadcastDataChange("themes", "created", request);
     return ApiResponses.created({ theme: theme.toJSON() });
   } catch (error) {
     console.error("[API] Failed to create theme:", error);

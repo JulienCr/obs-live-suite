@@ -6,6 +6,7 @@ import {
   withErrorHandler,
   RouteContext,
 } from "@/lib/utils/ApiResponses";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 const LOG_CONTEXT = "[ChaptersAPI]";
 
@@ -126,6 +127,8 @@ export const PATCH = withErrorHandler<ChapterRouteParams>(
     // Sort chapters by timestamp for response
     const sortedChapters = updatedChapters.sort((a, b) => a.timestamp - b.timestamp);
 
+    broadcastDataChange("posters", "updated", request, id);
+
     return ApiResponses.ok({
       chapter: updatedChapter,
       chapters: sortedChapters,
@@ -139,7 +142,7 @@ export const PATCH = withErrorHandler<ChapterRouteParams>(
  * Delete a chapter by ID
  */
 export const DELETE = withErrorHandler<ChapterRouteParams>(
-  async (_request: Request, context: RouteContext<ChapterRouteParams>) => {
+  async (request: Request, context: RouteContext<ChapterRouteParams>) => {
     const { id, chapterId } = await context.params;
     const posterRepo = PosterRepository.getInstance();
     const poster = posterRepo.getById(id);
@@ -171,6 +174,8 @@ export const DELETE = withErrorHandler<ChapterRouteParams>(
 
     // Sort remaining chapters by timestamp for response
     const sortedChapters = updatedChapters.sort((a, b) => a.timestamp - b.timestamp);
+
+    broadcastDataChange("posters", "updated", request, id);
 
     return ApiResponses.ok({
       success: true,

@@ -35,6 +35,7 @@ import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { usePanelColorsStore, useWorkspacesStore, useDockviewStore } from "@/lib/stores";
 import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
+import { useDataSync } from "@/hooks/useDataSync";
 import { useAppMode } from "./AppModeContext";
 import type { ColorScheme } from "@/lib/models/PanelColor";
 import type { PanelId } from "@/lib/panels/registry";
@@ -84,6 +85,7 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
 
   const { theme } = useTheme();
   const { isFullscreenMode } = useAppMode();
+  useDataSync();
   const [mounted, setMounted] = useState(false);
   const apiRef = useRef<DockviewReadyEvent["api"] | null>(null);
   const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);
