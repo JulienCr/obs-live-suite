@@ -377,6 +377,11 @@ export interface DbTitleReveal {
   colorGhostBlue: string;
   colorGhostNavy: string;
   duration: number;
+  soundUrl: string | null;
+  midiEnabled: boolean;
+  midiChannel: number;
+  midiCc: number;
+  midiValue: number;
   sortOrder: number;
   createdAt: Date;
   updatedAt: Date;

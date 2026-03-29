@@ -9,6 +9,8 @@ import { TwitchSettingsSchema } from "../models/Twitch";
 import { presenterChannelSettingsSchema } from "../models/PresenterChannel";
 import { WordHarvestMidiSettingsSchema } from "../models/WordHarvest";
 import type { WordHarvestMidiSettings } from "../models/WordHarvest";
+import { TitleRevealDefaultsSchema } from "../models/TitleReveal";
+import type { TitleRevealDefaults } from "../models/TitleReveal";
 import type { TwitchSettings, TwitchOAuthTokens } from "../models/Twitch";
 import type { PresenterChannelSettings } from "../models/PresenterChannel";
 import type { ChatPredefinedMessage } from "../models/ChatMessages";
@@ -114,6 +116,7 @@ export class SettingsService {
   private presenterChannelStore: SettingsStore<typeof presenterChannelSettingsSchema.shape>;
   private studioReturnStore: SettingsStore<typeof StudioReturnSettingsSchema.shape>;
   private wordHarvestMidiStore: SettingsStore<typeof WordHarvestMidiSettingsSchema.shape>;
+  private titleRevealDefaultsStore: SettingsStore<typeof TitleRevealDefaultsSchema.shape>;
 
   private constructor() {
     this.db = SettingsRepository.getInstance();
@@ -220,6 +223,14 @@ export class SettingsService {
       this.db,
       "wordHarvestMidi",
       WordHarvestMidiSettingsSchema,
+      this.logger
+    );
+
+    // Initialize Title Reveal Defaults settings store
+    this.titleRevealDefaultsStore = new SettingsStore(
+      this.db,
+      "titleRevealDefaults",
+      TitleRevealDefaultsSchema,
       this.logger
     );
   }
@@ -610,6 +621,25 @@ export class SettingsService {
   saveWordHarvestMidiSettings(settings: Partial<WordHarvestMidiSettings>): void {
     this.wordHarvestMidiStore.set(settings);
     this.logger.info("Word harvest MIDI settings saved");
+  }
+
+  // =========================================================================
+  // TITLE REVEAL DEFAULTS
+  // =========================================================================
+
+  /**
+   * Get title reveal default settings
+   */
+  getTitleRevealDefaults(): TitleRevealDefaults {
+    return this.titleRevealDefaultsStore.get();
+  }
+
+  /**
+   * Save title reveal default settings
+   */
+  saveTitleRevealDefaults(settings: Partial<TitleRevealDefaults>): void {
+    this.titleRevealDefaultsStore.set(settings);
+    this.logger.info("Title reveal defaults saved");
   }
 
   // =========================================================================

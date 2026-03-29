@@ -2,17 +2,18 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Plus } from "lucide-react";
+import { Plus, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { TitleRevealLineEditor } from "./TitleRevealLineEditor";
 import { FontFamilyCombobox } from "./FontFamilyCombobox";
 import { FontSizeCombobox } from "./FontSizeCombobox";
 import type { TitleReveal, TitleRevealLine } from "@/lib/queries/useTitleReveals";
 import type { TitleRevealAnimConfig } from "@/lib/titleReveal";
-import { TITLE_REVEAL } from "@/lib/config/Constants";
+import { playSound } from "@/lib/utils/audioPlayer";
 
 export type TitleRevealSaveData = {
   name: string;
@@ -25,13 +26,24 @@ export type TitleRevealSaveData = {
   colorGhostBlue: string;
   colorGhostNavy: string;
   duration: number;
+  soundUrl: string | null;
+  midiEnabled: boolean;
+  midiChannel: number;
+  midiCc: number;
+  midiValue: number;
 };
 
 interface TitleRevealEditorProps {
   initial: TitleReveal | null;
+  defaults?: {
+    defaultLogoUrl?: string | null;
+    defaultSoundUrl?: string | null;
+    defaultDuration?: number;
+  };
   onSave: (data: TitleRevealSaveData) => void;
   onCancel: () => void;
   uploadLogo: (file: File) => Promise<string>;
+  uploadSound: (file: File) => Promise<string>;
   onConfigChange?: (config: TitleRevealAnimConfig) => void;
 }
 
@@ -43,7 +55,7 @@ const DEFAULT_LINE: TitleRevealLine = {
   offsetY: 0,
 };
 
-export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, onConfigChange }: TitleRevealEditorProps) {
+export function TitleRevealEditor({ initial, defaults, onSave, onCancel, uploadLogo, uploadSound, onConfigChange }: TitleRevealEditorProps) {
   const t = useTranslations("dashboard.titleReveal");
 
   const [name, setName] = useState(initial?.name ?? "");
@@ -53,12 +65,18 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, onCon
   const [fontFamily, setFontFamily] = useState(initial?.fontFamily ?? "Permanent Marker");
   const [fontSize, setFontSize] = useState(initial?.fontSize ?? 80);
   const [rotation, setRotation] = useState(initial?.rotation ?? -5);
-  const [duration, setDuration] = useState(initial?.duration ?? 8.5);
+  const [duration, setDuration] = useState(initial?.duration ?? defaults?.defaultDuration ?? 8.5);
   const [colorText, setColorText] = useState(initial?.colorText ?? "#F5A623");
   const [colorGhostBlue, setColorGhostBlue] = useState(initial?.colorGhostBlue ?? "#7B8DB5");
   const [colorGhostNavy, setColorGhostNavy] = useState(initial?.colorGhostNavy ?? "#1B2A6B");
-  const [logoUrl, setLogoUrl] = useState<string | null>(initial?.logoUrl ?? null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(initial?.logoUrl ?? defaults?.defaultLogoUrl ?? null);
   const [isUploading, setIsUploading] = useState(false);
+  const [soundUrl, setSoundUrl] = useState<string | null>(initial?.soundUrl ?? defaults?.defaultSoundUrl ?? null);
+  const [isSoundUploading, setIsSoundUploading] = useState(false);
+  const [midiEnabled, setMidiEnabled] = useState(initial?.midiEnabled ?? false);
+  const [midiChannel, setMidiChannel] = useState(initial?.midiChannel ?? 1);
+  const [midiCc, setMidiCc] = useState(initial?.midiCc ?? 60);
+  const [midiValue, setMidiValue] = useState(initial?.midiValue ?? 127);
 
   // Expose current config to parent for the side preview
   const previewConfig = useMemo<TitleRevealAnimConfig>(
@@ -93,6 +111,25 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, onCon
     }
   };
 
+  const handleSoundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsSoundUploading(true);
+    try {
+      const url = await uploadSound(file);
+      setSoundUrl(url);
+    } catch (error) {
+      console.error("Failed to upload sound:", error);
+    } finally {
+      setIsSoundUploading(false);
+    }
+  };
+
+  const handleTestSound = () => {
+    if (!soundUrl) return;
+    playSound(soundUrl);
+  };
+
   const handleSave = () => {
     if (!name.trim() || lines.length === 0) return;
     onSave({
@@ -106,6 +143,11 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, onCon
       colorGhostBlue,
       colorGhostNavy,
       duration,
+      soundUrl,
+      midiEnabled,
+      midiChannel,
+      midiCc,
+      midiValue,
     });
   };
 
@@ -240,7 +282,7 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, onCon
                 disabled={isUploading}
               />
             </label>
-            <img src={logoUrl ?? TITLE_REVEAL.DEFAULT_LOGO_URL} alt="Logo" className="h-8 w-8 rounded object-contain" />
+            {logoUrl && <img src={logoUrl} alt="Logo" className="h-8 w-8 rounded object-contain" />}
             {logoUrl && (
               <Button
                 variant="ghost"
@@ -251,6 +293,77 @@ export function TitleRevealEditor({ initial, onSave, onCancel, uploadLogo, onCon
               </Button>
             )}
           </div>
+        </div>
+        {/* Sound */}
+        <div className="space-y-1.5">
+          <Label>{t("sound")}</Label>
+          <div className="flex items-center gap-2">
+            <label className="cursor-pointer">
+              <span className="inline-flex items-center rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground">
+                {isSoundUploading ? "..." : t("uploadSound")}
+              </span>
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={handleSoundUpload}
+                className="hidden"
+                disabled={isSoundUploading}
+              />
+            </label>
+            {soundUrl && (
+              <>
+                <Button variant="ghost" size="sm" onClick={handleTestSound}>
+                  <Volume2 className="h-4 w-4 mr-1" />
+                  {t("testSound")}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setSoundUrl(null)}>
+                  {t("removeSound")}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* MIDI */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Switch checked={midiEnabled} onCheckedChange={setMidiEnabled} />
+            <Label>{t("midiEnabled")}</Label>
+          </div>
+          {midiEnabled && (
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label>{t("midiChannel")}</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={16}
+                  value={midiChannel}
+                  onChange={(e) => setMidiChannel(Math.max(1, Math.min(16, parseInt(e.target.value) || 1)))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("midiCc")}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={127}
+                  value={midiCc}
+                  onChange={(e) => setMidiCc(Math.max(0, Math.min(127, parseInt(e.target.value) || 0)))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t("midiValue")}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={127}
+                  value={midiValue}
+                  onChange={(e) => setMidiValue(Math.max(0, Math.min(127, parseInt(e.target.value) || 0)))}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

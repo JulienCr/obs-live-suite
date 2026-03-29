@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
 import { useTranslations } from "next-intl";
 import { Play, EyeOff, Pencil, Trash2, Plus, Loader2, Copy } from "lucide-react";
@@ -12,7 +12,12 @@ import type { TitleReveal } from "@/lib/queries/useTitleReveals";
 import { TitleRevealEditor } from "@/components/title-reveal/TitleRevealEditor";
 import { TitleRevealPreview } from "@/components/title-reveal/TitleRevealPreview";
 import type { TitleRevealAnimConfig } from "@/lib/titleReveal";
+import type { TitleRevealSaveData } from "@/components/title-reveal/TitleRevealEditor";
+import type { TitleRevealDefaults } from "@/lib/models/TitleReveal";
+import { DEFAULT_TITLE_REVEAL_DEFAULTS } from "@/lib/models/TitleReveal";
+import { apiGet } from "@/lib/utils/ClientFetch";
 import { toast } from "sonner";
+import { useMidi } from "@/hooks/useMidi";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +41,25 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
     createTitleRevealAsync,
     updateTitleRevealAsync,
     uploadLogo,
+    uploadSound,
   } = useTitleReveals();
+
+  const { sendCC } = useMidi();
+  const midiOutputRef = useRef("");
+  const defaultsRef = useRef<TitleRevealDefaults>(DEFAULT_TITLE_REVEAL_DEFAULTS);
+
+  useEffect(() => {
+    apiGet<{ settings?: TitleRevealDefaults }>("/api/settings/title-reveal-defaults")
+      .then((data) => {
+        if (data?.settings) defaultsRef.current = data.settings;
+      })
+      .catch(() => {});
+    apiGet<{ settings?: { outputName?: string } }>("/api/settings/word-harvest-midi")
+      .then((data) => {
+        if (data?.settings?.outputName) midiOutputRef.current = data.settings.outputName;
+      })
+      .catch(() => {});
+  }, []);
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TitleReveal | null>(null);
@@ -48,8 +71,28 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
   }, []);
 
   const handlePlay = (item: TitleReveal) => {
-    const { id, name, lines, logoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration } = item;
-    playTitleReveal({ id, name, lines, logoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration });
+    const defaults = defaultsRef.current;
+    // Resolve per-item values with admin defaults as fallback
+    const effectiveLogoUrl = item.logoUrl ?? defaults.defaultLogoUrl;
+    const effectiveSoundUrl = item.soundUrl ?? defaults.defaultSoundUrl;
+    const midiEnabled = item.midiEnabled || defaults.midiEnabled;
+    const midiChannel = item.midiEnabled ? item.midiChannel : defaults.midiChannel;
+    const midiCc = item.midiEnabled ? item.midiCc : defaults.midiCc;
+    const midiValue = item.midiEnabled ? item.midiValue : defaults.midiValue;
+
+    const effectiveDuration = item.duration ?? defaults.defaultDuration;
+
+    const { id, name, lines, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy } = item;
+    playTitleReveal({ id, name, lines, logoUrl: effectiveLogoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration: effectiveDuration, soundUrl: effectiveSoundUrl });
+
+    // Send MIDI CC if enabled (per-item or default)
+    if (midiEnabled) {
+      sendCC(midiOutputRef.current, {
+        channel: midiChannel,
+        cc: midiCc,
+        value: midiValue,
+      });
+    }
   };
 
   const handleEdit = (item: TitleReveal) => {
@@ -77,18 +120,7 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
     setDeleteTarget(null);
   };
 
-  const handleSave = async (data: {
-    name: string;
-    lines: TitleReveal["lines"];
-    logoUrl: string | null;
-    fontFamily: string;
-    fontSize: number;
-    rotation: number;
-    colorText: string;
-    colorGhostBlue: string;
-    colorGhostNavy: string;
-    duration: number;
-  }) => {
+  const handleSave = async (data: TitleRevealSaveData) => {
     try {
       if (editingItem) {
         await updateTitleRevealAsync({ id: editingItem.id, ...data });
@@ -214,12 +246,14 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
               </DialogHeader>
               <TitleRevealEditor
                 initial={editingItem}
+                defaults={editingItem ? undefined : defaultsRef.current}
                 onSave={handleSave}
                 onCancel={() => {
                   setEditorOpen(false);
                   setEditingItem(null);
                 }}
                 uploadLogo={uploadLogo}
+                uploadSound={uploadSound}
                 onConfigChange={handleConfigChange}
               />
             </div>

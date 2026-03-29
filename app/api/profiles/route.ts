@@ -5,6 +5,7 @@ import {
   ApiResponses,
   withSimpleErrorHandler,
 } from "@/lib/utils/ApiResponses";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 import { ZodError } from "zod";
 
 const LOG_CONTEXT = "[ProfilesAPI]";
@@ -42,6 +43,7 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
     const profileRepo = ProfileRepository.getInstance();
     profileRepo.create(profile);
 
+    broadcastDataChange("profiles", "created", request);
     return ApiResponses.created({ profile });
   } catch (error) {
     if (error instanceof ZodError) {

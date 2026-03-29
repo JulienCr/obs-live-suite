@@ -5,6 +5,7 @@ import {
   ApiResponses,
   withSimpleErrorHandler,
 } from "@/lib/utils/ApiResponses";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 const LOG_CONTEXT = "[TitleRevealsAPI]";
 
@@ -35,5 +36,6 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
     updatedAt: now,
   });
   const titleReveal = repo.getById(id);
+  broadcastDataChange("titleReveals", "created", request);
   return ApiResponses.created({ titleReveal });
 }, LOG_CONTEXT);

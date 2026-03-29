@@ -6,6 +6,7 @@ import {
   withSimpleErrorHandler,
 } from "@/lib/utils/ApiResponses";
 import { parseBooleanQueryParam } from "@/lib/utils/queryParams";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 const LOG_CONTEXT = "[PostersAPI]";
 
@@ -54,6 +55,7 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
     source: poster.source || null,
   });
 
+  broadcastDataChange("posters", "created", request);
   return ApiResponses.created({ poster });
 }, LOG_CONTEXT);
 

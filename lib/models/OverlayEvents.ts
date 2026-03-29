@@ -3,6 +3,9 @@ import { videoChapterSchema, endBehaviorSchema, VideoChapter } from "./Poster";
 import type { WordHarvestEvent } from "./WordHarvest";
 export type { WordHarvestEvent } from "./WordHarvest";
 export { isWordHarvestEvent, WordHarvestEventType } from "./WordHarvest";
+import { sommaireShowPayloadSchema, type SommaireShowPayload, type SommaireHighlightPayload } from "./Sommaire";
+export { sommaireShowPayloadSchema };
+export type { SommaireShowPayload, SommaireHighlightPayload };
 
 /**
  * Event source - where the event originated
@@ -25,6 +28,7 @@ export enum OverlayChannel {
   CHAT_HIGHLIGHT = "chat-highlight",
   WORD_HARVEST = "word-harvest",
   TITLE_REVEAL = "title-reveal",
+  SOMMAIRE = "sommaire",
 }
 
 /**
@@ -93,6 +97,15 @@ export enum ChatHighlightEventType {
 export enum TitleRevealEventType {
   PLAY = "play",
   HIDE = "hide",
+}
+
+/**
+ * Sommaire event types
+ */
+export enum SommaireEventType {
+  SHOW = "show",
+  HIDE = "hide",
+  HIGHLIGHT = "highlight",
 }
 
 /**
@@ -329,6 +342,7 @@ export const titleRevealPlayPayloadSchema = z.object({
   colorGhostBlue: z.string().default("#7B8DB5"),
   colorGhostNavy: z.string().default("#1B2A6B"),
   duration: z.number().positive().default(8.5),
+  soundUrl: z.string().nullable().optional(),
 });
 
 export type TitleRevealPlayPayload = z.infer<typeof titleRevealPlayPayloadSchema>;
@@ -796,6 +810,45 @@ export type TitleRevealEvent =
   | TitleRevealHideEvent;
 
 // -----------------------------------------------------------------------------
+// Sommaire Events
+// -----------------------------------------------------------------------------
+
+/**
+ * Event to display the sommaire (table of contents) overlay.
+ */
+export interface SommaireShowEvent {
+  type: "show";
+  payload: SommaireShowPayload;
+  id: string;
+}
+
+/**
+ * Event to hide the sommaire overlay.
+ */
+export interface SommaireHideEvent {
+  type: "hide";
+  payload?: undefined;
+  id: string;
+}
+
+/**
+ * Event to highlight a specific category in the sommaire.
+ */
+export interface SommaireHighlightEvent {
+  type: "highlight";
+  payload: SommaireHighlightPayload;
+  id: string;
+}
+
+/**
+ * Discriminated union of all sommaire events.
+ */
+export type SommaireEvent =
+  | SommaireShowEvent
+  | SommaireHideEvent
+  | SommaireHighlightEvent;
+
+// -----------------------------------------------------------------------------
 // Generic Overlay Event Union
 // -----------------------------------------------------------------------------
 
@@ -809,7 +862,8 @@ export type TypedOverlayEvent =
   | PosterEvent
   | ChatHighlightEvent
   | WordHarvestEvent
-  | TitleRevealEvent;
+  | TitleRevealEvent
+  | SommaireEvent;
 
 // Event type sets for type guards - more maintainable than chained comparisons
 const LOWER_THIRD_EVENT_TYPES = new Set(["show", "hide", "update"]);
@@ -817,6 +871,7 @@ const COUNTDOWN_EVENT_TYPES = new Set(["set", "start", "pause", "reset", "update
 const POSTER_EVENT_TYPES = new Set(["show", "hide", "next", "previous", "play", "pause", "seek", "mute", "unmute", "chapter-next", "chapter-previous", "chapter-jump"]);
 const CHAT_HIGHLIGHT_EVENT_TYPES = new Set(["show", "hide"]);
 const TITLE_REVEAL_EVENT_TYPES = new Set(["play", "hide"]);
+const SOMMAIRE_EVENT_TYPES = new Set(["show", "hide", "highlight"]);
 
 /**
  * Type guard to check if an event is a lower third event.
@@ -851,6 +906,13 @@ export function isChatHighlightEvent(event: { type: string }): event is ChatHigh
  */
 export function isTitleRevealEvent(event: { type: string }): event is TitleRevealEvent {
   return TITLE_REVEAL_EVENT_TYPES.has(event.type);
+}
+
+/**
+ * Type guard to check if an event is a sommaire event.
+ */
+export function isSommaireEvent(event: { type: string }): event is SommaireEvent {
+  return SOMMAIRE_EVENT_TYPES.has(event.type);
 }
 
 // Re-export VideoChapter for convenience

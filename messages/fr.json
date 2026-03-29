@@ -11,14 +11,15 @@
       "presenceStatus": "Statut de présence",
       "regieInternalChat": "Chat interne régie",
       "regieInternalChatView": "Vue chat interne",
-      "regiePublicChat": "Chat public régie",
+      "regiePublicChat": "Twitch - Chat",
       "twitch": "Twitch",
       "chatMessages": "Messages Chat",
       "textPresets": "Textes rapides",
       "mediaPlayerArtlist": "Player Artlist",
       "mediaPlayerYoutube": "Player YouTube",
       "wordHarvest": "Récolte de mots",
-      "titleReveal": "Titre animé"
+      "titleReveal": "Titre animé",
+      "sommaire": "Sommaire"
     },
     "header": {
       "connected": "Connecté",
@@ -68,6 +69,7 @@
       "showMediaPlayerYoutubePanel": "Afficher le panneau Player YouTube",
       "showWordHarvestPanel": "Afficher le panneau Récolte de mots",
       "showTitleRevealPanel": "Afficher le panneau Titre animé",
+      "showSommairePanel": "Afficher le panneau Sommaire",
       "noResults": "Aucun résultat"
     },
     "workspaces": {
@@ -403,7 +405,24 @@
       "removeLogo": "Retirer le logo",
       "preview": "Aperçu",
       "playPreview": "Lancer l'aperçu",
-      "duplicate": "Dupliquer"
+      "duplicate": "Dupliquer",
+      "sound": "Son",
+      "uploadSound": "Importer un son",
+      "removeSound": "Retirer le son",
+      "testSound": "Tester le son",
+      "midiEnabled": "Activer MIDI",
+      "midiChannel": "Canal MIDI",
+      "midiCc": "CC MIDI",
+      "midiValue": "Valeur MIDI",
+      "testMidi": "Tester MIDI"
+    },
+    "sommaire": {
+      "title": "Sommaire",
+      "show": "Afficher",
+      "hide": "Masquer",
+      "none": "Aucun",
+      "noCategories": "Aucune catégorie trouvée. Utilisez # pour les catégories.",
+      "error": "Erreur lors du contrôle du sommaire"
     }
   },
   "navigation": {
@@ -424,6 +443,7 @@
       "presenterChannel": "Canal présentateur",
       "chatMessages": "Messages Chat",
       "wordHarvest": "Récolte de mots",
+      "titleReveal": "Titre animé",
       "obs": "OBS",
       "twitch": "Twitch",
       "streamerbot": "Streamer.bot",
@@ -756,6 +776,32 @@
       "fontSizeDescription": "Taille de la police en pixels pour les messages affichés.",
       "testNotification": "Envoyer une notification de test",
       "testNotificationDescription": "Envoyer un message de test pour vérifier que l'overlay Studio Return fonctionne."
+    },
+    "titleReveal": {
+      "title": "Titre animé",
+      "description": "Configurez les valeurs par défaut pour les titres animés : logo, son et MIDI.",
+      "defaultLogo": "Logo par défaut",
+      "defaultLogoDesc": "Logo utilisé quand un titre n'en définit pas un spécifiquement.",
+      "uploadLogo": "Importer un logo",
+      "defaultDuration": "Durée par défaut (s)",
+      "defaultDurationDesc": "Durée d'affichage utilisée quand un titre n'en définit pas une spécifiquement.",
+      "defaultSound": "Son par défaut",
+      "defaultSoundDesc": "Son joué dans l'overlay quand un titre n'en définit pas un spécifiquement.",
+      "uploadSound": "Importer un son",
+      "testSound": "Tester",
+      "remove": "Retirer",
+      "defaultMidi": "MIDI par défaut",
+      "defaultMidiDesc": "Message MIDI CC envoyé lors du lancement d'un titre, sauf si le titre définit son propre MIDI.",
+      "midiEnabled": "Activer MIDI",
+      "midiChannel": "Canal",
+      "midiCc": "CC",
+      "midiValue": "Valeur",
+      "midiNotAvailable": "Web MIDI n'est pas disponible dans ce navigateur.",
+      "testMidi": "Tester MIDI",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "loading": "Chargement...",
+      "savedSuccess": "Paramètres enregistrés"
     }
   },
   "assets": {

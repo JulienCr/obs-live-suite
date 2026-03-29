@@ -29,11 +29,13 @@ import { TextPresetsPanel } from "./panels/TextPresetsPanel";
 import { MediaPlayerPanel } from "./panels/MediaPlayerPanel";
 import { WordHarvestPanel } from "./panels/WordHarvestPanel";
 import { TitleRevealPanel } from "./panels/TitleRevealPanel";
+import { SommairePanel } from "./panels/SommairePanel";
 import { DockviewContext } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { usePanelColorsStore, useWorkspacesStore, useDockviewStore } from "@/lib/stores";
 import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
+import { useDataSync } from "@/hooks/useDataSync";
 import { useAppMode } from "./AppModeContext";
 import type { ColorScheme } from "@/lib/models/PanelColor";
 import type { PanelId } from "@/lib/panels/registry";
@@ -63,6 +65,7 @@ const components = {
   mediaPlayerYoutube: MediaPlayerPanel,
   wordHarvest: WordHarvestPanel,
   titleReveal: TitleRevealPanel,
+  sommaire: SommairePanel,
 } satisfies Record<PanelId, React.ComponentType<any>>;
 
 const tabComponents = {
@@ -82,6 +85,7 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
 
   const { theme } = useTheme();
   const { isFullscreenMode } = useAppMode();
+  useDataSync();
   const [mounted, setMounted] = useState(false);
   const apiRef = useRef<DockviewReadyEvent["api"] | null>(null);
   const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);

@@ -22,11 +22,11 @@ debugLog("Bootstrapper loaded, waiting for overlay URL...");
 // ---- Tauri bridge: settings (no-op in bootstrapper, exists for Rust eval safety) ----
 (window as unknown as Record<string, unknown>).__applySettings = () => {};
 
-// ---- Fallback: if no URL received within 10s, try default ----
+// ---- Fallback: if no URL received within 10s, log warning ----
+// The Rust backend is the source of truth for the overlay URL (sent via __setOverlayUrl).
+// We no longer hardcode a fallback URL since the server may run on a different host.
 setTimeout(() => {
   if (window.location.pathname === "/" || window.location.pathname === "/index.html") {
-    const fallbackUrl = "http://127.0.0.1:3000/overlays/studio-return";
-    debugLog(`No overlay URL received, falling back to ${fallbackUrl}`);
-    window.location.href = fallbackUrl;
+    debugLog("Warning: no overlay URL received from Rust backend after 10s. Waiting...");
   }
 }, 10000);

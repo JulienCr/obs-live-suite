@@ -4,6 +4,7 @@ import { CountdownRenderer } from "@/components/overlays/CountdownRenderer";
 import { LowerThirdRenderer } from "@/components/overlays/LowerThirdRenderer";
 import { PosterRenderer } from "@/components/overlays/PosterRenderer";
 import { ChatHighlightRenderer } from "@/components/overlays/ChatHighlightRenderer";
+import { SommaireRenderer } from "@/components/overlays/SommaireRenderer";
 import { TitleRevealRenderer } from "@/components/overlays/TitleRevealRenderer";
 import { WordHarvestRenderer } from "@/components/overlays/WordHarvestRenderer";
 
@@ -15,6 +16,7 @@ import { WordHarvestRenderer } from "@/components/overlays/WordHarvestRenderer";
  * - Countdown timer
  * - Poster display
  * - Chat Highlight overlay
+ * - Sommaire (table of contents) overlay
  * - Title Reveal overlay
  * - Word Harvest overlay
  *
@@ -32,6 +34,9 @@ export default function CompositeOverlayPage() {
 
       {/* Chat Highlight for displaying Twitch/YouTube messages */}
       <ChatHighlightRenderer />
+
+      {/* Sommaire (table of contents) overlay */}
+      <SommaireRenderer />
 
       {/* Title Reveal for full-screen animated titles */}
       <TitleRevealRenderer />

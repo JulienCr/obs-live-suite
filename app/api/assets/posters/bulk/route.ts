@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PosterRepository } from "@/lib/repositories/PosterRepository";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 export async function POST(request: Request) {
   try {
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
       }
     }
 
+    broadcastDataChange("posters", "deleted", request);
     return NextResponse.json({
       success: true,
       deleted,

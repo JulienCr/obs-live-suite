@@ -30,6 +30,11 @@ export const titleRevealConfigSchema = z.object({
   colorGhostBlue: z.string().default("#7B8DB5"),
   colorGhostNavy: z.string().default("#1B2A6B"),
   duration: z.number().positive().default(8.5),
+  soundUrl: z.string().nullable().default(null),
+  midiEnabled: z.boolean().default(false),
+  midiChannel: z.number().int().min(1).max(16).default(1),
+  midiCc: z.number().int().min(0).max(127).default(60),
+  midiValue: z.number().int().min(0).max(127).default(127),
   sortOrder: z.number().int().default(0),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
@@ -54,3 +59,21 @@ export const updateTitleRevealSchema = titleRevealConfigSchema
   .required({ id: true });
 
 export type UpdateTitleRevealInput = z.infer<typeof updateTitleRevealSchema>;
+
+// ---------------------------------------------------------------------------
+// Title Reveal Defaults (admin settings)
+// ---------------------------------------------------------------------------
+
+export const TitleRevealDefaultsSchema = z.object({
+  defaultLogoUrl: z.string().nullable().default(null),
+  defaultSoundUrl: z.string().nullable().default(null),
+  defaultDuration: z.number().positive().default(6.5),
+  midiEnabled: z.boolean().default(false),
+  midiChannel: z.number().int().min(1).max(16).default(1),
+  midiCc: z.number().int().min(0).max(127).default(60),
+  midiValue: z.number().int().min(0).max(127).default(127),
+});
+
+export type TitleRevealDefaults = z.infer<typeof TitleRevealDefaultsSchema>;
+
+export const DEFAULT_TITLE_REVEAL_DEFAULTS: TitleRevealDefaults = TitleRevealDefaultsSchema.parse({});

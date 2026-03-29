@@ -4,10 +4,11 @@ import type { DbTitleReveal, DbTitleRevealInput, DbTitleRevealUpdate } from "@/l
 /**
  * Raw title reveal row type as stored in SQLite database.
  */
-type DbTitleRevealRow = Omit<DbTitleReveal, "lines" | "createdAt" | "updatedAt"> & {
+type DbTitleRevealRow = Omit<DbTitleReveal, "lines" | "createdAt" | "updatedAt" | "midiEnabled"> & {
   lines: string;
   createdAt: string;
   updatedAt: string;
+  midiEnabled: number;
 };
 
 /**
@@ -27,6 +28,7 @@ export class TitleRevealRepository extends BaseRepository<
   protected readonly transformConfig: ColumnTransformConfig = {
     dateColumns: ["createdAt", "updatedAt"],
     jsonColumns: [{ column: "lines", defaultValue: [] }],
+    booleanColumns: ["midiEnabled"],
   };
 
   private constructor() {
@@ -58,8 +60,8 @@ export class TitleRevealRepository extends BaseRepository<
     });
 
     const stmt = this.rawDb.prepare(`
-      INSERT INTO title_reveals (id, name, lines, logoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration, sortOrder, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO title_reveals (id, name, lines, logoUrl, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration, soundUrl, midiEnabled, midiChannel, midiCc, midiValue, sortOrder, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       input.id,
@@ -73,6 +75,11 @@ export class TitleRevealRepository extends BaseRepository<
       input.colorGhostBlue,
       input.colorGhostNavy,
       input.duration,
+      input.soundUrl || null,
+      input.midiEnabled ? 1 : 0,
+      input.midiChannel,
+      input.midiCc,
+      input.midiValue,
       input.sortOrder,
       this.prepareValue(input.createdAt || now),
       this.prepareValue(input.updatedAt || now)
@@ -100,6 +107,7 @@ export class TitleRevealRepository extends BaseRepository<
       UPDATE title_reveals
       SET name = ?, lines = ?, logoUrl = ?, fontFamily = ?, fontSize = ?, rotation = ?,
           colorText = ?, colorGhostBlue = ?, colorGhostNavy = ?, duration = ?,
+          soundUrl = ?, midiEnabled = ?, midiChannel = ?, midiCc = ?, midiValue = ?,
           sortOrder = ?, updatedAt = ?
       WHERE id = ?
     `);
@@ -114,6 +122,11 @@ export class TitleRevealRepository extends BaseRepository<
       merged.colorGhostBlue,
       merged.colorGhostNavy,
       merged.duration,
+      merged.soundUrl || null,
+      merged.midiEnabled ? 1 : 0,
+      merged.midiChannel,
+      merged.midiCc,
+      merged.midiValue,
       merged.sortOrder,
       this.prepareValue(merged.updatedAt),
       id

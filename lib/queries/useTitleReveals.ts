@@ -22,6 +22,11 @@ export interface TitleReveal {
   colorGhostBlue: string;
   colorGhostNavy: string;
   duration: number;
+  soundUrl: string | null;
+  midiEnabled: boolean;
+  midiChannel: number;
+  midiCc: number;
+  midiValue: number;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -46,6 +51,11 @@ export interface CreateTitleRevealInput {
   colorGhostBlue?: string;
   colorGhostNavy?: string;
   duration?: number;
+  soundUrl?: string | null;
+  midiEnabled?: boolean;
+  midiChannel?: number;
+  midiCc?: number;
+  midiValue?: number;
   sortOrder?: number;
 }
 
@@ -60,6 +70,11 @@ export interface UpdateTitleRevealInput {
   colorGhostBlue?: string;
   colorGhostNavy?: string;
   duration?: number;
+  soundUrl?: string | null;
+  midiEnabled?: boolean;
+  midiChannel?: number;
+  midiCc?: number;
+  midiValue?: number;
   sortOrder?: number;
 }
 
@@ -127,6 +142,16 @@ export function useTitleReveals() {
     return response.url;
   };
 
+  const uploadSound = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiPost<{ url: string }>(
+      "/api/assets/title-reveals/upload-sound",
+      formData
+    );
+    return response.url;
+  };
+
   return {
     titleReveals: data ?? [],
     isLoading,
@@ -139,6 +164,7 @@ export function useTitleReveals() {
     playTitleReveal: playTitleRevealMutation.mutate,
     hideTitleReveal: hideTitleRevealMutation.mutate,
     uploadLogo,
+    uploadSound,
     isCreating: createTitleRevealMutation.isPending,
     isUpdating: updateTitleRevealMutation.isPending,
     isDeleting: deleteTitleRevealMutation.isPending,

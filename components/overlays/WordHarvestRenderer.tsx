@@ -11,22 +11,7 @@ import type {
   WordHarvestPhase,
 } from "@/lib/models/WordHarvest";
 import { WORD_HARVEST } from "@/lib/config/Constants";
-
-const audioCache = new Map<string, HTMLAudioElement>();
-
-function playSound(url: string) {
-  try {
-    let audio = audioCache.get(url);
-    if (!audio) {
-      audio = new Audio(url);
-      audioCache.set(url, audio);
-    }
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  } catch {
-    // Audio may fail in some browser source configs
-  }
-}
+import { playSound } from "@/lib/utils/audioPlayer";
 
 /**
  * WordHarvestRenderer manages WebSocket connection and state for the word harvest overlay.

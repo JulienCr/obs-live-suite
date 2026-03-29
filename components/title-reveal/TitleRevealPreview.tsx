@@ -11,7 +11,7 @@ import {
   loadGoogleFont,
   type TitleRevealAnimConfig,
 } from "@/lib/titleReveal";
-import { TITLE_REVEAL } from "@/lib/config/Constants";
+
 import "@/components/overlays/title-reveal-styles.css";
 
 /** The stage renders at native overlay resolution, then CSS-scales to fit. */
@@ -32,13 +32,15 @@ function buildStaticPreview(container: HTMLElement, config: TitleRevealAnimConfi
   const stage = document.createElement("div");
   stage.className = "title-reveal-stage";
 
-  const logoSrc = config.logoUrl ?? TITLE_REVEAL.DEFAULT_LOGO_URL;
-  const logoImg = document.createElement("img");
-  logoImg.className = "title-reveal-logo";
-  logoImg.src = logoSrc;
-  logoImg.style.opacity = "0";
-  logoImg.style.transform = "scale(0.02) rotate(10deg)";
-  stage.appendChild(logoImg);
+  const logoSrc = config.logoUrl;
+  if (logoSrc) {
+    const logoImg = document.createElement("img");
+    logoImg.className = "title-reveal-logo";
+    logoImg.src = logoSrc;
+    logoImg.style.opacity = "0";
+    logoImg.style.transform = "scale(0.02) rotate(10deg)";
+    stage.appendChild(logoImg);
+  }
 
   const titleDiv = document.createElement("div");
   titleDiv.className = "title-reveal-title";

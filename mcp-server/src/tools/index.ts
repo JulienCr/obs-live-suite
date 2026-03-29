@@ -8,6 +8,7 @@ import { registerPosterOverlayTools } from './poster-overlay.js';
 import { registerChatTools } from './chat.js';
 import { registerClearAllTools } from './clear-all.js';
 import { registerTextPresetTools } from './text-presets.js';
+import { registerSommaireTools } from './sommaire.js';
 
 export function registerAllTools(server: McpServer) {
   registerGuestTools(server);
@@ -19,4 +20,5 @@ export function registerAllTools(server: McpServer) {
   registerPosterOverlayTools(server);
   registerChatTools(server);
   registerClearAllTools(server);
+  registerSommaireTools(server);
 }

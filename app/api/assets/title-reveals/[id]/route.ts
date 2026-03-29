@@ -7,6 +7,7 @@ import {
   withErrorHandler,
   RouteContext,
 } from "@/lib/utils/ApiResponses";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 const LOG_CONTEXT = "[TitleRevealsAPI]";
 
@@ -45,6 +46,7 @@ export const PATCH = withErrorHandler<{ id: string }>(
       updatedAt: new Date(),
     });
     const titleReveal = repo.getById(id);
+    broadcastDataChange("titleReveals", "updated", request, id);
     return ApiResponses.ok({ titleReveal });
   },
   LOG_CONTEXT
@@ -55,25 +57,29 @@ export const PATCH = withErrorHandler<{ id: string }>(
  * Delete title reveal (also deletes logo file if present)
  */
 export const DELETE = withErrorHandler<{ id: string }>(
-  async (_request: Request, context: RouteContext<{ id: string }>) => {
+  async (request: Request, context: RouteContext<{ id: string }>) => {
     const { id } = await context.params;
     const repo = TitleRevealRepository.getInstance();
     if (!repo.exists(id)) {
       return ApiResponses.notFound(`Title reveal with ID ${id}`);
     }
 
-    // Delete associated logo file if it exists
+    // Delete associated files if they exist
     const titleReveal = repo.getById(id);
-    if (titleReveal && titleReveal.logoUrl) {
-      try {
-        const filePath = urlToFilePath(titleReveal.logoUrl);
-        await unlink(filePath);
-      } catch {
-        // File may already be deleted — not critical
+    if (titleReveal) {
+      for (const url of [titleReveal.logoUrl, titleReveal.soundUrl]) {
+        if (!url) continue;
+        try {
+          const filePath = urlToFilePath(url);
+          await unlink(filePath);
+        } catch {
+          // File may already be deleted — not critical
+        }
       }
     }
 
     repo.delete(id);
+    broadcastDataChange("titleReveals", "deleted", request, id);
     return ApiResponses.ok({ success: true });
   },
   LOG_CONTEXT

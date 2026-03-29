@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ProfileRepository } from "@/lib/repositories/ProfileRepository";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -14,6 +15,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     profileRepo.setActive(id);
 
     const profile = profileRepo.getById(id);
+    broadcastDataChange("profiles", "updated", request, id);
     return NextResponse.json({ profile });
   } catch (error) {
     return NextResponse.json(

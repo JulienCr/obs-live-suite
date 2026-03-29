@@ -6,6 +6,7 @@ import {
   withSimpleErrorHandler,
 } from "@/lib/utils/ApiResponses";
 import { parseBooleanQueryParam } from "@/lib/utils/queryParams";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 const LOG_CONTEXT = "[GuestsAPI]";
 
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
     });
     const guestRepo = GuestRepository.getInstance();
     guestRepo.create(guest);
+    broadcastDataChange("guests", "created", request, guest.id);
     return ApiResponses.created({ guest });
   } catch (error) {
     console.error("[GuestsAPI] Guest creation error:", error);

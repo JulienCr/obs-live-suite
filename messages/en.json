@@ -18,7 +18,8 @@
       "mediaPlayerArtlist": "Artlist Player",
       "mediaPlayerYoutube": "YouTube Player",
       "wordHarvest": "Word Harvest",
-      "titleReveal": "Title Reveal"
+      "titleReveal": "Title Reveal",
+      "sommaire": "Table of Contents"
     },
     "header": {
       "connected": "Connected",
@@ -68,6 +69,7 @@
       "showMediaPlayerYoutubePanel": "Show YouTube Player Panel",
       "showWordHarvestPanel": "Show Word Harvest Panel",
       "showTitleRevealPanel": "Show Title Reveal Panel",
+      "showSommairePanel": "Show Table of Contents Panel",
       "noResults": "No results found"
     },
     "workspaces": {
@@ -403,7 +405,24 @@
       "removeLogo": "Remove Logo",
       "preview": "Preview",
       "playPreview": "Play Preview",
-      "duplicate": "Duplicate"
+      "duplicate": "Duplicate",
+      "sound": "Sound",
+      "uploadSound": "Upload Sound",
+      "removeSound": "Remove Sound",
+      "testSound": "Test Sound",
+      "midiEnabled": "Enable MIDI",
+      "midiChannel": "MIDI Channel",
+      "midiCc": "MIDI CC",
+      "midiValue": "MIDI Value",
+      "testMidi": "Test MIDI"
+    },
+    "sommaire": {
+      "title": "Table of Contents",
+      "show": "Show",
+      "hide": "Hide",
+      "none": "None",
+      "noCategories": "No categories found. Use # for categories.",
+      "error": "Error controlling sommaire"
     }
   },
   "navigation": {
@@ -424,6 +443,7 @@
       "presenterChannel": "Presenter Channel",
       "chatMessages": "Chat Messages",
       "wordHarvest": "Word Harvest",
+      "titleReveal": "Title Reveal",
       "obs": "OBS",
       "twitch": "Twitch",
       "streamerbot": "Streamer.bot",
@@ -756,6 +776,32 @@
       "fontSizeDescription": "Font size in pixels for displayed messages.",
       "testNotification": "Send test notification",
       "testNotificationDescription": "Send a test message to verify the Studio Return overlay is working."
+    },
+    "titleReveal": {
+      "title": "Title Reveal",
+      "description": "Configure default values for title reveals: logo, sound and MIDI.",
+      "defaultLogo": "Default Logo",
+      "defaultLogoDesc": "Logo used when a title reveal doesn't define its own.",
+      "uploadLogo": "Upload Logo",
+      "defaultDuration": "Default Duration (s)",
+      "defaultDurationDesc": "Display duration used when a title reveal doesn't define its own.",
+      "defaultSound": "Default Sound",
+      "defaultSoundDesc": "Sound played in the overlay when a title reveal doesn't define its own.",
+      "uploadSound": "Upload Sound",
+      "testSound": "Test",
+      "remove": "Remove",
+      "defaultMidi": "Default MIDI",
+      "defaultMidiDesc": "MIDI CC message sent when playing a title reveal, unless the title defines its own MIDI.",
+      "midiEnabled": "Enable MIDI",
+      "midiChannel": "Channel",
+      "midiCc": "CC",
+      "midiValue": "Value",
+      "midiNotAvailable": "Web MIDI is not available in this browser.",
+      "testMidi": "Test MIDI",
+      "save": "Save",
+      "saving": "Saving...",
+      "loading": "Loading...",
+      "savedSuccess": "Settings saved"
     }
   },
   "assets": {

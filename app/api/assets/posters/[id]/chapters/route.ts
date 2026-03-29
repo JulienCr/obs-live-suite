@@ -7,6 +7,7 @@ import {
   withErrorHandler,
   RouteContext,
 } from "@/lib/utils/ApiResponses";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 const LOG_CONTEXT = "[ChaptersAPI]";
 
@@ -116,6 +117,8 @@ export const POST = withErrorHandler<{ id: string }>(
 
     // Sort chapters by timestamp for response
     const sortedChapters = updatedChapters.sort((a, b) => a.timestamp - b.timestamp);
+
+    broadcastDataChange("posters", "updated", request, id);
 
     return ApiResponses.created({
       chapter: newChapter,

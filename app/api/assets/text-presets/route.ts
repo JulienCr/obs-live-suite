@@ -6,6 +6,7 @@ import {
   withSimpleErrorHandler,
 } from "@/lib/utils/ApiResponses";
 import { parseBooleanQueryParam } from "@/lib/utils/queryParams";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 const LOG_CONTEXT = "[TextPresetsAPI]";
 
@@ -43,5 +44,6 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
   });
   const repo = TextPresetRepository.getInstance();
   repo.create(textPreset);
+  broadcastDataChange("textPresets", "created", request);
   return ApiResponses.created({ textPreset });
 }, LOG_CONTEXT);

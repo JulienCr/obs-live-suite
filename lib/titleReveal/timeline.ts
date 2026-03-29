@@ -6,7 +6,7 @@ import { animateLogo } from "./logoAnimation";
 import { animateCharReveal } from "./charAnimation";
 import { animateWobble } from "./wobbleAnimation";
 import { animateDisappear } from "./disappearAnimation";
-import { TITLE_REVEAL } from "@/lib/config/Constants";
+
 
 // ---------------------------------------------------------------------------
 // Orchestrator: builds the full title-reveal timeline
@@ -36,11 +36,13 @@ export function buildTimeline(
   const stage = document.createElement("div");
   stage.className = "title-reveal-stage";
 
-  const logoSrc = config.logoUrl ?? TITLE_REVEAL.DEFAULT_LOGO_URL;
-  const logoImg = document.createElement("img");
-  logoImg.className = "title-reveal-logo";
-  logoImg.src = logoSrc;
-  stage.appendChild(logoImg);
+  const logoSrc = config.logoUrl;
+  const logoImg = logoSrc ? document.createElement("img") : null;
+  if (logoImg && logoSrc) {
+    logoImg.className = "title-reveal-logo";
+    logoImg.src = logoSrc;
+    stage.appendChild(logoImg);
+  }
 
   const titleDiv = document.createElement("div");
   titleDiv.className = "title-reveal-title";
@@ -62,7 +64,9 @@ export function buildTimeline(
   gsap.set(titleDiv, { opacity: 0 });
 
   // Logo animation
-  animateLogo(tl, logoImg, defaults);
+  if (logoImg) {
+    animateLogo(tl, logoImg, defaults);
+  }
 
   // Character reveal
   animateCharReveal(tl, titleDiv, charWraps, defaults);

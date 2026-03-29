@@ -10,6 +10,7 @@ import { TITLE_REVEAL_DEFAULTS } from "@/lib/titleReveal/animationDefaults";
 import type { TitleRevealAnimConfig } from "@/lib/titleReveal/types";
 import type { TitleRevealEvent } from "@/lib/models/OverlayEvents";
 import { OverlayChannel } from "@/lib/models/OverlayEvents";
+import { playSound } from "@/lib/utils/audioPlayer";
 import "@/components/overlays/title-reveal-styles.css";
 
 /**
@@ -42,6 +43,11 @@ export function TitleRevealRenderer() {
 
         // Clean up any existing animation
         cleanup();
+
+        // Play sound if configured
+        if (data.payload.soundUrl) {
+          playSound(data.payload.soundUrl);
+        }
 
         const { lines, fontFamily, fontSize, rotation, colorText, colorGhostBlue, colorGhostNavy, duration } = data.payload;
         const config: TitleRevealAnimConfig = {

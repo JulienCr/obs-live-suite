@@ -7,6 +7,7 @@ import {
   withErrorHandler,
   RouteContext,
 } from "@/lib/utils/ApiResponses";
+import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
 
 const LOG_CONTEXT = "[SubVideosAPI]";
 
@@ -122,6 +123,8 @@ export const POST = withErrorHandler<{ id: string }>(
         endBehavior,
         thumbnailUrl,
       });
+
+      broadcastDataChange("posters", "created", request, id);
 
       return ApiResponses.created({
         subVideo,
