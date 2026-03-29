@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
 import { useTranslations } from "next-intl";
 import { Eye, EyeOff, ChevronLeft, ChevronRight, X } from "lucide-react";
@@ -10,6 +10,7 @@ import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { parseSommaireMarkdown, type SommaireCategory } from "@/lib/models/Sommaire";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 
 const config: PanelConfig = { id: "sommaire", context: "dashboard" };
 
@@ -30,31 +31,20 @@ export function SommairePanel(_props: IDockviewPanelProps) {
 
   // Load saved markdown from DB on mount
   useEffect(() => {
-    fetch("/api/settings/sommaire")
-      .then((res) => res.json())
+    apiGet<{ markdown?: string }>("/api/settings/sommaire")
       .then((data) => {
         if (data.markdown) setMarkdown(data.markdown);
       })
       .catch(() => {});
   }, []);
 
-  // Save markdown to DB (debounced on change, immediate on show)
   const saveMarkdown = useCallback((md: string) => {
-    fetch("/api/settings/sommaire", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ markdown: md }),
-    }).catch(() => {});
+    apiPost("/api/settings/sommaire", { markdown: md }).catch(() => {});
   }, []);
 
   const sendAction = useCallback(async (action: string, payload?: Record<string, unknown>) => {
     try {
-      const res = await fetch("/api/overlays/sommaire", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, payload }),
-      });
-      if (!res.ok) throw new Error("Request failed");
+      await apiPost("/api/overlays/sommaire", { action, payload });
     } catch {
       toast.error(t("error"));
     }
@@ -88,13 +78,16 @@ export function SommairePanel(_props: IDockviewPanelProps) {
   }, [sendAction]);
 
   // Build flat navigation list: [catIdx, subIdx] pairs
-  const navItems: [number, number][] = [];
-  for (const cat of parsedCategories) {
-    navItems.push([cat.index, -1]);
-    for (let i = 0; i < cat.items.length; i++) {
-      navItems.push([cat.index, i]);
+  const navItems = useMemo(() => {
+    const items: [number, number][] = [];
+    for (const cat of parsedCategories) {
+      items.push([cat.index, -1]);
+      for (let i = 0; i < cat.items.length; i++) {
+        items.push([cat.index, i]);
+      }
     }
-  }
+    return items;
+  }, [parsedCategories]);
 
   const currentNavIdx = navItems.findIndex(
     ([c, s]) => c === activeIndex && s === activeSubIndex

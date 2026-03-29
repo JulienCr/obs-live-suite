@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Save, Image, Volume2, Music } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { apiPost } from "@/lib/utils/ClientFetch";
+import { playSound } from "@/lib/utils/audioPlayer";
 import type { TitleRevealDefaults } from "@/lib/models/TitleReveal";
 import { DEFAULT_TITLE_REVEAL_DEFAULTS } from "@/lib/models/TitleReveal";
 import { useState } from "react";
@@ -69,8 +70,7 @@ export function TitleRevealDefaultsSettings() {
 
   const handleTestSound = () => {
     if (!settings.defaultSoundUrl) return;
-    const audio = new Audio(settings.defaultSoundUrl);
-    audio.play().catch(() => {});
+    playSound(settings.defaultSoundUrl);
   };
 
   const handleTestMidi = () => {

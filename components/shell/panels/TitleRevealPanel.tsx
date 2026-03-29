@@ -15,6 +15,7 @@ import type { TitleRevealAnimConfig } from "@/lib/titleReveal";
 import type { TitleRevealSaveData } from "@/components/title-reveal/TitleRevealEditor";
 import type { TitleRevealDefaults } from "@/lib/models/TitleReveal";
 import { DEFAULT_TITLE_REVEAL_DEFAULTS } from "@/lib/models/TitleReveal";
+import { apiGet } from "@/lib/utils/ClientFetch";
 import { toast } from "sonner";
 import { useMidi } from "@/hooks/useMidi";
 import {
@@ -48,22 +49,14 @@ export function TitleRevealPanel(_props: IDockviewPanelProps) {
   const defaultsRef = useRef<TitleRevealDefaults>(DEFAULT_TITLE_REVEAL_DEFAULTS);
 
   useEffect(() => {
-    // Load title reveal defaults
-    fetch("/api/settings/title-reveal-defaults")
-      .then((r) => r.ok ? r.json() : null)
+    apiGet<{ settings?: TitleRevealDefaults }>("/api/settings/title-reveal-defaults")
       .then((data) => {
-        if (data?.settings) {
-          defaultsRef.current = data.settings;
-        }
+        if (data?.settings) defaultsRef.current = data.settings;
       })
       .catch(() => {});
-    // Load MIDI output name from word harvest settings (shared)
-    fetch("/api/settings/word-harvest-midi")
-      .then((r) => r.ok ? r.json() : null)
+    apiGet<{ settings?: { outputName?: string } }>("/api/settings/word-harvest-midi")
       .then((data) => {
-        if (data?.settings?.outputName) {
-          midiOutputRef.current = data.settings.outputName;
-        }
+        if (data?.settings?.outputName) midiOutputRef.current = data.settings.outputName;
       })
       .catch(() => {});
   }, []);

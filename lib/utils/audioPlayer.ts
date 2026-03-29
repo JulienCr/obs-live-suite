@@ -1,3 +1,4 @@
+const MAX_CACHE = 20;
 const audioCache = new Map<string, HTMLAudioElement>();
 
 /**
@@ -9,6 +10,10 @@ export function playSound(url: string) {
     let audio = audioCache.get(url);
     if (!audio) {
       audio = new Audio(url);
+      if (audioCache.size >= MAX_CACHE) {
+        const oldest = audioCache.keys().next().value!;
+        audioCache.delete(oldest);
+      }
       audioCache.set(url, audio);
     }
     audio.currentTime = 0;

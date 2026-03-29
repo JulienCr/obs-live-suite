@@ -13,6 +13,7 @@ import { FontFamilyCombobox } from "./FontFamilyCombobox";
 import { FontSizeCombobox } from "./FontSizeCombobox";
 import type { TitleReveal, TitleRevealLine } from "@/lib/queries/useTitleReveals";
 import type { TitleRevealAnimConfig } from "@/lib/titleReveal";
+import { playSound } from "@/lib/utils/audioPlayer";
 
 export type TitleRevealSaveData = {
   name: string;
@@ -126,8 +127,7 @@ export function TitleRevealEditor({ initial, defaults, onSave, onCancel, uploadL
 
   const handleTestSound = () => {
     if (!soundUrl) return;
-    const audio = new Audio(soundUrl);
-    audio.play().catch(() => {});
+    playSound(soundUrl);
   };
 
   const handleSave = () => {
