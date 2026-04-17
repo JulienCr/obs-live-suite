@@ -65,6 +65,12 @@ export function PosterRenderer() {
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const cleanupTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const showVersionRef = useRef(0);
+  // Last processed event id. The backend replays the current poster show
+  // event to reconnecting clients (so the regie dashboard preview can reclaim
+  // ownership after a reload). The overlay renderer also auto-resubscribes
+  // after transient WS glitches — without this guard, the replayed show would
+  // remount the media and jump/reset on-air playback.
+  const lastEventIdRef = useRef<string | null>(null);
 
   const memoizedSend = useCallback((data: unknown) => sendRef.current(data), []);
 
@@ -116,12 +122,22 @@ export function PosterRenderer() {
   }, []);
 
   const handleEvent = useCallback((data: PosterEvent) => {
+    // Idempotent replay: a server-side replay re-emits the original show
+    // event (same id). Ack and drop it so the overlay doesn't restart media.
+    if (data.type === "show" && data.id && lastEventIdRef.current === data.id) {
+      sendAckRef.current(data.id);
+      return;
+    }
+
     if (hideTimeout.current) {
       clearTimeout(hideTimeout.current);
     }
 
     switch (data.type) {
       case "show":
+        if (data.id) {
+          lastEventIdRef.current = data.id;
+        }
         if (data.payload) {
           const mediaType: "image" | "video" | "youtube" = data.payload.type || (
             data.payload.fileUrl.endsWith(".mp4") ||
@@ -210,6 +226,7 @@ export function PosterRenderer() {
         }
         break;
       case "hide":
+        lastEventIdRef.current = null;
         handlePosterHide(playback, setState, cleanupTimeout);
         break;
       default:

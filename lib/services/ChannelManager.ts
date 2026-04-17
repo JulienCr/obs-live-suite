@@ -19,6 +19,13 @@ interface PosterChannelState {
   payload: Record<string, unknown>;
   ownerClientId?: string;
   eventId: string;
+  /**
+   * Auto-expiry timer: when the show payload carries a `duration`, the
+   * overlay renderer self-hides client-side without emitting a backend hide.
+   * Mirror that here so replays don't resurrect a poster that is no longer
+   * on-air, and so `takeoverPoster` can't claim a dead channel.
+   */
+  expiryTimer?: NodeJS.Timeout;
 }
 
 const POSTER_CHANNELS: ReadonlySet<OverlayChannel> = new Set([
@@ -157,10 +164,32 @@ export class ChannelManager {
    */
   recordPosterShow(channel: OverlayChannel, payload: Record<string, unknown>, eventId: string): void {
     if (!POSTER_CHANNELS.has(channel)) return;
+
+    // Replace any existing tracked state for this channel; clear the previous
+    // expiry timer so it doesn't fire against the new show.
+    const previous = this.posterStates.get(channel);
+    if (previous?.expiryTimer) {
+      clearTimeout(previous.expiryTimer);
+    }
+
+    const duration = typeof payload.duration === "number" && payload.duration > 0
+      ? payload.duration
+      : undefined;
+    const expiryTimer = duration
+      ? setTimeout(() => {
+          // Only clear if still the same show — a later show event supersedes us.
+          const current = this.posterStates.get(channel);
+          if (current?.eventId === eventId) {
+            this.posterStates.delete(channel);
+          }
+        }, duration * 1000)
+      : undefined;
+
     this.posterStates.set(channel, {
       payload,
       ownerClientId: typeof payload.ownerClientId === "string" ? payload.ownerClientId : undefined,
       eventId,
+      expiryTimer,
     });
   }
 
@@ -168,6 +197,10 @@ export class ChannelManager {
    * Clear tracked state for a poster channel (on hide).
    */
   clearPosterState(channel: OverlayChannel): void {
+    const state = this.posterStates.get(channel);
+    if (state?.expiryTimer) {
+      clearTimeout(state.expiryTimer);
+    }
     this.posterStates.delete(channel);
   }
 

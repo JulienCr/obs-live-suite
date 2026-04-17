@@ -675,5 +675,51 @@ describe('ChannelManager', () => {
       const applied = await channelManager.takeoverPoster(OverlayChannel.POSTER, 'owner-b');
       expect(applied).toBe(false);
     });
+
+    it('expires the cached state after payload.duration elapses (timed auto-hide)', async () => {
+      const channelManager = ChannelManager.getInstance();
+      await channelManager.publish(OverlayChannel.POSTER, 'show', {
+        posterId: 'p1',
+        duration: 5,
+      });
+
+      // Before expiry: state is live, replay fires.
+      mockSendToClient.mockClear();
+      capturedSubscribeCallback?.('client-b', OverlayChannel.POSTER);
+      expect(mockSendToClient).toHaveBeenCalledTimes(1);
+
+      // Advance past the duration; state must clear without an explicit hide.
+      jest.advanceTimersByTime(5_000);
+      mockSendToClient.mockClear();
+      capturedSubscribeCallback?.('client-c', OverlayChannel.POSTER);
+      expect(mockSendToClient).not.toHaveBeenCalled();
+
+      // And takeover must refuse to claim a channel that auto-hid.
+      const applied = await channelManager.takeoverPoster(OverlayChannel.POSTER, 'owner-z');
+      expect(applied).toBe(false);
+    });
+
+    it('clears the prior expiry timer when a new show supersedes it', async () => {
+      const channelManager = ChannelManager.getInstance();
+      await channelManager.publish(OverlayChannel.POSTER, 'show', {
+        posterId: 'p1',
+        duration: 5,
+      });
+      // Immediately replace with a non-timed show.
+      await channelManager.publish(OverlayChannel.POSTER, 'show', { posterId: 'p2' });
+
+      // If the first timer had fired, this would now be empty. Verify replay still works.
+      jest.advanceTimersByTime(10_000);
+      mockSendToClient.mockClear();
+      capturedSubscribeCallback?.('client-d', OverlayChannel.POSTER);
+      expect(mockSendToClient).toHaveBeenCalledWith(
+        'client-d',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            payload: expect.objectContaining({ posterId: 'p2' }),
+          }),
+        })
+      );
+    });
   });
 });

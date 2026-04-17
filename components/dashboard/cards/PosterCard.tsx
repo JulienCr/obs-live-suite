@@ -341,7 +341,7 @@ export function PosterContent({ className }: PosterContentProps) {
     poster: Poster,
     mode: DisplayMode,
     resume?: { resumeFrom?: number; resumePlaying?: boolean }
-  ) => {
+  ): Promise<boolean> => {
     try {
       const endpoint = mode === "bigpicture"
         ? "/api/overlays/poster-bigpicture"
@@ -384,8 +384,10 @@ export function PosterContent({ className }: PosterContentProps) {
       if (isVideoPosterType(poster.type)) {
         setShowControls(true);
       }
+      return true;
     } catch (error) {
       console.error("Error showing poster:", error);
+      return false;
     }
   };
 
@@ -542,11 +544,13 @@ export function PosterContent({ className }: PosterContentProps) {
     if (!cue) return;
     const poster = posters.find((p) => p.id === cue.posterId);
     if (!poster) return;
-    await showInMode(poster, cue.displayMode, {
+    const ok = await showInMode(poster, cue.displayMode, {
       resumeFrom: cue.currentTime,
       resumePlaying: cue.isPlaying,
     });
-    clearCue();
+    // Preserve the cue if the POST failed so the operator doesn't lose their
+    // staged time/play state and can retry without re-scrubbing.
+    if (ok) clearCue();
   };
 
   const handleTakeOver = async () => {
