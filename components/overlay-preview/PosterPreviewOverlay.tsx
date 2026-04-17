@@ -8,11 +8,25 @@ import { formatTimeShort } from "@/lib/utils/durationParser";
 import { PosterPreviewPlayer } from "./PosterPreviewPlayer";
 
 const BOUNDS_STORAGE_KEY = "ols.posterPreview.bounds";
+// Escape hatch: an operator can set `ols.posterPreview.disabled = "1"` in
+// devtools to suppress the preview entirely if postMessage/drag/playback
+// misbehaves in their environment. No UI toggle yet — trade-off for keeping
+// this PR additive-only.
+const DISABLED_STORAGE_KEY = "ols.posterPreview.disabled";
 const DEFAULT_WIDTH = 480;
 const MIN_WIDTH = 280;
 const MAX_WIDTH = 960;
 const ASPECT = 9 / 16;
 const TIMELINE_HEIGHT_GUESS = 80; // keep preview above the global timeline
+
+function isPreviewDisabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(DISABLED_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 interface Bounds {
   top: number;
@@ -89,6 +103,7 @@ function clampToViewport(bounds: Bounds): Bounds {
  * Renders on top of the Dockview layout via position: fixed.
  */
 export function PosterPreviewOverlay() {
+  const [disabled] = useState<boolean>(isPreviewDisabled);
   const [posters, setPosters] = useState<PosterListItem[]>([]);
   const [bounds, setBounds] = useState<Bounds>(() => readStoredBounds() ?? defaultBounds());
   const [collapsed, setCollapsed] = useState(false);
@@ -198,7 +213,7 @@ export function PosterPreviewOverlay() {
     releasePointer(e.currentTarget as HTMLElement, e.pointerId);
   }, []);
 
-  if (!preview) return null;
+  if (disabled || !preview) return null;
 
   const isCue = preview.mode === "cue";
   const title = isCue ? "Cue (local)" : "Live preview";

@@ -115,31 +115,52 @@ export function usePosterPreviewState({
     logPrefix: "PosterPreview",
   });
 
+  // Stabilize the live PreviewPoster reference: its fields only change when the
+  // show event mutates, not on every 1Hz playback tick. Without this, the full
+  // PreviewState memo would allocate a fresh `poster` object every second.
+  const livePoster = useMemo<PreviewPoster | null>(() => {
+    if (
+      !activePoster.fileUrl ||
+      (activePoster.type !== "video" && activePoster.type !== "youtube")
+    ) {
+      return null;
+    }
+    return {
+      id: activePoster.posterId ?? "live",
+      fileUrl: activePoster.fileUrl,
+      type: activePoster.type,
+      startTime: activePoster.subVideoStart,
+      endTime: activePoster.subVideoEnd,
+      endBehavior: activePoster.subVideoEndBehavior,
+    };
+  }, [
+    activePoster.fileUrl,
+    activePoster.type,
+    activePoster.posterId,
+    activePoster.subVideoStart,
+    activePoster.subVideoEnd,
+    activePoster.subVideoEndBehavior,
+  ]);
+
+  const liveDisplayMode = activePoster.displayMode ?? "left";
+
+  const cuedPoster = useMemo<PreviewPoster | null>(
+    () => (cue ? toPreviewPoster(posters.find((p) => p.id === cue.posterId)) : null),
+    [cue, posters]
+  );
+
   return useMemo<PreviewState>(() => {
     if (isOwner) {
-      const livePoster: PreviewPoster | null =
-        activePoster.fileUrl && (activePoster.type === "video" || activePoster.type === "youtube")
-          ? {
-              id: activePoster.posterId ?? "live",
-              fileUrl: activePoster.fileUrl,
-              type: activePoster.type,
-              startTime: activePoster.subVideoStart,
-              endTime: activePoster.subVideoEnd,
-              endBehavior: activePoster.subVideoEndBehavior,
-            }
-          : null;
       if (!livePoster) return null;
       return {
         mode: "live",
         poster: livePoster,
-        displayMode: activePoster.displayMode ?? "left",
+        displayMode: liveDisplayMode,
         playback,
       };
     }
 
-    if (cue && !activePoster.active) {
-      const cuedPoster = toPreviewPoster(posters.find((p) => p.id === cue.posterId));
-      if (!cuedPoster) return null;
+    if (cue && !activePoster.active && cuedPoster) {
       return {
         mode: "cue",
         poster: cuedPoster,
@@ -151,5 +172,16 @@ export function usePosterPreviewState({
     }
 
     return null;
-  }, [isOwner, activePoster, cue, posters, playback, updateCueTime, updateCuePlaying, clearCue]);
+  }, [
+    isOwner,
+    livePoster,
+    liveDisplayMode,
+    playback,
+    cue,
+    cuedPoster,
+    activePoster.active,
+    updateCueTime,
+    updateCuePlaying,
+    clearCue,
+  ]);
 }

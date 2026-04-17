@@ -148,6 +148,12 @@ export class ChannelManager {
   /**
    * Record that a poster show just happened on this channel so reconnecting
    * dashboards can be replayed the state (owner included).
+   *
+   * The stored payload is a snapshot at publish-time — if the active theme is
+   * edited mid-show, a replayed show still carries the old theme. This is only
+   * consumed by the regie dashboard preview (which ignores the theme), not by
+   * the overlay renderer, so it is harmless today. The `eventId` is likewise
+   * frozen; any future consumer that dedupes by id should be aware.
    */
   recordPosterShow(channel: OverlayChannel, payload: Record<string, unknown>, eventId: string): void {
     if (!POSTER_CHANNELS.has(channel)) return;

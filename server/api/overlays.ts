@@ -35,6 +35,11 @@ const overlayHandler = createContextHandler("[OverlaysAPI]");
 /**
  * Apply a takeover action on a poster channel, or return an error shape to
  * send back to the client if the request is invalid or the channel is idle.
+ *
+ * Takeover is **cooperative, not authorized**: any client on the LAN can claim
+ * ownership by supplying a clientId. This matches the product model (trusted
+ * operators sharing a dashboard) but means takeover must not be exposed on an
+ * untrusted network without adding an auth layer.
  */
 async function handlePosterTakeover(
   channel: OverlayChannel,

@@ -16,15 +16,28 @@ export interface CuedPosterState {
   displayMode: "left" | "right" | "bigpicture";
 }
 
+const VALID_DISPLAY_MODES: ReadonlySet<CuedPosterState["displayMode"]> = new Set([
+  "left",
+  "right",
+  "bigpicture",
+]);
+
 function loadInitial(): CuedPosterState | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as CuedPosterState;
-    if (typeof parsed.posterId === "string" && typeof parsed.currentTime === "number") {
-      return parsed;
+    const parsed = JSON.parse(raw) as Partial<CuedPosterState>;
+    if (
+      typeof parsed.posterId !== "string" ||
+      typeof parsed.currentTime !== "number" ||
+      typeof parsed.isPlaying !== "boolean" ||
+      typeof parsed.displayMode !== "string" ||
+      !VALID_DISPLAY_MODES.has(parsed.displayMode as CuedPosterState["displayMode"])
+    ) {
+      return null;
     }
+    return parsed as CuedPosterState;
   } catch {
     // ignore malformed entry
   }
