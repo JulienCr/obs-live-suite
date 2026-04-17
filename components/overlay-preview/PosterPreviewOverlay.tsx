@@ -117,17 +117,25 @@ export function PosterPreviewOverlay() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Persist bounds whenever they change.
-  useEffect(() => {
-    persistBounds(bounds);
-  }, [bounds]);
-
   const height = bounds.width * ASPECT;
 
   // --- Drag + resize ---
+  // Persist to localStorage only on pointerup (not on every move) to avoid
+  // pathological 60Hz writes during drag.
 
   const dragStartRef = useRef<{ x: number; y: number; startLeft: number; startTop: number } | null>(null);
   const resizeStartRef = useRef<{ x: number; startWidth: number } | null>(null);
+  const latestBoundsRef = useRef<Bounds>(bounds);
+  latestBoundsRef.current = bounds;
+
+  const releasePointer = (target: HTMLElement, pointerId: number) => {
+    try {
+      target.releasePointerCapture(pointerId);
+    } catch {
+      // ignore
+    }
+    persistBounds(latestBoundsRef.current);
+  };
 
   const onDragPointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -162,11 +170,7 @@ export function PosterPreviewOverlay() {
 
   const onDragPointerUp = useCallback((e: React.PointerEvent) => {
     dragStartRef.current = null;
-    try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      // ignore
-    }
+    releasePointer(e.currentTarget as HTMLElement, e.pointerId);
   }, []);
 
   const onResizePointerDown = useCallback(
@@ -191,11 +195,7 @@ export function PosterPreviewOverlay() {
 
   const onResizePointerUp = useCallback((e: React.PointerEvent) => {
     resizeStartRef.current = null;
-    try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      // ignore
-    }
+    releasePointer(e.currentTarget as HTMLElement, e.pointerId);
   }, []);
 
   if (!preview) return null;

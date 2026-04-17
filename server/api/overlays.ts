@@ -33,6 +33,25 @@ const logger = new Logger("OverlaysAPI");
 const overlayHandler = createContextHandler("[OverlaysAPI]");
 
 /**
+ * Apply a takeover action on a poster channel, or return an error shape to
+ * send back to the client if the request is invalid or the channel is idle.
+ */
+async function handlePosterTakeover(
+  channel: OverlayChannel,
+  payload: unknown
+): Promise<{ status: number; error: string } | null> {
+  const ownerClientId = (payload as { ownerClientId?: string } | undefined)?.ownerClientId;
+  if (!ownerClientId) {
+    return { status: 400, error: "ownerClientId required for takeover" };
+  }
+  const applied = await channelManager.takeoverPoster(channel, ownerClientId);
+  if (!applied) {
+    return { status: 409, error: "No active poster to take over" };
+  }
+  return null;
+}
+
+/**
  * POST /api/overlays/lower
  * Control lower third overlay
  */
@@ -178,14 +197,8 @@ router.post("/poster", overlayHandler(async (req, res) => {
       break;
 
     case "takeover": {
-      const ownerClientId = (payload as { ownerClientId?: string } | undefined)?.ownerClientId;
-      if (!ownerClientId) {
-        return res.status(400).json({ error: "ownerClientId required for takeover" });
-      }
-      const applied = await channelManager.takeoverPoster(OverlayChannel.POSTER, ownerClientId);
-      if (!applied) {
-        return res.status(409).json({ error: "No active poster to take over" });
-      }
+      const err = await handlePosterTakeover(OverlayChannel.POSTER, payload);
+      if (err) return res.status(err.status).json({ error: err.error });
       break;
     }
 
@@ -263,14 +276,8 @@ router.post("/poster-bigpicture", overlayHandler(async (req, res) => {
       break;
 
     case "takeover": {
-      const ownerClientId = (payload as { ownerClientId?: string } | undefined)?.ownerClientId;
-      if (!ownerClientId) {
-        return res.status(400).json({ error: "ownerClientId required for takeover" });
-      }
-      const applied = await channelManager.takeoverPoster(OverlayChannel.POSTER_BIGPICTURE, ownerClientId);
-      if (!applied) {
-        return res.status(409).json({ error: "No active poster to take over" });
-      }
+      const err = await handlePosterTakeover(OverlayChannel.POSTER_BIGPICTURE, payload);
+      if (err) return res.status(err.status).json({ error: err.error });
       break;
     }
 

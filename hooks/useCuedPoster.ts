@@ -63,12 +63,20 @@ export function useCuedPoster(): UseCuedPosterReturn {
     setCueState(next);
   }, []);
 
+  // Skip identical updates so downstream effects (localStorage persist,
+  // re-renders of the preview overlay) don't fire on every poll tick.
   const updateCueTime = useCallback((currentTime: number) => {
-    setCueState((prev) => (prev ? { ...prev, currentTime } : prev));
+    setCueState((prev) => {
+      if (!prev || prev.currentTime === currentTime) return prev;
+      return { ...prev, currentTime };
+    });
   }, []);
 
   const updateCuePlaying = useCallback((isPlaying: boolean) => {
-    setCueState((prev) => (prev ? { ...prev, isPlaying } : prev));
+    setCueState((prev) => {
+      if (!prev || prev.isPlaying === isPlaying) return prev;
+      return { ...prev, isPlaying };
+    });
   }, []);
 
   const clearCue = useCallback(() => {
