@@ -18,7 +18,10 @@ import "./poster.css";
 
 interface PosterEvent {
   type: string;
-  payload?: PosterShowPayload & { time?: number } & ChapterJumpPayload;
+  payload?: PosterShowPayload & { time?: number } & ChapterJumpPayload & {
+    resumeFrom?: number;
+    resumePlaying?: boolean;
+  };
   id: string;
 }
 
@@ -28,7 +31,8 @@ interface PosterData {
   offsetX?: number; // Horizontal offset from center (960px = center)
   aspectRatio?: number; // width/height ratio
   side: "left" | "right";
-  initialTime?: number; // Initial seek position for sub-video clips
+  initialTime?: number; // Initial seek position (resumeFrom from cue, else sub-video startTime)
+  initialPlaying?: boolean; // If false, poster starts paused (cued-to-air carrying a paused state)
   showId: string; // Unique ID to force React remount on each show
   subVideoConfig?: {
     startTime?: number;
@@ -139,7 +143,10 @@ export function PosterRenderer() {
 
           chapters.setChapters(data.payload.chapters || []);
 
-          const capturedStartTime = data.payload.startTime;
+          // Resume position takes precedence over sub-video startTime so the
+          // operator can cue a specific point and send it as-is.
+          const capturedStartTime = data.payload.resumeFrom ?? data.payload.startTime;
+          const capturedPlaying = data.payload.resumePlaying !== false;
           const thisShowVersion = ++showVersionRef.current;
 
           detectAspectRatio(data.payload.fileUrl, mediaType).then((aspectRatio) => {
@@ -153,6 +160,7 @@ export function PosterRenderer() {
               aspectRatio,
               side: data.payload!.side || "left",
               initialTime: capturedStartTime,
+              initialPlaying: capturedPlaying,
               showId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               subVideoConfig: data.payload!.startTime !== undefined ? {
                 startTime: data.payload!.startTime,
@@ -173,11 +181,24 @@ export function PosterRenderer() {
                 const video = playback.videoRef.current;
                 if (video && video.readyState >= 1) {
                   video.currentTime = capturedStartTime;
+                  if (!capturedPlaying) {
+                    video.pause();
+                  }
                 } else {
                   setTimeout(seekToStart, 100);
                 }
               };
               setTimeout(seekToStart, 50);
+            } else if (!capturedPlaying) {
+              const pauseInitial = () => {
+                const video = playback.videoRef.current;
+                if (video && video.readyState >= 1) {
+                  video.pause();
+                } else {
+                  setTimeout(pauseInitial, 100);
+                }
+              };
+              setTimeout(pauseInitial, 50);
             }
 
             if (data.payload!.duration) {
@@ -243,6 +264,7 @@ export function PosterRenderer() {
                 videoRef={state.current.type === "video" ? playback.videoRef : undefined}
                 youtubeRef={state.current.type === "youtube" ? playback.youtubeRef : undefined}
                 initialTime={state.current.initialTime}
+                initialPlaying={state.current.initialPlaying}
                 videoKey={state.current.showId}
                 subVideoConfig={state.current.subVideoConfig}
                 onYouTubeIframeLoad={state.current.type === "youtube" ? playback.handleYouTubeIframeLoad : undefined}

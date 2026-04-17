@@ -10,7 +10,8 @@ interface PosterDisplayProps {
   side?: "left" | "right"; // only used when positioning="side"
   videoRef?: React.RefObject<HTMLVideoElement | null>;
   youtubeRef?: React.RefObject<HTMLIFrameElement | null>;
-  initialTime?: number; // Initial seek position for video clips (sub-videos)
+  initialTime?: number; // Initial seek position (resumeFrom from cue, else sub-video clip start)
+  initialPlaying?: boolean; // If false, start the media paused
   videoKey?: string; // Unique key to force video element remount
   subVideoConfig?: {
     startTime?: number;
@@ -33,6 +34,7 @@ export function PosterDisplay({
   videoRef,
   youtubeRef,
   initialTime,
+  initialPlaying = true,
   videoKey,
   subVideoConfig,
   onYouTubeIframeLoad,
@@ -57,6 +59,9 @@ export function PosterDisplay({
       // Only seek if video has enough data and we haven't already seeked
       if (video.readyState >= 1) { // HAVE_METADATA or higher
         video.currentTime = initialTime;
+        if (!initialPlaying) {
+          video.pause();
+        }
         seekAttemptedRef.current = true;
       }
     };
@@ -97,10 +102,12 @@ export function PosterDisplay({
     }
     const youtubeUrl = buildYouTubeEmbedUrl({
       videoId,
-      startTime: subVideoConfig?.startTime,
+      // initialTime (cue resumeFrom) overrides the sub-video clip start so the
+      // player opens at the cued position.
+      startTime: initialTime ?? subVideoConfig?.startTime,
       endTime: subVideoConfig?.endTime,
       endBehavior: subVideoConfig?.endBehavior,
-      autoplay: true,
+      autoplay: initialPlaying,
       mute: true,
       controls: false,
     });
@@ -241,6 +248,9 @@ export function PosterDisplay({
               video.currentTime = initialTime;
             }
           }, 100);
+        }
+        if (!initialPlaying) {
+          video.pause();
         }
       }}
     />

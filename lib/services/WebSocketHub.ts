@@ -38,6 +38,7 @@ export class WebSocketHub {
   private onAckCallback?: (ack: { eventId: string; channel: string; success: boolean; error?: string }) => void;
   private onClientDisconnectCallbacks: Array<(clientId: string, channels: Set<string>) => void> = [];
   private onMediaPlayerCallback?: (clientId: string, message: Record<string, unknown>) => void;
+  private onSubscribeCallbacks: Array<(clientId: string, channel: string) => void> = [];
 
   private constructor() {
     this.wss = null;
@@ -200,6 +201,13 @@ export class WebSocketHub {
           if (message.channel) {
             client.channels.add(message.channel);
             this.logger.debug(`Client ${clientId} subscribed to ${message.channel}`);
+            for (const callback of this.onSubscribeCallbacks) {
+              try {
+                callback(clientId, message.channel);
+              } catch (error) {
+                this.logger.error("Error in subscribe callback", error);
+              }
+            }
           }
           break;
 
@@ -376,6 +384,15 @@ export class WebSocketHub {
    */
   setOnMediaPlayerCallback(callback: (clientId: string, message: Record<string, unknown>) => void): void {
     this.onMediaPlayerCallback = callback;
+  }
+
+  /**
+   * Register a callback triggered when a client subscribes to a channel.
+   * Used to replay per-channel state (e.g. currently-active poster + owner)
+   * to reconnecting dashboards.
+   */
+  setOnSubscribeCallback(callback: (clientId: string, channel: string) => void): void {
+    this.onSubscribeCallbacks.push(callback);
   }
 
   /**

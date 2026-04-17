@@ -28,6 +28,14 @@ export interface OverlayActiveState {
     active: boolean;
     posterId?: string;
     displayMode?: "left" | "right" | "bigpicture";
+    // Fields needed by the regie video preview overlay
+    ownerClientId?: string;
+    fileUrl?: string;
+    type?: "image" | "video" | "youtube";
+    source?: string;
+    subVideoStart?: number;
+    subVideoEnd?: number;
+    subVideoEndBehavior?: "stop" | "loop";
   };
   countdown: {
     active: boolean;
@@ -120,6 +128,13 @@ function handlePosterEvent(
           channel === "poster-bigpicture"
             ? "bigpicture"
             : (payload?.side as "left" | "right" | undefined),
+        ownerClientId: payload?.ownerClientId as string | undefined,
+        fileUrl: payload?.fileUrl as string | undefined,
+        type: payload?.type as "image" | "video" | "youtube" | undefined,
+        source: payload?.source as string | undefined,
+        subVideoStart: payload?.startTime as number | undefined,
+        subVideoEnd: payload?.endTime as number | undefined,
+        subVideoEndBehavior: payload?.endBehavior as "stop" | "loop" | undefined,
       },
     }));
     if (payload?.duration) {
@@ -131,6 +146,12 @@ function handlePosterEvent(
     }
   } else if (type === "hide") {
     setState((prev) => ({ ...prev, poster: { active: false } }));
+  } else if (type === "takeover") {
+    setState((prev) => (
+      prev.poster.active
+        ? { ...prev, poster: { ...prev.poster, ownerClientId: payload?.ownerClientId as string | undefined } }
+        : prev
+    ));
   }
 }
 

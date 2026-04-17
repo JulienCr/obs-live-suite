@@ -16,10 +16,14 @@ import {
 import { isVideoPosterType, type VideoChapter } from "@/lib/models/Poster";
 import { cn } from "@/lib/utils/cn";
 import { formatTimeShort } from "@/lib/utils/durationParser";
+import { getEffectivePosterDuration } from "@/components/dashboard/cards/posterDurationHelpers";
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { useSyncWithOverlayState } from "@/hooks/useSyncWithOverlayState";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
+import { useCuedPoster } from "@/hooks/useCuedPoster";
+import { CLIENT_ID } from "@/lib/utils/clientId";
+import { Film, Send, Hand } from "lucide-react";
 
 interface Poster {
   id: string;
@@ -29,6 +33,7 @@ interface Poster {
   source?: string;
   isEnabled?: boolean;
   thumbnailUrl?: string | null;
+  duration?: number | null;
   // Sub-video fields
   startTime?: number | null;
   endTime?: number | null;
@@ -108,6 +113,9 @@ export function PosterContent({ className }: PosterContentProps) {
   const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // Cue: local staging area for a poster before it goes to air.
+  const { cue, setCue, clearCue } = useCuedPoster();
+
   // Column width constraints
   const MIN_COLUMN_WIDTH = 170;
   const MAX_COLUMN_WIDTH = 240;
@@ -171,7 +179,7 @@ export function PosterContent({ className }: PosterContentProps) {
   }, []);
 
   // Sync local state with WebSocket overlay state using the shared hook
-  useSyncWithOverlayState({
+  const posterOverlayState = useSyncWithOverlayState({
     overlayType: "poster",
     localActive: activePoster !== null,
     onExternalHide: () => {
@@ -195,6 +203,13 @@ export function PosterContent({ className }: PosterContentProps) {
       }
     },
   });
+  const activeOwnerClientId = posterOverlayState.active
+    ? posterOverlayState.ownerClientId
+    : undefined;
+  const canTakeOver =
+    posterOverlayState.active &&
+    !!activeOwnerClientId &&
+    activeOwnerClientId !== CLIENT_ID;
 
   // Dynamic channel based on display mode
   const playbackChannel = useMemo(
@@ -322,7 +337,11 @@ export function PosterContent({ className }: PosterContentProps) {
     }
   };
 
-  const showInMode = async (poster: Poster, mode: DisplayMode) => {
+  const showInMode = async (
+    poster: Poster,
+    mode: DisplayMode,
+    resume?: { resumeFrom?: number; resumePlaying?: boolean }
+  ) => {
     try {
       const endpoint = mode === "bigpicture"
         ? "/api/overlays/poster-bigpicture"
@@ -334,12 +353,16 @@ export function PosterContent({ className }: PosterContentProps) {
         type: poster.type,
         source: poster.source,
         transition: "fade",
+        // Tag the launcher so the regie preview can scope to them.
+        ownerClientId: CLIENT_ID,
         // Include chapters if present
         ...(poster.metadata?.chapters?.length && { chapters: poster.metadata.chapters }),
         // Include sub-video config if defined
         ...(poster.startTime != null && { startTime: poster.startTime }),
         ...(poster.endTime != null && { endTime: poster.endTime }),
         ...(poster.endBehavior && { endBehavior: poster.endBehavior }),
+        ...(resume?.resumeFrom != null && { resumeFrom: resume.resumeFrom }),
+        ...(resume?.resumePlaying != null && { resumePlaying: resume.resumePlaying }),
       };
 
       // Add side only if not bigpicture
@@ -435,7 +458,14 @@ export function PosterContent({ className }: PosterContentProps) {
   const clipEnd = activePosterData?.endTime ?? 0;
   const hasSubClip = clipStart > 0 || clipEnd > 0;
   const displayCurrentTime = hasSubClip ? Math.max(0, playbackState.currentTime - clipStart) : playbackState.currentTime;
-  const displayDuration = hasSubClip && clipEnd > 0 ? clipEnd - clipStart : playbackState.duration;
+  // Falls back to poster.duration (DB) when live duration is 0/Infinity/NaN
+  // (webm files without duration metadata expose Infinity until fully scanned).
+  const displayDuration = getEffectivePosterDuration({
+    playbackDuration: playbackState.duration,
+    posterDuration: activePosterData?.duration,
+    clipStart,
+    clipEnd,
+  });
 
   // Update active chapters when poster changes
   useEffect(() => {
@@ -495,6 +525,46 @@ export function PosterContent({ className }: PosterContentProps) {
     }
   };
 
+  const handleCuePoster = (poster: Poster, mode: DisplayMode) => {
+    if (!isVideoPosterType(poster.type)) return;
+    // Cue is a local staging state (no API call). Default to clip start for
+    // sub-videos, else 0; paused so the operator can scrub without the video
+    // racing past the cue point.
+    setCue({
+      posterId: poster.id,
+      currentTime: poster.startTime ?? 0,
+      isPlaying: false,
+      displayMode: mode,
+    });
+  };
+
+  const handleSendCue = async () => {
+    if (!cue) return;
+    const poster = posters.find((p) => p.id === cue.posterId);
+    if (!poster) return;
+    await showInMode(poster, cue.displayMode, {
+      resumeFrom: cue.currentTime,
+      resumePlaying: cue.isPlaying,
+    });
+    clearCue();
+  };
+
+  const handleTakeOver = async () => {
+    const endpoint = posterOverlayState.displayMode === "bigpicture"
+      ? "/api/overlays/poster-bigpicture"
+      : "/api/overlays/poster";
+    try {
+      await apiPost(endpoint, {
+        action: "takeover",
+        payload: { ownerClientId: CLIENT_ID },
+      });
+    } catch (error) {
+      console.error("Takeover error:", error);
+    }
+  };
+
+  const cuedPoster = cue ? posters.find((p) => p.id === cue.posterId) : null;
+
   const handleChapterJump = async (chapterIndex: number) => {
     const endpoint = displayMode === "bigpicture"
       ? "/api/overlays/poster-bigpicture"
@@ -519,6 +589,27 @@ export function PosterContent({ className }: PosterContentProps) {
               showInMode(poster, mode);
             }}
           />
+
+          {/* Cue ready strip */}
+          {cue && cuedPoster && (
+            <div className="flex items-center gap-2 rounded-md border border-blue-500/40 bg-blue-500/10 px-3 py-2">
+              <Film className="h-4 w-4 text-blue-400" />
+              <span className="text-xs">
+                Cue&nbsp;: <span className="font-medium">{cuedPoster.title}</span>{" "}
+                <span className="text-muted-foreground">
+                  @ {formatTimeShort(cue.currentTime)} · {cue.isPlaying ? "lecture" : "pause"}
+                </span>
+              </span>
+              <div className="ml-auto flex items-center gap-2">
+                <Button size="sm" onClick={handleSendCue}>
+                  <Send className="mr-1 h-3 w-3" /> Envoyer
+                </Button>
+                <Button size="sm" variant="ghost" onClick={clearCue}>
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div ref={containerRef} className="h-full w-full">
           {loading ? (
@@ -656,6 +747,24 @@ export function PosterContent({ className }: PosterContentProps) {
                         >
                           {t("positions.big")}
                         </Button>
+                        {isVideoPosterType(poster.type) && (
+                          <Button
+                            size="sm"
+                            variant={cue?.posterId === poster.id ? "default" : "secondary"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCuePoster(poster, defaultDisplayMode);
+                            }}
+                            className={cn(
+                              "px-2 py-1 h-auto text-xs",
+                              cue?.posterId === poster.id && "bg-blue-500 hover:bg-blue-600 text-white"
+                            )}
+                            title="Charger en cue (preview avant envoi)"
+                          >
+                            <Film className="w-3 h-3 mr-1" />
+                            Cue
+                          </Button>
+                        )}
                       </div>
 
                       {/* Active indicator badge */}
@@ -741,12 +850,24 @@ export function PosterContent({ className }: PosterContentProps) {
               </>
             )}
 
+            {canTakeOver && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleTakeOver}
+                className="ml-2"
+                title="La preview est contrôlée par un autre opérateur. Cliquer pour prendre la main."
+              >
+                <Hand className="mr-1 h-3 w-3" /> Prendre la main
+              </Button>
+            )}
+
             <span className="text-sm ml-auto">
               {formatTimeShort(displayCurrentTime)} / {formatDuration(displayDuration)}
             </span>
           </div>
           <VideoTimeline
-            duration={hasSubClip && clipEnd > 0 ? clipEnd - clipStart : (playbackState.duration > 0 ? playbackState.duration : 0)}
+            duration={displayDuration}
             chapters={hasSubClip
               ? activeChapters
                   .filter(ch => ch.timestamp >= clipStart && (!clipEnd || ch.timestamp <= clipEnd))

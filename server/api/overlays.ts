@@ -177,6 +177,18 @@ router.post("/poster", overlayHandler(async (req, res) => {
       await channelManager.publish(OverlayChannel.POSTER, PosterEventType.CHAPTER_JUMP, payload);
       break;
 
+    case "takeover": {
+      const ownerClientId = (payload as { ownerClientId?: string } | undefined)?.ownerClientId;
+      if (!ownerClientId) {
+        return res.status(400).json({ error: "ownerClientId required for takeover" });
+      }
+      const applied = await channelManager.takeoverPoster(OverlayChannel.POSTER, ownerClientId);
+      if (!applied) {
+        return res.status(409).json({ error: "No active poster to take over" });
+      }
+      break;
+    }
+
     default:
       return res.status(400).json({ error: "Invalid action" });
   }
@@ -249,6 +261,18 @@ router.post("/poster-bigpicture", overlayHandler(async (req, res) => {
     case "chapter-jump":
       await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.CHAPTER_JUMP, payload);
       break;
+
+    case "takeover": {
+      const ownerClientId = (payload as { ownerClientId?: string } | undefined)?.ownerClientId;
+      if (!ownerClientId) {
+        return res.status(400).json({ error: "ownerClientId required for takeover" });
+      }
+      const applied = await channelManager.takeoverPoster(OverlayChannel.POSTER_BIGPICTURE, ownerClientId);
+      if (!applied) {
+        return res.status(409).json({ error: "No active poster to take over" });
+      }
+      break;
+    }
 
     default:
       return res.status(400).json({ error: "Invalid action" });

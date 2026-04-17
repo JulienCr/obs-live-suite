@@ -21,7 +21,9 @@ jest.mock('crypto', () => ({
 // Create mock functions for WebSocketHub
 const mockBroadcast = jest.fn();
 const mockGetChannelSubscribers = jest.fn();
+const mockSendToClient = jest.fn();
 let capturedDisconnectCallback: ((clientId: string, channels: Set<string>) => void) | null = null;
+let capturedSubscribeCallback: ((clientId: string, channel: string) => void) | null = null;
 
 // Mock WebSocketHub
 jest.mock('@/lib/services/WebSocketHub', () => ({
@@ -33,6 +35,10 @@ jest.mock('@/lib/services/WebSocketHub', () => ({
       setOnClientDisconnectCallback: jest.fn((cb: (clientId: string, channels: Set<string>) => void) => {
         capturedDisconnectCallback = cb;
       }),
+      setOnSubscribeCallback: jest.fn((cb: (clientId: string, channel: string) => void) => {
+        capturedSubscribeCallback = cb;
+      }),
+      sendToClient: mockSendToClient,
     })),
   },
 }));
@@ -595,6 +601,79 @@ describe('ChannelManager', () => {
       await Promise.all(promises);
 
       expect(mockBroadcast).toHaveBeenCalledTimes(10);
+    });
+  });
+
+  describe('poster state tracking (regie preview ownership)', () => {
+    it('replays the current poster show event to a reconnecting client', async () => {
+      const channelManager = ChannelManager.getInstance();
+      const payload = { posterId: 'p1', fileUrl: '/x.mp4', ownerClientId: 'owner-a' };
+
+      await channelManager.publish(OverlayChannel.POSTER, 'show', payload);
+      mockSendToClient.mockClear();
+
+      capturedSubscribeCallback?.('client-b', OverlayChannel.POSTER);
+
+      expect(mockSendToClient).toHaveBeenCalledTimes(1);
+      expect(mockSendToClient).toHaveBeenCalledWith(
+        'client-b',
+        expect.objectContaining({
+          channel: OverlayChannel.POSTER,
+          data: expect.objectContaining({
+            type: 'show',
+            payload,
+          }),
+        })
+      );
+    });
+
+    it('does not replay after a hide', async () => {
+      const channelManager = ChannelManager.getInstance();
+      await channelManager.publish(OverlayChannel.POSTER, 'show', { posterId: 'p1' });
+      await channelManager.publish(OverlayChannel.POSTER, 'hide');
+      mockSendToClient.mockClear();
+
+      capturedSubscribeCallback?.('client-b', OverlayChannel.POSTER);
+
+      expect(mockSendToClient).not.toHaveBeenCalled();
+    });
+
+    it('takeoverPoster re-broadcasts with the new owner and updates replay state', async () => {
+      const channelManager = ChannelManager.getInstance();
+      await channelManager.publish(OverlayChannel.POSTER, 'show', {
+        posterId: 'p1',
+        ownerClientId: 'owner-a',
+      });
+      mockBroadcast.mockClear();
+
+      const applied = await channelManager.takeoverPoster(OverlayChannel.POSTER, 'owner-b');
+      expect(applied).toBe(true);
+      expect(mockBroadcast).toHaveBeenCalledWith(
+        OverlayChannel.POSTER,
+        expect.objectContaining({
+          type: 'takeover',
+          payload: { ownerClientId: 'owner-b' },
+        })
+      );
+
+      // Subsequent subscribe should replay show with the new owner baked in.
+      mockSendToClient.mockClear();
+      capturedSubscribeCallback?.('client-c', OverlayChannel.POSTER);
+      expect(mockSendToClient).toHaveBeenCalledWith(
+        'client-c',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            payload: expect.objectContaining({ ownerClientId: 'owner-b' }),
+          }),
+        })
+      );
+    });
+
+    it('takeoverPoster returns false when no poster is active', async () => {
+      const channelManager = ChannelManager.getInstance();
+      await channelManager.publish(OverlayChannel.POSTER, 'hide');
+      const applied = await channelManager.takeoverPoster(OverlayChannel.POSTER, 'owner-b');
+      expect(applied).toBe(false);
     });
   });
 });
