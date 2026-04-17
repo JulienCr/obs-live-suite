@@ -88,7 +88,6 @@ The backend runs independently to ensure WebSocket and OBS connections persist e
 - `ChannelManager` - Pub/sub for overlays
 - `OBSConnectionManager` - OBS WebSocket connection
 - `QuizManager` - Quiz state machine
-- `RoomService` - Multi-room management
 - `AppConfig`, `PathManager` - Configuration
 
 **Event-Driven**: Overlays use pub/sub via ChannelManager:
@@ -98,95 +97,60 @@ Dashboard → API Route → ChannelManager.publish() → WebSocket → Overlay
 
 ### Service Layers
 
-**lib/services/** - Core business logic:
-- `DatabaseService` - SQLite via better-sqlite3
-- `ChannelManager` - Pub/sub for real-time events
-- `WebSocketHub` - WebSocket server management
-- `ThemeService` - Theme CRUD and application
-- `MacroEngine` - Automation sequences
-- `BackupService` - Database backup/restore
-- `StorageService` - File upload handling
-- `SettingsService` - Application settings
-- `RoomService` - Presenter room management
-- `RateLimiterService` - API rate limiting
+**lib/services/** — core business logic. Singletons use `getInstance()`.
+- Database: `DatabaseService`, `DatabaseConnector`, `MigrationRunner`, `BackupService`
+- Real-time: `WebSocketHub`, `ChannelManager`
+- Overlays/media: `ThemeService`, `StorageService`, `SubVideoService`, `MediaPlayerManager`, `DSKService`, `YouTubeMetadataService`
+- Settings/workspace: `SettingsService`, `SettingsStore`, `WorkspaceService`
+- Macros/rate-limit: `MacroEngine`, `RateLimiterService`
+- Quiz (`Quiz*`): `QuizManager` orchestrates; `QuizStore`, `QuizPhaseManager`, `QuizNavigationManager`, `QuizTimer`, `QuizScoringService`, `QuizBuzzerService`, `QuizViewerInputService`, `QuizZoomController`, `QuizMysteryImageController`, `QuizExamples`
+- Games/shows: `WordHarvestManager`
+- Integrations: `TwitchService`, `OllamaSummarizerService`, `WikipediaCacheService`, `WikipediaResolverService`
+- Boot helper: `ServiceEnsurer` (lazy init of cross-service deps)
+- Sub-folders:
+  - `ai/` — `AiProviderFactory`, `AiToolBridge`, `systemPrompt` (French)
+  - `llm/` — Anthropic/OpenAI/Ollama providers + `PromptTemplates`
+  - `twitch/` — `TwitchAPIClient`, `TwitchOAuthManager`
+  - `updater/` — `PluginScanner`, `GitHubReleaseChecker`, `VersionExtractor`, `RegistryService`, `PathResolver`
 
-**Quiz Services** (lib/services/Quiz*):
-- `QuizManager` - State machine orchestration
-- `QuizStore` - In-memory + JSON persistence
-- `QuizScoringService` - Scoring algorithms
-- `QuizBuzzerService` - First-hit/steal mechanics
-- `QuizViewerInputService` - Chat command parsing, flood control
-- `QuizTimer` - Tick broadcasts
-- `QuizZoomController` - Auto-zoom for image reveals
-- `QuizMysteryImageController` - Mystery image progression
-- `QuizExamples` - Sample question data
+**lib/adapters/** — external I/O:
+- `obs/` — `OBSConnectionManager` (auto-reconnect), `OBSStateManager`, `OBSSceneController`, `OBSSourceController`, `OBSEventHandler`, `OBSConnectionEnsurer`
+- `streamerbot/` — `StreamerbotGateway` WebSocket client
 
-**AI/Integration Services**:
-- `OllamaSummarizerService` - LLM summarization via Ollama
-- `WikipediaCacheService` - Wikipedia result caching
-- `WikipediaResolverService` - Wikipedia search and resolution
-- `ai/AiProviderFactory` - Creates AI SDK LanguageModel from DB settings (Ollama/OpenAI/Anthropic)
-- `ai/AiToolBridge` - MCP tool discovery + conversion to AI SDK tools (cached 60s)
-- `ai/systemPrompt` - French system prompt for AI assistant
+**lib/models/** — Zod schemas per domain. Highlights: `Database`, `Theme`, `Macro`, `Quiz`/`QuizEvents`, `OverlayEvents`, `PresenterChannel`, `Cue`, `Guest`, `Poster`, `Profile`, `Sommaire`, `TitleReveal`, `WordHarvest`, `StudioReturn`, `Twitch`/`TwitchAuth`, `Widget`, `PanelColor`, `Plugin`, `MediaPlayer`, `TextPreset`, `Wikipedia`, `LLM`, `StreamerbotChat`/`ChatMessages`, `EventLog`, `DataSyncEvents`. Sub-folder `streamerbot/` for chat-related schemas.
 
-**lib/adapters/** - External integrations:
-- `obs/OBSConnectionManager` - OBS WebSocket connection with auto-reconnect
-- `obs/OBSStateManager` - OBS state tracking
-- `obs/OBSSceneController` - Scene switching
-- `obs/OBSSourceController` - Source manipulation
-- `obs/OBSEventHandler` - OBS event processing
-- `obs/OBSConnectionEnsurer` - Connection reliability
-- `streamerbot/StreamerbotGateway` - Streamer.bot WebSocket client
+**lib/utils/** — `Logger`, `BackendClient`, `themeEnrichment`, etc.
 
-**lib/models/** - Zod schemas and types:
-- `Database.ts` - Core database schemas (guests, posters, profiles, themes)
-- `Theme.ts` - Theme configuration schemas
-- `Macro.ts` - Macro action schemas
-- `Quiz.ts` - Question, round, session schemas
-- `QuizEvents.ts` - Quiz WebSocket event types
-- `OverlayEvents.ts` - Overlay event types
-- `Room.ts` - Presenter room schemas
-- `StreamerbotChat.ts` - Chat message schemas
+**lib/config/** — `AppConfig`, `PathManager`, `urls.ts`, `Constants.ts`.
 
-**lib/utils/** - Pure utilities:
-- `Logger` - Structured logging
-- `BackendClient` - HTTP client for backend API
-- `themeEnrichment` - Theme processing utilities
-
-**lib/config/**:
-- `AppConfig` - Application configuration
-- `PathManager` - File path management
-- `urls.ts` - API URL constants
-
-**lib/init/**:
-- `ServerInit.ts` - Database and service initialization
+**lib/init/** — `ServerInit.ts` (boot order: paths → logger → DB → migrations → services).
 
 ### Server Routes
 
-**server/api/** - Backend Express routes:
-- `overlays.ts` - Overlay event publishing
-- `obs.ts` - OBS control commands
-- `obs-helpers.ts` - OBS utility functions
-- `quiz.ts` - Quiz control API
-- `quiz-bot.ts` - Streamer.bot webhook bridge
-- `rooms.ts` - Room CRUD and messaging
-- `cue.ts` - Presenter cue system
-- `streamerbot-chat.ts` - Chat message forwarding
+**server/api/** — Backend Express routes: `overlays`, `obs` (+ `obs-helpers`), `quiz` (+ `quiz-bot`), `cue`, `presenter-settings`, `streamerbot-chat`, `chat-messages`, `media-player`, `twitch`, `word-harvest`.
 
 **app/api/** - Next.js API routes:
-- `/api/overlays/*` - Overlay control (lower, countdown, poster, quiz, chat-highlight)
+- `/api/overlays/*` - Overlay control (lower, countdown, poster, quiz, chat-highlight, title-reveal, sommaire, etc.)
 - `/api/obs/*` - OBS status, reconnect, record, stream
 - `/api/actions/*` - Stream Deck actions (lower, countdown, poster, macro, panic)
 - `/api/assets/*` - Guest, poster, theme, tag management
 - `/api/profiles/*` - Profile CRUD and activation
 - `/api/themes/*` - Theme CRUD
-- `/api/settings/*` - Settings management (general, obs, paths, integrations)
-- `/api/presenter/*` - Room and cue management
+- `/api/settings/*` - Settings (general, obs, paths, integrations, studio-return, title-reveal defaults, etc.)
+- `/api/presenter/*` - Presenter channels and cue management
 - `/api/quiz/*` - Quiz questions and state
+- `/api/word-harvest/*` - Word Harvest game state
+- `/api/twitch/*` - Twitch OAuth and Helix calls
+- `/api/youtube/*` - YouTube metadata
 - `/api/wikipedia/*` - Wikipedia search/resolve/summarize
-- `/api/llm/*` - LLM model listing and summarization
+- `/api/llm/*`, `/api/ollama/*` - LLM model listing and summarization
 - `/api/ai/chat` - AI chat assistant (streaming, tool-calling via MCP)
+- `/api/media-player/*` - Media player control
+- `/api/panel-colors/*` - Dashboard panel color prefs
+- `/api/workspaces/*` - Workspace CRUD
+- `/api/chat-messages/*` - Chat message storage
 - `/api/updater/*` - Plugin scanning and updates
+- `/api/init`, `/api/debug`, `/api/utils/*`, `/api/test/*` - boot / debug / utility endpoints
 
 ### Data Storage
 - **Database**: SQLite via better-sqlite3 in `~/.obs-live-suite/data.db`
@@ -273,6 +237,10 @@ Browser source URLs for OBS (size: 1920x1080):
 - Chat Highlight: `http://localhost:3000/overlays/chat-highlight`
 - Now Playing: `http://localhost:3000/overlays/now-playing`
 - Composite: `http://localhost:3000/overlays/composite`
+- Title Reveal: `http://localhost:3000/overlays/title-reveal`
+- Word Harvest: `http://localhost:3000/overlays/word-harvest`
+- Sommaire: `http://localhost:3000/overlays/sommaire`
+- Studio Return (web): `http://localhost:3000/overlays/studio-return`
 
 Each overlay connects to WebSocket hub and subscribes to its channel.
 
@@ -282,6 +250,28 @@ Each overlay connects to WebSocket hub and subscribes to its channel.
 - 5 question types: qcm, image, closest, open, image_zoombuzz
 - Chat commands: !a, !b, !c, !d, !n [number], !rep [text]
 - Streamer.bot webhook: `POST /api/quiz-bot/chat`
+
+## Title Reveal Overlay
+- URL: `/overlays/title-reveal`
+- GSAP-based onion-skin animation revealing stacked title lines
+- Optional sound trigger; MIDI CC control for line transitions
+- Editor: `components/title-reveal/TitleRevealEditor` with live preview
+- Defaults configured in Settings > Title Reveal (`TitleRevealDefaultsSettings`)
+
+## Word Harvest Overlay
+- URL: `/overlays/word-harvest`
+- Game-like word collection animations (sparkles, confetti, title, finale)
+- Manual phase control from dashboard; MIDI bindings for phase transitions
+- State: `WordHarvestManager` singleton
+- Routes: `/api/word-harvest/*`, backend `server/api/word-harvest.ts`
+- MIDI bindings in Settings > Word Harvest (`WordHarvestMidiSettings`)
+
+## Twitch Integration
+- OAuth + Helix API via `lib/services/twitch/` (`TwitchAPIClient`, `TwitchOAuthManager`)
+- High-level service: `lib/services/TwitchService`
+- Settings UI: Settings > Twitch (`TwitchSettings`)
+- Routes: `/api/twitch/*`, backend `server/api/twitch.ts`
+- Category picker: `components/twitch/TwitchCategoryPicker`
 
 ## Presenter System
 - Presenter view: `/presenter`
@@ -299,13 +289,11 @@ Each overlay connects to WebSocket hub and subscribes to its channel.
 - Applied to active profile via `/api/themes/{id}` endpoints
 
 ## MCP Server
-- Location: `mcp-server/` (workspace package `obs-live-suite-mcp`)
-- Transports: **stdio** (Claude Code via `.mcp.json`) and **Streamable HTTP** (port 3004)
-- 26 tools across 8 domains: guests, posters, sub-videos, lower-third, countdown, poster-overlay, chat, clear-all
-- Proxies to frontend (port 3000) and backend (port 3002) via `httpClient.ts`
-- Config auto-detects HTTPS (mkcert certificates) or uses env vars (`USE_HTTPS`, `MCP_PORT`, etc.)
-- Tests: `mcp-server/__tests__/` with independent Jest setup (ts-jest + custom transform for `import.meta.url`)
-- Run: `pnpm dev:mcp` (dev), `pnpm test:mcp` (tests)
+Workspace package `obs-live-suite-mcp` on port **3004** (stdio + Streamable HTTP). 35 tools across 10 domains, proxied to frontend/backend via `httpClient.ts`.
+
+**See `mcp-server/CLAUDE.md`** for transports, layout, test setup, and gotchas (IPv6, TLS with mkcert, stateless mode).
+
+Run: `pnpm dev:mcp` / `pnpm test:mcp`.
 
 ## AI Chat Assistant
 - Conversational AI integrated in the dashboard top bar (Bot icon)
@@ -323,60 +311,18 @@ Each overlay connects to WebSocket hub and subscribes to its channel.
 - **TLS with mkcert**: `NODE_TLS_REJECT_UNAUTHORIZED=0` is set in `mcp-server/src/index.ts` for dev. Required when HTTPS certificates are detected.
 
 ## Stream Deck Plugin
-- Location: `streamdeck-plugin/obslive-suite/`
-- Source: `streamdeck-plugin/obslive-suite/src/`
-- Build output: `streamdeck-plugin/obslive-suite/com.julien-cruau.obslive-suite.sdPlugin/`
-- Actions: lower-third-guest, countdown-start, poster-show, quiz controls, panic
+Elgato plugin that calls the app's HTTP API. Source in `streamdeck-plugin/obslive-suite/src/`; bundle in `com.julien-cruau.obslive-suite.sdPlugin/`.
+
+**See `streamdeck-plugin/obslive-suite/CLAUDE.md`** for action registration patterns and integration model.
+
+List action IDs: `pnpm streamdeck:ids`.
 
 ## Studio Return (Tauri App)
-Transparent always-on-top overlay for the studio return monitor. Displays director cue messages over the OBS program output via HDMI.
+Transparent always-on-top overlay for the studio-return HDMI monitor. Rust (Tauri) + vanilla JS, not Next.js.
 
-- Location: `studio-return/` (workspace package)
-- Rust backend: `studio-return/src-tauri/src/` (monitor detection, settings polling, window management)
-- Frontend: `studio-return/src/` (vanilla JS — WebSocket client, notification display, CSS animations)
-- Config: `studio-return/src-tauri/tauri.conf.json` (requires `macOSPrivateApi: true` for transparency on macOS)
+**See `studio-return/CLAUDE.md`** for architecture, WebSocket fallback chain, `config.json` priority, settings UI, and macOS transparency gotchas.
 
-### Commands
-```bash
-pnpm studio-return:dev            # Dev mode (cargo tauri dev)
-pnpm studio-return:dev -- -- --debug  # Dev mode with debug overlay
-pnpm studio-return:build          # Production build
-```
-
-### How it works
-1. Connects to the WebSocket hub (port 3003) and subscribes to the `presenter` channel
-2. Displays cue messages (sent from the CueComposerPanel) as large centered text with severity colors
-3. Auto-dismisses after configurable duration
-4. Window is click-through when no notification is visible
-5. Polls `/api/settings/studio-return` every 30s for settings changes (monitor, duration, fontSize)
-6. Reports available monitors to `/api/settings/studio-return/monitors` for the dashboard dropdown
-
-### WebSocket connection
-Tries `wss://localhost:3003` → `ws://localhost:3003` → `ws://127.0.0.1:3003` (auto-fallback for HTTPS/IPv6 environments). Locks to the first working URL.
-
-### Settings
-Dashboard page: Settings > Studio Return (`/settings/studio-return`)
-- Monitor selection (populated by the Tauri app)
-- Display duration (3-60s)
-- Font size (32-160px)
-- Enabled toggle
-- Test notification buttons (Info / Warn / Urgent)
-
-API: `/api/settings/studio-return/` (GET/POST settings), `/api/settings/studio-return/monitors/` (GET/POST monitor list, in-memory)
-
-### Config file (`config.json`)
-Place a `config.json` next to the built executable (or in `studio-return/` for dev) to configure the server URL:
-```json
-{ "url": "https://edison:3000" }
-```
-Fields (all optional): `url` (full URL, highest priority), `host`, `port`, `use_https`.
-Priority: config file `url` > env `APP_URL` > individual config fields > env vars > defaults (`127.0.0.1:3000`).
-Without config file, behavior is unchanged (probe HTTPS then HTTP on `127.0.0.1:3000`).
-
-### Known constraints
-- macOS requires `macOSPrivateApi: true` + `macos-private-api` Cargo feature for window transparency
-- WebSocket hub may listen on IPv6 only (Node 22) — the WSS/WS fallback chain handles this
-- The `--debug` flag enables a green debug overlay (bottom-left) showing WebSocket connection status and message flow
+Run: `pnpm studio-return:dev` (add `-- -- --debug` for the debug overlay) / `pnpm studio-return:build`.
 
 ## PM2 Deployment
 `ecosystem.config.cjs` defines three apps:
@@ -396,62 +342,25 @@ All use fork mode with autorestart and memory limits.
 
 ## Component Organization
 
-**components/ui/** - shadcn/ui base components
+One-liner per directory — `ls components/<dir>` for current file inventory.
 
-**components/shell/** - Application shell:
-- `AppShell.tsx` - Root layout wrapper
-- `DashboardShell.tsx` - Dockview-based dashboard
-- `CommandPalette.tsx` - Keyboard shortcut command palette
-- `panels/` - Dockview panel components
-
-**components/dashboard/** - Dashboard-specific:
-- `DashboardHeader.tsx` - Top navigation
-- `AdminSidebar.tsx` - Settings sidebar
-- `EventLog.tsx` - Real-time event display
-- `MacrosBar.tsx` - Macro buttons
-- `cards/` - Dashboard card widgets
-- `widgets/` - Widget system components
-
-**components/presenter/** - Presenter interface:
-- `PresenterShell.tsx` - Dockview presenter layout
-- `CueCard.tsx` - Individual cue display
-- `panels/` - Presenter panels (cue feed, VDO.Ninja, chat)
-
-**components/overlays/** - Overlay renderers:
-- `LowerThirdRenderer.tsx` - Lower third display
-- `CountdownDisplay.tsx` - Countdown timer
-- `PosterDisplay.tsx` - Theatre poster
-- `ChatHighlightRenderer.tsx` - Chat highlight
-- `QuizRenderer.tsx` - Quiz display
-
-**components/quiz/** - Quiz system:
-- `host/` - Host control panel components
-- `manage/` - Question editor components
-- `Quiz*.tsx` - Quiz display components
-
-**components/assets/** - Asset management:
-- `GuestManager.tsx`, `GuestCard.tsx`
-- `PosterManager.tsx`, `PosterCard.tsx`
-- `ThemeManager.tsx`
-- Image uploaders and croppers
-
-**components/settings/** - Settings forms:
-- `GeneralSettings.tsx`, `OBSSettings.tsx`
-- `PathSettings.tsx`, `PluginSettings.tsx`
-- `RoomSettings.tsx`, `IntegrationSettings.tsx`
-
-**components/theme-editor/** - Theme editing:
-- `ThemeEditor.tsx` - Main editor with canvas
-- `ThemeList.tsx`, `ThemeCard.tsx`
-
-**components/ai-chat/** - AI chat assistant:
-- `AiChatSheet.tsx` - Side panel with useChat hook
-- `AiChatMessages.tsx` - Message list with markdown + tool call cards
-- `AiChatInput.tsx` - Chat input with Enter=send
-- `AiChatButton.tsx` - Top bar toggle button
-
-**components/profiles/** - Profile management:
-- `ProfileManager.tsx`
+- **ui/** — shadcn/ui base components
+- **shell/** — App shell: `AppShell`, `DashboardShell` (Dockview), `AppSidebar`, `ContentTopBar`, `CommandPalette`, workspace selector/manager, panel utilities
+- **dashboard/** — Top-level widgets: `EventLog`, `MacrosBar`, `HeaderOverflowMenu`, `OverlayControlPanel` + `cards/` and `widgets/`
+- **panels/** — Dockview panel implementations shared across modes
+- **presenter/** — Presenter UI: `PresenterShell` (Dockview), `CueCard`, cue-feed/VDO/chat panels
+- **overlays/** — Overlay renderers (one per broadcast overlay — see "Overlays" section)
+- **quiz/** — Host control (`host/`), question editor (`manage/`), overlay display components
+- **assets/** — `GuestManager`, `PosterManager`, `ThemeManager`, image uploaders/croppers
+- **settings/** — One component per settings panel (OBS, paths, plugins, studio-return, Twitch, Streamer.bot, chat, Ollama, title-reveal defaults, word-harvest MIDI, presenter channels, etc.)
+- **theme-editor/** — `ThemeEditor` with 16:9 canvas + `ThemeList`, `ThemeCard`
+- **title-reveal/** — Editor, preview, per-line editor for Title Reveal overlay
+- **twitch/** — `TwitchCategoryPicker`
+- **updater/** — `UpdaterContainer` (plugin version-check UI)
+- **ai-chat/** — `AiChatSheet`, `AiChatMessages`, `AiChatInput`, `AiChatButton`
+- **shared/** — Reusable pickers/inputs (`FontFamilyCombobox`, `VirtualizedGrid`, etc.)
+- **profiles/** — `ProfileManager`
+- **providers/** — App-wide context providers
 
 
 ## grepai - Semantic Code Search
