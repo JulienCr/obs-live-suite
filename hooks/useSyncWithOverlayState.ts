@@ -11,11 +11,11 @@ export type OverlayType = keyof OverlayActiveState;
 /**
  * Options for useSyncWithOverlayState hook
  */
-export interface UseSyncWithOverlayStateOptions {
+export interface UseSyncWithOverlayStateOptions<T extends OverlayType = OverlayType> {
   /**
    * The overlay type to sync with
    */
-  overlayType: OverlayType;
+  overlayType: T;
 
   /**
    * Current local active state
@@ -32,7 +32,7 @@ export interface UseSyncWithOverlayStateOptions {
    * Optional callback when the overlay becomes active externally
    * (e.g., from EventLog replay button)
    */
-  onExternalShow?: (state: OverlayActiveState[OverlayType]) => void;
+  onExternalShow?: (state: OverlayActiveState[T]) => void;
 }
 
 /**
@@ -61,12 +61,12 @@ export interface UseSyncWithOverlayStateOptions {
  * }
  * ```
  */
-export function useSyncWithOverlayState({
+export function useSyncWithOverlayState<T extends OverlayType>({
   overlayType,
   localActive,
   onExternalHide,
   onExternalShow,
-}: UseSyncWithOverlayStateOptions): OverlayActiveState[OverlayType] {
+}: UseSyncWithOverlayStateOptions<T>): OverlayActiveState[T] {
   const overlayState = useOverlayActiveState();
   const currentState = overlayState[overlayType];
   const prevActiveRef = useRef(currentState.active);

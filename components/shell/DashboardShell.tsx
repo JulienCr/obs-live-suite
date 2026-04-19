@@ -32,6 +32,7 @@ import { TitleRevealPanel } from "./panels/TitleRevealPanel";
 import { SommairePanel } from "./panels/SommairePanel";
 import { DockviewContext } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
+import { PosterPreviewOverlay } from "@/components/overlay-preview/PosterPreviewOverlay";
 import { usePanelColorsStore, useWorkspacesStore, useDockviewStore } from "@/lib/stores";
 import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
@@ -399,6 +400,7 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
           </div>
         </DockviewContext.Provider>
       </LayoutPresetsProvider>
+      <PosterPreviewOverlay />
     </>
   );
 }

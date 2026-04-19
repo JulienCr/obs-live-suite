@@ -81,6 +81,7 @@ export enum PosterEventType {
   CHAPTER_NEXT = "chapter-next",
   CHAPTER_PREVIOUS = "chapter-previous",
   CHAPTER_JUMP = "chapter-jump",
+  TAKEOVER = "takeover",
 }
 
 /**
@@ -242,6 +243,14 @@ export const posterShowPayloadSchema = z.object({
   endTime: z.number().min(0).optional(),
   endBehavior: endBehaviorSchema.optional(),
   chapters: z.array(videoChapterSchema).optional(),
+  // Dashboard-side ownership (identifies the operator who launched the poster,
+  // used to scope the floating video preview to that operator only).
+  ownerClientId: z.string().optional(),
+  // Resume position for cue-to-air: overrides the default initial seek (which
+  // uses startTime for sub-videos). Together with resumePlaying, lets the
+  // operator cue a video at a specific position/state and send it as-is.
+  resumeFrom: z.number().min(0).optional(),
+  resumePlaying: z.boolean().optional(),
 });
 
 export type PosterShowPayload = z.infer<typeof posterShowPayloadSchema>;
@@ -254,6 +263,16 @@ export const posterSeekPayloadSchema = z.object({
 });
 
 export type PosterSeekPayload = z.infer<typeof posterSeekPayloadSchema>;
+
+/**
+ * Poster takeover payload - reassigns the dashboard-side owner of the
+ * currently-active poster without re-showing the media.
+ */
+export const posterTakeoverPayloadSchema = z.object({
+  ownerClientId: z.string(),
+});
+
+export type PosterTakeoverPayload = z.infer<typeof posterTakeoverPayloadSchema>;
 
 /**
  * Chapter jump event payload - jump to a specific chapter by index or id
@@ -729,6 +748,15 @@ export interface PosterChapterJumpEvent {
 }
 
 /**
+ * Event reassigning the dashboard-side owner of the current poster.
+ */
+export interface PosterTakeoverEvent {
+  type: "takeover";
+  payload: PosterTakeoverPayload;
+  id: string;
+}
+
+/**
  * Discriminated union of all poster events.
  * Use type guards like `event.type === "show"` to narrow the type.
  */
@@ -744,7 +772,8 @@ export type PosterEvent =
   | PosterUnmuteEvent
   | PosterChapterNextEvent
   | PosterChapterPreviousEvent
-  | PosterChapterJumpEvent;
+  | PosterChapterJumpEvent
+  | PosterTakeoverEvent;
 
 // -----------------------------------------------------------------------------
 // Chat Highlight Events
@@ -868,7 +897,7 @@ export type TypedOverlayEvent =
 // Event type sets for type guards - more maintainable than chained comparisons
 const LOWER_THIRD_EVENT_TYPES = new Set(["show", "hide", "update"]);
 const COUNTDOWN_EVENT_TYPES = new Set(["set", "start", "pause", "reset", "update", "add-time", "tick"]);
-const POSTER_EVENT_TYPES = new Set(["show", "hide", "next", "previous", "play", "pause", "seek", "mute", "unmute", "chapter-next", "chapter-previous", "chapter-jump"]);
+const POSTER_EVENT_TYPES = new Set(["show", "hide", "next", "previous", "play", "pause", "seek", "mute", "unmute", "chapter-next", "chapter-previous", "chapter-jump", "takeover"]);
 const CHAT_HIGHLIGHT_EVENT_TYPES = new Set(["show", "hide"]);
 const TITLE_REVEAL_EVENT_TYPES = new Set(["play", "hide"]);
 const SOMMAIRE_EVENT_TYPES = new Set(["show", "hide", "highlight"]);

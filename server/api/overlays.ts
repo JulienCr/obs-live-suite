@@ -33,6 +33,30 @@ const logger = new Logger("OverlaysAPI");
 const overlayHandler = createContextHandler("[OverlaysAPI]");
 
 /**
+ * Apply a takeover action on a poster channel, or return an error shape to
+ * send back to the client if the request is invalid or the channel is idle.
+ *
+ * Takeover is **cooperative, not authorized**: any client on the LAN can claim
+ * ownership by supplying a clientId. This matches the product model (trusted
+ * operators sharing a dashboard) but means takeover must not be exposed on an
+ * untrusted network without adding an auth layer.
+ */
+async function handlePosterTakeover(
+  channel: OverlayChannel,
+  payload: unknown
+): Promise<{ status: number; error: string } | null> {
+  const ownerClientId = (payload as { ownerClientId?: string } | undefined)?.ownerClientId;
+  if (!ownerClientId) {
+    return { status: 400, error: "ownerClientId required for takeover" };
+  }
+  const applied = await channelManager.takeoverPoster(channel, ownerClientId);
+  if (!applied) {
+    return { status: 409, error: "No active poster to take over" };
+  }
+  return null;
+}
+
+/**
  * POST /api/overlays/lower
  * Control lower third overlay
  */
@@ -177,6 +201,12 @@ router.post("/poster", overlayHandler(async (req, res) => {
       await channelManager.publish(OverlayChannel.POSTER, PosterEventType.CHAPTER_JUMP, payload);
       break;
 
+    case "takeover": {
+      const err = await handlePosterTakeover(OverlayChannel.POSTER, payload);
+      if (err) return res.status(err.status).json({ error: err.error });
+      break;
+    }
+
     default:
       return res.status(400).json({ error: "Invalid action" });
   }
@@ -249,6 +279,12 @@ router.post("/poster-bigpicture", overlayHandler(async (req, res) => {
     case "chapter-jump":
       await channelManager.publish(OverlayChannel.POSTER_BIGPICTURE, PosterEventType.CHAPTER_JUMP, payload);
       break;
+
+    case "takeover": {
+      const err = await handlePosterTakeover(OverlayChannel.POSTER_BIGPICTURE, payload);
+      if (err) return res.status(err.status).json({ error: err.error });
+      break;
+    }
 
     default:
       return res.status(400).json({ error: "Invalid action" });

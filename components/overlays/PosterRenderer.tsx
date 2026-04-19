@@ -18,7 +18,10 @@ import "./poster.css";
 
 interface PosterEvent {
   type: string;
-  payload?: PosterShowPayload & { time?: number } & ChapterJumpPayload;
+  payload?: PosterShowPayload & { time?: number } & ChapterJumpPayload & {
+    resumeFrom?: number;
+    resumePlaying?: boolean;
+  };
   id: string;
 }
 
@@ -28,7 +31,8 @@ interface PosterData {
   offsetX?: number; // Horizontal offset from center (960px = center)
   aspectRatio?: number; // width/height ratio
   side: "left" | "right";
-  initialTime?: number; // Initial seek position for sub-video clips
+  initialTime?: number; // Initial seek position (resumeFrom from cue, else sub-video startTime)
+  initialPlaying?: boolean; // If false, poster starts paused (cued-to-air carrying a paused state)
   showId: string; // Unique ID to force React remount on each show
   subVideoConfig?: {
     startTime?: number;
@@ -61,6 +65,12 @@ export function PosterRenderer() {
   const hideTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const cleanupTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const showVersionRef = useRef(0);
+  // Last processed event id. The backend replays the current poster show
+  // event to reconnecting clients (so the regie dashboard preview can reclaim
+  // ownership after a reload). The overlay renderer also auto-resubscribes
+  // after transient WS glitches — without this guard, the replayed show would
+  // remount the media and jump/reset on-air playback.
+  const lastEventIdRef = useRef<string | null>(null);
 
   const memoizedSend = useCallback((data: unknown) => sendRef.current(data), []);
 
@@ -112,12 +122,22 @@ export function PosterRenderer() {
   }, []);
 
   const handleEvent = useCallback((data: PosterEvent) => {
+    // Idempotent replay: a server-side replay re-emits the original show
+    // event (same id). Ack and drop it so the overlay doesn't restart media.
+    if (data.type === "show" && data.id && lastEventIdRef.current === data.id) {
+      sendAckRef.current(data.id);
+      return;
+    }
+
     if (hideTimeout.current) {
       clearTimeout(hideTimeout.current);
     }
 
     switch (data.type) {
       case "show":
+        if (data.id) {
+          lastEventIdRef.current = data.id;
+        }
         if (data.payload) {
           const mediaType: "image" | "video" | "youtube" = data.payload.type || (
             data.payload.fileUrl.endsWith(".mp4") ||
@@ -139,7 +159,10 @@ export function PosterRenderer() {
 
           chapters.setChapters(data.payload.chapters || []);
 
-          const capturedStartTime = data.payload.startTime;
+          // Resume position takes precedence over sub-video startTime so the
+          // operator can cue a specific point and send it as-is.
+          const capturedStartTime = data.payload.resumeFrom ?? data.payload.startTime;
+          const capturedPlaying = data.payload.resumePlaying !== false;
           const thisShowVersion = ++showVersionRef.current;
 
           detectAspectRatio(data.payload.fileUrl, mediaType).then((aspectRatio) => {
@@ -153,6 +176,7 @@ export function PosterRenderer() {
               aspectRatio,
               side: data.payload!.side || "left",
               initialTime: capturedStartTime,
+              initialPlaying: capturedPlaying,
               showId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               subVideoConfig: data.payload!.startTime !== undefined ? {
                 startTime: data.payload!.startTime,
@@ -189,6 +213,7 @@ export function PosterRenderer() {
         }
         break;
       case "hide":
+        lastEventIdRef.current = null;
         handlePosterHide(playback, setState, cleanupTimeout);
         break;
       default:
@@ -243,6 +268,7 @@ export function PosterRenderer() {
                 videoRef={state.current.type === "video" ? playback.videoRef : undefined}
                 youtubeRef={state.current.type === "youtube" ? playback.youtubeRef : undefined}
                 initialTime={state.current.initialTime}
+                initialPlaying={state.current.initialPlaying}
                 videoKey={state.current.showId}
                 subVideoConfig={state.current.subVideoConfig}
                 onYouTubeIframeLoad={state.current.type === "youtube" ? playback.handleYouTubeIframeLoad : undefined}
