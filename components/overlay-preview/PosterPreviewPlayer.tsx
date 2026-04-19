@@ -82,7 +82,7 @@ function LiveYouTube({ poster, playback }: { poster: PreviewPoster; playback: Pr
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const videoId = extractYouTubeId(poster.fileUrl);
 
-  const yt = useYouTubeIframeApi({
+  const { isSubscribed, stateRef, seek, play, pause, handleIframeLoad } = useYouTubeIframeApi({
     iframeRef,
     listenerId: "regie-preview",
     enabled: !!videoId,
@@ -91,17 +91,16 @@ function LiveYouTube({ poster, playback }: { poster: PreviewPoster; playback: Pr
 
   const lastPlayingRef = useRef<boolean | null>(null);
   useEffect(() => {
-    if (!yt.isSubscribed) return;
-    // YouTube seek is expensive — only seek when drift is clearly out of sync.
-    if (Math.abs(yt.stateRef.current.currentTime - playback.currentTime) > YT_SYNC_THRESHOLD_S) {
-      yt.seek(playback.currentTime);
+    if (!isSubscribed) return;
+    if (Math.abs(stateRef.current.currentTime - playback.currentTime) > YT_SYNC_THRESHOLD_S) {
+      seek(playback.currentTime);
     }
     if (playback.isPlaying !== lastPlayingRef.current) {
       lastPlayingRef.current = playback.isPlaying;
-      if (playback.isPlaying) yt.play();
-      else yt.pause();
+      if (playback.isPlaying) play();
+      else pause();
     }
-  }, [playback, yt]);
+  }, [playback, isSubscribed, stateRef, seek, play, pause]);
 
   if (!videoId) {
     return <PlayerError message="Invalid YouTube URL" />;
@@ -124,7 +123,7 @@ function LiveYouTube({ poster, playback }: { poster: PreviewPoster; playback: Pr
       title="YouTube regie preview"
       allow="autoplay; encrypted-media"
       style={{ width: "100%", height: "100%", border: 0, background: "#000" }}
-      onLoad={yt.handleIframeLoad}
+      onLoad={handleIframeLoad}
     />
   );
 }
@@ -167,20 +166,26 @@ function CuePlayer({ poster, currentTime, isPlaying, onTimeUpdate, onPlayingChan
 function CueVideo({ poster, currentTime, isPlaying, onTimeUpdate, onPlayingChange }: CuePlayerInternalProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hasInitSeekRef = useRef(false);
+  const initialTimeRef = useRef(currentTime);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || hasInitSeekRef.current) return;
+    if (video.readyState >= 1) {
+      video.currentTime = initialTimeRef.current;
+      hasInitSeekRef.current = true;
+    }
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    if (!hasInitSeekRef.current && video.readyState >= 1) {
-      video.currentTime = currentTime;
-      hasInitSeekRef.current = true;
-    }
     if (isPlaying && video.paused) {
       video.play().catch(() => {});
     } else if (!isPlaying && !video.paused) {
       video.pause();
     }
-  }, [currentTime, isPlaying]);
+  }, [isPlaying]);
 
   return (
     <video
@@ -208,7 +213,7 @@ function CueYouTube({ poster, currentTime, isPlaying, onTimeUpdate, onPlayingCha
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const videoId = extractYouTubeId(poster.fileUrl);
 
-  const yt = useYouTubeIframeApi({
+  const { isSubscribed, stateRef, seek, play, pause, handleIframeLoad } = useYouTubeIframeApi({
     iframeRef,
     listenerId: "regie-cue",
     enabled: !!videoId,
@@ -217,27 +222,31 @@ function CueYouTube({ poster, currentTime, isPlaying, onTimeUpdate, onPlayingCha
 
   const hasInitSeekRef = useRef(false);
   useEffect(() => {
-    if (!yt.isSubscribed) return;
+    if (!isSubscribed) return;
     if (!hasInitSeekRef.current && currentTime > 0) {
-      yt.seek(currentTime);
+      seek(currentTime);
       hasInitSeekRef.current = true;
     }
-    if (isPlaying) yt.play();
-    else yt.pause();
-  }, [yt, yt.isSubscribed, isPlaying, currentTime]);
+  }, [isSubscribed, currentTime, seek]);
+
+  useEffect(() => {
+    if (!isSubscribed) return;
+    if (isPlaying) play();
+    else pause();
+  }, [isSubscribed, isPlaying, play, pause]);
 
   // Poll YouTube state and forward to the cue store.
   useEffect(() => {
-    if (!yt.isSubscribed) return;
+    if (!isSubscribed) return;
     const id = setInterval(() => {
-      const s = yt.stateRef.current;
+      const s = stateRef.current;
       if (Number.isFinite(s.currentTime)) {
         onTimeUpdate(s.currentTime);
       }
       onPlayingChange(s.isPlaying);
     }, 500);
     return () => clearInterval(id);
-  }, [yt, yt.isSubscribed, onTimeUpdate, onPlayingChange]);
+  }, [isSubscribed, stateRef, onTimeUpdate, onPlayingChange]);
 
   if (!videoId) {
     return <PlayerError message="Invalid YouTube URL" />;
@@ -260,7 +269,7 @@ function CueYouTube({ poster, currentTime, isPlaying, onTimeUpdate, onPlayingCha
       title="YouTube regie cue preview"
       allow="autoplay; encrypted-media"
       style={{ width: "100%", height: "100%", border: 0, background: "#000" }}
-      onLoad={yt.handleIframeLoad}
+      onLoad={handleIframeLoad}
     />
   );
 }

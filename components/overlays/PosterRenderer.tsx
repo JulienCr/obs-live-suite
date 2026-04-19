@@ -197,24 +197,11 @@ export function PosterRenderer() {
                 const video = playback.videoRef.current;
                 if (video && video.readyState >= 1) {
                   video.currentTime = capturedStartTime;
-                  if (!capturedPlaying) {
-                    video.pause();
-                  }
                 } else {
                   setTimeout(seekToStart, 100);
                 }
               };
               setTimeout(seekToStart, 50);
-            } else if (!capturedPlaying) {
-              const pauseInitial = () => {
-                const video = playback.videoRef.current;
-                if (video && video.readyState >= 1) {
-                  video.pause();
-                } else {
-                  setTimeout(pauseInitial, 100);
-                }
-              };
-              setTimeout(pauseInitial, 50);
             }
 
             if (data.payload!.duration) {

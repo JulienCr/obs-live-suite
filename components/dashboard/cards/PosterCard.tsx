@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { isVideoPosterType, type VideoChapter } from "@/lib/models/Poster";
+import { PosterEventType } from "@/lib/models/OverlayEvents";
 import { cn } from "@/lib/utils/cn";
 import { formatTimeShort } from "@/lib/utils/durationParser";
 import { getEffectivePosterDuration } from "@/components/dashboard/cards/posterDurationHelpers";
@@ -23,6 +24,7 @@ import { useSyncWithOverlayState } from "@/hooks/useSyncWithOverlayState";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import { useCuedPoster } from "@/hooks/useCuedPoster";
 import { CLIENT_ID } from "@/lib/utils/clientId";
+import { toast } from "sonner";
 import { Film, Send, Hand } from "lucide-react";
 
 interface Poster {
@@ -55,6 +57,9 @@ interface PosterCardProps {
  * Used by PosterPanel in Dockview and PosterCard for standalone use.
  */
 type DisplayMode = "left" | "right" | "bigpicture";
+
+const posterEndpoint = (mode: DisplayMode | null | undefined) =>
+  mode === "bigpicture" ? "/api/overlays/poster-bigpicture" : "/api/overlays/poster";
 
 // Aspect ratio classification for masonry layout
 type AspectRatioClass = '16:9' | '1:1' | '1:1.414';
@@ -321,11 +326,7 @@ export function PosterContent({ className }: PosterContentProps) {
 
   const hideCurrentMode = async () => {
     try {
-      const endpoint = displayMode === "bigpicture"
-        ? "/api/overlays/poster-bigpicture"
-        : "/api/overlays/poster";
-
-      await apiPost(endpoint, { action: "hide" });
+      await apiPost(posterEndpoint(displayMode), { action: PosterEventType.HIDE });
 
       setActivePoster(null);
       setDisplayMode(null);
@@ -343,10 +344,6 @@ export function PosterContent({ className }: PosterContentProps) {
     resume?: { resumeFrom?: number; resumePlaying?: boolean }
   ): Promise<boolean> => {
     try {
-      const endpoint = mode === "bigpicture"
-        ? "/api/overlays/poster-bigpicture"
-        : "/api/overlays/poster";
-
       const payload: Record<string, unknown> = {
         posterId: poster.id,
         fileUrl: poster.fileUrl,
@@ -370,8 +367,8 @@ export function PosterContent({ className }: PosterContentProps) {
         payload.side = mode;
       }
 
-      await apiPost(endpoint, {
-        action: "show",
+      await apiPost(posterEndpoint(mode), {
+        action: PosterEventType.SHOW,
         payload,
       });
 
@@ -393,12 +390,8 @@ export function PosterContent({ className }: PosterContentProps) {
 
   const handlePlayPause = async () => {
     try {
-      const endpoint = displayMode === "bigpicture"
-        ? "/api/overlays/poster-bigpicture"
-        : "/api/overlays/poster";
-      const action = playbackState.isPlaying ? "pause" : "play";
-
-      await apiPost(endpoint, { action });
+      const action = playbackState.isPlaying ? PosterEventType.PAUSE : PosterEventType.PLAY;
+      await apiPost(posterEndpoint(displayMode), { action });
 
       // Optimistic update
       setPlaybackState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
@@ -409,13 +402,9 @@ export function PosterContent({ className }: PosterContentProps) {
 
   const handleSeek = async (time: number) => {
     try {
-      const endpoint = displayMode === "bigpicture"
-        ? "/api/overlays/poster-bigpicture"
-        : "/api/overlays/poster";
-
-      await apiPost(endpoint, {
-        action: "seek",
-        payload: { time }
+      await apiPost(posterEndpoint(displayMode), {
+        action: PosterEventType.SEEK,
+        payload: { time },
       });
 
       // Optimistic update
@@ -427,12 +416,8 @@ export function PosterContent({ className }: PosterContentProps) {
 
   const handleMute = async () => {
     try {
-      const endpoint = displayMode === "bigpicture"
-        ? "/api/overlays/poster-bigpicture"
-        : "/api/overlays/poster";
-      const action = playbackState.isMuted ? "unmute" : "mute";
-
-      await apiPost(endpoint, { action });
+      const action = playbackState.isMuted ? PosterEventType.UNMUTE : PosterEventType.MUTE;
+      await apiPost(posterEndpoint(displayMode), { action });
 
       // Optimistic update
       setPlaybackState(prev => ({ ...prev, isMuted: !prev.isMuted }));
@@ -504,11 +489,8 @@ export function PosterContent({ className }: PosterContentProps) {
     if (activeChapters.length === 0) return;
     const nextIndex = currentChapterIndex + 1;
     if (nextIndex < activeChapters.length) {
-      const endpoint = displayMode === "bigpicture"
-        ? "/api/overlays/poster-bigpicture"
-        : "/api/overlays/poster";
       try {
-        await apiPost(endpoint, { action: "chapter-next" });
+        await apiPost(posterEndpoint(displayMode), { action: PosterEventType.CHAPTER_NEXT });
       } catch (error) {
         console.error("Chapter next error:", error);
       }
@@ -517,11 +499,8 @@ export function PosterContent({ className }: PosterContentProps) {
 
   const handleChapterPrev = async () => {
     if (activeChapters.length === 0) return;
-    const endpoint = displayMode === "bigpicture"
-      ? "/api/overlays/poster-bigpicture"
-      : "/api/overlays/poster";
     try {
-      await apiPost(endpoint, { action: "chapter-previous" });
+      await apiPost(posterEndpoint(displayMode), { action: PosterEventType.CHAPTER_PREVIOUS });
     } catch (error) {
       console.error("Chapter prev error:", error);
     }
@@ -554,29 +533,24 @@ export function PosterContent({ className }: PosterContentProps) {
   };
 
   const handleTakeOver = async () => {
-    const endpoint = posterOverlayState.displayMode === "bigpicture"
-      ? "/api/overlays/poster-bigpicture"
-      : "/api/overlays/poster";
     try {
-      await apiPost(endpoint, {
-        action: "takeover",
+      await apiPost(posterEndpoint(posterOverlayState.displayMode), {
+        action: PosterEventType.TAKEOVER,
         payload: { ownerClientId: CLIENT_ID },
       });
     } catch (error) {
       console.error("Takeover error:", error);
+      toast.error("Impossible de prendre la main sur la preview.");
     }
   };
 
   const cuedPoster = cue ? posters.find((p) => p.id === cue.posterId) : null;
 
   const handleChapterJump = async (chapterIndex: number) => {
-    const endpoint = displayMode === "bigpicture"
-      ? "/api/overlays/poster-bigpicture"
-      : "/api/overlays/poster";
     try {
-      await apiPost(endpoint, {
-        action: "chapter-jump",
-        payload: { chapterIndex }
+      await apiPost(posterEndpoint(displayMode), {
+        action: PosterEventType.CHAPTER_JUMP,
+        payload: { chapterIndex },
       });
     } catch (error) {
       console.error("Chapter jump error:", error);

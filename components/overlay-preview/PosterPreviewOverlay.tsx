@@ -8,10 +8,7 @@ import { formatTimeShort } from "@/lib/utils/durationParser";
 import { PosterPreviewPlayer } from "./PosterPreviewPlayer";
 
 const BOUNDS_STORAGE_KEY = "ols.posterPreview.bounds";
-// Escape hatch: an operator can set `ols.posterPreview.disabled = "1"` in
-// devtools to suppress the preview entirely if postMessage/drag/playback
-// misbehaves in their environment. No UI toggle yet — trade-off for keeping
-// this PR additive-only.
+// Dev-only kill switch: set `ols.posterPreview.disabled = "1"` in localStorage to hide the overlay.
 const DISABLED_STORAGE_KEY = "ols.posterPreview.disabled";
 const DEFAULT_WIDTH = 480;
 const MIN_WIDTH = 280;
@@ -125,7 +122,6 @@ export function PosterPreviewOverlay() {
 
   const preview = usePosterPreviewState({ posters });
 
-  // Keep bounds within the viewport as the window resizes.
   useEffect(() => {
     const onResize = () => setBounds((prev) => clampToViewport(prev));
     window.addEventListener("resize", onResize);
@@ -134,10 +130,7 @@ export function PosterPreviewOverlay() {
 
   const height = bounds.width * ASPECT;
 
-  // --- Drag + resize ---
-  // Persist to localStorage only on pointerup (not on every move) to avoid
-  // pathological 60Hz writes during drag.
-
+  // Persist bounds only on pointerup so drag/resize doesn't thrash localStorage at 60Hz.
   const dragStartRef = useRef<{ x: number; y: number; startLeft: number; startTop: number } | null>(null);
   const resizeStartRef = useRef<{ x: number; startWidth: number } | null>(null);
   const latestBoundsRef = useRef<Bounds>(bounds);
