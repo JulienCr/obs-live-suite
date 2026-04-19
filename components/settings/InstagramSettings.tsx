@@ -7,14 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2,
   CheckCircle2,
   XCircle,
-  LogIn,
   LogOut,
   Cookie,
+  ShieldAlert,
 } from "lucide-react";
 import { apiGet, apiPost, extractErrorMessage } from "@/lib/utils/ClientFetch";
 
@@ -23,13 +22,6 @@ interface InstagramStatus {
   hasSession: boolean;
   hasSessionId: boolean;
   sessionIdMasked: string;
-}
-
-interface LoginResult {
-  success: boolean;
-  needs2FA?: boolean;
-  message: string;
-  hasSession?: boolean;
 }
 
 export function InstagramSettings() {
@@ -41,17 +33,10 @@ export function InstagramSettings() {
   });
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  // Login form
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [twoFACode, setTwoFACode] = useState("");
-  const [needs2FA, setNeeds2FA] = useState(false);
-  const [loggingIn, setLoggingIn] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
-
-  // Session ID form
   const [sessionId, setSessionId] = useState("");
   const [savingSessionId, setSavingSessionId] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const fetchStatus = async () => {
     try {
@@ -69,41 +54,6 @@ export function InstagramSettings() {
     fetchStatus();
   }, []);
 
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) return;
-
-    setLoggingIn(true);
-    setResult(null);
-
-    try {
-      const data = await apiPost<LoginResult>("/api/settings/instagram/login", {
-        username: username.trim(),
-        password,
-        ...(needs2FA && twoFACode ? { twoFA: twoFACode.trim() } : {}),
-      });
-
-      if (data.needs2FA) {
-        setNeeds2FA(true);
-        setResult({ success: false, message: data.message });
-      } else if (data.success) {
-        setResult({ success: true, message: data.message });
-        setPassword("");
-        setTwoFACode("");
-        setNeeds2FA(false);
-        await fetchStatus();
-      } else {
-        setResult({ success: false, message: data.message });
-      }
-    } catch (error) {
-      setResult({
-        success: false,
-        message: extractErrorMessage(error, t("loginFailed")),
-      });
-    } finally {
-      setLoggingIn(false);
-    }
-  };
-
   const handleSaveSessionId = async () => {
     if (!sessionId.trim()) return;
 
@@ -113,7 +63,6 @@ export function InstagramSettings() {
     try {
       await apiPost("/api/settings/instagram", {
         sessionId: sessionId.trim(),
-        // Save username too if provided
         ...(username.trim() ? { username: username.trim() } : {}),
       });
       setResult({ success: true, message: t("sessionIdSaved") });
@@ -136,9 +85,6 @@ export function InstagramSettings() {
     try {
       await apiPost("/api/settings/instagram/logout");
       setResult({ success: true, message: t("logoutSuccess") });
-      setPassword("");
-      setTwoFACode("");
-      setNeeds2FA(false);
       setSessionId("");
       await fetchStatus();
     } catch (error) {
@@ -185,7 +131,6 @@ export function InstagramSettings() {
         )}
       </div>
 
-      {/* Session ID masked display */}
       {status.hasSessionId && status.sessionIdMasked && (
         <p className="text-xs text-muted-foreground">
           Session ID: {status.sessionIdMasked}
@@ -206,150 +151,75 @@ export function InstagramSettings() {
         </Alert>
       )}
 
-      {/* Auth forms (shown when not connected) */}
+      {/* Session ID form (only when not connected) */}
       {!status.hasSession && (
-        <Tabs defaultValue="sessionId">
-          <TabsList>
-            <TabsTrigger value="sessionId" className="gap-1.5">
-              <Cookie className="w-3.5 h-3.5" />
-              Session ID
-            </TabsTrigger>
-            <TabsTrigger value="login" className="gap-1.5">
-              <LogIn className="w-3.5 h-3.5" />
-              {t("login")}
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-4 rounded-md border p-4">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Cookie className="w-4 h-4" />
+            Session ID
+          </div>
 
-          {/* Session ID tab */}
-          <TabsContent value="sessionId" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="ig-session-username">{t("username")}</Label>
-              <Input
-                id="ig-session-username"
-                type="text"
-                placeholder={t("usernamePlaceholder")}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={savingSessionId}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="ig-session-username">{t("username")}</Label>
+            <Input
+              id="ig-session-username"
+              type="text"
+              placeholder={t("usernamePlaceholder")}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              disabled={savingSessionId}
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="ig-sessionid">{t("sessionIdLabel")}</Label>
-              <Input
-                id="ig-sessionid"
-                type="password"
-                placeholder={t("sessionIdPlaceholder")}
-                value={sessionId}
-                onChange={(e) => setSessionId(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSaveSessionId();
-                }}
-                disabled={savingSessionId}
-              />
-              <p className="text-xs text-muted-foreground">{t("sessionIdHelp")}</p>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="ig-sessionid">{t("sessionIdLabel")}</Label>
+            <Input
+              id="ig-sessionid"
+              type="password"
+              placeholder={t("sessionIdPlaceholder")}
+              value={sessionId}
+              onChange={(e) => setSessionId(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveSessionId();
+              }}
+              disabled={savingSessionId}
+            />
+            <p className="text-xs text-muted-foreground">{t("sessionIdHelp")}</p>
+          </div>
 
-            <Button
-              onClick={handleSaveSessionId}
-              disabled={savingSessionId || !sessionId.trim()}
-            >
-              {savingSessionId ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {t("saving")}
-                </>
-              ) : (
-                <>
-                  <Cookie className="w-4 h-4 mr-2" />
-                  {t("saveSessionId")}
-                </>
-              )}
-            </Button>
-
-            {/* How-to guide for session ID */}
-            <Alert>
-              <AlertDescription className="text-sm space-y-2">
-                <strong>{t("sessionIdGuide")}</strong>
-                <ol className="list-decimal list-inside mt-2 space-y-1">
-                  <li>{t("sessionIdStep1")}</li>
-                  <li>{t("sessionIdStep2")}</li>
-                  <li>{t("sessionIdStep3")}</li>
-                  <li>{t("sessionIdStep4")}</li>
-                </ol>
-              </AlertDescription>
-            </Alert>
-          </TabsContent>
-
-          {/* Login tab */}
-          <TabsContent value="login" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="ig-username">{t("username")}</Label>
-              <Input
-                id="ig-username"
-                type="text"
-                placeholder={t("usernamePlaceholder")}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={loggingIn}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="ig-password">{t("password")}</Label>
-              <Input
-                id="ig-password"
-                type="password"
-                placeholder={t("passwordPlaceholder")}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !needs2FA) handleLogin();
-                }}
-                disabled={loggingIn}
-              />
-              <p className="text-xs text-muted-foreground">{t("passwordHelp")}</p>
-            </div>
-
-            {needs2FA && (
-              <div className="space-y-2">
-                <Label htmlFor="ig-2fa">{t("twoFACode")}</Label>
-                <Input
-                  id="ig-2fa"
-                  type="text"
-                  placeholder={t("twoFAPlaceholder")}
-                  value={twoFACode}
-                  onChange={(e) => setTwoFACode(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleLogin();
-                  }}
-                  disabled={loggingIn}
-                  autoFocus
-                />
-              </div>
+          <Button
+            onClick={handleSaveSessionId}
+            disabled={savingSessionId || !sessionId.trim()}
+          >
+            {savingSessionId ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {t("saving")}
+              </>
+            ) : (
+              <>
+                <Cookie className="w-4 h-4 mr-2" />
+                {t("saveSessionId")}
+              </>
             )}
+          </Button>
 
-            <Button
-              onClick={handleLogin}
-              disabled={loggingIn || !username.trim() || !password.trim()}
-            >
-              {loggingIn ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {t("loggingIn")}
-                </>
-              ) : (
-                <>
-                  <LogIn className="w-4 h-4 mr-2" />
-                  {needs2FA ? t("verify2FA") : t("login")}
-                </>
-              )}
-            </Button>
-          </TabsContent>
-        </Tabs>
+          {/* How-to guide */}
+          <Alert>
+            <AlertDescription className="text-sm space-y-2">
+              <strong>{t("sessionIdGuide")}</strong>
+              <ol className="list-decimal list-inside mt-2 space-y-1">
+                <li>{t("sessionIdStep1")}</li>
+                <li>{t("sessionIdStep2")}</li>
+                <li>{t("sessionIdStep3")}</li>
+                <li>{t("sessionIdStep4")}</li>
+              </ol>
+            </AlertDescription>
+          </Alert>
+        </div>
       )}
 
-      {/* Disconnect button (shown when connected) */}
+      {/* Disconnect button */}
       {status.hasSession && (
         <Button
           onClick={handleLogout}
@@ -370,16 +240,23 @@ export function InstagramSettings() {
         </Button>
       )}
 
+      {/* Security warning */}
+      <Alert variant="destructive">
+        <AlertDescription className="text-sm flex items-start gap-2">
+          <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <strong>{t("securityTitle")}</strong>
+            <p>{t("securityNote")}</p>
+          </div>
+        </AlertDescription>
+      </Alert>
+
       {/* Help section */}
       <Alert>
         <AlertDescription className="text-sm space-y-2">
           <div>
             <strong>{t("whyLogin")}</strong>
             <p className="mt-1">{t("whyLoginDescription")}</p>
-          </div>
-          <div>
-            <strong>{t("privacyNote")}</strong>
-            <p className="mt-1">{t("privacyNoteDescription")}</p>
           </div>
         </AlertDescription>
       </Alert>

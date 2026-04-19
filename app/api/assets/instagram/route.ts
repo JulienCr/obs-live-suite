@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readFile, writeFile, mkdir, readdir, copyFile, rm } from "fs/promises";
+import { readFile, writeFile, chmod, mkdir, readdir, copyFile, rm } from "fs/promises";
 import { join, basename, extname } from "path";
 import { randomUUID } from "crypto";
 import { execFile } from "child_process";
@@ -14,8 +14,13 @@ const execFileAsync = promisify(execFile);
 const TIMEOUT_MS = 30000;
 const META_SEPARATOR = "\t||||\t";
 
+// Far-future expiry used in Netscape cookie files (Jan 2038).
+// Using `0` (session cookie) is ambiguous and some tools treat it as expired.
+const COOKIE_EXPIRY_EPOCH = 2147483647;
+
 /**
  * Write a Netscape-format cookie file from a sessionid value.
+ * File is written with 0o600 permissions to avoid exposing the token on POSIX systems.
  * Returns the file path, or empty string if no session ID configured.
  */
 async function ensureCookieFile(): Promise<string> {
@@ -26,10 +31,12 @@ async function ensureCookieFile(): Promise<string> {
   const cookiePath = settingsService.getInstagramCookieFilePath();
   const content = [
     "# Netscape HTTP Cookie File",
-    `.instagram.com\tTRUE\t/\tTRUE\t0\tsessionid\t${sessionId}`,
+    `.instagram.com\tTRUE\t/\tTRUE\t${COOKIE_EXPIRY_EPOCH}\tsessionid\t${sessionId}`,
     "",
   ].join("\n");
-  await writeFile(cookiePath, content, "utf-8");
+  await writeFile(cookiePath, content, { encoding: "utf-8", mode: 0o600 });
+  // writeFile's `mode` only applies on creation; chmod ensures permissions on overwrite too.
+  await chmod(cookiePath, 0o600).catch(() => {});
   return cookiePath;
 }
 

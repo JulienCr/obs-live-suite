@@ -750,15 +750,6 @@
       "notConnected": "Non connecté",
       "username": "Nom d'utilisateur",
       "usernamePlaceholder": "votre_pseudo_instagram",
-      "password": "Mot de passe",
-      "passwordPlaceholder": "Votre mot de passe Instagram",
-      "passwordHelp": "Le mot de passe n'est pas stocké. Il sert uniquement à créer une session locale.",
-      "twoFACode": "Code de vérification 2FA",
-      "twoFAPlaceholder": "123456",
-      "login": "Se connecter",
-      "verify2FA": "Vérifier le code",
-      "loggingIn": "Connexion...",
-      "loginFailed": "Échec de la connexion Instagram",
       "logout": "Se déconnecter",
       "loggingOut": "Déconnexion...",
       "logoutSuccess": "Session Instagram supprimée.",
@@ -777,9 +768,9 @@
       "sessionIdStep3": "Cherchez le cookie nommé « sessionid »",
       "sessionIdStep4": "Copiez sa valeur et collez-la ci-dessus",
       "whyLogin": "Pourquoi se connecter ?",
-      "whyLoginDescription": "Instagram bloque les requêtes non authentifiées. La connexion permet de télécharger les photos de profil des invités et les médias des posts.",
-      "privacyNote": "Confidentialité",
-      "privacyNoteDescription": "Votre mot de passe n'est jamais stocké. Seul un fichier de session local est conservé, que vous pouvez supprimer à tout moment."
+      "whyLoginDescription": "Instagram bloque les requêtes non authentifiées. Fournir un cookie de session permet de télécharger les photos de profil des invités et les médias des posts.",
+      "securityTitle": "Avertissement de sécurité",
+      "securityNote": "Le cookie sessionid donne un accès complet à votre compte Instagram et est stocké en clair dans la base de données de l'application. Utilisez de préférence un compte secondaire dédié, et déconnectez-vous pour effacer la valeur stockée."
     },
     "chatMessages": {
       "title": "Messages Chat",

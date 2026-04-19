@@ -7,6 +7,7 @@ import { Logger } from "../utils/Logger";
 import { SettingsStore } from "./SettingsStore";
 import { streamerbotConnectionSchema } from "../models/streamerbot/schemas";
 import { AppConfig } from "../config/AppConfig";
+import { PathManager } from "../config/PathManager";
 import { TwitchSettingsSchema } from "../models/Twitch";
 import { presenterChannelSettingsSchema } from "../models/PresenterChannel";
 import { WordHarvestMidiSettingsSchema } from "../models/WordHarvest";
@@ -769,9 +770,13 @@ export class SettingsService {
   /**
    * Get the path to the generated Netscape cookie file for --cookiefile.
    * Created in the app data directory alongside the database.
+   *
+   * SECURITY NOTE: the sessionid cookie is effectively a bearer token for the
+   * Instagram account. The value is stored in the SQLite settings table in
+   * plain text and written to this file when needed. Callers that write the
+   * file should set mode 0o600.
    */
   getInstagramCookieFilePath(): string {
-    const PathManager = require("../config/PathManager").PathManager;
     const dataDir = PathManager.getInstance().getDataDir();
     return join(dataDir, "instagram-cookies.txt");
   }
