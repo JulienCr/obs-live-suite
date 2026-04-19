@@ -139,7 +139,7 @@ class BackendServer {
         res.header('Access-Control-Allow-Origin', `https://localhost:${APP_PORT}`);
       }
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, x-client-id');
       if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
       }

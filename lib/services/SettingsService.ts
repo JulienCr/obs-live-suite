@@ -1,4 +1,6 @@
 import { randomUUID } from "crypto";
+import { existsSync } from "fs";
+import { join } from "path";
 import { z } from "zod";
 import { SettingsRepository } from "../repositories/SettingsRepository";
 import { Logger } from "../utils/Logger";
@@ -701,5 +703,76 @@ export class SettingsService {
   saveInstagramCookiesBrowser(browser: string): void {
     this.db.setSetting("instagram.cookiesBrowser", browser);
     this.logger.info(`Instagram cookies browser set to: ${browser}`);
+  }
+
+  /**
+   * Get the Instagram username used for authenticated requests
+   */
+  getInstagramUsername(): string {
+    return this.db.getSetting("instagram.username") || "";
+  }
+
+  /**
+   * Save the Instagram username
+   */
+  saveInstagramUsername(username: string): void {
+    this.db.setSetting("instagram.username", username);
+    this.logger.info(`Instagram username set to: ${username}`);
+  }
+
+  /**
+   * Get the path to the instaloader session file for the configured username.
+   * Default location: %LOCALAPPDATA%/Instaloader/session-<username> (Windows)
+   *                   ~/.config/instaloader/session-<username> (Linux/macOS)
+   */
+  getInstagramSessionPath(username?: string): string {
+    const user = username || this.getInstagramUsername();
+    if (!user) return "";
+
+    const localAppData = process.env.LOCALAPPDATA;
+    if (localAppData) {
+      return join(localAppData, "Instaloader", `session-${user}`);
+    }
+
+    // Linux/macOS fallback
+    const home = process.env.HOME || "";
+    return join(home, ".config", "instaloader", `session-${user}`);
+  }
+
+  /**
+   * Check if a valid instaloader session file exists OR a session ID is configured
+   */
+  isInstagramSessionValid(username?: string): boolean {
+    // Check cookie file from session ID first
+    if (this.getInstagramSessionId()) return true;
+
+    const sessionPath = this.getInstagramSessionPath(username);
+    if (!sessionPath) return false;
+    return existsSync(sessionPath);
+  }
+
+  /**
+   * Get the stored Instagram sessionid cookie value
+   */
+  getInstagramSessionId(): string {
+    return this.db.getSetting("instagram.sessionId") || "";
+  }
+
+  /**
+   * Save the Instagram sessionid cookie value
+   */
+  saveInstagramSessionId(sessionId: string): void {
+    this.db.setSetting("instagram.sessionId", sessionId);
+    this.logger.info(sessionId ? "Instagram session ID saved" : "Instagram session ID cleared");
+  }
+
+  /**
+   * Get the path to the generated Netscape cookie file for --cookiefile.
+   * Created in the app data directory alongside the database.
+   */
+  getInstagramCookieFilePath(): string {
+    const PathManager = require("../config/PathManager").PathManager;
+    const dataDir = PathManager.getInstance().getDataDir();
+    return join(dataDir, "instagram-cookies.txt");
   }
 }

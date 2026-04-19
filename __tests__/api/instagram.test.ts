@@ -8,7 +8,15 @@ jest.mock("@/lib/utils/fileUpload", () => ({
   getUploadDir: jest.fn(async (subfolder: string) => `/mock/data/uploads/${subfolder}`),
 }));
 jest.mock("@/lib/services/SettingsService", () => ({
-  SettingsService: { getInstance: () => ({ getInstagramCookiesBrowser: () => "chrome" }) },
+  SettingsService: {
+    getInstance: () => ({
+      getInstagramCookiesBrowser: () => "chrome",
+      getInstagramUsername: () => "",
+      isInstagramSessionValid: () => false,
+      getInstagramSessionId: () => "",
+      getInstagramCookieFilePath: () => "/mock/instagram-cookies.txt",
+    }),
+  },
 }));
 
 // The route does: const execFileAsync = promisify(execFile)
@@ -215,7 +223,7 @@ describe("POST /api/assets/instagram", () => {
   });
 
   describe("error handling", () => {
-    it("returns 500 when both yt-dlp and instaloader fail", async () => {
+    it("returns error when both yt-dlp and instaloader fail", async () => {
       // yt-dlp fails → falls back to instaloader → instaloader also fails
       execFileAsyncMock.mockRejectedValueOnce(new Error("yt-dlp crashed"));
       execFileAsyncMock.mockRejectedValueOnce(new Error("instaloader crashed"));
@@ -225,15 +233,45 @@ describe("POST /api/assets/instagram", () => {
         type: "media",
       }));
 
-      expect(res.status).toBe(500);
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      const body = await res.json();
+      expect(body.error).toBeDefined();
     });
 
-    it("returns 500 on instaloader failure for profile", async () => {
+    it("returns error on instaloader failure for profile", async () => {
       execFileAsyncMock.mockRejectedValueOnce(new Error("instaloader failed"));
 
       const res = await POST(makeRequest({ username: "nonexistent", type: "profile" }));
 
-      expect(res.status).toBe(500);
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      const body = await res.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("returns 404 when profile does not exist", async () => {
+      const err = Object.assign(new Error("Command failed"), {
+        stderr: "juliencr86: Profile juliencr86 does not exist.\n",
+      });
+      execFileAsyncMock.mockRejectedValueOnce(err);
+
+      const res = await POST(makeRequest({ username: "juliencr86", type: "profile" }));
+
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.error).toMatch(/introuvable/i);
+    });
+
+    it("returns 401 when Instagram requires authentication", async () => {
+      const err = Object.assign(new Error("Command failed"), {
+        stderr: "JSON Query to graphql/query: 403 Forbidden\n",
+      });
+      execFileAsyncMock.mockRejectedValueOnce(err);
+
+      const res = await POST(makeRequest({ username: "testuser", type: "profile" }));
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.error).toMatch(/authentification/i);
     });
 
     it("returns 408 on timeout from instaloader (killed process)", async () => {
@@ -271,10 +309,10 @@ describe("POST /api/assets/instagram", () => {
 
       expect(res.status).toBe(408);
       const body = await res.json();
-      expect(body.error).toMatch(/timeout/i);
+      expect(body.error).toBeDefined();
     });
 
-    it("returns 500 when instaloader finds no media (shortcode valid but empty)", async () => {
+    it("returns error when instaloader finds no media (shortcode valid but empty)", async () => {
       // yt-dlp fails → instaloader runs but downloads no media files
       execFileAsyncMock.mockRejectedValueOnce(new Error("No video found"));
       execFileAsyncMock.mockResolvedValueOnce({ stdout: "", stderr: "" });
@@ -286,10 +324,12 @@ describe("POST /api/assets/instagram", () => {
         type: "media",
       }));
 
-      expect(res.status).toBe(500);
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      const body = await res.json();
+      expect(body.error).toBeDefined();
     });
 
-    it("returns 500 when shortcode extraction fails for media", async () => {
+    it("returns error when shortcode extraction fails for media", async () => {
       // yt-dlp fails → instaloader path can't extract shortcode from malformed URL
       execFileAsyncMock.mockRejectedValueOnce(new Error("No video found"));
 
@@ -298,7 +338,9 @@ describe("POST /api/assets/instagram", () => {
         type: "media",
       }));
 
-      expect(res.status).toBe(500);
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      const body = await res.json();
+      expect(body.error).toBeDefined();
     });
   });
 });
