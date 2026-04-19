@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readFile, mkdir, readdir, copyFile, rm } from "fs/promises";
+import { readFile, writeFile, chmod, mkdir, readdir, copyFile, rm } from "fs/promises";
 import { join, basename, extname } from "path";
 import { randomUUID } from "crypto";
 import { execFile } from "child_process";
@@ -13,6 +13,84 @@ import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
 const execFileAsync = promisify(execFile);
 const TIMEOUT_MS = 30000;
 const META_SEPARATOR = "\t||||\t";
+
+// Far-future expiry used in Netscape cookie files (Jan 2038).
+// Using `0` (session cookie) is ambiguous and some tools treat it as expired.
+const COOKIE_EXPIRY_EPOCH = 2147483647;
+
+/**
+ * Write a Netscape-format cookie file from a sessionid value.
+ * File is written with 0o600 permissions to avoid exposing the token on POSIX systems.
+ * Returns the file path, or empty string if no session ID configured.
+ */
+async function ensureCookieFile(): Promise<string> {
+  const settingsService = SettingsService.getInstance();
+  const sessionId = settingsService.getInstagramSessionId();
+  if (!sessionId) return "";
+
+  const cookiePath = settingsService.getInstagramCookieFilePath();
+  const content = [
+    "# Netscape HTTP Cookie File",
+    `.instagram.com\tTRUE\t/\tTRUE\t${COOKIE_EXPIRY_EPOCH}\tsessionid\t${sessionId}`,
+    "",
+  ].join("\n");
+  await writeFile(cookiePath, content, { encoding: "utf-8", mode: 0o600 });
+  // writeFile's `mode` only applies on creation; chmod ensures permissions on overwrite too.
+  await chmod(cookiePath, 0o600).catch(() => {});
+  return cookiePath;
+}
+
+/**
+ * Build instaloader auth args depending on available auth method:
+ * 1. --cookiefile (from session ID pasted in settings)
+ * 2. --login (from instaloader session file)
+ * 3. No auth (fallback)
+ */
+async function getInstaloaderAuthArgs(): Promise<string[]> {
+  // Prefer cookie file from session ID
+  const cookiePath = await ensureCookieFile();
+  if (cookiePath) {
+    return ["--cookiefile", cookiePath];
+  }
+
+  // Fallback to instaloader session file
+  const settingsService = SettingsService.getInstance();
+  const username = settingsService.getInstagramUsername();
+  if (username && settingsService.isInstagramSessionValid()) {
+    return ["--login", username];
+  }
+
+  return [];
+}
+
+/**
+ * Parse instaloader stderr into a user-friendly error response
+ */
+function parseInstaloaderError(error: unknown): { status: number; message: string } {
+  const stderr = (error as { stderr?: string })?.stderr || "";
+  const message = error instanceof Error ? error.message : "";
+  const combined = `${stderr} ${message}`;
+
+  if (combined.includes("403 Forbidden") || combined.includes("Login required")) {
+    return { status: 401, message: "Instagram requiert une authentification. Configurez votre compte dans Paramètres > Instagram." };
+  }
+  if (combined.includes("does not exist")) {
+    return { status: 404, message: "Profil Instagram introuvable." };
+  }
+  if (combined.includes("rate limit") || combined.includes("429") || combined.includes("Please wait")) {
+    return { status: 429, message: "Instagram a limité les requêtes. Réessayez dans quelques minutes." };
+  }
+  if (combined.includes("Checkpoint") || combined.includes("checkpoint_required")) {
+    return { status: 401, message: "Session Instagram expirée. Reconnectez-vous dans Paramètres > Instagram." };
+  }
+  if (combined.includes("Bad credentials") || combined.includes("Invalid credentials")) {
+    return { status: 401, message: "Identifiants Instagram invalides." };
+  }
+  if (combined.includes("No profile picture found")) {
+    return { status: 404, message: "Aucune photo de profil trouvée pour ce compte." };
+  }
+  return { status: 500, message: "Échec du téléchargement Instagram." };
+}
 
 interface MediaDownloadResult {
   filePath: string;
@@ -78,7 +156,9 @@ async function downloadMediaViaInstaloader(url: string): Promise<MediaDownloadRe
   await mkdir(tmpDir, { recursive: true });
 
   try {
+    const authArgs = await getInstaloaderAuthArgs();
     await execFileAsync("instaloader", [
+      ...authArgs,
       `--dirname-pattern=${tmpDir}`,
       "--no-metadata-json",
       `--post-metadata-txt={owner_username}${META_SEPARATOR}{caption}`,
@@ -135,7 +215,9 @@ async function downloadProfilePic(username: string): Promise<string> {
   await mkdir(tmpDir, { recursive: true });
 
   try {
+    const authArgs = await getInstaloaderAuthArgs();
     await execFileAsync("instaloader", [
+      ...authArgs,
       "--no-posts",
       "--no-video-thumbnails",
       "--profile-pic-only",
@@ -195,11 +277,12 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
     } catch (error) {
       if (isTimeoutError(error)) {
         return NextResponse.json(
-          { error: "Download timeout (30s). The Instagram content took too long to download." },
+          { error: "Délai dépassé (30s). Le téléchargement Instagram a pris trop de temps." },
           { status: 408 }
         );
       }
-      throw error;
+      const parsed = parseInstaloaderError(error);
+      return NextResponse.json({ error: parsed.message }, { status: parsed.status });
     }
 
   } else if (type === "media") {
@@ -221,11 +304,12 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
     } catch (error) {
       if (isTimeoutError(error)) {
         return NextResponse.json(
-          { error: "Download timeout (30s). The Instagram content took too long to download." },
+          { error: "Délai dépassé (30s). Le téléchargement Instagram a pris trop de temps." },
           { status: 408 }
         );
       }
-      throw error;
+      const parsed = parseInstaloaderError(error);
+      return NextResponse.json({ error: parsed.message }, { status: parsed.status });
     }
 
   } else {

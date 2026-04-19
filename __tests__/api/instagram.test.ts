@@ -8,7 +8,15 @@ jest.mock("@/lib/utils/fileUpload", () => ({
   getUploadDir: jest.fn(async (subfolder: string) => `/mock/data/uploads/${subfolder}`),
 }));
 jest.mock("@/lib/services/SettingsService", () => ({
-  SettingsService: { getInstance: () => ({ getInstagramCookiesBrowser: () => "chrome" }) },
+  SettingsService: {
+    getInstance: () => ({
+      getInstagramCookiesBrowser: () => "chrome",
+      getInstagramUsername: () => "",
+      isInstagramSessionValid: () => false,
+      getInstagramSessionId: () => "",
+      getInstagramCookieFilePath: () => "/mock/instagram-cookies.txt",
+    }),
+  },
 }));
 
 // The route does: const execFileAsync = promisify(execFile)
@@ -215,7 +223,7 @@ describe("POST /api/assets/instagram", () => {
   });
 
   describe("error handling", () => {
-    it("returns 500 when both yt-dlp and instaloader fail", async () => {
+    it("returns 500 when both yt-dlp and instaloader fail with unknown errors", async () => {
       // yt-dlp fails → falls back to instaloader → instaloader also fails
       execFileAsyncMock.mockRejectedValueOnce(new Error("yt-dlp crashed"));
       execFileAsyncMock.mockRejectedValueOnce(new Error("instaloader crashed"));
@@ -226,14 +234,96 @@ describe("POST /api/assets/instagram", () => {
       }));
 
       expect(res.status).toBe(500);
+      const body = await res.json();
+      expect(body.error).toBeDefined();
     });
 
-    it("returns 500 on instaloader failure for profile", async () => {
+    it("returns 500 on unknown instaloader failure for profile", async () => {
       execFileAsyncMock.mockRejectedValueOnce(new Error("instaloader failed"));
 
       const res = await POST(makeRequest({ username: "nonexistent", type: "profile" }));
 
       expect(res.status).toBe(500);
+      const body = await res.json();
+      expect(body.error).toBeDefined();
+    });
+
+    it("returns 404 when profile does not exist", async () => {
+      const err = Object.assign(new Error("Command failed"), {
+        stderr: "juliencr86: Profile juliencr86 does not exist.\n",
+      });
+      execFileAsyncMock.mockRejectedValueOnce(err);
+
+      const res = await POST(makeRequest({ username: "juliencr86", type: "profile" }));
+
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.error).toMatch(/introuvable/i);
+    });
+
+    it("returns 401 when Instagram requires authentication", async () => {
+      const err = Object.assign(new Error("Command failed"), {
+        stderr: "JSON Query to graphql/query: 403 Forbidden\n",
+      });
+      execFileAsyncMock.mockRejectedValueOnce(err);
+
+      const res = await POST(makeRequest({ username: "testuser", type: "profile" }));
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.error).toMatch(/authentification/i);
+    });
+
+    it("returns 429 when Instagram rate limits requests", async () => {
+      const err = Object.assign(new Error("Command failed"), {
+        stderr: "Please wait a few minutes before you try again.\n",
+      });
+      execFileAsyncMock.mockRejectedValueOnce(err);
+
+      const res = await POST(makeRequest({ username: "testuser", type: "profile" }));
+
+      expect(res.status).toBe(429);
+      const body = await res.json();
+      expect(body.error).toMatch(/limité|réessayez/i);
+    });
+
+    it("returns 401 when Instagram asks for a checkpoint challenge", async () => {
+      const err = Object.assign(new Error("Command failed"), {
+        stderr: "Checkpoint required — please verify your account.\n",
+      });
+      execFileAsyncMock.mockRejectedValueOnce(err);
+
+      const res = await POST(makeRequest({ username: "testuser", type: "profile" }));
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.error).toMatch(/expirée|reconnect/i);
+    });
+
+    it("returns 401 when session file has bad credentials", async () => {
+      const err = Object.assign(new Error("Command failed"), {
+        stderr: "Bad credentials for user testuser.\n",
+      });
+      execFileAsyncMock.mockRejectedValueOnce(err);
+
+      const res = await POST(makeRequest({ username: "testuser", type: "profile" }));
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.error).toMatch(/identifiants|invalides/i);
+    });
+
+    it("returns 404 with specific message when no profile picture is found", async () => {
+      const err = Object.assign(new Error("Command failed"), {
+        stderr: "No profile picture found for this account.\n",
+      });
+      execFileAsyncMock.mockRejectedValueOnce(err);
+
+      const res = await POST(makeRequest({ username: "testuser", type: "profile" }));
+
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.error).toMatch(/photo de profil/i);
     });
 
     it("returns 408 on timeout from instaloader (killed process)", async () => {
@@ -263,7 +353,7 @@ describe("POST /api/assets/instagram", () => {
       expect(res.status).toBe(408);
     });
 
-    it("returns 408 on profile download timeout", async () => {
+    it("returns 408 on profile download timeout with a user-facing timeout message", async () => {
       const timeoutErr = Object.assign(new Error("Command timed out"), { killed: true });
       execFileAsyncMock.mockRejectedValueOnce(timeoutErr);
 
@@ -271,7 +361,7 @@ describe("POST /api/assets/instagram", () => {
 
       expect(res.status).toBe(408);
       const body = await res.json();
-      expect(body.error).toMatch(/timeout/i);
+      expect(body.error).toMatch(/timeout|délai/i);
     });
 
     it("returns 500 when instaloader finds no media (shortcode valid but empty)", async () => {
@@ -287,6 +377,8 @@ describe("POST /api/assets/instagram", () => {
       }));
 
       expect(res.status).toBe(500);
+      const body = await res.json();
+      expect(body.error).toBeDefined();
     });
 
     it("returns 500 when shortcode extraction fails for media", async () => {
@@ -299,6 +391,8 @@ describe("POST /api/assets/instagram", () => {
       }));
 
       expect(res.status).toBe(500);
+      const body = await res.json();
+      expect(body.error).toBeDefined();
     });
   });
 });

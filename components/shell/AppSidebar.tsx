@@ -40,6 +40,7 @@ import {
   Bot,
   ChevronDown,
   ChevronRight,
+  Instagram,
   MessageSquare,
   Monitor,
   Send,
@@ -119,6 +120,7 @@ const NAVIGATION_SECTIONS: NavSection[] = [
     items: [
       { labelKey: "obs", href: "/settings/obs", icon: Plug },
       { labelKey: "twitch", href: "/settings/twitch", icon: Twitch },
+      { labelKey: "instagram", href: "/settings/instagram", icon: Instagram },
       { labelKey: "streamerbot", href: "/settings/streamerbot", icon: Bot },
       { labelKey: "streamDeck", href: "/integrations/stream-deck", icon: Shield },
       { labelKey: "pluginsUpdates", href: "/updater", icon: Download },
