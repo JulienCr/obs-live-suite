@@ -2,6 +2,7 @@
 
 import { type IDockviewPanelProps } from "dockview-react";
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
   Eye,
@@ -16,6 +17,8 @@ import {
   X,
   Save,
   Loader2,
+  Play,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
@@ -152,6 +155,20 @@ export function TwitchPanel(_props: IDockviewPanelProps) {
     try {
       setRefreshing(true);
       await apiPost("/api/twitch/refresh");
+      await fetchData();
+    } catch (err) {
+      if (isClientFetchError(err)) {
+        setError(err.errorMessage);
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleStartPolling = async () => {
+    try {
+      setRefreshing(true);
+      await apiPost("/api/twitch/polling/start");
       await fetchData();
     } catch (err) {
       if (isClientFetchError(err)) {
@@ -324,12 +341,47 @@ export function TwitchPanel(_props: IDockviewPanelProps) {
         </div>
       )}
 
-      {/* No data state */}
+      {/* No data state — diagnostic based on provider status */}
       {!loading && !error && !streamInfo && (
         <div className="text-center py-8 text-muted-foreground">
-          <WifiOff className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p>{t("stats.noData")}</p>
-          <p className="text-xs mt-1">{t("stats.checkProvider")}</p>
+          {providerStatus && !providerStatus.twitchApiAvailable ? (
+            <>
+              <WifiOff className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>{t("stats.notConnected")}</p>
+              <Link href="/settings/twitch" className="inline-block mt-3">
+                <Button variant="outline" size="sm">
+                  <SettingsIcon className="h-4 w-4 mr-2" />
+                  {t("stats.notConnectedAction")}
+                </Button>
+              </Link>
+            </>
+          ) : providerStatus && !providerStatus.isPolling ? (
+            <>
+              <WifiOff className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>{t("stats.pollingStopped")}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={handleStartPolling}
+                disabled={refreshing}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                {t("stats.pollingStoppedAction")}
+              </Button>
+            </>
+          ) : providerStatus && providerStatus.lastPollTime === null ? (
+            <>
+              <Loader2 className="h-8 w-8 mx-auto mb-2 opacity-50 animate-spin" />
+              <p>{t("stats.connecting")}</p>
+            </>
+          ) : (
+            <>
+              <WifiOff className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>{t("stats.noRecentData")}</p>
+              <p className="text-xs mt-1">{t("stats.checkProvider")}</p>
+            </>
+          )}
         </div>
       )}
 

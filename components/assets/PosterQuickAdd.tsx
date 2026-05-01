@@ -4,9 +4,10 @@ import { useState, useRef, useCallback, ChangeEvent, DragEvent, ClipboardEvent a
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, Loader2, Image as ImageIcon, Video, Youtube } from "lucide-react";
+import { Upload, Loader2, Image as ImageIcon, Video, Youtube, AlertCircle } from "lucide-react";
 import {
   isYouTubeUrl,
   extractYouTubeId,
@@ -15,7 +16,9 @@ import {
   getMediaTypeFromUrl,
   getFilenameFromUrl,
 } from "@/lib/utils/urlDetection";
+import { parseDurationString } from "@/lib/utils/durationParser";
 import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { useToast } from "@/hooks/use-toast";
 
 type MediaType = "image" | "video" | "youtube";
 type DisplayMode = "left" | "right" | "bigpicture";
@@ -61,6 +64,8 @@ export function PosterQuickAdd({
   showTitleEditor = true,
 }: PosterQuickAddProps) {
   const t = useTranslations("assets.quickAdd");
+  const tPosterUpload = useTranslations("assets.posterUpload");
+  const { toast } = useToast();
   const isImageOnly = allowedTypes.length === 1 && allowedTypes[0] === "image";
   const displayTitle = title ?? (isImageOnly ? t("titleImageOnly") : t("title"));
   const [urlInput, setUrlInput] = useState("");
@@ -69,6 +74,8 @@ export function PosterQuickAdd({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [youtubeNeedsManualDuration, setYoutubeNeedsManualDuration] = useState(false);
+  const [manualDuration, setManualDuration] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
@@ -154,7 +161,7 @@ export function PosterQuickAdd({
 
       const embedUrl = `https://www.youtube.com/embed/${videoId}`;
 
-      // Fetch metadata
+      // Fetch oEmbed metadata (title / channel) — does not include duration.
       let title = videoId; // Fallback
       let source = undefined;
 
@@ -165,8 +172,28 @@ export function PosterQuickAdd({
           source = `${metadata.author_name} | ${metadata.title}`;
         }
       } catch (metadataError) {
-        console.warn("Failed to fetch YouTube metadata:", metadataError);
+        console.warn("Failed to fetch YouTube oEmbed metadata:", metadataError);
         // Continue with fallback title
+      }
+
+      // Fetch duration via YouTube Data API. If unavailable, fall back to manual entry.
+      let duration: number | null = null;
+      let needsManualDuration = false;
+      try {
+        const ytResponse = await fetch(`/api/youtube/metadata?videoId=${encodeURIComponent(videoId)}`);
+        if (ytResponse.ok) {
+          const data = await ytResponse.json();
+          if (data.success && data.metadata?.duration) {
+            duration = data.metadata.duration;
+          } else {
+            needsManualDuration = true;
+          }
+        } else {
+          needsManualDuration = true;
+        }
+      } catch (ytError) {
+        console.warn("Failed to fetch YouTube duration:", ytError);
+        needsManualDuration = true;
       }
 
       setPreview({
@@ -175,7 +202,10 @@ export function PosterQuickAdd({
         title,
         source,
         thumbnailUrl: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+        duration,
       });
+      setYoutubeNeedsManualDuration(needsManualDuration);
+      setManualDuration("");
 
       setUrlInput(""); // Clear input
     } catch (err) {
@@ -419,6 +449,26 @@ export function PosterQuickAdd({
     setPreview(null);
     setUrlInput("");
     setError(null);
+    setYoutubeNeedsManualDuration(false);
+    setManualDuration("");
+  };
+
+  /**
+   * Apply manually-entered YouTube duration to the current preview.
+   */
+  const handleManualDurationSubmit = () => {
+    if (!preview) return;
+    const parsed = parseDurationString(manualDuration);
+    if (!parsed || parsed <= 0) {
+      toast({
+        variant: "destructive",
+        title: tPosterUpload("invalidDurationFormat"),
+        description: tPosterUpload("invalidDurationFormatDescription"),
+      });
+      return;
+    }
+    setPreview({ ...preview, duration: parsed });
+    setYoutubeNeedsManualDuration(false);
   };
 
   /**
@@ -570,14 +620,52 @@ export function PosterQuickAdd({
             </div>
           </div>
 
+          {/* Manual duration input (YouTube fallback when API unavailable) */}
+          {youtubeNeedsManualDuration && preview.type === "youtube" && (
+            <div className="space-y-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md border border-amber-200 dark:border-amber-800">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
+                    {tPosterUpload("durationMissing")}
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                    {tPosterUpload("durationMissingDescription")}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="poster-quickadd-duration" className="text-xs">
+                  {tPosterUpload("videoDurationLabel")}
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="poster-quickadd-duration"
+                    type="text"
+                    placeholder="6:05:15"
+                    value={manualDuration}
+                    onChange={(e) => setManualDuration(e.target.value)}
+                    className="h-8"
+                  />
+                  <Button size="sm" onClick={handleManualDurationSubmit}>
+                    {tPosterUpload("createWithDuration")}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action buttons */}
           <div className="flex gap-2 flex-wrap">
-            {isPickerMode ? (
+            {(() => {
+              const needsDuration = preview.type === "youtube" && (preview.duration == null);
+              const baseDisabled = !preview.title || processing || needsDuration;
+              return isPickerMode ? (
               <Button
                 variant="default"
                 size="sm"
                 onClick={handleUseMedia}
-                disabled={processing}
+                disabled={processing || needsDuration}
               >
                 {isImageOnly ? t("useImage") : t("useMedia")}
               </Button>
@@ -587,7 +675,7 @@ export function PosterQuickAdd({
                   variant="default"
                   size="sm"
                   onClick={handleAddToAssets}
-                  disabled={!preview.title || processing}
+                  disabled={baseDisabled}
                 >
                   {t("addToAssets")}
                 </Button>
@@ -596,7 +684,7 @@ export function PosterQuickAdd({
                   variant="outline"
                   size="sm"
                   onClick={() => handleDisplay("left")}
-                  disabled={!preview.title || processing}
+                  disabled={baseDisabled}
                 >
                   {t("displayLeft")}
                 </Button>
@@ -605,7 +693,7 @@ export function PosterQuickAdd({
                   variant="outline"
                   size="sm"
                   onClick={() => handleDisplay("right")}
-                  disabled={!preview.title || processing}
+                  disabled={baseDisabled}
                 >
                   {t("displayRight")}
                 </Button>
@@ -614,12 +702,13 @@ export function PosterQuickAdd({
                   variant="outline"
                   size="sm"
                   onClick={() => handleDisplay("bigpicture")}
-                  disabled={!preview.title || processing}
+                  disabled={baseDisabled}
                 >
                   {t("displayBig")}
                 </Button>
               </>
-            )}
+            );
+            })()}
 
             <Button
               variant="ghost"

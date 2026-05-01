@@ -6,7 +6,20 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { VideoTimeline } from "@/components/assets/VideoTimeline";
-import { Eye, Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, ChevronDown } from "lucide-react";
+import {
+  Eye,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  SkipBack,
+  SkipForward,
+  ChevronDown,
+  Film,
+  Hand,
+  Send,
+  EyeOff,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,11 +34,9 @@ import { getEffectivePosterDuration } from "@/components/dashboard/cards/posterD
 import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { useSyncWithOverlayState } from "@/hooks/useSyncWithOverlayState";
-import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
-import { useCuedPoster } from "@/hooks/useCuedPoster";
+import { useArmedVideoPoster, type DisplayMode } from "@/hooks/useArmedVideoPoster";
 import { CLIENT_ID } from "@/lib/utils/clientId";
 import { toast } from "sonner";
-import { Film, Send, Hand } from "lucide-react";
 
 interface Poster {
   id: string;
@@ -36,7 +47,6 @@ interface Poster {
   isEnabled?: boolean;
   thumbnailUrl?: string | null;
   duration?: number | null;
-  // Sub-video fields
   startTime?: number | null;
   endTime?: number | null;
   endBehavior?: "stop" | "loop" | null;
@@ -52,40 +62,32 @@ interface PosterCardProps {
   settings?: Record<string, unknown>;
 }
 
-/**
- * PosterContent - The inner content for poster management (without Card wrapper)
- * Used by PosterPanel in Dockview and PosterCard for standalone use.
- */
-type DisplayMode = "left" | "right" | "bigpicture";
-
 const posterEndpoint = (mode: DisplayMode | null | undefined) =>
   mode === "bigpicture" ? "/api/overlays/poster-bigpicture" : "/api/overlays/poster";
 
 // Aspect ratio classification for masonry layout
-type AspectRatioClass = '16:9' | '1:1' | '1:1.414';
+type AspectRatioClass = "16:9" | "1:1" | "1:1.414";
 
 const ASPECT_RATIOS: Record<AspectRatioClass, { paddingBottom: string; heightRatio: number }> = {
-  '16:9': { paddingBottom: '56.25%', heightRatio: 0.5625 },
-  '1:1': { paddingBottom: '100%', heightRatio: 1.0 },
-  '1:1.414': { paddingBottom: '141.4%', heightRatio: 1.414 },
+  "16:9": { paddingBottom: "56.25%", heightRatio: 0.5625 },
+  "1:1": { paddingBottom: "100%", heightRatio: 1.0 },
+  "1:1.414": { paddingBottom: "141.4%", heightRatio: 1.414 },
 };
 
-// Grid masonry settings
 const GRID_ROW_UNIT = 4;
 const GRID_GAP = 4;
 
 const classifyAspectRatio = (width: number, height: number): AspectRatioClass => {
   const ratio = width / height;
-  if (ratio >= 1.5) return '16:9';
-  if (ratio >= 0.85) return '1:1';
-  return '1:1.414';
+  if (ratio >= 1.5) return "16:9";
+  if (ratio >= 0.85) return "1:1";
+  return "1:1.414";
 };
 
 // Column span based on aspect ratio: landscape = 2 cols, portrait/square = 1 col
-// When in single column mode, everything spans 1
 const getColumnSpan = (ratioClass: AspectRatioClass, columnCount: number): number => {
   if (columnCount === 1) return 1;
-  return ratioClass === '16:9' ? 2 : 1;
+  return ratioClass === "16:9" ? 2 : 1;
 };
 
 interface PosterContentProps {
@@ -97,60 +99,47 @@ export function PosterContent({ className }: PosterContentProps) {
   const tCommon = useTranslations("common");
   const [activePoster, setActivePoster] = useState<string | null>(null);
   const [displayMode, setDisplayMode] = useState<DisplayMode | null>(null);
-  const [activeSide, setActiveSide] = useState<"left" | "right" | null>(null); // kept for backwards compatibility
   const [activeType, setActiveType] = useState<string | null>(null);
-  const [showControls, setShowControls] = useState(false);
   const [posters, setPosters] = useState<Poster[]>([]);
   const [loading, setLoading] = useState(true);
   const [defaultDisplayMode, setDefaultDisplayMode] = useState<DisplayMode>("left");
-  const [playbackState, setPlaybackState] = useState({
-    isPlaying: false,
-    isMuted: true,
-    currentTime: 0,
-    duration: 0,
-  });
-  const [localSeekTime, setLocalSeekTime] = useState<number | null>(null);
-  const [activeChapters, setActiveChapters] = useState<VideoChapter[]>([]);
-  const [currentChapterIndex, setCurrentChapterIndex] = useState(-1);
   const [aspectRatios, setAspectRatios] = useState<Record<string, AspectRatioClass>>({});
   const [columnCount, setColumnCount] = useState(2);
   const [containerWidth, setContainerWidth] = useState(400);
-  const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [localSeekTime, setLocalSeekTime] = useState<number | null>(null);
+  const [currentChapterIndex, setCurrentChapterIndex] = useState(-1);
+  const seekResetTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Cue: local staging area for a poster before it goes to air.
-  const { cue, setCue, clearCue } = useCuedPoster();
+  // Single source of truth for the armed video poster (cue + live).
+  const { armed, arm, clearArmed, goLive, seek, setPlaying, setMuted } = useArmedVideoPoster();
 
-  // Column width constraints
   const MIN_COLUMN_WIDTH = 170;
   const MAX_COLUMN_WIDTH = 240;
-  const NARROW_THRESHOLD = 300; // Below this width, use single column
+  const NARROW_THRESHOLD = 300;
 
   const calculateColumnCount = useCallback((width: number) => {
-    // If container is too narrow, use single column
     if (width < NARROW_THRESHOLD) return 1;
     if (width <= 0) return 2;
-    // Calculate optimal column count to keep columns between min and max width
     const minCols = Math.ceil(width / MAX_COLUMN_WIDTH);
     const maxCols = Math.floor(width / MIN_COLUMN_WIDTH);
-    // Ensure at least 2 columns for the layout to work (16/9 spans 2)
     return Math.max(2, Math.min(minCols, maxCols) || minCols);
   }, []);
 
-  // Calculate row span for an item based on its aspect ratio and column span
-  const calculateRowSpan = useCallback((ratioClass: AspectRatioClass) => {
-    const colSpan = getColumnSpan(ratioClass, columnCount);
-    const singleColumnWidth = (containerWidth - (columnCount - 1) * GRID_GAP) / columnCount;
-    const itemWidth = singleColumnWidth * colSpan + (colSpan - 1) * GRID_GAP;
-    const itemHeight = itemWidth * ASPECT_RATIOS[ratioClass].heightRatio;
-    return Math.ceil((itemHeight + GRID_GAP) / (GRID_ROW_UNIT + GRID_GAP));
-  }, [containerWidth, columnCount]);
+  const calculateRowSpan = useCallback(
+    (ratioClass: AspectRatioClass) => {
+      const colSpan = getColumnSpan(ratioClass, columnCount);
+      const singleColumnWidth = (containerWidth - (columnCount - 1) * GRID_GAP) / columnCount;
+      const itemWidth = singleColumnWidth * colSpan + (colSpan - 1) * GRID_GAP;
+      const itemHeight = itemWidth * ASPECT_RATIOS[ratioClass].heightRatio;
+      return Math.ceil((itemHeight + GRID_GAP) / (GRID_ROW_UNIT + GRID_GAP));
+    },
+    [containerWidth, columnCount]
+  );
 
-  // ResizeObserver for responsive column count
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const width = entry.contentRect.width;
@@ -158,24 +147,27 @@ export function PosterContent({ className }: PosterContentProps) {
         setColumnCount(calculateColumnCount(width));
       }
     });
-
     observer.observe(container);
-    // Initial calculation
     const initialWidth = container.offsetWidth;
     setContainerWidth(initialWidth);
     setColumnCount(calculateColumnCount(initialWidth));
-
     return () => observer.disconnect();
   }, [calculateColumnCount]);
 
   const handleImageLoad = (posterId: string, e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
-    setAspectRatios(prev => ({ ...prev, [posterId]: classifyAspectRatio(img.naturalWidth, img.naturalHeight) }));
+    setAspectRatios((prev) => ({
+      ...prev,
+      [posterId]: classifyAspectRatio(img.naturalWidth, img.naturalHeight),
+    }));
   };
 
   const handleVideoLoad = (posterId: string, e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
-    setAspectRatios(prev => ({ ...prev, [posterId]: classifyAspectRatio(video.videoWidth, video.videoHeight) }));
+    setAspectRatios((prev) => ({
+      ...prev,
+      [posterId]: classifyAspectRatio(video.videoWidth, video.videoHeight),
+    }));
   };
 
   useEffect(() => {
@@ -183,16 +175,16 @@ export function PosterContent({ className }: PosterContentProps) {
     fetchDefaultDisplayMode();
   }, []);
 
-  // Sync local state with WebSocket overlay state using the shared hook
+  // Sync live image-poster state with the WebSocket overlay state.
+  // The armed store handles video posters; this hook tracks images + active
+  // ID for badge highlighting and the toggle-off behavior.
   const posterOverlayState = useSyncWithOverlayState({
     overlayType: "poster",
     localActive: activePoster !== null,
     onExternalHide: () => {
       setActivePoster(null);
       setDisplayMode(null);
-      setActiveSide(null);
       setActiveType(null);
-      setShowControls(false);
     },
     onExternalShow: (state) => {
       if (state.active && "posterId" in state && state.posterId && state.posterId !== activePoster) {
@@ -200,10 +192,8 @@ export function PosterContent({ className }: PosterContentProps) {
         if (poster) {
           setActivePoster(state.posterId);
           const mode = "displayMode" in state ? state.displayMode : null;
-          setDisplayMode(mode || null);
-          setActiveSide(mode === "bigpicture" ? null : (mode || null));
+          setDisplayMode((mode as DisplayMode | null) ?? null);
           setActiveType(poster.type);
-          setShowControls(isVideoPosterType(poster.type));
         }
       }
     },
@@ -216,58 +206,14 @@ export function PosterContent({ className }: PosterContentProps) {
     !!activeOwnerClientId &&
     activeOwnerClientId !== CLIENT_ID;
 
-  // Dynamic channel based on display mode
-  const playbackChannel = useMemo(
-    () => displayMode === "bigpicture" ? "poster-bigpicture" : "poster",
-    [displayMode]
-  );
-
-  // WebSocket connection for playback state (fixes stale closure - hook keeps callback ref fresh)
-  const handlePlaybackMessage = useCallback((data: Record<string, unknown>) => {
-    setPlaybackState(prev => {
-      const newState = { ...prev };
-
-      // Only update currentTime if valid and not seeking
-      if (!isNaN(data.currentTime as number) && isFinite(data.currentTime as number) && localSeekTime === null) {
-        newState.currentTime = data.currentTime as number;
-      }
-
-      // Only update duration if valid
-      if (!isNaN(data.duration as number) && isFinite(data.duration as number) && (data.duration as number) > 0) {
-        newState.duration = data.duration as number;
-      }
-
-      // Update playing state (boolean, always safe)
-      if (typeof data.isPlaying === 'boolean') {
-        newState.isPlaying = data.isPlaying;
-      }
-
-      // Update muted state (boolean, always safe)
-      if (typeof data.isMuted === 'boolean') {
-        newState.isMuted = data.isMuted;
-      }
-
-      return newState;
-    });
-  }, [localSeekTime]);
-
-  useWebSocketChannel(playbackChannel, handlePlaybackMessage, {
-    enabled: !!activePoster,
-    logPrefix: "PosterCard",
-  });
-
-  // Clean up seekTimer on unmount
   useEffect(() => {
     return () => {
-      if (seekTimeoutRef.current) {
-        clearTimeout(seekTimeoutRef.current);
-      }
+      if (seekResetTimerRef.current) clearTimeout(seekResetTimerRef.current);
     };
   }, []);
 
   const fetchPosters = async () => {
     try {
-      // Server-side filtering: only fetch enabled posters
       const data = await apiGet<{ posters: Poster[] }>("/api/assets/posters?enabled=true");
       setPosters(data.posters || []);
     } catch (error) {
@@ -279,151 +225,229 @@ export function PosterContent({ className }: PosterContentProps) {
 
   const fetchDefaultDisplayMode = async () => {
     try {
-      const data = await apiGet<{ settings?: { defaultPosterDisplayMode?: string } }>("/api/settings/general");
+      const data = await apiGet<{ settings?: { defaultPosterDisplayMode?: string } }>(
+        "/api/settings/general"
+      );
       const mode = data.settings?.defaultPosterDisplayMode || "left";
       setDefaultDisplayMode(mode as DisplayMode);
     } catch (error) {
       console.error("Failed to fetch default display mode:", error);
-      // Keep default "left" if fetch fails
     }
   };
 
+  const armPoster = useCallback(
+    (poster: Poster, mode: DisplayMode) => {
+      arm(
+        {
+          posterId: poster.id,
+          fileUrl: poster.fileUrl,
+          type: poster.type as "video" | "youtube",
+          startTime: poster.startTime ?? undefined,
+          endTime: poster.endTime ?? undefined,
+          endBehavior: poster.endBehavior ?? undefined,
+          source: poster.source,
+          chapters: poster.metadata?.chapters,
+          duration: poster.duration ?? undefined,
+        },
+        mode
+      );
+    },
+    [arm]
+  );
+
+  const hideCurrentMode = useCallback(async () => {
+    try {
+      await apiPost(posterEndpoint(displayMode), { action: PosterEventType.HIDE });
+      setActivePoster(null);
+      setDisplayMode(null);
+      setActiveType(null);
+    } catch (error) {
+      console.error("Error hiding poster:", error);
+    }
+  }, [displayMode]);
+
+  const showImageInMode = useCallback(
+    async (poster: Poster, mode: DisplayMode): Promise<boolean> => {
+      try {
+        const payload: Record<string, unknown> = {
+          posterId: poster.id,
+          fileUrl: poster.fileUrl,
+          type: poster.type,
+          source: poster.source,
+          transition: "fade",
+          ownerClientId: CLIENT_ID,
+          ...(poster.metadata?.chapters?.length && { chapters: poster.metadata.chapters }),
+          ...(poster.startTime != null && { startTime: poster.startTime }),
+          ...(poster.endTime != null && { endTime: poster.endTime }),
+          ...(poster.endBehavior && { endBehavior: poster.endBehavior }),
+        };
+        if (mode !== "bigpicture") payload.side = mode;
+
+        await apiPost(posterEndpoint(mode), {
+          action: PosterEventType.SHOW,
+          payload,
+        });
+
+        setActivePoster(poster.id);
+        setDisplayMode(mode);
+        setActiveType(poster.type);
+        return true;
+      } catch (error) {
+        console.error("Error showing poster:", error);
+        return false;
+      }
+    },
+    []
+  );
+
   const handleTogglePoster = async (poster: Poster, mode: DisplayMode) => {
-    // Toggle off if same poster + same mode
+    // Video → arm (or disarm if same poster + same mode already armed and not live).
+    if (isVideoPosterType(poster.type)) {
+      if (armed && armed.posterId === poster.id && armed.displayMode === mode) {
+        if (armed.isLive) {
+          await hideCurrentMode();
+          clearArmed();
+        } else {
+          clearArmed();
+        }
+        return;
+      }
+      // Switching armed video while another is live: hide the live one first.
+      if (armed?.isLive) {
+        await hideCurrentMode();
+      }
+      armPoster(poster, mode);
+      return;
+    }
+
+    // Image path: clear any armed video, then go-direct-to-OBS.
+    if (armed) {
+      if (armed.isLive) await hideCurrentMode();
+      clearArmed();
+    }
+
     if (activePoster === poster.id && displayMode === mode) {
       await hideCurrentMode();
       return;
     }
 
-    // Hide current mode before showing new one
     if (activePoster) {
       await hideCurrentMode();
-      // Small delay for smooth transition
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    // Show in new mode
-    await showInMode(poster, mode);
+    await showImageInMode(poster, mode);
   };
 
   const handleCardClick = async (poster: Poster) => {
-    // If this poster is currently displayed, toggle it off
+    if (isVideoPosterType(poster.type)) {
+      if (armed && armed.posterId === poster.id) {
+        if (armed.isLive) {
+          await hideCurrentMode();
+          clearArmed();
+        } else {
+          clearArmed();
+        }
+        return;
+      }
+      if (armed?.isLive) {
+        await hideCurrentMode();
+      }
+      armPoster(poster, defaultDisplayMode);
+      return;
+    }
+
+    // Image path
+    if (armed) {
+      if (armed.isLive) await hideCurrentMode();
+      clearArmed();
+    }
+
     if (activePoster === poster.id) {
       await hideCurrentMode();
       return;
     }
 
-    // Otherwise, show it in the default position
-    // First hide any currently displayed poster
     if (activePoster) {
       await hideCurrentMode();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    // Show in default mode
-    await showInMode(poster, defaultDisplayMode);
+    await showImageInMode(poster, defaultDisplayMode);
   };
 
-  const hideCurrentMode = async () => {
-    try {
-      await apiPost(posterEndpoint(displayMode), { action: PosterEventType.HIDE });
+  const handleGoLive = async () => {
+    const ok = await goLive();
+    if (ok && armed) {
+      // Mirror image-side state so the active badges and toggle-off path keep working.
+      setActivePoster(armed.posterId);
+      setDisplayMode(armed.displayMode);
+      setActiveType(armed.type);
+    }
+  };
 
+  const handleHideArmed = async () => {
+    if (!armed) return;
+    if (armed.isLive) {
+      try {
+        await apiPost(posterEndpoint(armed.displayMode), { action: PosterEventType.HIDE });
+      } catch (err) {
+        console.error("Hide failed:", err);
+      }
       setActivePoster(null);
       setDisplayMode(null);
-      setActiveSide(null);
       setActiveType(null);
-      setShowControls(false);
-    } catch (error) {
-      console.error("Error hiding poster:", error);
     }
+    clearArmed();
   };
 
-  const showInMode = async (
-    poster: Poster,
-    mode: DisplayMode,
-    resume?: { resumeFrom?: number; resumePlaying?: boolean }
-  ): Promise<boolean> => {
+  const handleTakeOver = async () => {
     try {
-      const payload: Record<string, unknown> = {
-        posterId: poster.id,
-        fileUrl: poster.fileUrl,
-        type: poster.type,
-        source: poster.source,
-        transition: "fade",
-        // Tag the launcher so the regie preview can scope to them.
-        ownerClientId: CLIENT_ID,
-        // Include chapters if present
-        ...(poster.metadata?.chapters?.length && { chapters: poster.metadata.chapters }),
-        // Include sub-video config if defined
-        ...(poster.startTime != null && { startTime: poster.startTime }),
-        ...(poster.endTime != null && { endTime: poster.endTime }),
-        ...(poster.endBehavior && { endBehavior: poster.endBehavior }),
-        ...(resume?.resumeFrom != null && { resumeFrom: resume.resumeFrom }),
-        ...(resume?.resumePlaying != null && { resumePlaying: resume.resumePlaying }),
-      };
-
-      // Add side only if not bigpicture
-      if (mode !== "bigpicture") {
-        payload.side = mode;
-      }
-
-      await apiPost(posterEndpoint(mode), {
-        action: PosterEventType.SHOW,
-        payload,
+      await apiPost(posterEndpoint(posterOverlayState.displayMode as DisplayMode | undefined), {
+        action: PosterEventType.TAKEOVER,
+        payload: { ownerClientId: CLIENT_ID },
       });
-
-      setActivePoster(poster.id);
-      setDisplayMode(mode);
-      setActiveSide(mode === "bigpicture" ? null : mode);
-      setActiveType(poster.type);
-
-      // Show controls if video or youtube
-      if (isVideoPosterType(poster.type)) {
-        setShowControls(true);
-      }
-      return true;
     } catch (error) {
-      console.error("Error showing poster:", error);
-      return false;
+      console.error("Takeover error:", error);
+      toast.error("Impossible de prendre la main sur la preview.");
     }
   };
 
-  const handlePlayPause = async () => {
-    try {
-      const action = playbackState.isPlaying ? PosterEventType.PAUSE : PosterEventType.PLAY;
-      await apiPost(posterEndpoint(displayMode), { action });
+  // Chapters drive the unified seek().
+  const activeChapters = useMemo<VideoChapter[]>(() => {
+    if (!armed) return [];
+    const chapters = armed.chapters ?? [];
+    return [...chapters].sort((a, b) => a.timestamp - b.timestamp);
+  }, [armed]);
 
-      // Optimistic update
-      setPlaybackState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
-    } catch (error) {
-      console.error("Control error:", error);
+  useEffect(() => {
+    if (!armed || activeChapters.length === 0) {
+      setCurrentChapterIndex(-1);
+      return;
     }
+    let idx = -1;
+    for (let i = 0; i < activeChapters.length; i++) {
+      if (activeChapters[i].timestamp <= armed.currentTime) idx = i;
+      else break;
+    }
+    setCurrentChapterIndex(idx);
+  }, [armed, activeChapters]);
+
+  const handleChapterNext = () => {
+    const next = currentChapterIndex + 1;
+    if (next >= activeChapters.length) return;
+    seek(activeChapters[next].timestamp);
   };
 
-  const handleSeek = async (time: number) => {
-    try {
-      await apiPost(posterEndpoint(displayMode), {
-        action: PosterEventType.SEEK,
-        payload: { time },
-      });
-
-      // Optimistic update
-      setPlaybackState(prev => ({ ...prev, currentTime: time }));
-    } catch (error) {
-      console.error("Seek error:", error);
-    }
+  const handleChapterPrev = () => {
+    const prev = Math.max(0, currentChapterIndex - 1);
+    if (!activeChapters[prev]) return;
+    seek(activeChapters[prev].timestamp);
   };
 
-  const handleMute = async () => {
-    try {
-      const action = playbackState.isMuted ? PosterEventType.UNMUTE : PosterEventType.MUTE;
-      await apiPost(posterEndpoint(displayMode), { action });
-
-      // Optimistic update
-      setPlaybackState(prev => ({ ...prev, isMuted: !prev.isMuted }));
-    } catch (error) {
-      console.error("Mute error:", error);
-    }
+  const handleChapterJump = (chapterIndex: number) => {
+    const target = activeChapters[chapterIndex];
+    if (target) seek(target.timestamp);
   };
 
   // Dashboard-specific compact format (e.g., "2h05") — differs from formatDurationString (H:MM:SS)
@@ -434,189 +458,71 @@ export function PosterContent({ className }: PosterContentProps) {
     if (seconds >= 3600) {
       const hours = Math.floor(seconds / 3600);
       const mins = Math.floor((seconds % 3600) / 60);
-      return `${hours}h${mins.toString().padStart(2, '0')}`;
+      return `${hours}h${mins.toString().padStart(2, "0")}`;
     }
     return formatTimeShort(seconds);
   };
 
-  // Compute sub-clip bounds for active poster
-  const activePosterData = activePoster ? posters.find(p => p.id === activePoster) : null;
-  const clipStart = activePosterData?.startTime ?? 0;
-  const clipEnd = activePosterData?.endTime ?? 0;
+  // Sub-clip math for the timeline display (chapter + currentTime offsets relative to clipStart).
+  const clipStart = armed?.startTime ?? 0;
+  const clipEnd = armed?.endTime ?? 0;
   const hasSubClip = clipStart > 0 || clipEnd > 0;
-  const displayCurrentTime = hasSubClip ? Math.max(0, playbackState.currentTime - clipStart) : playbackState.currentTime;
-  // Falls back to poster.duration (DB) when live duration is 0/Infinity/NaN
-  // (webm files without duration metadata expose Infinity until fully scanned).
-  const displayDuration = getEffectivePosterDuration({
-    playbackDuration: playbackState.duration,
-    posterDuration: activePosterData?.duration,
-    clipStart,
-    clipEnd,
-  });
-
-  // Update active chapters when poster changes
-  useEffect(() => {
-    if (activePoster) {
-      const poster = posters.find(p => p.id === activePoster);
-      const chapters = poster?.metadata?.chapters || [];
-      setActiveChapters([...chapters].sort((a, b) => a.timestamp - b.timestamp));
-    } else {
-      setActiveChapters([]);
-      setCurrentChapterIndex(-1);
-    }
-  }, [activePoster, posters]);
-
-  // Track current chapter based on playback time
-  useEffect(() => {
-    if (activeChapters.length === 0) {
-      setCurrentChapterIndex(-1);
-      return;
-    }
-
-    const currentTime = playbackState.currentTime;
-    let chapterIndex = -1;
-    for (let i = 0; i < activeChapters.length; i++) {
-      if (activeChapters[i].timestamp <= currentTime) {
-        chapterIndex = i;
-      } else {
-        break;
-      }
-    }
-    setCurrentChapterIndex(chapterIndex);
-  }, [playbackState.currentTime, activeChapters]);
-
-  const handleChapterNext = async () => {
-    if (activeChapters.length === 0) return;
-    const nextIndex = currentChapterIndex + 1;
-    if (nextIndex < activeChapters.length) {
-      try {
-        await apiPost(posterEndpoint(displayMode), { action: PosterEventType.CHAPTER_NEXT });
-      } catch (error) {
-        console.error("Chapter next error:", error);
-      }
-    }
-  };
-
-  const handleChapterPrev = async () => {
-    if (activeChapters.length === 0) return;
-    try {
-      await apiPost(posterEndpoint(displayMode), { action: PosterEventType.CHAPTER_PREVIOUS });
-    } catch (error) {
-      console.error("Chapter prev error:", error);
-    }
-  };
-
-  const handleCuePoster = (poster: Poster, mode: DisplayMode) => {
-    if (!isVideoPosterType(poster.type)) return;
-    // Cue is a local staging state (no API call). Default to clip start for
-    // sub-videos, else 0; paused so the operator can scrub without the video
-    // racing past the cue point.
-    setCue({
-      posterId: poster.id,
-      currentTime: poster.startTime ?? 0,
-      isPlaying: false,
-      displayMode: mode,
-    });
-  };
-
-  const handleSendCue = async () => {
-    if (!cue) return;
-    const poster = posters.find((p) => p.id === cue.posterId);
-    if (!poster) return;
-    const ok = await showInMode(poster, cue.displayMode, {
-      resumeFrom: cue.currentTime,
-      resumePlaying: cue.isPlaying,
-    });
-    // Preserve the cue if the POST failed so the operator doesn't lose their
-    // staged time/play state and can retry without re-scrubbing.
-    if (ok) clearCue();
-  };
-
-  const handleTakeOver = async () => {
-    try {
-      await apiPost(posterEndpoint(posterOverlayState.displayMode), {
-        action: PosterEventType.TAKEOVER,
-        payload: { ownerClientId: CLIENT_ID },
-      });
-    } catch (error) {
-      console.error("Takeover error:", error);
-      toast.error("Impossible de prendre la main sur la preview.");
-    }
-  };
-
-  const cuedPoster = cue ? posters.find((p) => p.id === cue.posterId) : null;
-
-  const handleChapterJump = async (chapterIndex: number) => {
-    try {
-      await apiPost(posterEndpoint(displayMode), {
-        action: PosterEventType.CHAPTER_JUMP,
-        payload: { chapterIndex },
-      });
-    } catch (error) {
-      console.error("Chapter jump error:", error);
-    }
-  };
+  const displayCurrentTime = armed
+    ? hasSubClip
+      ? Math.max(0, armed.currentTime - clipStart)
+      : armed.currentTime
+    : 0;
+  const displayDuration = armed
+    ? armed.endTime != null
+      ? Math.max(0, armed.endTime - clipStart)
+      : getEffectivePosterDuration({
+          playbackDuration: armed.duration,
+          posterDuration: posters.find((p) => p.id === armed.posterId)?.duration,
+          clipStart,
+          clipEnd,
+        })
+    : 0;
 
   return (
     <>
       <div className={cn("space-y-3", className)}>
-        {/* Quick Add Component */}
         <PosterQuickAdd
-            onPosterAdded={fetchPosters}
-            onPosterDisplayed={(poster, mode) => {
-              showInMode(poster, mode);
-            }}
-          />
+          onPosterAdded={fetchPosters}
+          onPosterDisplayed={(poster, mode) => {
+            // QuickAdd always sends to OBS directly (it's an image flow).
+            showImageInMode(poster, mode);
+          }}
+        />
 
-          {/* Cue ready strip */}
-          {cue && cuedPoster && (
-            <div className="flex items-center gap-2 rounded-md border border-blue-500/40 bg-blue-500/10 px-3 py-2">
-              <Film className="h-4 w-4 text-blue-400" />
-              <span className="text-xs">
-                Cue&nbsp;: <span className="font-medium">{cuedPoster.title}</span>{" "}
-                <span className="text-muted-foreground">
-                  @ {formatTimeShort(cue.currentTime)} · {cue.isPlaying ? "lecture" : "pause"}
-                </span>
-              </span>
-              <div className="ml-auto flex items-center gap-2">
-                <Button size="sm" onClick={handleSendCue}>
-                  <Send className="mr-1 h-3 w-3" /> Envoyer
-                </Button>
-                <Button size="sm" variant="ghost" onClick={clearCue}>
-                  Annuler
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div ref={containerRef} className="h-full w-full">
+        <div ref={containerRef} className="h-full w-full">
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">{tCommon("loading")}</div>
           ) : posters.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {t("noPoster")}
-            </div>
+            <div className="text-center py-8 text-muted-foreground">{t("noPoster")}</div>
           ) : (
             <ScrollArea className="h-full w-full">
               <div
                 style={{
-                  display: 'grid',
+                  display: "grid",
                   gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
                   gridAutoRows: `${GRID_ROW_UNIT}px`,
                   gap: `${GRID_GAP}px`,
                 }}
               >
                 {posters.map((poster) => {
-                  const ratioClass = aspectRatios[poster.id] || '16:9';
+                  const ratioClass = aspectRatios[poster.id] || "16:9";
                   const rowSpan = calculateRowSpan(ratioClass);
                   const colSpan = getColumnSpan(ratioClass, columnCount);
+                  const isVideo = isVideoPosterType(poster.type);
+                  const isArmedHere = armed?.posterId === poster.id;
+                  const isLiveHere = activePoster === poster.id;
 
                   return (
                     <div
                       key={poster.id}
                       className={cn(
                         "group relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer",
-                        activePoster === poster.id
+                        isLiveHere
                           ? "border-green-500 ring-2 ring-green-500 ring-offset-2"
                           : "border-border hover:border-primary"
                       )}
@@ -627,9 +533,7 @@ export function PosterContent({ className }: PosterContentProps) {
                       title={poster.title}
                       onClick={() => handleCardClick(poster)}
                     >
-                      {/* Aspect ratio container */}
                       <div className="relative w-full h-full">
-                        {/* Preview */}
                         {poster.type === "youtube" ? (
                           <>
                             <img
@@ -643,7 +547,6 @@ export function PosterContent({ className }: PosterContentProps) {
                           </>
                         ) : poster.type === "video" ? (
                           poster.thumbnailUrl ? (
-                            // Clip with thumbnail: display the image
                             <img
                               src={poster.thumbnailUrl}
                               alt={poster.title}
@@ -651,7 +554,6 @@ export function PosterContent({ className }: PosterContentProps) {
                               onLoad={(e) => handleImageLoad(poster.id, e)}
                             />
                           ) : (
-                            // Normal video: display the video element
                             <video
                               src={poster.fileUrl}
                               className="absolute inset-0 w-full h-full object-cover"
@@ -668,7 +570,6 @@ export function PosterContent({ className }: PosterContentProps) {
                           />
                         )}
 
-                        {/* Hover overlay with title */}
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2 pointer-events-none">
                           <span className="text-white text-xs font-medium text-center line-clamp-2">
                             {poster.title}
@@ -676,81 +577,62 @@ export function PosterContent({ className }: PosterContentProps) {
                         </div>
                       </div>
 
-                      {/* Button controls on hover - 2 rows layout */}
+                      {/* Position buttons on hover */}
                       <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-1 z-10">
                         <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant={displayMode === "left" && activePoster === poster.id ? "default" : "secondary"}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTogglePoster(poster, "left");
-                            }}
-                            className={cn(
-                              "px-2 py-1 h-auto text-xs",
-                              displayMode === "left" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
-                            )}
-                            aria-label={t("ariaShowLeft", { title: poster.title })}
-                          >
-                            ← {t("positions.left")}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={displayMode === "right" && activePoster === poster.id ? "default" : "secondary"}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTogglePoster(poster, "right");
-                            }}
-                            className={cn(
-                              "px-2 py-1 h-auto text-xs",
-                              displayMode === "right" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
-                            )}
-                            aria-label={t("ariaShowRight", { title: poster.title })}
-                          >
-                            {t("positions.right")} →
-                          </Button>
+                          <PositionButton
+                            poster={poster}
+                            mode="left"
+                            label={`← ${t("positions.left")}`}
+                            ariaLabel={t("ariaShowLeft", { title: poster.title })}
+                            armed={armed}
+                            activePoster={activePoster}
+                            displayMode={displayMode}
+                            onClick={handleTogglePoster}
+                          />
+                          <PositionButton
+                            poster={poster}
+                            mode="right"
+                            label={`${t("positions.right")} →`}
+                            ariaLabel={t("ariaShowRight", { title: poster.title })}
+                            armed={armed}
+                            activePoster={activePoster}
+                            displayMode={displayMode}
+                            onClick={handleTogglePoster}
+                          />
                         </div>
-                        <Button
-                          size="sm"
-                          variant={displayMode === "bigpicture" && activePoster === poster.id ? "default" : "secondary"}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTogglePoster(poster, "bigpicture");
-                          }}
-                          className={cn(
-                            "px-2 py-1 h-auto text-xs",
-                            displayMode === "bigpicture" && activePoster === poster.id && "bg-green-500 hover:bg-green-600"
-                          )}
-                          aria-label={t("ariaShowBig", { title: poster.title })}
-                        >
-                          {t("positions.big")}
-                        </Button>
-                        {isVideoPosterType(poster.type) && (
-                          <Button
-                            size="sm"
-                            variant={cue?.posterId === poster.id ? "default" : "secondary"}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCuePoster(poster, defaultDisplayMode);
-                            }}
-                            className={cn(
-                              "px-2 py-1 h-auto text-xs",
-                              cue?.posterId === poster.id && "bg-blue-500 hover:bg-blue-600 text-white"
-                            )}
-                            title="Charger en cue (preview avant envoi)"
-                          >
-                            <Film className="w-3 h-3 mr-1" />
-                            Cue
-                          </Button>
-                        )}
+                        <PositionButton
+                          poster={poster}
+                          mode="bigpicture"
+                          label={t("positions.big")}
+                          ariaLabel={t("ariaShowBig", { title: poster.title })}
+                          armed={armed}
+                          activePoster={activePoster}
+                          displayMode={displayMode}
+                          onClick={handleTogglePoster}
+                        />
                       </div>
 
-                      {/* Active indicator badge */}
-                      {activePoster === poster.id && (
+                      {/* Live badge */}
+                      {isLiveHere && (
                         <div className="absolute top-1 right-1 flex items-center gap-1 bg-green-500 rounded-full px-2 py-1 pointer-events-none">
                           <Eye className="w-3 h-3 text-white" />
                           <span className="text-white text-[10px] font-semibold">
                             {displayMode === "left" ? "L" : displayMode === "right" ? "R" : ""}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Cue badge: armed but not yet live */}
+                      {isVideo && isArmedHere && !armed?.isLive && (
+                        <div className="absolute top-1 right-1 flex items-center gap-1 bg-blue-500 rounded-full px-2 py-1 pointer-events-none">
+                          <Film className="w-3 h-3 text-white" />
+                          <span className="text-white text-[10px] font-semibold">
+                            {armed?.displayMode === "left"
+                              ? "L"
+                              : armed?.displayMode === "right"
+                              ? "R"
+                              : "B"}
                           </span>
                         </div>
                       )}
@@ -760,21 +642,22 @@ export function PosterContent({ className }: PosterContentProps) {
               </div>
             </ScrollArea>
           )}
-          </div>
+        </div>
       </div>
 
-      {/* Video/YouTube Controls - Fixed at bottom */}
-      {showControls && (
+      {/* Unified video timeline — visible iff something is armed (cue or live). */}
+      {armed && (
         <div className="fixed bottom-4 left-4 right-4 p-4 border rounded-lg bg-background shadow-lg z-50">
           <div className="flex items-center gap-2 mb-2">
-            <Button size="sm" onClick={handlePlayPause} variant="outline">
-              {playbackState.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            <Button size="sm" onClick={() => setPlaying(!armed.isPlaying)} variant="outline">
+              {armed.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </Button>
-            <Button size="sm" onClick={handleMute} variant="outline">
-              {playbackState.isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </Button>
+            {armed.isLive && (
+              <Button size="sm" onClick={() => setMuted(!armed.isMuted)} variant="outline">
+                {armed.isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </Button>
+            )}
 
-            {/* Chapter navigation */}
             {activeChapters.length > 0 && (
               <>
                 <div className="h-4 w-px bg-border mx-1" />
@@ -810,7 +693,11 @@ export function PosterContent({ className }: PosterContentProps) {
                       >
                         <span className="truncate">{chapter.title}</span>
                         <span className="text-xs text-muted-foreground shrink-0">
-                          {formatTimeShort(hasSubClip ? Math.max(0, chapter.timestamp - clipStart) : chapter.timestamp)}
+                          {formatTimeShort(
+                            hasSubClip
+                              ? Math.max(0, chapter.timestamp - clipStart)
+                              : chapter.timestamp
+                          )}
                         </span>
                       </DropdownMenuItem>
                     ))}
@@ -828,7 +715,7 @@ export function PosterContent({ className }: PosterContentProps) {
               </>
             )}
 
-            {canTakeOver && (
+            {armed.isLive && canTakeOver && (
               <Button
                 size="sm"
                 variant="outline"
@@ -843,30 +730,93 @@ export function PosterContent({ className }: PosterContentProps) {
             <span className="text-sm ml-auto">
               {formatTimeShort(displayCurrentTime)} / {formatDuration(displayDuration)}
             </span>
+
+            {armed.isLive ? (
+              <Button
+                size="sm"
+                onClick={handleHideArmed}
+                className="ml-2 bg-red-600 hover:bg-red-700 text-white"
+              >
+                <EyeOff className="mr-1 h-3 w-3" /> {t("hide")}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={handleGoLive}
+                className="ml-2 bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Send className="mr-1 h-3 w-3" /> Go Live
+              </Button>
+            )}
           </div>
           <VideoTimeline
             duration={displayDuration}
-            chapters={hasSubClip
-              ? activeChapters
-                  .filter(ch => ch.timestamp >= clipStart && (!clipEnd || ch.timestamp <= clipEnd))
-                  .map(ch => ({ ...ch, timestamp: ch.timestamp - clipStart }))
-              : activeChapters
+            chapters={
+              hasSubClip
+                ? activeChapters
+                    .filter((ch) => ch.timestamp >= clipStart && (!clipEnd || ch.timestamp <= clipEnd))
+                    .map((ch) => ({ ...ch, timestamp: ch.timestamp - clipStart }))
+                : activeChapters
             }
-            currentTime={hasSubClip
-              ? (localSeekTime ?? Math.max(0, (isNaN(playbackState.currentTime) ? 0 : playbackState.currentTime) - clipStart))
-              : (localSeekTime ?? (isNaN(playbackState.currentTime) ? 0 : playbackState.currentTime))
-            }
+            currentTime={localSeekTime ?? displayCurrentTime}
             onSeek={(time) => {
               const absoluteTime = hasSubClip ? time + clipStart : time;
               setLocalSeekTime(time);
-              handleSeek(absoluteTime);
-              if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
-              seekTimeoutRef.current = setTimeout(() => setLocalSeekTime(null), 1500);
+              seek(absoluteTime);
+              if (seekResetTimerRef.current) clearTimeout(seekResetTimerRef.current);
+              seekResetTimerRef.current = setTimeout(() => setLocalSeekTime(null), 1500);
             }}
           />
         </div>
       )}
     </>
+  );
+}
+
+interface PositionButtonProps {
+  poster: Poster;
+  mode: DisplayMode;
+  label: string;
+  ariaLabel: string;
+  armed: ReturnType<typeof useArmedVideoPoster>["armed"];
+  activePoster: string | null;
+  displayMode: DisplayMode | null;
+  onClick: (poster: Poster, mode: DisplayMode) => void;
+}
+
+/** Button highlight: blue while armed (cue), green while live, secondary otherwise. */
+function PositionButton({
+  poster,
+  mode,
+  label,
+  ariaLabel,
+  armed,
+  activePoster,
+  displayMode,
+  onClick,
+}: PositionButtonProps) {
+  const isVideo = isVideoPosterType(poster.type);
+  const isArmedHere =
+    isVideo && armed?.posterId === poster.id && armed.displayMode === mode && !armed.isLive;
+  const isLiveHere = activePoster === poster.id && displayMode === mode;
+
+  return (
+    <Button
+      size="sm"
+      variant={isArmedHere || isLiveHere ? "default" : "secondary"}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(poster, mode);
+      }}
+      className={cn(
+        "px-2 py-1 h-auto text-xs",
+        isArmedHere && "bg-blue-500 hover:bg-blue-600 text-white",
+        isLiveHere && "bg-green-500 hover:bg-green-600"
+      )}
+      aria-label={ariaLabel}
+    >
+      {label}
+    </Button>
   );
 }
 
@@ -888,4 +838,3 @@ export function PosterCard({ size, className, settings }: PosterCardProps = {}) 
     </Card>
   );
 }
-
