@@ -956,7 +956,9 @@
       "durationValueUnknown": "Unknown",
       "noDuration": "No duration",
       "probingDuration": "Detecting duration...",
-      "probeSuccess": "Duration detected"
+      "probeSuccess": "Duration detected",
+      "probeFailed": "Could not detect duration",
+      "redetectDuration": "Re-detect"
     },
     "videoEditor": {
       "chapters": "Chapters",

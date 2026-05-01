@@ -956,7 +956,9 @@
       "durationValueUnknown": "Inconnue",
       "noDuration": "Pas de durée",
       "probingDuration": "Détection de la durée...",
-      "probeSuccess": "Durée détectée"
+      "probeSuccess": "Durée détectée",
+      "probeFailed": "Impossible de détecter la durée",
+      "redetectDuration": "Redétecter"
     },
     "videoEditor": {
       "chapters": "Chapitres",

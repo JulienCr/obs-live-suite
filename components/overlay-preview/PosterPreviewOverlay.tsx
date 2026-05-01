@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pause, Play, X, GripHorizontal } from "lucide-react";
-import { apiGet } from "@/lib/utils/ClientFetch";
-import { usePosterPreviewState } from "@/hooks/usePosterPreviewState";
+import { GripHorizontal } from "lucide-react";
+import {
+  useArmedVideoPoster,
+  useArmedVideoPosterSync,
+} from "@/hooks/useArmedVideoPoster";
 import { formatTimeShort } from "@/lib/utils/durationParser";
 import { PosterPreviewPlayer } from "./PosterPreviewPlayer";
 
@@ -29,15 +31,6 @@ interface Bounds {
   top: number;
   left: number;
   width: number;
-}
-
-interface PosterListItem {
-  id: string;
-  fileUrl: string;
-  type: string;
-  startTime?: number | null;
-  endTime?: number | null;
-  endBehavior?: "stop" | "loop" | null;
 }
 
 function readStoredBounds(): Bounds | null {
@@ -96,31 +89,18 @@ function clampToViewport(bounds: Bounds): Bounds {
 /**
  * Floating draggable/resizable video preview for the regie operator.
  *
- * Only the operator who launched (or took over) the poster sees this.
- * Renders on top of the Dockview layout via position: fixed.
+ * Visible while a video poster is armed (cue or live). Same component for
+ * both phases — header tint and badge tell the operator which.
+ *
+ * Mounts the WebSocket sync that keeps the armed store in step with OBS.
  */
 export function PosterPreviewOverlay() {
   const [disabled] = useState<boolean>(isPreviewDisabled);
-  const [posters, setPosters] = useState<PosterListItem[]>([]);
   const [bounds, setBounds] = useState<Bounds>(() => readStoredBounds() ?? defaultBounds());
   const [collapsed, setCollapsed] = useState(false);
 
-  // Fetch posters once so the cue mode can resolve { posterId } → full poster.
-  useEffect(() => {
-    let alive = true;
-    apiGet<{ posters: PosterListItem[] }>("/api/assets/posters?enabled=true")
-      .then((data) => {
-        if (alive) setPosters(data.posters || []);
-      })
-      .catch(() => {
-        // Preview without posters list means cue won't resolve — that's acceptable.
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const preview = usePosterPreviewState({ posters });
+  useArmedVideoPosterSync();
+  const { armed, reportTime, reportPlaying, reportDuration } = useArmedVideoPoster();
 
   useEffect(() => {
     const onResize = () => setBounds((prev) => clampToViewport(prev));
@@ -159,22 +139,19 @@ export function PosterPreviewOverlay() {
     [bounds.left, bounds.top]
   );
 
-  const onDragPointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      const start = dragStartRef.current;
-      if (!start) return;
-      const dx = e.clientX - start.x;
-      const dy = e.clientY - start.y;
-      setBounds((prev) =>
-        clampToViewport({
-          ...prev,
-          left: start.startLeft + dx,
-          top: start.startTop + dy,
-        })
-      );
-    },
-    []
-  );
+  const onDragPointerMove = useCallback((e: React.PointerEvent) => {
+    const start = dragStartRef.current;
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    setBounds((prev) =>
+      clampToViewport({
+        ...prev,
+        left: start.startLeft + dx,
+        top: start.startTop + dy,
+      })
+    );
+  }, []);
 
   const onDragPointerUp = useCallback((e: React.PointerEvent) => {
     dragStartRef.current = null;
@@ -206,17 +183,10 @@ export function PosterPreviewOverlay() {
     releasePointer(e.currentTarget as HTMLElement, e.pointerId);
   }, []);
 
-  if (disabled || !preview) return null;
+  if (disabled || !armed) return null;
 
-  const isCue = preview.mode === "cue";
-  const title = isCue ? "Cue (local)" : "Live preview";
-  const currentTime =
-    preview.mode === "cue" ? preview.cue.currentTime : preview.playback.currentTime;
-  const duration =
-    preview.mode === "cue"
-      ? Math.max(preview.poster.endTime ?? 0, currentTime)
-      : preview.playback.duration;
-  const isPlaying = preview.mode === "cue" ? preview.cue.isPlaying : preview.playback.isPlaying;
+  const isLive = armed.isLive;
+  const title = isLive ? "Live preview" : "Cue (local)";
 
   return (
     <div
@@ -249,7 +219,7 @@ export function PosterPreviewOverlay() {
           alignItems: "center",
           gap: 8,
           padding: "6px 8px",
-          background: isCue ? "#1f3a5f" : "#3a1f1f",
+          background: isLive ? "#3a1f1f" : "#1f3a5f",
           cursor: "grab",
           fontSize: 12,
           fontWeight: 500,
@@ -267,17 +237,6 @@ export function PosterPreviewOverlay() {
         >
           {collapsed ? "+" : "–"}
         </button>
-        {isCue && (
-          <button
-            type="button"
-            aria-label="Clear cue"
-            onClick={preview.clearCue}
-            onPointerDown={(e) => e.stopPropagation()}
-            style={iconBtnStyle}
-          >
-            <X size={14} />
-          </button>
-        )}
       </div>
 
       {!collapsed && (
@@ -291,10 +250,15 @@ export function PosterPreviewOverlay() {
               background: "#000",
             }}
           >
-            <PosterPreviewPlayer state={preview} />
+            <PosterPreviewPlayer
+              armed={armed}
+              onTimeUpdate={reportTime}
+              onPlayingChange={reportPlaying}
+              onDuration={reportDuration}
+            />
           </div>
 
-          {/* Bottom bar: play/pause + time */}
+          {/* Bottom bar: time + resize handle */}
           <div
             style={{
               display: "flex",
@@ -305,19 +269,9 @@ export function PosterPreviewOverlay() {
               fontSize: 11,
             }}
           >
-            {isCue && (
-              <button
-                type="button"
-                aria-label={isPlaying ? "Pause cue" : "Play cue"}
-                onClick={() => preview.updateCuePlaying(!isPlaying)}
-                style={iconBtnStyle}
-              >
-                {isPlaying ? <Pause size={14} /> : <Play size={14} />}
-              </button>
-            )}
             <span style={{ color: "#aaa" }}>
-              {formatTimeShort(currentTime)}
-              {duration > 0 ? ` / ${formatTimeShort(duration)}` : ""}
+              {formatTimeShort(armed.currentTime)}
+              {armed.duration > 0 ? ` / ${formatTimeShort(armed.duration)}` : ""}
             </span>
             <span style={{ flex: 1 }} />
             {/* Resize handle (bottom-right corner) */}
