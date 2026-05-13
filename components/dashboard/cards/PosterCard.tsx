@@ -97,7 +97,6 @@ export function PosterContent({ className }: PosterContentProps) {
   const tCommon = useTranslations("common");
   const [activePoster, setActivePoster] = useState<string | null>(null);
   const [displayMode, setDisplayMode] = useState<DisplayMode | null>(null);
-  const [activeType, setActiveType] = useState<string | null>(null);
   const [posters, setPosters] = useState<Poster[]>([]);
   const [loading, setLoading] = useState(true);
   const [defaultDisplayMode, setDefaultDisplayMode] = useState<DisplayMode>("left");
@@ -105,7 +104,6 @@ export function PosterContent({ className }: PosterContentProps) {
   const [columnCount, setColumnCount] = useState(2);
   const [containerWidth, setContainerWidth] = useState(400);
   const [localSeekTime, setLocalSeekTime] = useState<number | null>(null);
-  const [currentChapterIndex, setCurrentChapterIndex] = useState(-1);
   const seekResetTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -182,7 +180,6 @@ export function PosterContent({ className }: PosterContentProps) {
     onExternalHide: () => {
       setActivePoster(null);
       setDisplayMode(null);
-      setActiveType(null);
     },
     onExternalShow: (state) => {
       if (state.active && "posterId" in state && state.posterId && state.posterId !== activePoster) {
@@ -191,7 +188,6 @@ export function PosterContent({ className }: PosterContentProps) {
           setActivePoster(state.posterId);
           const mode = "displayMode" in state ? state.displayMode : null;
           setDisplayMode((mode as DisplayMode | null) ?? null);
-          setActiveType(poster.type);
         }
       }
     },
@@ -258,7 +254,6 @@ export function PosterContent({ className }: PosterContentProps) {
       await apiPost(posterEndpoint(displayMode), { action: PosterEventType.HIDE });
       setActivePoster(null);
       setDisplayMode(null);
-      setActiveType(null);
     } catch (error) {
       console.error("Error hiding poster:", error);
     }
@@ -288,7 +283,6 @@ export function PosterContent({ className }: PosterContentProps) {
 
         setActivePoster(poster.id);
         setDisplayMode(mode);
-        setActiveType(poster.type);
         return true;
       } catch (error) {
         console.error("Error showing poster:", error);
@@ -331,35 +325,15 @@ export function PosterContent({ className }: PosterContentProps) {
     await showImageInMode(poster, mode);
   };
 
-  const handleCardClick = async (poster: Poster) => {
-    if (isVideoPosterType(poster.type)) {
-      if (armed && armed.posterId === poster.id) {
-        await handleHideArmed(); // handles live hide + clearArmed correctly using armed.displayMode
-        return;
-      }
-      if (armed?.isLive) {
-        await handleHideArmed();
-      }
-      armPoster(poster, defaultDisplayMode);
-      return;
-    }
-
-    // Image path
-    if (armed) {
-      await handleHideArmed(); // handles live hide + clearArmed using armed.displayMode
-    }
-
-    if (activePoster === poster.id) {
-      await hideCurrentMode();
-      return;
-    }
-
-    if (activePoster) {
-      await hideCurrentMode();
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-
-    await showImageInMode(poster, defaultDisplayMode);
+  const handleCardClick = (poster: Poster) => {
+    // Card click is mode-agnostic: toggle off if this poster is active anywhere,
+    // otherwise show in the default mode. Delegate to handleTogglePoster with the
+    // already-active mode (if matching) so its toggle-off branch fires.
+    const mode =
+      (armed?.posterId === poster.id && armed.displayMode) ||
+      (activePoster === poster.id && displayMode) ||
+      defaultDisplayMode;
+    return handleTogglePoster(poster, mode);
   };
 
   const handleGoLive = async () => {
@@ -368,7 +342,6 @@ export function PosterContent({ className }: PosterContentProps) {
       // Mirror image-side state so the active badges and toggle-off path keep working.
       setActivePoster(armed.posterId);
       setDisplayMode(armed.displayMode);
-      setActiveType(armed.type);
     }
   };
 
@@ -382,7 +355,6 @@ export function PosterContent({ className }: PosterContentProps) {
       }
       setActivePoster(null);
       setDisplayMode(null);
-      setActiveType(null);
     }
     clearArmed();
   };
@@ -406,17 +378,14 @@ export function PosterContent({ className }: PosterContentProps) {
     return [...chapters].sort((a, b) => a.timestamp - b.timestamp);
   }, [armed]);
 
-  useEffect(() => {
-    if (!armed || activeChapters.length === 0) {
-      setCurrentChapterIndex(-1);
-      return;
-    }
+  const currentChapterIndex = useMemo(() => {
+    if (!armed || activeChapters.length === 0) return -1;
     let idx = -1;
     for (let i = 0; i < activeChapters.length; i++) {
       if (activeChapters[i].timestamp <= armed.currentTime) idx = i;
       else break;
     }
-    setCurrentChapterIndex(idx);
+    return idx;
   }, [armed, activeChapters]);
 
   const handleChapterNext = () => {

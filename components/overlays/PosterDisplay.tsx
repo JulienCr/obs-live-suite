@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import { buildYouTubeEmbedUrl } from "@/lib/utils/youtubeUrlBuilder";
 import { extractYouTubeId } from "@/lib/utils/urlDetection";
 
@@ -42,51 +42,6 @@ export function PosterDisplay({
   const isLeftSide = side === "left";
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const effectiveVideoRef = videoRef || localVideoRef;
-  const seekAttemptedRef = useRef(false);
-
-  // Backup seek mechanism: ensure video seeks to initialTime even if onLoadedMetadata doesn't fire
-  useEffect(() => {
-    if (type !== "video" || !initialTime || initialTime <= 0) {
-      return;
-    }
-
-    seekAttemptedRef.current = false;
-
-    const trySeek = () => {
-      const video = effectiveVideoRef.current;
-      if (!video || seekAttemptedRef.current) return;
-
-      // Only seek if video has enough data and we haven't already seeked
-      if (video.readyState >= 1) { // HAVE_METADATA or higher
-        video.currentTime = initialTime;
-        if (!initialPlaying) {
-          video.pause();
-        }
-        seekAttemptedRef.current = true;
-      }
-    };
-
-    // Try immediately
-    trySeek();
-
-    // Also try after a short delay in case the video isn't ready yet
-    const timeoutId = setTimeout(trySeek, 100);
-    const timeoutId2 = setTimeout(trySeek, 500);
-
-    // And listen for loadedmetadata as backup
-    const video = effectiveVideoRef.current;
-    if (video) {
-      video.addEventListener("loadedmetadata", trySeek);
-    }
-
-    return () => {
-      clearTimeout(timeoutId);
-      clearTimeout(timeoutId2);
-      if (video) {
-        video.removeEventListener("loadedmetadata", trySeek);
-      }
-    };
-  }, [type, initialTime, effectiveVideoRef]);
 
   // YouTube has special positioning
   if (type === "youtube") {

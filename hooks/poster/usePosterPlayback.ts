@@ -142,25 +142,39 @@ export function usePosterPlayback(
       return;
     }
 
+    const last: PlaybackState = { currentTime: NaN, duration: NaN, isPlaying: false, isMuted: false };
+    let primed = false;
     const interval = setInterval(() => {
-      if (videoRef.current) {
-        const currentTime = videoRef.current.currentTime || 0;
-        const duration = videoRef.current.duration || 0;
-        const isPlaying = !videoRef.current.paused;
-        const isMuted = videoRef.current.muted;
+      if (!videoRef.current) return;
+      const currentTime = videoRef.current.currentTime || 0;
+      const duration = videoRef.current.duration || 0;
+      const isPlaying = !videoRef.current.paused;
+      const isMuted = videoRef.current.muted;
 
-        // Update local state
-        setPlaybackState({ currentTime, duration, isPlaying, isMuted });
+      const changed =
+        !primed ||
+        currentTime !== last.currentTime ||
+        duration !== last.duration ||
+        isPlaying !== last.isPlaying ||
+        isMuted !== last.isMuted;
+      if (!changed) return;
 
-        // Only send state to backend if video is ready (has duration)
-        // This prevents sending currentTime: 0 before the video loads and seeks to startTime
-        if (duration > 0) {
-          send({
-            type: "state",
-            channel: channelName,
-            data: { currentTime, duration, isPlaying, isMuted },
-          });
-        }
+      primed = true;
+      last.currentTime = currentTime;
+      last.duration = duration;
+      last.isPlaying = isPlaying;
+      last.isMuted = isMuted;
+
+      setPlaybackState({ currentTime, duration, isPlaying, isMuted });
+
+      // Skip WS broadcast until duration is known so we don't ship currentTime: 0
+      // before the video has loaded and seeked to startTime.
+      if (duration > 0) {
+        send({
+          type: "state",
+          channel: channelName,
+          data: { currentTime, duration, isPlaying, isMuted },
+        });
       }
     }, 1000);
 
@@ -177,29 +191,29 @@ export function usePosterPlayback(
       return;
     }
 
-    // Send initial state immediately
-    const currentYouTubeState = youtubeStateRef.current;
-    setPlaybackState({ ...currentYouTubeState });
-    send({
-      type: "state",
-      channel: channelName,
-      data: currentYouTubeState,
-    });
-
-    // Send state updates periodically for YouTube
-    const stateInterval = setInterval(() => {
-      setPlaybackState({ ...youtubeStateRef.current });
-
-      send({
-        type: "state",
-        channel: channelName,
-        data: youtubeStateRef.current,
-      });
-    }, 1000);
-
-    return () => {
-      clearInterval(stateInterval);
+    const last: PlaybackState = { currentTime: NaN, duration: NaN, isPlaying: false, isMuted: false };
+    const flush = (force: boolean) => {
+      const s = youtubeStateRef.current;
+      const changed =
+        force ||
+        s.currentTime !== last.currentTime ||
+        s.duration !== last.duration ||
+        s.isPlaying !== last.isPlaying ||
+        s.isMuted !== last.isMuted;
+      if (!changed) return;
+      last.currentTime = s.currentTime;
+      last.duration = s.duration;
+      last.isPlaying = s.isPlaying;
+      last.isMuted = s.isMuted;
+      setPlaybackState({ ...s });
+      send({ type: "state", channel: channelName, data: s });
     };
+
+    // Send initial state immediately so the dashboard reflects the player ASAP.
+    flush(true);
+
+    const stateInterval = setInterval(() => flush(false), 1000);
+    return () => clearInterval(stateInterval);
   }, [isActive, mediaType, send, channelName, youtubeStateRef]);
 
   // Track YouTube readiness from the shared hook
@@ -212,8 +226,8 @@ export function usePosterPlayback(
   // Armed-paused YouTube: PosterDisplay forces autoplay=true so a frame
   // actually renders (cueVideoById only loads the thumbnail). The instant the
   // player reports playing, pause + seek so the audience sees ~1–2 frames of
-  // muted video before it freezes at initialTime. Polls the real-time stateRef
-  // (not the 500 ms-throttled React state) to minimise the flash.
+  // muted video before it freezes at initialTime. The underlying postMessage
+  // state arrives at ~250ms cadence, so polling faster than that is wasteful.
   const hasCuedRef = useRef(false);
   useEffect(() => {
     hasCuedRef.current = false;
@@ -238,7 +252,7 @@ export function usePosterPlayback(
         hasCuedRef.current = true;
         clearInterval(watchdog);
       }
-    }, 16);
+    }, 100);
 
     // Give up after 2 s if autoplay is blocked or the player never reports playing.
     const safety = setTimeout(() => {

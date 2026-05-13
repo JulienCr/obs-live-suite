@@ -168,14 +168,25 @@ function ArmedYouTubePlayer({ armed, onTimeUpdate, onPlayingChange, onDuration }
     };
   }, []);
 
-  // Poll YouTube state and forward to the armed store.
+  // Poll YouTube state and forward to the armed store. Skip no-op forwards so
+  // we don't churn the upstream `reportX` → `_patch` chain on every tick.
   useEffect(() => {
     if (!isSubscribed) return;
+    const last = { currentTime: NaN, isPlaying: null as boolean | null, duration: NaN };
     const id = setInterval(() => {
       const s = stateRef.current;
-      if (Number.isFinite(s.currentTime)) onTimeUpdate(s.currentTime);
-      onPlayingChange(s.isPlaying);
-      if (Number.isFinite(s.duration) && s.duration > 0) onDuration(s.duration);
+      if (Number.isFinite(s.currentTime) && s.currentTime !== last.currentTime) {
+        last.currentTime = s.currentTime;
+        onTimeUpdate(s.currentTime);
+      }
+      if (s.isPlaying !== last.isPlaying) {
+        last.isPlaying = s.isPlaying;
+        onPlayingChange(s.isPlaying);
+      }
+      if (Number.isFinite(s.duration) && s.duration > 0 && s.duration !== last.duration) {
+        last.duration = s.duration;
+        onDuration(s.duration);
+      }
     }, 500);
     return () => clearInterval(id);
   }, [isSubscribed, stateRef, onTimeUpdate, onPlayingChange, onDuration]);

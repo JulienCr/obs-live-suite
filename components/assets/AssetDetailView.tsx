@@ -94,29 +94,13 @@ export function AssetDetailView({
     }
   }, [poster.id, t]);
 
-  // Auto-probe duration on mount for video types without duration
+  // Auto-probe duration on mount for video types without duration.
   useEffect(() => {
-    let mounted = true;
     if (!isVideoType || isClip || poster.duration) {
       setProbeStatus("idle");
-      return () => { mounted = false; };
+      return;
     }
-
-    setProbeStatus("probing");
-    apiPost<{ duration: number }>(`/api/assets/posters/${poster.id}/probe`)
-      .then((res) => {
-        if (!mounted) return;
-        setFormData(prev => ({ ...prev, duration: res.duration }));
-        setProbeStatus("idle");
-        toast.success(t("probeSuccess"));
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setProbeStatus("failed");
-        toast.error(extractErrorMessage(err, t("probeFailed")));
-      });
-
-    return () => { mounted = false; };
+    void probeDuration();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [poster.id, poster.type, poster.duration]);
 

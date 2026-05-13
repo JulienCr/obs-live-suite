@@ -114,7 +114,9 @@ export function PosterPreviewOverlay() {
   const dragStartRef = useRef<{ x: number; y: number; startLeft: number; startTop: number } | null>(null);
   const resizeStartRef = useRef<{ x: number; startWidth: number } | null>(null);
   const latestBoundsRef = useRef<Bounds>(bounds);
-  latestBoundsRef.current = bounds;
+  useEffect(() => {
+    latestBoundsRef.current = bounds;
+  }, [bounds]);
 
   const releasePointer = (target: HTMLElement, pointerId: number) => {
     try {
