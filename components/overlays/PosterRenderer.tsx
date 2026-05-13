@@ -79,6 +79,9 @@ export function PosterRenderer() {
     send: memoizedSend,
     isActive: state.current !== null,
     mediaType: state.current?.type || null,
+    fileUrl: state.current?.fileUrl ?? null,
+    initialTime: state.current?.initialTime,
+    initialPlaying: state.current?.initialPlaying,
   });
 
   const chapters = useChapterNavigation({

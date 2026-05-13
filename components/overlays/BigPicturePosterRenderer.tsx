@@ -20,7 +20,8 @@ interface PosterData {
   fileUrl: string;
   type: "image" | "video" | "youtube";
   aspectRatio?: number;
-  initialTime?: number; // Initial seek position for sub-video clips
+  initialTime?: number; // Initial seek position (resumeFrom from cue, else sub-video startTime)
+  initialPlaying?: boolean; // If false, media starts paused (armed-to-air carrying a paused state)
   showId: string; // Unique ID to force React remount on each show
   subVideoConfig?: {
     startTime?: number;
@@ -37,7 +38,10 @@ interface BigPicturePosterState {
 
 interface BigPicturePosterEvent {
   type: string;
-  payload?: PosterShowPayload & { time?: number } & ChapterJumpPayload;
+  payload?: PosterShowPayload & { time?: number } & ChapterJumpPayload & {
+    resumeFrom?: number;
+    resumePlaying?: boolean;
+  };
   id: string;
 }
 
@@ -63,6 +67,9 @@ export function BigPicturePosterRenderer() {
     send: memoizedSend,
     isActive: state.current !== null,
     mediaType: state.current?.type || null,
+    fileUrl: state.current?.fileUrl ?? null,
+    initialTime: state.current?.initialTime,
+    initialPlaying: state.current?.initialPlaying,
   });
 
   const chapters = useChapterNavigation({
@@ -109,11 +116,17 @@ export function BigPicturePosterRenderer() {
 
             chapters.setChapters(data.payload.chapters || []);
 
+            // resumeFrom (operator cue) overrides sub-video startTime so the
+            // operator can hand off a specific scrubbed frame.
+            const capturedStartTime = data.payload.resumeFrom ?? data.payload.startTime;
+            const capturedPlaying = data.payload.resumePlaying !== false;
+
             const newPoster: PosterData = {
               fileUrl: data.payload.fileUrl,
               type: mediaType,
               aspectRatio: 1,
-              initialTime: data.payload.startTime,
+              initialTime: capturedStartTime,
+              initialPlaying: capturedPlaying,
               showId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               subVideoConfig: data.payload.startTime !== undefined ? {
                 startTime: data.payload.startTime,
@@ -128,8 +141,8 @@ export function BigPicturePosterRenderer() {
               transition: data.payload.transition || "fade",
             });
 
-            if (data.payload.startTime !== undefined && data.payload.startTime > 0) {
-              const targetTime = data.payload.startTime;
+            if (capturedStartTime !== undefined && capturedStartTime > 0) {
+              const targetTime = capturedStartTime;
               const seekToStart = () => {
                 const video = playback.videoRef.current;
                 if (video && video.readyState >= 1) {
@@ -204,6 +217,7 @@ export function BigPicturePosterRenderer() {
                 videoRef={state.current.type === "video" ? playback.videoRef : undefined}
                 youtubeRef={state.current.type === "youtube" ? playback.youtubeRef : undefined}
                 initialTime={state.current.initialTime}
+                initialPlaying={state.current.initialPlaying}
                 videoKey={state.current.showId}
                 subVideoConfig={state.current.subVideoConfig}
                 onYouTubeIframeLoad={state.current.type === "youtube" ? playback.handleYouTubeIframeLoad : undefined}

@@ -107,35 +107,38 @@ export function PosterDisplay({
       startTime: initialTime ?? subVideoConfig?.startTime,
       endTime: subVideoConfig?.endTime,
       endBehavior: subVideoConfig?.endBehavior,
-      autoplay: initialPlaying,
+      // Always autoplay=true so the player exits UNSTARTED and renders a frame
+      // (otherwise YouTube shows the thumbnail-with-play-button). When
+      // initialPlaying is false, usePosterPlayback pauses within a frame or
+      // two via postMessage; the start URL param positions us at initialTime.
+      autoplay: true,
       mute: true,
       controls: false,
     });
 
-    const youtubeStyle: React.CSSProperties =
+    const wrapperStyle: React.CSSProperties =
       positioning === "center"
         ? {
             // Big-picture mode: centered, full-screen
             position: 'absolute',
-            objectFit: 'contain',
             boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
             borderRadius: '8px',
+            overflow: 'hidden',
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%)',
             width: '100vw',
             height: '100vh',
             aspectRatio: '16 / 9',
-            border: 'none',
             margin: 0,
             padding: 0,
           }
         : {
             // Side mode: positioned left or right, centered vertically
             position: 'absolute',
-            objectFit: 'contain',
             boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
             borderRadius: '8px',
+            overflow: 'hidden',
             ...(isLeftSide
               ? {
                   left: '30px',
@@ -149,20 +152,35 @@ export function PosterDisplay({
             transform: 'translate(0%, -50%)',
             width: '50%',
             aspectRatio: '16 / 9',
-            border: 'none',
           };
 
     return (
-      <iframe
-        ref={youtubeRef}
-        style={youtubeStyle}
-        src={youtubeUrl}
-        title="YouTube video"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        aria-label="Poster YouTube video"
-        onLoad={onYouTubeIframeLoad}
-      />
+      <div style={wrapperStyle}>
+        <iframe
+          ref={youtubeRef}
+          style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+          src={youtubeUrl}
+          title="YouTube video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          aria-label="Poster YouTube video"
+          onLoad={onYouTubeIframeLoad}
+        />
+        {/* Mask the YouTube paused-state chrome (title bar, "More videos" / Watch
+            later / Share buttons). No URL param suppresses these — costs ~7%
+            of the top edge but eliminates the overlay across all embed variants. */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '7%',
+            background: '#000',
+            pointerEvents: 'none',
+          }}
+        />
+      </div>
     );
   }
 

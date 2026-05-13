@@ -25,6 +25,12 @@ export interface UsePosterPlaybackOptions {
   isActive: boolean;
   /** Type of media being displayed */
   mediaType: "image" | "video" | "youtube" | null;
+  /** Current poster file URL (used to detect new shows and cue YouTube). */
+  fileUrl?: string | null;
+  /** Resume position passed by the operator (resumeFrom). */
+  initialTime?: number;
+  /** Whether the operator wants playback to start (resumePlaying). */
+  initialPlaying?: boolean;
 }
 
 /**
@@ -79,7 +85,7 @@ const DEFAULT_PLAYBACK_STATE: PlaybackState = {
 export function usePosterPlayback(
   options: UsePosterPlaybackOptions
 ): UsePosterPlaybackReturn {
-  const { channelName, send, isActive, mediaType } = options;
+  const { channelName, send, isActive, mediaType, fileUrl, initialTime, initialPlaying } = options;
 
   // Playback state
   const [playbackState, setPlaybackState] = useState<PlaybackState>(DEFAULT_PLAYBACK_STATE);
@@ -202,6 +208,49 @@ export function usePosterPlayback(
       setYoutubePlayerReady(true);
     }
   }, [youtubeApi.isSubscribed]);
+
+  // Armed-paused YouTube: PosterDisplay forces autoplay=true so a frame
+  // actually renders (cueVideoById only loads the thumbnail). The instant the
+  // player reports playing, pause + seek so the audience sees ~1–2 frames of
+  // muted video before it freezes at initialTime. Polls the real-time stateRef
+  // (not the 500 ms-throttled React state) to minimise the flash.
+  const hasCuedRef = useRef(false);
+  useEffect(() => {
+    hasCuedRef.current = false;
+  }, [fileUrl]);
+  useEffect(() => {
+    if (!youtubeApi.isSubscribed) return;
+    if (mediaType !== "youtube" || initialPlaying !== false) return;
+    if (hasCuedRef.current) return;
+
+    const stateRef = youtubeApi.stateRef;
+    const { pause, seek } = youtubeApi;
+    const watchdog = setInterval(() => {
+      if (hasCuedRef.current) {
+        clearInterval(watchdog);
+        return;
+      }
+      if (stateRef.current.isPlaying) {
+        pause();
+        if (initialTime !== undefined && initialTime > 0) {
+          seek(initialTime);
+        }
+        hasCuedRef.current = true;
+        clearInterval(watchdog);
+      }
+    }, 16);
+
+    // Give up after 2 s if autoplay is blocked or the player never reports playing.
+    const safety = setTimeout(() => {
+      clearInterval(watchdog);
+      hasCuedRef.current = true;
+    }, 2000);
+
+    return () => {
+      clearInterval(watchdog);
+      clearTimeout(safety);
+    };
+  }, [youtubeApi, mediaType, initialPlaying, initialTime]);
 
   return {
     playbackState,

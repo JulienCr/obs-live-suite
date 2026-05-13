@@ -122,6 +122,17 @@ export function buildYouTubeEmbedUrl(options: YouTubeEmbedOptions): string {
   params.set("mute", mute ? "1" : "0");
   params.set("controls", controls ? "1" : "0");
 
+  // Strip chrome (title overlay, related videos, annotations, fullscreen button,
+  // keyboard shortcuts, captions). modestbranding is deprecated by YouTube but
+  // still honoured by some embed paths; the rest are still effective.
+  params.set("rel", "0");
+  params.set("modestbranding", "1");
+  params.set("iv_load_policy", "3");
+  params.set("fs", "0");
+  params.set("disablekb", "1");
+  params.set("playsinline", "1");
+  params.set("cc_load_policy", "0");
+
   // JS API for postMessage communication (seek, play/pause, state tracking)
   if (enablejsapi) {
     params.set("enablejsapi", "1");

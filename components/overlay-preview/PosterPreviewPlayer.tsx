@@ -184,12 +184,14 @@ function ArmedYouTubePlayer({ armed, onTimeUpdate, onPlayingChange, onDuration }
     return <PlayerError message="Invalid YouTube URL" />;
   }
 
+  // autoplay=true lifts the player out of UNSTARTED so seekTo actually moves
+  // the playhead; the isPlaying effect above pauses it back instantly.
   const url = buildYouTubeEmbedUrl({
     videoId,
     startTime: armed.startTime,
     endTime: armed.endTime,
     endBehavior: armed.endBehavior,
-    autoplay: false,
+    autoplay: true,
     mute: true,
     controls: false,
   });

@@ -635,11 +635,29 @@ export function PosterContent({ className }: PosterContentProps) {
       {armed && (
         <div className="fixed bottom-4 left-4 right-4 p-4 border rounded-lg bg-background shadow-lg z-50">
           <div className="flex items-center gap-2 mb-2">
-            <Button size="sm" onClick={() => setPlaying(!armed.isPlaying)} variant="outline">
+            {armed.isLive ? (
+              <Button
+                size="sm"
+                onClick={handleHideArmed}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                <EyeOff className="mr-1 h-3 w-3" /> {t("hide")}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={handleGoLive}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Send className="mr-1 h-3 w-3" /> Go Live
+              </Button>
+            )}
+
+            <Button size="sm" onClick={() => setPlaying(!armed.isPlaying)} variant="default">
               {armed.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </Button>
             {armed.isLive && (
-              <Button size="sm" onClick={() => setMuted(!armed.isMuted)} variant="outline">
+              <Button size="sm" onClick={() => setMuted(!armed.isMuted)} variant="default">
                 {armed.isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </Button>
             )}
@@ -716,24 +734,6 @@ export function PosterContent({ className }: PosterContentProps) {
             <span className="text-sm ml-auto">
               {formatTimeShort(displayCurrentTime)} / {formatDuration(displayDuration)}
             </span>
-
-            {armed.isLive ? (
-              <Button
-                size="sm"
-                onClick={handleHideArmed}
-                className="ml-2 bg-red-600 hover:bg-red-700 text-white"
-              >
-                <EyeOff className="mr-1 h-3 w-3" /> {t("hide")}
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                onClick={handleGoLive}
-                className="ml-2 bg-green-600 hover:bg-green-700 text-white"
-              >
-                <Send className="mr-1 h-3 w-3" /> Go Live
-              </Button>
-            )}
           </div>
           <VideoTimeline
             duration={displayDuration}
