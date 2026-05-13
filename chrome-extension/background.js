@@ -399,6 +399,22 @@ let wsReconnectTimer = null;
 const WS_RECONNECT_DELAY_MS = 3000;
 
 /**
+ * Chrome MV3 service workers are killed after ~30s of inactivity, which closes the WS.
+ * A periodic alarm wakes the SW, where we send a ping to keep the WS alive (server's
+ * heartbeat is 30s, leaving no margin). 0.5min is the production-mode minimum.
+ */
+const KEEPALIVE_ALARM = "media-player-keepalive";
+chrome.alarms.create(KEEPALIVE_ALARM, { periodInMinutes: 0.5 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== KEEPALIVE_ALARM) return;
+  if (mediaPlayerWs && mediaPlayerWs.readyState === WebSocket.OPEN) {
+    sendToWsHub({ type: "presence-ping" });
+  } else if (driverTabs.size > 0) {
+    connectMediaPlayerWs();
+  }
+});
+
+/**
  * Get WS URL, deriving protocol and hostname from the configured serverUrl.
  * e.g. "https://edison:3000" → "wss://edison:3003"
  *      "http://localhost:3000" → "ws://localhost:3003"

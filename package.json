@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.30.0",
+  "packageManager": "pnpm@11.1.1+sha512.d1fdf5f73c617b64fa1a56a81c3c8dfe0e966e33a6010aa256b517ae77be21d93e05affc0de1a83b0e4f29d569f68b446ae8f068cd7247c0bb3df0fb4d7bdf9a",
   "engines": {
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "concurrently \"pnpm:dev:backend\" \"pnpm:dev:frontend\" \"pnpm:dev:mcp\" --names \"BACKEND,NEXT,MCP\" --prefix-colors \"blue,green,magenta\" --kill-others",
+    "dev": "node scripts/dev.mjs",
     "dev:frontend": "node server.js",
     "dev:backend": "tsx watch server/backend.ts",
     "backend": "tsx server/backend.ts",

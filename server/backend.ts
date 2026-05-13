@@ -230,7 +230,7 @@ class BackendServer {
           this.logger.info("OBS auto-connect disabled");
         }
       } catch (error) {
-        this.logger.warn("OBS connection failed (will retry)", error);
+        this.logger.warn(`OBS connection failed (will retry): ${error instanceof Error ? error.message : error}`);
       }
 
       // 4. Auto-connect to Streamerbot if enabled
@@ -242,7 +242,7 @@ class BackendServer {
           this.logger.info("Streamerbot gateway auto-connect disabled");
         }
       } catch (error) {
-        this.logger.warn("Streamerbot gateway connection failed (will retry)", error);
+        this.logger.warn(`Streamerbot gateway connection failed (will retry): ${error instanceof Error ? error.message : error}`);
       }
 
       // 5. Start Twitch integration polling

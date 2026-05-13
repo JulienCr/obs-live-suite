@@ -307,7 +307,13 @@
         "noTitle": "Aucun titre",
         "noCategory": "Aucune catégorie",
         "noData": "Données Twitch non disponibles",
-        "checkProvider": "Vérifiez que Streamer.bot est connecté",
+        "checkProvider": "Vérifiez la connexion Twitch dans les réglages",
+        "notConnected": "Twitch non connecté",
+        "notConnectedAction": "Configurer",
+        "pollingStopped": "Actualisation arrêtée",
+        "pollingStoppedAction": "Démarrer",
+        "connecting": "Connexion à l'API Twitch…",
+        "noRecentData": "Pas de données récentes",
         "pollingActive": "Actualisation toutes les {interval}s",
         "pollingInactive": "Actualisation en pause"
       },
@@ -950,7 +956,9 @@
       "durationValueUnknown": "Inconnue",
       "noDuration": "Pas de durée",
       "probingDuration": "Détection de la durée...",
-      "probeSuccess": "Durée détectée"
+      "probeSuccess": "Durée détectée",
+      "probeFailed": "Impossible de détecter la durée",
+      "redetectDuration": "Redétecter"
     },
     "videoEditor": {
       "chapters": "Chapitres",

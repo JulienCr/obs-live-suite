@@ -113,7 +113,7 @@ export class OBSConnectionManager extends ConnectionManager {
    * Called when connection error occurs
    */
   protected override onError(error: ConnectionError): void {
-    this.logger.error("OBS connection error", error.originalError);
+    this.logger.warn(`OBS connection error: ${error.message}`);
   }
 
   /**

@@ -4,7 +4,7 @@
  * Provides endpoints for Twitch stream info and management:
  * - GET /status - Current stream info (viewers, title, category, live status)
  * - POST /update - Update stream title and/or category
- * - GET /provider - Provider status (Streamer.bot vs Twitch API)
+ * - GET /provider - Provider status (Twitch API availability, polling state)
  * - GET /categories - Search for game categories
  * - POST /polling/start - Start polling
  * - POST /polling/stop - Stop polling

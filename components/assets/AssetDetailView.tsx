@@ -15,7 +15,7 @@ import { AssetDetailHeader } from "./AssetDetailHeader";
 import { AssetVideoPlayer } from "./AssetVideoPlayer";
 import { ChapterSection } from "./ChapterSection";
 import { ClipSection } from "./ClipSection";
-import { apiPatch, apiDelete, apiGet, apiPost } from "@/lib/utils/ClientFetch";
+import { apiPatch, apiDelete, apiGet, apiPost, extractErrorMessage } from "@/lib/utils/ClientFetch";
 import { formatTimeShort } from "@/lib/utils/durationParser";
 import { toast } from "sonner";
 import type { DbPoster } from "@/lib/models/Database";
@@ -77,28 +77,30 @@ export function AssetDetailView({
     staleTime: 60000,
   });
 
-  // Auto-probe duration on mount for video types without duration
+  // Probe duration via the API and update local state. Returns a promise so
+  // both the auto-probe effect and the manual "re-detect" button can await it.
+  const probeDuration = useCallback(async () => {
+    setProbeStatus("probing");
+    try {
+      const res = await apiPost<{ duration: number }>(`/api/assets/posters/${poster.id}/probe`);
+      setFormData(prev => ({ ...prev, duration: res.duration }));
+      setProbeStatus("idle");
+      toast.success(t("probeSuccess"));
+      return true;
+    } catch (err) {
+      setProbeStatus("failed");
+      toast.error(extractErrorMessage(err, t("probeFailed")));
+      return false;
+    }
+  }, [poster.id, t]);
+
+  // Auto-probe duration on mount for video types without duration.
   useEffect(() => {
-    let mounted = true;
     if (!isVideoType || isClip || poster.duration) {
       setProbeStatus("idle");
-      return () => { mounted = false; };
+      return;
     }
-
-    setProbeStatus("probing");
-    apiPost<{ duration: number }>(`/api/assets/posters/${poster.id}/probe`)
-      .then((res) => {
-        if (!mounted) return;
-        setFormData(prev => ({ ...prev, duration: res.duration }));
-        setProbeStatus("idle");
-        toast.success(t("probeSuccess"));
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setProbeStatus("failed");
-      });
-
-    return () => { mounted = false; };
+    void probeDuration();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [poster.id, poster.type, poster.duration]);
 
@@ -237,6 +239,11 @@ export function AssetDetailView({
                   </AlertTitle>
                   <AlertDescription className="text-amber-800 dark:text-amber-200">
                     {t("durationUnknownDescription")}
+                    <div className="mt-3">
+                      <Button size="sm" variant="outline" onClick={probeDuration}>
+                        {t("redetectDuration")}
+                      </Button>
+                    </div>
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -306,7 +313,7 @@ export function AssetDetailView({
               </div>
 
               {/* Duration field for video types */}
-              {isVideoType && (
+              {isVideoType && !isClip && (
                 <div className="space-y-2">
                   <Label htmlFor="duration">
                     {t("durationInSeconds")}
@@ -316,18 +323,33 @@ export function AssetDetailView({
                       </span>
                     )}
                   </Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    min="0"
-                    value={formData.duration || ""}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      handleFieldChange("duration", val ? parseInt(val, 10) : null);
-                    }}
-                    placeholder={t("durationPlaceholder")}
-                    className={hasUnknownDuration ? "border-amber-500" : ""}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="duration"
+                      type="number"
+                      min="0"
+                      value={formData.duration || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        handleFieldChange("duration", val ? parseInt(val, 10) : null);
+                      }}
+                      placeholder={t("durationPlaceholder")}
+                      className={hasUnknownDuration ? "border-amber-500" : ""}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={probeDuration}
+                      disabled={probeStatus === "probing"}
+                      title={t("redetectDuration")}
+                    >
+                      {probeStatus === "probing" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        t("redetectDuration")
+                      )}
+                    </Button>
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {formData.duration
                       ? `${formatTimeShort(formData.duration)} (${Math.floor(formData.duration / 60)} minutes)`
