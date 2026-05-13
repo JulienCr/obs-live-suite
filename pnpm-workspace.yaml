@@ -3,6 +3,16 @@ packages:
   - 'streamdeck-plugin/obslive-suite'
   - 'mcp-server'
   - 'studio-return'
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  better-sqlite3: true
+  bufferutil: true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+  utf-8-validate: true
+  wtf_wikipedia: true
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@swc/core'
