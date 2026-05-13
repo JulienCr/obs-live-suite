@@ -215,4 +215,61 @@ describe("useArmedVideoPoster", () => {
     // currentTime should NOT change from a player report while live.
     expect(result.current.armed?.currentTime).toBe(before);
   });
+
+  it("goLive() called twice concurrently only fires one SHOW event", async () => {
+    const { result } = renderHook(() => useArmedVideoPoster());
+    act(() => {
+      result.current.arm(VIDEO_INPUT, "left");
+    });
+
+    let ok1: boolean | undefined;
+    let ok2: boolean | undefined;
+    await act(async () => {
+      // Fire both without awaiting individually — simulates rapid double-click.
+      [ok1, ok2] = await Promise.all([
+        result.current.goLive(),
+        result.current.goLive(),
+      ]);
+    });
+
+    // Exactly one call should succeed, the other should return false.
+    expect([ok1, ok2]).toContain(true);
+    expect([ok1, ok2]).toContain(false);
+    // Only one SHOW event should have been fired.
+    expect(mockedApiPost).toHaveBeenCalledTimes(1);
+    expect(mockedApiPost).toHaveBeenCalledWith(
+      "/api/overlays/poster",
+      expect.objectContaining({ action: "show" })
+    );
+  });
+
+  it("reportDuration() is ignored once isLive (OBS ticks are authoritative)", async () => {
+    const { result } = renderHook(() => useArmedVideoPoster());
+    act(() => {
+      result.current.arm(VIDEO_INPUT, "left");
+    });
+    // Confirm initial duration from VIDEO_INPUT
+    expect(result.current.armed?.duration).toBe(60);
+
+    await act(async () => {
+      await result.current.goLive();
+    });
+
+    act(() => {
+      result.current.reportDuration(999);
+    });
+    // duration should NOT change from a player report while live.
+    expect(result.current.armed?.duration).toBe(60);
+  });
+
+  it("reportDuration() updates duration while staging", () => {
+    const { result } = renderHook(() => useArmedVideoPoster());
+    act(() => {
+      result.current.arm({ ...VIDEO_INPUT, duration: undefined }, "left");
+    });
+    act(() => {
+      result.current.reportDuration(120);
+    });
+    expect(result.current.armed?.duration).toBe(120);
+  });
 });

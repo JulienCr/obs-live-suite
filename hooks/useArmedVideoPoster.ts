@@ -7,6 +7,7 @@ import { CLIENT_ID } from "@/lib/utils/clientId";
 import { PosterEventType } from "@/lib/models/OverlayEvents";
 import type { VideoChapter } from "@/lib/models/Poster";
 import { useWebSocketChannel } from "./useWebSocketChannel";
+import { posterEndpoint } from "@/lib/utils/posterHelpers";
 
 /**
  * Single source of truth for the operator's armed video poster.
@@ -150,7 +151,12 @@ const useArmedStore = create<ArmedStore>((set) => ({
       // Avoid no-op writes that would otherwise re-render every consumer.
       let changed = false;
       for (const k of Object.keys(patch) as Array<keyof ArmedVideoPoster>) {
-        if (state.armed[k] !== patch[k]) {
+        const a = state.armed[k];
+        const b = patch[k];
+        const equal =
+          a === b ||
+          (Array.isArray(a) && Array.isArray(b) && JSON.stringify(a) === JSON.stringify(b));
+        if (!equal) {
           changed = true;
           break;
         }
@@ -166,8 +172,6 @@ const useArmedStore = create<ArmedStore>((set) => ({
     })),
 }));
 
-const posterEndpoint = (mode: DisplayMode) =>
-  mode === "bigpicture" ? "/api/overlays/poster-bigpicture" : "/api/overlays/poster";
 
 function armedMatchesChannel(armed: ArmedVideoPoster, isBigpicture: boolean): boolean {
   return isBigpicture ? armed.displayMode === "bigpicture" : armed.displayMode !== "bigpicture";
@@ -244,17 +248,18 @@ export function useArmedVideoPoster(): UseArmedVideoPosterReturn {
   const goLive = useCallback(async (): Promise<boolean> => {
     const current = useArmedStore.getState().armed;
     if (!current || current.isLive) return false;
+    // Flip isLive optimistically before the network call to prevent double-tap
+    // from firing two SHOW events — both reads see isLive: false otherwise.
+    _patch({ isLive: true, ownerClientId: CLIENT_ID });
     try {
       await apiPost(posterEndpoint(current.displayMode), {
         action: PosterEventType.SHOW,
         payload: buildShowPayload(current),
       });
-      _patch({ isLive: true, ownerClientId: CLIENT_ID });
-      // After the patch, persist() won't store live state to localStorage,
-      // so this also drops the staging cue automatically.
       return true;
     } catch (err) {
       console.error("[ArmedVideoPoster] goLive failed:", err);
+      _patch({ isLive: false, ownerClientId: undefined });
       return false;
     }
   }, [_patch]);
@@ -304,6 +309,8 @@ export function useArmedVideoPoster(): UseArmedVideoPosterReturn {
 
   const reportDuration = useCallback(
     (duration: number) => {
+      const current = useArmedStore.getState().armed;
+      if (!current || current.isLive) return; // Live: OBS ticks are authoritative.
       if (!Number.isFinite(duration) || duration <= 0) return;
       _patch({ duration });
     },

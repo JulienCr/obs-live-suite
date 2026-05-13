@@ -36,6 +36,7 @@ import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { useSyncWithOverlayState } from "@/hooks/useSyncWithOverlayState";
 import { useArmedVideoPoster, type DisplayMode } from "@/hooks/useArmedVideoPoster";
 import { CLIENT_ID } from "@/lib/utils/clientId";
+import { posterEndpoint } from "@/lib/utils/posterHelpers";
 import { toast } from "sonner";
 
 interface Poster {
@@ -61,9 +62,6 @@ interface PosterCardProps {
   className?: string;
   settings?: Record<string, unknown>;
 }
-
-const posterEndpoint = (mode: DisplayMode | null | undefined) =>
-  mode === "bigpicture" ? "/api/overlays/poster-bigpicture" : "/api/overlays/poster";
 
 // Aspect ratio classification for masonry layout
 type AspectRatioClass = "16:9" | "1:1" | "1:1.414";
@@ -304,17 +302,12 @@ export function PosterContent({ className }: PosterContentProps) {
     // Video → arm (or disarm if same poster + same mode already armed and not live).
     if (isVideoPosterType(poster.type)) {
       if (armed && armed.posterId === poster.id && armed.displayMode === mode) {
-        if (armed.isLive) {
-          await hideCurrentMode();
-          clearArmed();
-        } else {
-          clearArmed();
-        }
+        await handleHideArmed(); // handles live hide + clearArmed correctly using armed.displayMode
         return;
       }
       // Switching armed video while another is live: hide the live one first.
       if (armed?.isLive) {
-        await hideCurrentMode();
+        await handleHideArmed();
       }
       armPoster(poster, mode);
       return;
@@ -322,8 +315,7 @@ export function PosterContent({ className }: PosterContentProps) {
 
     // Image path: clear any armed video, then go-direct-to-OBS.
     if (armed) {
-      if (armed.isLive) await hideCurrentMode();
-      clearArmed();
+      await handleHideArmed(); // handles live hide + clearArmed using armed.displayMode
     }
 
     if (activePoster === poster.id && displayMode === mode) {
@@ -342,16 +334,11 @@ export function PosterContent({ className }: PosterContentProps) {
   const handleCardClick = async (poster: Poster) => {
     if (isVideoPosterType(poster.type)) {
       if (armed && armed.posterId === poster.id) {
-        if (armed.isLive) {
-          await hideCurrentMode();
-          clearArmed();
-        } else {
-          clearArmed();
-        }
+        await handleHideArmed(); // handles live hide + clearArmed correctly using armed.displayMode
         return;
       }
       if (armed?.isLive) {
-        await hideCurrentMode();
+        await handleHideArmed();
       }
       armPoster(poster, defaultDisplayMode);
       return;
@@ -359,8 +346,7 @@ export function PosterContent({ className }: PosterContentProps) {
 
     // Image path
     if (armed) {
-      if (armed.isLive) await hideCurrentMode();
-      clearArmed();
+      await handleHideArmed(); // handles live hide + clearArmed using armed.displayMode
     }
 
     if (activePoster === poster.id) {
