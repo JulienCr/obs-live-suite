@@ -100,7 +100,7 @@ export abstract class ConnectionManager {
    * Override to add custom behavior.
    */
   protected onError(error: ConnectionError): void {
-    this.logger.error(`Connection error: ${error.message}`, error.originalError);
+    this.logger.warn(`Connection error: ${error.message}`);
   }
 
   /**
@@ -132,10 +132,7 @@ export abstract class ConnectionManager {
         message: error instanceof Error ? error.message : "Connection failed",
         originalError: error,
       };
-      this.logger.error(
-        `Connection error: ${this.currentError.message}`,
-        this.currentError.originalError
-      );
+      this.logger.warn(`Connection error: ${this.currentError.message}`);
       this.scheduleReconnect();
       throw error;
     }
