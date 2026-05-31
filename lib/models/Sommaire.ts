@@ -37,6 +37,17 @@ export const sommaireHighlightPayloadSchema = z.object({
 export type SommaireHighlightPayload = z.infer<typeof sommaireHighlightPayloadSchema>;
 
 /**
+ * Set-markdown payload schema.
+ * Pushes raw markdown into the dashboard SommairePanel for live editing
+ * (does not affect the on-air overlay).
+ */
+export const sommaireSetMarkdownPayloadSchema = z.object({
+  markdown: z.string().min(1),
+});
+
+export type SommaireSetMarkdownPayload = z.infer<typeof sommaireSetMarkdownPayloadSchema>;
+
+/**
  * Parse markdown into sommaire categories.
  * Lines starting with # become categories, ## become sub-items.
  */

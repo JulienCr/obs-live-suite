@@ -428,7 +428,8 @@
       "hide": "Hide",
       "none": "None",
       "noCategories": "No categories found. Use # for categories.",
-      "error": "Error controlling sommaire"
+      "error": "Error controlling sommaire",
+      "aiUpdated": "Sommaire updated by AI"
     }
   },
   "navigation": {

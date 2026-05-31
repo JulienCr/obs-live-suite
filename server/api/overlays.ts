@@ -19,7 +19,7 @@ import {
   OverlayChannel
 } from "../../lib/models/OverlayEvents";
 import { lowerThirdShowPayloadSchema, chatHighlightShowPayloadSchema, titleRevealPlayPayloadSchema, sommaireShowPayloadSchema } from "../../lib/models/OverlayEvents";
-import { sommaireHighlightPayloadSchema } from "../../lib/models/Sommaire";
+import { sommaireHighlightPayloadSchema, sommaireSetMarkdownPayloadSchema } from "../../lib/models/Sommaire";
 import { enrichLowerThirdPayload, enrichCountdownPayload, enrichPosterPayload, enrichChatHighlightPayload, enrichTitleRevealPayload } from "../../lib/utils/themeEnrichment";
 import { updatePosterSourceInOBS } from "./obs-helpers";
 import { Logger } from "../../lib/utils/Logger";
@@ -381,6 +381,12 @@ router.post("/sommaire", overlayHandler(async (req, res) => {
     case "highlight":
       const highlightPayload = sommaireHighlightPayloadSchema.parse(payload);
       await channelManager.publish(OverlayChannel.SOMMAIRE, SommaireEventType.HIGHLIGHT, highlightPayload);
+      break;
+
+    case "set-markdown":
+      // Pushes markdown to the dashboard panel for live editing (not the on-air overlay).
+      const setMarkdownPayload = sommaireSetMarkdownPayloadSchema.parse(payload);
+      await channelManager.publish(OverlayChannel.SOMMAIRE, SommaireEventType.SET_MARKDOWN, setMarkdownPayload);
       break;
 
     default:

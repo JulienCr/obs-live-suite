@@ -428,7 +428,8 @@
       "hide": "Masquer",
       "none": "Aucun",
       "noCategories": "Aucune catégorie trouvée. Utilisez # pour les catégories.",
-      "error": "Erreur lors du contrôle du sommaire"
+      "error": "Erreur lors du contrôle du sommaire",
+      "aiUpdated": "Sommaire mis à jour par l'IA"
     }
   },
   "navigation": {
