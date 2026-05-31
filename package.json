@@ -31,6 +31,7 @@
     "test:all": "pnpm test && pnpm test:functional && pnpm test:functional:ui",
     "streamdeck:ids": "node scripts/list-streamdeck-ids.js",
     "backup:appdata": "node scripts/backup-appdata.js",
+    "reserve:ports": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/reserve-ports.ps1",
     "dev:mcp": "cd mcp-server && pnpm dev",
     "test:mcp": "pnpm --filter obs-live-suite-mcp test",
     "studio-return:dev": "cd studio-return && pnpm dev",
