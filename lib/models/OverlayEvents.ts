@@ -107,6 +107,8 @@ export enum SommaireEventType {
   SHOW = "show",
   HIDE = "hide",
   HIGHLIGHT = "highlight",
+  /** Pushes new markdown into the dashboard panel (live edit), not the overlay. */
+  SET_MARKDOWN = "set-markdown",
 }
 
 /**

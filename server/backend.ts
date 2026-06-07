@@ -36,12 +36,16 @@ import mediaPlayerRouter from "./api/media-player";
 import wordHarvestRouter from "./api/word-harvest";
 import { APP_PORT, BACKEND_PORT, WS_PORT } from "../lib/config/urls";
 import { createServerWithFallback } from "../lib/utils/CertificateManager";
+import { getPortConflictReport } from "../scripts/port-diagnostics.mjs";
 import { expressError } from "../lib/utils/apiError";
 import { MediaPlayerManager } from "../lib/services/MediaPlayerManager";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Exit code that tells PM2 (via `stop_exit_codes`) NOT to restart on port conflict.
+const PORT_IN_USE_EXIT_CODE = 100;
 
 class BackendServer {
   private logger: Logger;
@@ -262,6 +266,17 @@ class BackendServer {
       await new Promise<void>((resolve) => {
         const { server, isHttps } = createServerWithFallback(this.app);
         this.httpServer = server;
+
+        // If the port is taken, report WHO holds it + how to free it, then exit with
+        // PORT_IN_USE_EXIT_CODE so PM2 (via `stop_exit_codes`) does NOT restart in a loop.
+        this.httpServer.once("error", async (err: NodeJS.ErrnoException) => {
+          if (err.code === "EADDRINUSE") {
+            console.error(await getPortConflictReport(this.httpPort, "backend"));
+            console.error(`[backend] PM2 will NOT restart this process (exit ${PORT_IN_USE_EXIT_CODE}).`);
+            process.exit(PORT_IN_USE_EXIT_CODE);
+          }
+          throw err;
+        });
 
         this.httpServer.listen(this.httpPort, () => {
           if (isHttps) {

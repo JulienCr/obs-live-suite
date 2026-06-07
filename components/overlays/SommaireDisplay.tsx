@@ -1,5 +1,6 @@
 "use client";
 
+import { useLayoutEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import type { SommaireShowPayload } from "@/lib/models/OverlayEvents";
 
@@ -13,6 +14,9 @@ const COLORS = {
   active: "#F5A623",
   dimmed: "#7B8DB5",
 };
+
+/** Minimum gap (px) kept above and below the block once it can no longer be centered. */
+const MARGIN = 60;
 
 const TEXT_SHADOW = "0 0 12px rgba(0,0,0,0.9), 0 0 24px rgba(0,0,0,0.7), 0 2px 6px rgba(0,0,0,0.8)";
 const HEADER_SHADOW = "0 0 16px rgba(0,0,0,0.9), 0 0 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.9)";
@@ -61,9 +65,25 @@ const itemVariants = {
  */
 export function SommaireDisplay({ categories, activeIndex, activeSubIndex }: SommaireDisplayProps) {
   const hasHighlight = activeIndex !== -1;
+  const ref = useRef<HTMLDivElement>(null);
+  // Anchor by the bottom edge: centered while it fits, then stuck to the bottom
+  // (growing upward) once it would overflow. bottom = max(MARGIN, (vh - h) / 2)
+  // gives both behaviours in one expression.
+  const [bottomPx, setBottomPx] = useState(MARGIN);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const height = ref.current?.offsetHeight ?? 0;
+      setBottomPx(Math.max(MARGIN, (window.innerHeight - height) / 2));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [categories]);
 
   return (
     <motion.div
+      ref={ref}
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -71,8 +91,7 @@ export function SommaireDisplay({ categories, activeIndex, activeSubIndex }: Som
       style={{
         position: "absolute",
         left: 50,
-        top: "50%",
-        transform: "translateY(-50%)",
+        bottom: bottomPx,
         fontFamily: "'Permanent Marker', cursive",
       }}
     >

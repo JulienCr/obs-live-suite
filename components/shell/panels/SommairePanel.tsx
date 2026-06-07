@@ -11,6 +11,13 @@ import { parseSommaireMarkdown, type SommaireCategory } from "@/lib/models/Somma
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
+import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
+
+/** Event shape broadcast on the sommaire channel. */
+interface SommaireChannelEvent {
+  type: string;
+  payload?: { markdown?: string };
+}
 
 const config: PanelConfig = { id: "sommaire", context: "dashboard" };
 
@@ -41,6 +48,22 @@ export function SommairePanel(_props: IDockviewPanelProps) {
   const saveMarkdown = useCallback((md: string) => {
     apiPost("/api/settings/sommaire", { markdown: md }).catch(() => {});
   }, []);
+
+  // Live-refresh: the AI assistant fills the panel via the set-sommaire tool,
+  // which broadcasts a set-markdown event on the sommaire channel.
+  const handleChannelEvent = useCallback(
+    (data: SommaireChannelEvent) => {
+      if (data.type === "set-markdown" && data.payload?.markdown) {
+        setMarkdown(data.payload.markdown);
+        toast.success(t("aiUpdated"));
+      }
+    },
+    [t]
+  );
+
+  useWebSocketChannel<SommaireChannelEvent>("sommaire", handleChannelEvent, {
+    logPrefix: "SommairePanel",
+  });
 
   const sendAction = useCallback(async (action: string, payload?: Record<string, unknown>) => {
     try {

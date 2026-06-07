@@ -13,6 +13,10 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '300M',
+      max_restarts: 3,
+      min_uptime: '5s',
+      // Exit code 100 = port already in use -> do not restart (avoid spawn loop)
+      stop_exit_codes: [100],
       windowsHide: true,
       env: {
         NODE_ENV: 'production',
@@ -36,6 +40,8 @@ module.exports = {
       max_memory_restart: '500M',
       max_restarts: 3,
       min_uptime: '5s',
+      // Exit code 100 = port already in use -> do not restart (avoid spawn loop)
+      stop_exit_codes: [100],
       windowsHide: true,
       env: {
         NODE_ENV: 'production',

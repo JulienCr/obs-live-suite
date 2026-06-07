@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
-import { backendFetch, errorResponse, textResponse } from '../httpClient.js';
+import { backendFetch, frontendFetch, errorResponse, textResponse } from '../httpClient.js';
 
 /**
  * Parse markdown into sommaire categories.
@@ -53,6 +53,39 @@ export function registerSommaireTools(server: McpServer) {
 
     if (!result.success) return errorResponse(result.error);
     return textResponse(`Sommaire displayed with ${categories.length} categories.`);
+  });
+
+  server.registerTool('set-sommaire', {
+    title: 'Set Sommaire (fill panel)',
+    description:
+      'Build the sommaire (table of contents) from structured markdown and load it into the dashboard Sommaire panel for the operator to review. Use # for top-level titles and ## for sub-titles, one per line. Use this to turn a raw pasted list of show sections into a structured sommaire. This does NOT display it on air — the operator reviews and clicks Show.',
+    inputSchema: z.object({
+      markdown: z.string().describe('Markdown with # for titles and ## for sub-titles, one per line'),
+    }),
+  }, async ({ markdown }) => {
+    const categories = parseSommaireMarkdown(markdown);
+    if (categories.length === 0) {
+      return errorResponse('No categories found in markdown. Use # for titles and ## for sub-titles.');
+    }
+
+    // Persist so the sommaire survives a panel reload (reuses the settings route).
+    const saved = await frontendFetch('/api/settings/sommaire', {
+      method: 'POST',
+      body: JSON.stringify({ markdown }),
+    });
+    if (!saved.success) return errorResponse(saved.error);
+
+    // Broadcast so an already-open panel refreshes live (best-effort: the data
+    // is already persisted, so the panel will also pick it up on next load).
+    await backendFetch('/api/overlays/sommaire', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'set-markdown', payload: { markdown } }),
+    });
+
+    const itemCount = categories.reduce((sum, c) => sum + c.items.length, 0);
+    return textResponse(
+      `Sommaire chargé dans le panel : ${categories.length} catégorie(s), ${itemCount} sous-élément(s). L'opérateur peut le réviser puis cliquer Show.`,
+    );
   });
 
   server.registerTool('hide-sommaire', {

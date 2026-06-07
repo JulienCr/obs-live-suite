@@ -10,6 +10,7 @@ import next from 'next';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getPortConflictReport } from './scripts/port-diagnostics.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,8 +31,11 @@ const httpsOptions = {
   cert: fs.readFileSync(CERT_PATH),
 };
 
+// Exit code that tells PM2 (via `stop_exit_codes`) NOT to restart on port conflict.
+const PORT_IN_USE_EXIT_CODE = 100;
+
 app.prepare().then(() => {
-  createServer(httpsOptions, async (req, res) => {
+  const httpServer = createServer(httpsOptions, async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);
       await handle(req, res, parsedUrl);
@@ -40,7 +44,20 @@ app.prepare().then(() => {
       res.statusCode = 500;
       res.end('internal server error');
     }
-  }).listen(port, hostname, (err) => {
+  });
+
+  // If the port is taken, report WHO holds it + how to free it, then exit with
+  // PORT_IN_USE_EXIT_CODE so PM2 (via `stop_exit_codes`) does NOT restart in a loop.
+  httpServer.once('error', async (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(await getPortConflictReport(port, 'frontend'));
+      console.error(`[frontend] PM2 will NOT restart this process (exit ${PORT_IN_USE_EXIT_CODE}).`);
+      process.exit(PORT_IN_USE_EXIT_CODE);
+    }
+    throw err;
+  });
+
+  httpServer.listen(port, hostname, (err) => {
     if (err) throw err;
     console.log(`> Ready on https://localhost:${port}`);
     console.log(`> Network: https://192.168.1.10:${port}`);
