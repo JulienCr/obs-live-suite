@@ -46,11 +46,10 @@ POST /hide
 
 | Component | Location | Role |
 |---|---|---|
-| `WordHarvestPanel` | `components/shell/panels/WordHarvestPanel.tsx` | Dashboard panel: game controls, approve/reject pending words, strike out used words. Also triggers sounds and MIDI. |
+| `WordHarvestPanel` | `components/shell/panels/WordHarvestPanel.tsx` | Dashboard panel: game controls, approve/reject pending words, strike out used words. (MIDI is handled globally — see MIDI section.) |
 | `WordHarvestRenderer` | `components/overlays/WordHarvestRenderer.tsx` | WebSocket consumer for overlay. Processes events, manages local display state, plays sounds. |
 | `WordHarvestDisplay` | `components/overlays/WordHarvestDisplay.tsx` | Framer-motion animated word list + celebration overlay. Pure presentational. |
 | `wordHarvestAnimations` | `components/overlays/wordHarvestAnimations.ts` | Animation variants (slide-in, celebrate bounce). |
-| `WordHarvestMidiSettings` | `components/settings/WordHarvestMidiSettings.tsx` | MIDI CC configuration per event, with test buttons. |
 
 ### Overlay Integration
 
@@ -90,22 +89,17 @@ Channel: `"word-harvest"` (from `OverlayChannel.WORD_HARVEST`)
 
 ## MIDI
 
-CC messages sent from the dashboard panel via Web MIDI API.
+MIDI is handled by the **centralized MIDI config** (Settings → MIDI), not by Word
+Harvest specifically. The global dispatcher (`hooks/useMidiDispatcher`, mounted in
+`DashboardShell`) listens to the `word-harvest` channel and sends the configured CC
+messages via Web MIDI (`hooks/useMidi`).
 
-Hook chain: `useWordHarvestMidi` (loads settings, maps events) → `useMidi` (raw Web MIDI access + CC send).
+Word Harvest actions (`wordApproved`, `wordUsed`, `celebration`, `improStart`) appear
+in the MIDI settings page; each maps to one or more messages targeting a declared MIDI
+application. See `lib/models/Midi.ts` (`MIDI_ACTIONS`) and `components/settings/MidiSettings.tsx`.
 
-4 configurable events, each with: enabled toggle, channel (1-16), CC number (0-127), value (0-127).
-
-| Event | Default CC | Triggered When |
-|---|---|---|
-| `wordApproved` | 60 | Word approved by regie |
-| `wordUsed` | 62 | Word struck out |
-| `celebration` | 72 | Target count reached |
-| `improStart` | 64 | Phase transitions to performing |
-
-All disabled by default. Settings persisted via `SettingsService` → SQLite.
-
-Settings API: `GET/POST /api/settings/word-harvest-midi`
+Settings API: `GET/POST /api/settings/midi`. Legacy `/api/settings/word-harvest-midi`
+config is migrated automatically on first read.
 
 ## Sound Effects
 

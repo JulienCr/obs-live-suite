@@ -44,7 +44,7 @@ import {
   MessageSquare,
   Monitor,
   Send,
-  Wheat,
+  Music,
 } from "lucide-react";
 import { useAppMode } from "@/components/shell/AppModeContext";
 import { useOBSStatus, useStreamerbotStatus, useTwitchAuthStatus } from "@/lib/queries";
@@ -110,7 +110,6 @@ const NAVIGATION_SECTIONS: NavSection[] = [
       { labelKey: "presenterChannel", href: "/settings/presenter", icon: MessageSquare },
       { labelKey: "studioReturn", href: "/settings/studio-return", icon: Monitor },
       { labelKey: "chatMessages", href: "/settings/chat-messages", icon: Send },
-      { labelKey: "wordHarvest", href: "/settings/word-harvest", icon: Wheat },
       { labelKey: "titleReveal", href: "/settings/title-reveal", icon: Type },
     ],
   },
@@ -122,6 +121,7 @@ const NAVIGATION_SECTIONS: NavSection[] = [
       { labelKey: "twitch", href: "/settings/twitch", icon: Twitch },
       { labelKey: "instagram", href: "/settings/instagram", icon: Instagram },
       { labelKey: "streamerbot", href: "/settings/streamerbot", icon: Bot },
+      { labelKey: "midi", href: "/settings/midi", icon: Music },
       { labelKey: "streamDeck", href: "/integrations/stream-deck", icon: Shield },
       { labelKey: "pluginsUpdates", href: "/updater", icon: Download },
     ],

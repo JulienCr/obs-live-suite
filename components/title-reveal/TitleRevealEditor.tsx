@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { TitleRevealLineEditor } from "./TitleRevealLineEditor";
 import { FontFamilyCombobox } from "./FontFamilyCombobox";
 import { FontSizeCombobox } from "./FontSizeCombobox";
@@ -27,10 +26,6 @@ export type TitleRevealSaveData = {
   colorGhostNavy: string;
   duration: number;
   soundUrl: string | null;
-  midiEnabled: boolean;
-  midiChannel: number;
-  midiCc: number;
-  midiValue: number;
 };
 
 interface TitleRevealEditorProps {
@@ -73,10 +68,6 @@ export function TitleRevealEditor({ initial, defaults, onSave, onCancel, uploadL
   const [isUploading, setIsUploading] = useState(false);
   const [soundUrl, setSoundUrl] = useState<string | null>(initial?.soundUrl ?? defaults?.defaultSoundUrl ?? null);
   const [isSoundUploading, setIsSoundUploading] = useState(false);
-  const [midiEnabled, setMidiEnabled] = useState(initial?.midiEnabled ?? false);
-  const [midiChannel, setMidiChannel] = useState(initial?.midiChannel ?? 1);
-  const [midiCc, setMidiCc] = useState(initial?.midiCc ?? 60);
-  const [midiValue, setMidiValue] = useState(initial?.midiValue ?? 127);
 
   // Expose current config to parent for the side preview
   const previewConfig = useMemo<TitleRevealAnimConfig>(
@@ -144,10 +135,6 @@ export function TitleRevealEditor({ initial, defaults, onSave, onCancel, uploadL
       colorGhostNavy,
       duration,
       soundUrl,
-      midiEnabled,
-      midiChannel,
-      midiCc,
-      midiValue,
     });
   };
 
@@ -324,47 +311,6 @@ export function TitleRevealEditor({ initial, defaults, onSave, onCancel, uploadL
           </div>
         </div>
 
-        {/* MIDI */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Switch checked={midiEnabled} onCheckedChange={setMidiEnabled} />
-            <Label>{t("midiEnabled")}</Label>
-          </div>
-          {midiEnabled && (
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label>{t("midiChannel")}</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={16}
-                  value={midiChannel}
-                  onChange={(e) => setMidiChannel(Math.max(1, Math.min(16, parseInt(e.target.value) || 1)))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t("midiCc")}</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={127}
-                  value={midiCc}
-                  onChange={(e) => setMidiCc(Math.max(0, Math.min(127, parseInt(e.target.value) || 0)))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t("midiValue")}</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={127}
-                  value={midiValue}
-                  onChange={(e) => setMidiValue(Math.max(0, Math.min(127, parseInt(e.target.value) || 0)))}
-                />
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Actions */}

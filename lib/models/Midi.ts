@@ -1,0 +1,184 @@
+import { z } from "zod";
+import { WordHarvestEventType } from "./WordHarvest";
+
+// =============================================================================
+// Centralized MIDI configuration (shared between client & server)
+//
+// Model:
+//  - A MIDI "application" is a named target bound to a MIDI output port.
+//  - An "action" (e.g. title-reveal ON/OFF) maps to one or more messages.
+//  - Each message targets an application + a MIDI message (CC for now).
+//
+// MIDI is sent from the browser via the Web MIDI API (see hooks/useMidi.ts).
+// The action catalog (MIDI_ACTIONS) is the single source of truth: adding a
+// new triggerable action is a one-line change here (+ i18n).
+// =============================================================================
+
+/** A MIDI application = a human label bound to a MIDI output port. */
+export const midiAppSchema = z.object({
+  /** Stable identifier referenced by messages (slug or uuid). */
+  id: z.string(),
+  /** Human-readable label, e.g. "QLC+", "VoiceMeeter", "Avocam". */
+  label: z.string().default(""),
+  /** MIDI output name; "" means "first available output". */
+  port: z.string().default(""),
+});
+
+export type MidiApp = z.infer<typeof midiAppSchema>;
+
+/** A single MIDI message sent when an action fires. */
+export const midiMessageSchema = z.object({
+  /** References a MidiApp.id. */
+  appId: z.string().default(""),
+  /** Message kind. Only "cc" today; reserved for future Note On/Off support. */
+  type: z.literal("cc").default("cc"),
+  channel: z.number().int().min(1).max(16).default(1),
+  cc: z.number().int().min(0).max(127).default(81),
+  value: z.number().int().min(0).max(127).default(127),
+  enabled: z.boolean().default(true),
+});
+
+export type MidiMessage = z.infer<typeof midiMessageSchema>;
+
+/** Per-action configuration: the list of messages to send. */
+export const midiActionConfigSchema = z.object({
+  /** Action id from MIDI_ACTIONS. */
+  id: z.string(),
+  messages: z.array(midiMessageSchema).default([]),
+});
+
+export type MidiActionConfig = z.infer<typeof midiActionConfigSchema>;
+
+// -----------------------------------------------------------------------------
+// Action catalog (code-defined, single source of truth)
+// -----------------------------------------------------------------------------
+
+/** A trigger describes which WebSocket event fires an action. */
+export type MidiActionTrigger =
+  | { channel: "title-reveal"; on: "play" }
+  /** Fires at the natural end of the title reveal (timer) or on manual hide. */
+  | { channel: "title-reveal"; on: "play-end" }
+  | { channel: "word-harvest"; on: WordHarvestEventType };
+
+export type MidiActionGroup = "titleReveal" | "wordHarvest";
+
+export interface MidiActionDef {
+  /** Stable action id stored in config + referenced by the dispatcher. */
+  id: string;
+  /** i18n key under "midi.actions". */
+  labelKey: string;
+  /** UI grouping. */
+  group: MidiActionGroup;
+  trigger: MidiActionTrigger;
+}
+
+export const MIDI_ACTIONS: MidiActionDef[] = [
+  {
+    id: "title-reveal.on",
+    labelKey: "titleRevealOn",
+    group: "titleReveal",
+    trigger: { channel: "title-reveal", on: "play" },
+  },
+  {
+    id: "title-reveal.off",
+    labelKey: "titleRevealOff",
+    group: "titleReveal",
+    trigger: { channel: "title-reveal", on: "play-end" },
+  },
+  {
+    id: "wordApproved",
+    labelKey: "wordApproved",
+    group: "wordHarvest",
+    trigger: { channel: "word-harvest", on: WordHarvestEventType.WORD_APPROVED },
+  },
+  {
+    id: "wordUsed",
+    labelKey: "wordUsed",
+    group: "wordHarvest",
+    trigger: { channel: "word-harvest", on: WordHarvestEventType.WORD_USED },
+  },
+  {
+    id: "celebration",
+    labelKey: "celebration",
+    group: "wordHarvest",
+    trigger: { channel: "word-harvest", on: WordHarvestEventType.CELEBRATION },
+  },
+  {
+    id: "improStart",
+    labelKey: "improStart",
+    group: "wordHarvest",
+    trigger: { channel: "word-harvest", on: WordHarvestEventType.START_PERFORMING },
+  },
+];
+
+/** Distinct WebSocket channels the dispatcher must subscribe to. */
+export const MIDI_TRIGGER_CHANNELS: string[] = Array.from(
+  new Set(MIDI_ACTIONS.map((a) => a.trigger.channel))
+);
+
+/** Map a Word Harvest event type to its action id (for the dispatcher). */
+export const WH_EVENT_TO_ACTION: Partial<Record<WordHarvestEventType, string>> =
+  Object.fromEntries(
+    MIDI_ACTIONS.filter((a) => a.trigger.channel === "word-harvest").map((a) => [
+      (a.trigger as { on: WordHarvestEventType }).on,
+      a.id,
+    ])
+  );
+
+// -----------------------------------------------------------------------------
+// Defaults
+// -----------------------------------------------------------------------------
+
+/** Seeded applications with the operator's stated loopMIDI port names. */
+export const DEFAULT_MIDI_APPS: MidiApp[] = [
+  { id: "qlc", label: "QLC+", port: "qlc-in" },
+  { id: "voicemeeter", label: "VoiceMeeter", port: "xtouch-gw" },
+  { id: "avocam", label: "Avocam", port: "avocam-in" },
+];
+
+/**
+ * Seeded actions. The FACE toggle: ON and OFF both send the same CC 81 to QLC+,
+ * which toggles the FACE light (off during the jingle, back on at the end).
+ */
+export const DEFAULT_MIDI_ACTIONS: MidiActionConfig[] = [
+  {
+    id: "title-reveal.on",
+    messages: [{ appId: "qlc", type: "cc", channel: 1, cc: 81, value: 127, enabled: true }],
+  },
+  {
+    id: "title-reveal.off",
+    messages: [{ appId: "qlc", type: "cc", channel: 1, cc: 81, value: 127, enabled: true }],
+  },
+];
+
+/** Default title reveal duration (seconds) used to time the OFF when missing. */
+export const DEFAULT_TITLE_REVEAL_DURATION = 8.5;
+
+export const midiSettingsSchema = z.object({
+  apps: z.array(midiAppSchema).default(DEFAULT_MIDI_APPS),
+  actions: z.array(midiActionConfigSchema).default(DEFAULT_MIDI_ACTIONS),
+});
+
+export type MidiSettings = z.infer<typeof midiSettingsSchema>;
+
+export const DEFAULT_MIDI_SETTINGS: MidiSettings = {
+  apps: DEFAULT_MIDI_APPS,
+  actions: DEFAULT_MIDI_ACTIONS,
+};
+
+// -----------------------------------------------------------------------------
+// Lookup helpers (used by the dispatcher and the settings UI)
+// -----------------------------------------------------------------------------
+
+/** Messages configured for an action id (empty if none). */
+export function getMessagesForAction(
+  settings: MidiSettings,
+  actionId: string
+): MidiMessage[] {
+  return settings.actions.find((a) => a.id === actionId)?.messages ?? [];
+}
+
+/** MIDI output port for an app id ("" = first available). */
+export function getPortForApp(settings: MidiSettings, appId: string): string {
+  return settings.apps.find((a) => a.id === appId)?.port ?? "";
+}
