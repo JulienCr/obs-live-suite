@@ -37,6 +37,7 @@ import { usePanelColorsStore, useWorkspacesStore, useDockviewStore } from "@/lib
 import { PanelTab } from "./PanelTab";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { useDataSync } from "@/hooks/useDataSync";
+import { useMidiDispatcher } from "@/hooks/useMidiDispatcher";
 import { useAppMode } from "./AppModeContext";
 import type { ColorScheme } from "@/lib/models/PanelColor";
 import type { PanelId } from "@/lib/panels/registry";
@@ -87,6 +88,8 @@ export function DashboardShell({ initialColors }: DashboardShellProps) {
   const { theme } = useTheme();
   const { isFullscreenMode } = useAppMode();
   useDataSync();
+  // Always-on MIDI dispatcher (Title Reveal toggle, Word Harvest, …).
+  useMidiDispatcher();
   const [mounted, setMounted] = useState(false);
   const apiRef = useRef<DockviewReadyEvent["api"] | null>(null);
   const [api, setApi] = useState<DockviewReadyEvent["api"] | null>(null);

@@ -455,6 +455,7 @@
       "twitch": "Twitch",
       "instagram": "Instagram",
       "streamerbot": "Streamer.bot",
+      "midi": "MIDI",
       "streamDeck": "Stream Deck",
       "pluginsUpdates": "Plugins & Updates",
       "general": "General",
@@ -1159,6 +1160,52 @@
       "enable": "Enable",
       "disable": "Disable",
       "delete": "Delete"
+    }
+  },
+  "midi": {
+    "title": "MIDI",
+    "description": "Configure MIDI ports per application and the messages sent for each action (e.g. toggle the QLC+ FACE light on a title reveal).",
+    "loading": "Loading…",
+    "save": "Save",
+    "saving": "Saving…",
+    "savedSuccess": "MIDI configuration saved",
+    "notAvailable": "Web MIDI is unavailable in this browser (use Chrome/Edge).",
+    "noDevices": "No MIDI device detected.",
+    "apps": {
+      "title": "Applications",
+      "description": "Declare each target application and its MIDI port (loopMIDI, etc.).",
+      "label": "Name",
+      "port": "MIDI port",
+      "auto": "Auto (first available)",
+      "add": "Add application",
+      "remove": "Remove"
+    },
+    "groups": {
+      "titleReveal": "Title Reveal",
+      "wordHarvest": "Word Harvest"
+    },
+    "actions": {
+      "titleRevealOn": "Show (ON)",
+      "titleRevealOff": "End / hide (OFF)",
+      "wordApproved": "Word approved",
+      "wordUsed": "Word used",
+      "celebration": "Celebration",
+      "improStart": "Improv start"
+    },
+    "message": {
+      "app": "Application",
+      "channel": "Channel",
+      "cc": "CC",
+      "value": "Value",
+      "test": "Test",
+      "addMessage": "Add message",
+      "remove": "Remove",
+      "none": "No message",
+      "noApp": "—"
+    },
+    "offset": {
+      "label": "Offset (ms)",
+      "hint": "Offset in ms relative to the title's end (negative = fires earlier)"
     }
   },
   "wordHarvest": {

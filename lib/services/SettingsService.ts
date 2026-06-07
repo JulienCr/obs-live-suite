@@ -12,6 +12,12 @@ import { TwitchSettingsSchema } from "../models/Twitch";
 import { presenterChannelSettingsSchema } from "../models/PresenterChannel";
 import { WordHarvestMidiSettingsSchema } from "../models/WordHarvest";
 import type { WordHarvestMidiSettings } from "../models/WordHarvest";
+import {
+  midiSettingsSchema,
+  DEFAULT_MIDI_APPS,
+  DEFAULT_MIDI_ACTIONS,
+} from "../models/Midi";
+import type { MidiSettings, MidiApp, MidiActionConfig } from "../models/Midi";
 import { TitleRevealDefaultsSchema } from "../models/TitleReveal";
 import type { TitleRevealDefaults } from "../models/TitleReveal";
 import type { TwitchSettings, TwitchOAuthTokens } from "../models/Twitch";
@@ -119,6 +125,7 @@ export class SettingsService {
   private presenterChannelStore: SettingsStore<typeof presenterChannelSettingsSchema.shape>;
   private studioReturnStore: SettingsStore<typeof StudioReturnSettingsSchema.shape>;
   private wordHarvestMidiStore: SettingsStore<typeof WordHarvestMidiSettingsSchema.shape>;
+  private midiStore: SettingsStore<typeof midiSettingsSchema.shape>;
   private titleRevealDefaultsStore: SettingsStore<typeof TitleRevealDefaultsSchema.shape>;
 
   private constructor() {
@@ -221,11 +228,19 @@ export class SettingsService {
       this.logger
     );
 
-    // Initialize Word Harvest MIDI settings store
+    // Initialize Word Harvest MIDI settings store (legacy — kept for migration)
     this.wordHarvestMidiStore = new SettingsStore(
       this.db,
       "wordHarvestMidi",
       WordHarvestMidiSettingsSchema,
+      this.logger
+    );
+
+    // Initialize centralized MIDI settings store (apps + actions → messages)
+    this.midiStore = new SettingsStore(
+      this.db,
+      "midi",
+      midiSettingsSchema,
       this.logger
     );
 
@@ -624,6 +639,82 @@ export class SettingsService {
   saveWordHarvestMidiSettings(settings: Partial<WordHarvestMidiSettings>): void {
     this.wordHarvestMidiStore.set(settings);
     this.logger.info("Word harvest MIDI settings saved");
+  }
+
+  // =========================================================================
+  // MIDI SETTINGS (centralized: apps + actions → messages)
+  // =========================================================================
+
+  /**
+   * Get centralized MIDI settings, running the one-time legacy migration first.
+   */
+  getMidiSettings(): MidiSettings {
+    this.migrateLegacyMidiIfNeeded();
+    return this.midiStore.get();
+  }
+
+  /**
+   * Save centralized MIDI settings
+   */
+  saveMidiSettings(settings: Partial<MidiSettings>): void {
+    this.midiStore.set(settings);
+    this.logger.info("MIDI settings saved");
+  }
+
+  /**
+   * One-time migration: fold legacy Word Harvest MIDI settings into the
+   * centralized MIDI config so existing configuration is preserved. Idempotent
+   * (guarded by the "midi.migrated" flag). Only runs when the central store has
+   * not been configured yet.
+   */
+  private migrateLegacyMidiIfNeeded(): void {
+    if (this.db.getSetting("midi.migrated") === "true") return;
+
+    // If the central store already has data, don't overwrite it.
+    if (this.midiStore.has("apps") || this.midiStore.has("actions")) {
+      this.db.setSetting("midi.migrated", "true");
+      return;
+    }
+
+    const wh = this.wordHarvestMidiStore.get();
+    const whConfigured =
+      !!wh.outputName ||
+      wh.wordApproved.enabled ||
+      wh.wordUsed.enabled ||
+      wh.celebration.enabled ||
+      wh.improStart.enabled;
+
+    if (!whConfigured) {
+      // Nothing to migrate; leave the schema defaults virtual (seeded on save).
+      this.db.setSetting("midi.migrated", "true");
+      return;
+    }
+
+    const apps: MidiApp[] = [
+      ...DEFAULT_MIDI_APPS,
+      { id: "word-harvest", label: "Word Harvest", port: wh.outputName },
+    ];
+
+    const whActions: MidiActionConfig[] = (
+      ["wordApproved", "wordUsed", "celebration", "improStart"] as const
+    ).map((key) => ({
+      id: key,
+      offsetMs: 0,
+      messages: [
+        {
+          appId: "word-harvest",
+          type: "cc" as const,
+          channel: wh[key].channel,
+          cc: wh[key].cc,
+          value: wh[key].value,
+          enabled: wh[key].enabled,
+        },
+      ],
+    }));
+
+    this.midiStore.set({ apps, actions: [...DEFAULT_MIDI_ACTIONS, ...whActions] });
+    this.db.setSetting("midi.migrated", "true");
+    this.logger.info("Migrated legacy Word Harvest MIDI into centralized MIDI config");
   }
 
   // =========================================================================

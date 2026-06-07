@@ -9,8 +9,7 @@ import { Play, Square, Check, X, Eye, EyeOff, RotateCcw, PartyPopper } from "luc
 import { useTranslations } from "next-intl";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
-import { useWordHarvestMidi, type MidiEventName } from "@/hooks/useWordHarvestMidi";
-import { WordHarvestEventType, type WordHarvestPhase, type HarvestWord, type WordHarvestState } from "@/lib/models/WordHarvest";
+import { type WordHarvestPhase, type HarvestWord, type WordHarvestState } from "@/lib/models/WordHarvest";
 import { WORD_HARVEST } from "@/lib/config/Constants";
 
 const config: PanelConfig = { id: "wordHarvest", context: "dashboard" };
@@ -33,19 +32,10 @@ const DEFAULT_STATE: WordHarvestState = {
   visible: false,
 };
 
-/** Map WebSocket event types to MIDI event names */
-const WS_TO_MIDI: Partial<Record<WordHarvestEventType, MidiEventName>> = {
-  [WordHarvestEventType.WORD_APPROVED]: "wordApproved",
-  [WordHarvestEventType.WORD_USED]: "wordUsed",
-  [WordHarvestEventType.CELEBRATION]: "celebration",
-  [WordHarvestEventType.START_PERFORMING]: "improStart",
-};
-
 export function WordHarvestPanel(_props: IDockviewPanelProps) {
   const t = useTranslations("wordHarvest");
   const [state, setState] = useState<WordHarvestState>(DEFAULT_STATE);
   const [targetCount, setTargetCount] = useState<number>(WORD_HARVEST.DEFAULT_TARGET_COUNT);
-  const { sendMidiEvent } = useWordHarvestMidi();
 
   const fetchState = useCallback(async () => {
     try {
@@ -62,15 +52,10 @@ export function WordHarvestPanel(_props: IDockviewPanelProps) {
     }
   }, []);
 
-  const handleWsEvent = useCallback((data: { type: WordHarvestEventType }) => {
-    // Send MIDI for matching event types
-    const midiEvent = WS_TO_MIDI[data.type];
-    if (midiEvent) {
-      sendMidiEvent(midiEvent);
-    }
-    // Always re-fetch state
+  // MIDI for word-harvest events is handled globally by useMidiDispatcher.
+  const handleWsEvent = useCallback(() => {
     fetchState();
-  }, [fetchState, sendMidiEvent]);
+  }, [fetchState]);
 
   useWebSocketChannel("word-harvest", handleWsEvent);
 

@@ -455,6 +455,7 @@
       "twitch": "Twitch",
       "instagram": "Instagram",
       "streamerbot": "Streamer.bot",
+      "midi": "MIDI",
       "streamDeck": "Stream Deck",
       "pluginsUpdates": "Plugins et mises à jour",
       "general": "Général",
@@ -1159,6 +1160,52 @@
       "enable": "Activer",
       "disable": "Désactiver",
       "delete": "Supprimer"
+    }
+  },
+  "midi": {
+    "title": "MIDI",
+    "description": "Configurez les ports MIDI par application et les messages envoyés à chaque action (ex. basculer la lumière de FACE dans QLC+ sur un titre animé).",
+    "loading": "Chargement…",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "savedSuccess": "Configuration MIDI enregistrée",
+    "notAvailable": "Web MIDI indisponible dans ce navigateur (utilisez Chrome/Edge).",
+    "noDevices": "Aucun périphérique MIDI détecté.",
+    "apps": {
+      "title": "Applications",
+      "description": "Déclarez chaque application cible et son port MIDI (loopMIDI, etc.).",
+      "label": "Nom",
+      "port": "Port MIDI",
+      "auto": "Auto (1er dispo)",
+      "add": "Ajouter une application",
+      "remove": "Supprimer"
+    },
+    "groups": {
+      "titleReveal": "Titre animé",
+      "wordHarvest": "Récolte de mots"
+    },
+    "actions": {
+      "titleRevealOn": "Affichage (ON)",
+      "titleRevealOff": "Fin / masquage (OFF)",
+      "wordApproved": "Mot validé",
+      "wordUsed": "Mot utilisé",
+      "celebration": "Célébration",
+      "improStart": "Début d'impro"
+    },
+    "message": {
+      "app": "Application",
+      "channel": "Canal",
+      "cc": "CC",
+      "value": "Valeur",
+      "test": "Tester",
+      "addMessage": "Ajouter un message",
+      "remove": "Supprimer",
+      "none": "Aucun message",
+      "noApp": "—"
+    },
+    "offset": {
+      "label": "Offset (ms)",
+      "hint": "Décalage en ms relatif à la fin du title (négatif = part plus tôt)"
     }
   },
   "wordHarvest": {
