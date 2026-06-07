@@ -9,6 +9,7 @@ import { QuickReplyPanel } from "./panels/QuickReplyPanel";
 import { StreamerbotChatPanel } from "./panels/StreamerbotChatPanel";
 import { usePresenterWebSocket } from "./hooks/usePresenterWebSocket";
 import { useOverlayState } from "./hooks/useOverlayState";
+import { useChatHighlightSync } from "@/hooks/useChatHighlightSync";
 import { Wifi, WifiOff, Users, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
@@ -63,6 +64,10 @@ export function PresenterShell() {
   const [hidingInOverlay, setHidingInOverlay] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
+  // Keep currentlyDisplayedId in sync with the real overlay state (auto-hide,
+  // explicit hide, or external action) instead of a local timer.
+  useChatHighlightSync(currentlyDisplayedId, setCurrentlyDisplayedId);
+
   const handleClearHistory = async () => {
     await clearHistory();
     setShowClearConfirm(false);
@@ -101,11 +106,9 @@ export function PresenterShell() {
         title: t("overlay.showingInOverlay"),
         description: t("overlay.messageFrom", { author: payload.author }),
       });
-
-      // Auto-clear the displayed ID after duration
-      setTimeout(() => {
-        setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
-      }, 10000);
+      // Clearing is driven by useChatHighlightSync when the overlay actually
+      // hides (auto-hide duration or explicit hide) — correct even when
+      // auto-hide is disabled (backend sends duration = 0).
     } catch (error) {
       const errorMessage = isClientFetchError(error) ? error.errorMessage : String(error);
       console.error("Failed to update overlay:", errorMessage);

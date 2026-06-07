@@ -140,11 +140,9 @@ function RegiePublicChatContent() {
         title: t("overlay.showingInOverlay"),
         description: t("overlay.messageFrom", { author: message.displayName }),
       });
-
-      // Auto-clear the displayed ID after duration
-      setTimeout(() => {
-        setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
-      }, 10000);
+      // Clearing is driven by useChatHighlightSync when the overlay actually
+      // hides (auto-hide duration or explicit hide) — correct even when
+      // auto-hide is disabled (backend sends duration = 0).
     } catch (error) {
       console.error("Failed to update overlay:", error);
       toast({
