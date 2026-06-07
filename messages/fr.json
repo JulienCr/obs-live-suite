@@ -1201,6 +1201,10 @@
       "remove": "Supprimer",
       "none": "Aucun message",
       "noApp": "—"
+    },
+    "offset": {
+      "label": "Offset (ms)",
+      "hint": "Décalage en ms relatif à la fin du title (négatif = part plus tôt)"
     }
   },
   "wordHarvest": {

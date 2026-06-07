@@ -22,9 +22,12 @@ import {
   MIDI_ACTIONS,
   DEFAULT_MIDI_SETTINGS,
   getPortForApp,
+  getActionOffsetMs,
+  actionSupportsOffset,
   type MidiSettings as MidiSettingsType,
   type MidiApp,
   type MidiMessage,
+  type MidiActionConfig,
   type MidiActionGroup,
 } from "@/lib/models/Midi";
 
@@ -92,22 +95,32 @@ export function MidiSettings() {
   );
 
   // ---- Actions → messages ----
-  // Mutate via an updater that reads the CURRENT messages from prev state, so
-  // batched updates (e.g. two quick "Add message" clicks) compose instead of
-  // clobbering each other.
-  const updateAction = useCallback(
-    (actionId: string, updater: (messages: MidiMessage[]) => MidiMessage[]) =>
+  // Upsert an action from prev state, so batched edits compose and the rest of
+  // the action config (e.g. offsetMs) is preserved.
+  const patchAction = useCallback(
+    (actionId: string, patch: (action: MidiActionConfig) => MidiActionConfig) =>
       setData((prev) => {
-        const current = prev.actions.find((a) => a.id === actionId)?.messages ?? [];
+        const existing =
+          prev.actions.find((a) => a.id === actionId) ??
+          ({ id: actionId, offsetMs: 0, messages: [] } as MidiActionConfig);
         return {
           ...prev,
-          actions: [
-            ...prev.actions.filter((a) => a.id !== actionId),
-            { id: actionId, messages: updater(current) },
-          ],
+          actions: [...prev.actions.filter((a) => a.id !== actionId), patch(existing)],
         };
       }),
     [setData]
+  );
+
+  const updateMessages = useCallback(
+    (actionId: string, updater: (messages: MidiMessage[]) => MidiMessage[]) =>
+      patchAction(actionId, (a) => ({ ...a, messages: updater(a.messages) })),
+    [patchAction]
+  );
+
+  const updateOffset = useCallback(
+    (actionId: string, offsetMs: number) =>
+      patchAction(actionId, (a) => ({ ...a, offsetMs })),
+    [patchAction]
   );
 
   const getMessages = useCallback(
@@ -224,8 +237,28 @@ export function MidiSettings() {
                 const messages = getMessages(action.id);
                 return (
                   <div key={action.id} className="space-y-1">
-                    <div className="text-sm font-medium">
-                      {t(`actions.${action.labelKey}`)}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-medium">
+                        {t(`actions.${action.labelKey}`)}
+                      </div>
+                      {actionSupportsOffset(action) && (
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-muted-foreground whitespace-nowrap">
+                            {t("offset.label")}
+                          </Label>
+                          <Input
+                            type="number"
+                            step={50}
+                            value={getActionOffsetMs(data, action.id)}
+                            onChange={(e) => {
+                              const n = parseInt(e.target.value, 10);
+                              updateOffset(action.id, Number.isNaN(n) ? 0 : n);
+                            }}
+                            className="h-8 w-24 text-xs"
+                            title={t("offset.hint")}
+                          />
+                        </div>
+                      )}
                     </div>
                     {messages.length === 0 ? (
                       <p className="text-xs text-muted-foreground py-1">
@@ -238,12 +271,12 @@ export function MidiSettings() {
                           message={msg}
                           apps={data.apps}
                           onChange={(patch) =>
-                            updateAction(action.id, (msgs) =>
+                            updateMessages(action.id, (msgs) =>
                               msgs.map((m, i) => (i === index ? { ...m, ...patch } : m))
                             )
                           }
                           onRemove={() =>
-                            updateAction(action.id, (msgs) =>
+                            updateMessages(action.id, (msgs) =>
                               msgs.filter((_, i) => i !== index)
                             )
                           }
@@ -256,7 +289,7 @@ export function MidiSettings() {
                       size="sm"
                       className="text-xs"
                       onClick={() =>
-                        updateAction(action.id, (msgs) => [...msgs, newMessage(data.apps)])
+                        updateMessages(action.id, (msgs) => [...msgs, newMessage(data.apps)])
                       }
                     >
                       <Plus className="w-3.5 h-3.5 mr-1" />

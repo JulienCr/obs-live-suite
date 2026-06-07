@@ -699,6 +699,7 @@ export class SettingsService {
       ["wordApproved", "wordUsed", "celebration", "improStart"] as const
     ).map((key) => ({
       id: key,
+      offsetMs: 0,
       messages: [
         {
           appId: "word-harvest",

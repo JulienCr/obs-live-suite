@@ -9,6 +9,9 @@ import {
   DEFAULT_MIDI_ACTIONS,
   getMessagesForAction,
   getPortForApp,
+  getActionOffsetMs,
+  actionSupportsOffset,
+  midiActionConfigSchema,
   type MidiSettings,
 } from "../../lib/models/Midi";
 import { WordHarvestEventType } from "../../lib/models/WordHarvest";
@@ -98,6 +101,7 @@ describe("lookup helpers", () => {
     actions: [
       {
         id: "title-reveal.on",
+        offsetMs: -500,
         messages: [{ appId: "qlc", type: "cc", channel: 1, cc: 81, value: 127, enabled: true }],
       },
     ],
@@ -115,5 +119,27 @@ describe("lookup helpers", () => {
     expect(getPortForApp(settings, "qlc")).toBe("qlc-in");
     expect(getPortForApp(settings, "vm")).toBe(""); // known app, "" = first available
     expect(getPortForApp(settings, "missing")).toBeNull();
+  });
+
+  it("returns the configured action offset, 0 when unset", () => {
+    expect(getActionOffsetMs(settings, "title-reveal.on")).toBe(-500);
+    expect(getActionOffsetMs(settings, "missing")).toBe(0);
+  });
+});
+
+describe("action offset", () => {
+  it("defaults offsetMs to 0", () => {
+    expect(midiActionConfigSchema.parse({ id: "x" }).offsetMs).toBe(0);
+  });
+
+  it("accepts a negative integer offset", () => {
+    expect(midiActionConfigSchema.parse({ id: "x", offsetMs: -750 }).offsetMs).toBe(-750);
+  });
+
+  it("is exposed only for end-relative actions (title-reveal.off)", () => {
+    const byId = Object.fromEntries(MIDI_ACTIONS.map((a) => [a.id, a]));
+    expect(actionSupportsOffset(byId["title-reveal.off"])).toBe(true);
+    expect(actionSupportsOffset(byId["title-reveal.on"])).toBe(false);
+    expect(actionSupportsOffset(byId["wordApproved"])).toBe(false);
   });
 });

@@ -44,6 +44,13 @@ export type MidiMessage = z.infer<typeof midiMessageSchema>;
 export const midiActionConfigSchema = z.object({
   /** Action id from MIDI_ACTIONS. */
   id: z.string(),
+  /**
+   * Timing offset (ms) applied to this action's natural trigger; negative fires
+   * earlier. Currently honoured for `title-reveal.off`, where the OFF is timed
+   * from the jingle's end — a negative offset relights the FACE slightly before
+   * the visual end (and absorbs the QLC fade + WS→MIDI latency).
+   */
+  offsetMs: z.number().int().default(0),
   messages: z.array(midiMessageSchema).default([]),
 });
 
@@ -143,10 +150,12 @@ export const DEFAULT_MIDI_APPS: MidiApp[] = [
 export const DEFAULT_MIDI_ACTIONS: MidiActionConfig[] = [
   {
     id: "title-reveal.on",
+    offsetMs: 0,
     messages: [{ appId: "qlc", type: "cc", channel: 1, cc: 81, value: 127, enabled: true }],
   },
   {
     id: "title-reveal.off",
+    offsetMs: 0,
     messages: [{ appId: "qlc", type: "cc", channel: 1, cc: 81, value: 127, enabled: true }],
   },
 ];
@@ -176,6 +185,19 @@ export function getMessagesForAction(
   actionId: string
 ): MidiMessage[] {
   return settings.actions.find((a) => a.id === actionId)?.messages ?? [];
+}
+
+/** Configured timing offset (ms) for an action; 0 when unset. */
+export function getActionOffsetMs(settings: MidiSettings, actionId: string): number {
+  return settings.actions.find((a) => a.id === actionId)?.offsetMs ?? 0;
+}
+
+/**
+ * Whether an action fires at the title reveal's end, so a timing offset is
+ * meaningful and should be exposed in the settings UI.
+ */
+export function actionSupportsOffset(def: MidiActionDef): boolean {
+  return def.trigger.channel === "title-reveal" && def.trigger.on === "play-end";
 }
 
 /**

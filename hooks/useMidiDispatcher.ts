@@ -9,6 +9,7 @@ import {
   DEFAULT_MIDI_SETTINGS,
   DEFAULT_TITLE_REVEAL_DURATION,
   getMessagesForAction,
+  getActionOffsetMs,
   getPortForApp,
   type MidiSettings,
 } from "@/lib/models/Midi";
@@ -101,7 +102,12 @@ export function useMidiDispatcher(): void {
             typeof raw === "number" && Number.isFinite(raw) && raw > 0
               ? raw
               : DEFAULT_TITLE_REVEAL_DURATION;
-          offTimerRef.current = setTimeout(fireOffOnce, durationSec * 1000);
+          // Negative offset relights the FACE before the jingle's visual end.
+          const offsetMs = getActionOffsetMs(settingsRef.current, "title-reveal.off");
+          offTimerRef.current = setTimeout(
+            fireOffOnce,
+            Math.max(0, durationSec * 1000 + offsetMs)
+          );
         } else if (data?.type === TitleRevealEventType.HIDE) {
           // Manual hide before the natural end: fire OFF now.
           fireOffOnce();
