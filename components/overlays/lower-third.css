@@ -292,6 +292,25 @@
   animation: lt-text-out-right var(--lt-exit-text-duration) ease forwards;
 }
 
+/* Center position: bar retracts toward the center (symmetric fold) */
+.lowerthird--center.animate-out .bar {
+  transform-origin: center;
+}
+
+/* Center position: text fades in place (no horizontal slide) */
+@keyframes lt-text-out-center {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.lowerthird--center.animate-out .text {
+  animation: lt-text-out-center var(--lt-exit-text-duration) ease forwards;
+}
+
 /* Avatar: shrinks from center with delay (after text/bar) */
 .lowerthird.animate-out .avatar {
   animation: lt-avatar-out var(--lt-exit-avatar-duration) ease var(--lt-exit-avatar-delay) forwards;

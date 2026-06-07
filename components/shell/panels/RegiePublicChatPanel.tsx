@@ -30,6 +30,7 @@ function RegiePublicChatContent() {
   const [highlightingMessageId, setHighlightingMessageId] = useState<string | null>(null);
   const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
   const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
+  const [hidingInOverlay, setHidingInOverlay] = useState(false);
   const [moderateLoadingId, setModerateLoadingId] = useState<string | null>(null);
 
   // Sync with shared overlay state (handles external show/hide from EventLog)
@@ -96,74 +97,82 @@ function RegiePublicChatContent() {
 
       await apiPost("/api/presenter/cue/send", payload);
       toast({
-        title: "Message sent",
-        description: `Question from ${message.displayName} sent to presenter`,
+        title: t("overlay.sentToPresenter"),
+        description: t("overlay.questionSentToPresenter", { author: message.displayName }),
       });
     } catch (error) {
       console.error("Failed to highlight message:", error);
       toast({
-        title: "Error",
-        description: "Failed to send message to presenter",
+        title: t("status.error"),
+        description: t("overlay.failedToSend"),
         variant: "destructive",
       });
     } finally {
       setHighlightingMessageId(null);
     }
-  }, [highlightingMessageId, toast]);
+  }, [highlightingMessageId, toast, t]);
 
-  // Show/hide in overlay handler - toggle display of chat highlight overlay
+  // Show in overlay handler - displays the chat highlight overlay.
+  // Re-clicking a message that is already on screen is a no-op (no toggle/hide).
   const handleShowInOverlay = useCallback(async (message: ChatMessage) => {
     if (showingInOverlayId) return;
-
-    // Toggle: if already displayed, hide it
-    const isCurrentlyDisplayed = currentlyDisplayedId === message.id;
-    const action = isCurrentlyDisplayed ? "hide" : "show";
+    // Already on screen: do nothing (hiding is handled by auto-expire / clear-all).
+    if (currentlyDisplayedId === message.id) return;
 
     setShowingInOverlayId(message.id);
     try {
-      const overlayPayload = action === "show"
-        ? {
-            action: "show",
-            payload: {
-              messageId: message.id,
-              platform: message.platform,
-              username: message.username,
-              displayName: message.displayName,
-              message: message.message,
-              parts: message.parts,
-              metadata: message.metadata,
-              duration: 10,
-            },
-          }
-        : { action: "hide" };
+      await apiPost("/api/overlays/chat-highlight", {
+        action: "show",
+        payload: {
+          messageId: message.id,
+          platform: message.platform,
+          username: message.username,
+          displayName: message.displayName,
+          message: message.message,
+          parts: message.parts,
+          metadata: message.metadata,
+          duration: 10,
+        },
+      });
 
-      await apiPost("/api/overlays/chat-highlight", overlayPayload);
-
-      if (action === "show") {
-        setCurrentlyDisplayedId(message.id);
-        toast({
-          title: "Showing in overlay",
-          description: `Message from ${message.displayName}`,
-        });
-
-        // Auto-clear the displayed ID after duration
-        setTimeout(() => {
-          setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
-        }, 10000);
-      } else {
-        setCurrentlyDisplayedId(null);
-      }
+      setCurrentlyDisplayedId(message.id);
+      toast({
+        title: t("overlay.showingInOverlay"),
+        description: t("overlay.messageFrom", { author: message.displayName }),
+      });
+      // Clearing is driven by useChatHighlightSync when the overlay actually
+      // hides (auto-hide duration or explicit hide) — correct even when
+      // auto-hide is disabled (backend sends duration = 0).
     } catch (error) {
       console.error("Failed to update overlay:", error);
       toast({
-        title: "Error",
-        description: "Failed to update overlay",
+        title: t("status.error"),
+        description: t("overlay.failedToUpdate"),
         variant: "destructive",
       });
     } finally {
       setShowingInOverlayId(null);
     }
-  }, [showingInOverlayId, currentlyDisplayedId, toast]);
+  }, [showingInOverlayId, currentlyDisplayedId, toast, t]);
+
+  // Force-hide whatever chat highlight is currently on the overlay.
+  const handleHideOverlay = useCallback(async () => {
+    if (hidingInOverlay) return;
+    setHidingInOverlay(true);
+    try {
+      await apiPost("/api/overlays/chat-highlight", { action: "hide" });
+      setCurrentlyDisplayedId(null);
+    } catch (error) {
+      console.error("Failed to hide overlay:", error);
+      toast({
+        title: t("status.error"),
+        description: t("overlay.failedToUpdate"),
+        variant: "destructive",
+      });
+    } finally {
+      setHidingInOverlay(false);
+    }
+  }, [hidingInOverlay, toast, t]);
 
   // Moderation handler for delete/timeout/ban actions
   const handleModerate = useCallback(
@@ -253,6 +262,8 @@ function RegiePublicChatContent() {
         onShowInOverlay={handleShowInOverlay}
         showingInOverlayId={showingInOverlayId}
         currentlyDisplayedId={currentlyDisplayedId}
+        onHideInOverlay={handleHideOverlay}
+        hidingInOverlay={hidingInOverlay}
         onModerate={handleModerate}
         moderateLoadingId={moderateLoadingId}
       />

@@ -18,6 +18,7 @@ import {
   StopCircle,
   Monitor,
   Loader2,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -38,6 +39,8 @@ interface CueCardProps {
   onShowInOverlay?: (message: CueMessage) => void;
   isShowingInOverlay?: boolean;
   isCurrentlyDisplayed?: boolean;
+  onHideInOverlay?: () => void;
+  isHidingOverlay?: boolean;
 }
 
 const typeIcons: Record<CueType, React.ComponentType<{ className?: string }>> = {
@@ -119,7 +122,7 @@ function CountdownTimer({
   );
 }
 
-export function CueCard({ message, onAction, isPresenter, compact, overlayState, onShowInOverlay, isShowingInOverlay, isCurrentlyDisplayed }: CueCardProps) {
+export function CueCard({ message, onAction, isPresenter, compact, overlayState, onShowInOverlay, isShowingInOverlay, isCurrentlyDisplayed, onHideInOverlay, isHidingOverlay }: CueCardProps) {
   const t = useTranslations("presenter");
   const TypeIcon = typeIcons[message.type as CueType] || FileText;
   const severity = message.severity as CueSeverity | undefined;
@@ -412,7 +415,28 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
           {/* Control room actions */}
           {!isPresenter && (
             <>
-              {/* Show in overlay button for questions */}
+              {/* Force-hide button - only when this question is on the overlay.
+                  Re-clicking "show" no longer hides, so hiding is explicit. */}
+              {isQuestion && onHideInOverlay && isCurrentlyDisplayed && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onHideInOverlay();
+                  }}
+                  disabled={isHidingOverlay}
+                  title={t("cueCard.hideFromOverlay")}
+                >
+                  {isHidingOverlay ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <EyeOff className="h-3 w-3 text-red-500" />
+                  )}
+                </Button>
+              )}
+              {/* Show in overlay button for questions - re-clicking when already
+                  displayed is a no-op (use the force-hide button to take it down) */}
               {isQuestion && onShowInOverlay && (
                 <Button
                   variant={isCurrentlyDisplayed ? "default" : "outline-solid"}
@@ -421,8 +445,8 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
                     e.stopPropagation();
                     onShowInOverlay(message);
                   }}
-                  disabled={isShowingInOverlay}
-                  title={isCurrentlyDisplayed ? t("cueCard.hideFromOverlay") : t("cueCard.showInOverlay")}
+                  disabled={isShowingInOverlay || isCurrentlyDisplayed}
+                  title={isCurrentlyDisplayed ? t("cueCard.currentlyOnOverlay") : t("cueCard.showInOverlay")}
                 >
                   {isShowingInOverlay ? (
                     <Loader2 className="h-3 w-3 animate-spin" />

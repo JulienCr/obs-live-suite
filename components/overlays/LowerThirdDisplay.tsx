@@ -497,10 +497,10 @@ export function LowerThirdDisplay({
       >
         <m.div
           className="text"
-          initial={{ opacity: 0, x: side === "right" ? 10 : -10 }}
+          initial={{ opacity: 0, x: side === "center" ? 0 : side === "right" ? 10 : -10 }}
           animate={textVisible
             ? { opacity: 1, x: 0 }
-            : { opacity: 0, x: side === "right" ? 10 : -10 }
+            : { opacity: 0, x: side === "center" ? 0 : side === "right" ? 10 : -10 }
           }
           transition={{
             opacity: { duration: config.timing.textFadeDuration / 1000 },

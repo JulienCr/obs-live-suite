@@ -527,20 +527,20 @@ export function LowerThirdPanel(_props: IDockviewPanelProps) {
             {t("left")}
           </Button>
           <Button
-            variant={side === "right" ? "default" : "outline-solid"}
-            size="sm"
-            onClick={() => setSide("right")}
-            className="flex-1"
-          >
-            {t("right")}
-          </Button>
-          <Button
             variant={side === "center" ? "default" : "outline-solid"}
             size="sm"
             onClick={() => setSide("center")}
             className="flex-1"
           >
             {t("center")}
+          </Button>
+          <Button
+            variant={side === "right" ? "default" : "outline-solid"}
+            size="sm"
+            onClick={() => setSide("right")}
+            className="flex-1"
+          >
+            {t("right")}
           </Button>
         </div>
 

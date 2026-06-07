@@ -35,6 +35,7 @@ export function StreamerbotChatPanel({
   const [showSearch, setShowSearch] = useState(false);
   const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
   const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
+  const [hidingInOverlay, setHidingInOverlay] = useState(false);
   const [viewerCount, setViewerCount] = useState<number>(0);
   const [moderateLoadingId, setModerateLoadingId] = useState<string | null>(null);
 
@@ -94,50 +95,37 @@ export function StreamerbotChatPanel({
     },
   });
 
-  // Show/hide in overlay handler - toggle display of chat highlight overlay
+  // Show in overlay handler - re-clicking a message already on screen is a no-op
+  // (hiding is done via the dedicated force-hide button / auto-expire).
   const handleShowInOverlay = useCallback(async (message: ChatMessage) => {
     if (showingInOverlayId) return;
-
-    // Toggle: if already displayed, hide it
-    const isCurrentlyDisplayed = currentlyDisplayedId === message.id;
-    const action = isCurrentlyDisplayed ? "hide" : "show";
+    if (currentlyDisplayedId === message.id) return;
 
     setShowingInOverlayId(message.id);
     try {
-      await apiPost(
-        "/api/overlays/chat-highlight",
-        action === "show"
-          ? {
-              action: "show",
-              payload: {
-                messageId: message.id,
-                platform: message.platform,
-                username: message.username,
-                displayName: message.displayName,
-                message: message.message,
-                parts: message.parts,
-                metadata: message.metadata,
-                duration: 10,
-                from: "presenter",
-              },
-            }
-          : { action: "hide" }
-      );
+      await apiPost("/api/overlays/chat-highlight", {
+        action: "show",
+        payload: {
+          messageId: message.id,
+          platform: message.platform,
+          username: message.username,
+          displayName: message.displayName,
+          message: message.message,
+          parts: message.parts,
+          metadata: message.metadata,
+          duration: 10,
+          from: "presenter",
+        },
+      });
 
-      if (action === "show") {
-        setCurrentlyDisplayedId(message.id);
-        toast({
-          title: t("overlay.showingInOverlay"),
-          description: t("overlay.messageFrom", { author: message.displayName }),
-        });
-
-        // Auto-clear the displayed ID after duration
-        setTimeout(() => {
-          setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
-        }, 10000);
-      } else {
-        setCurrentlyDisplayedId(null);
-      }
+      setCurrentlyDisplayedId(message.id);
+      toast({
+        title: t("overlay.showingInOverlay"),
+        description: t("overlay.messageFrom", { author: message.displayName }),
+      });
+      // Clearing is driven by useChatHighlightSync when the overlay actually
+      // hides (auto-hide duration or explicit hide) — correct even when
+      // auto-hide is disabled (backend sends duration = 0).
     } catch (error) {
       const errorMessage = isClientFetchError(error) ? error.errorMessage : String(error);
       console.error("Failed to update overlay:", errorMessage);
@@ -150,6 +138,26 @@ export function StreamerbotChatPanel({
       setShowingInOverlayId(null);
     }
   }, [showingInOverlayId, currentlyDisplayedId, toast, t]);
+
+  // Force-hide whatever chat highlight is currently on the overlay.
+  const handleHideOverlay = useCallback(async () => {
+    if (hidingInOverlay) return;
+    setHidingInOverlay(true);
+    try {
+      await apiPost("/api/overlays/chat-highlight", { action: "hide" });
+      setCurrentlyDisplayedId(null);
+    } catch (error) {
+      const errorMessage = isClientFetchError(error) ? error.errorMessage : String(error);
+      console.error("Failed to hide overlay:", errorMessage);
+      toast({
+        title: t("status.error"),
+        description: t("overlay.failedToUpdate"),
+        variant: "destructive",
+      });
+    } finally {
+      setHidingInOverlay(false);
+    }
+  }, [hidingInOverlay, toast, t]);
 
   // Moderation handler for delete/timeout/ban actions
   const handleModerate = useCallback(
@@ -242,6 +250,8 @@ export function StreamerbotChatPanel({
         onShowInOverlay={handleShowInOverlay}
         showingInOverlayId={showingInOverlayId}
         currentlyDisplayedId={currentlyDisplayedId}
+        onHideInOverlay={handleHideOverlay}
+        hidingInOverlay={hidingInOverlay}
         onModerate={handleModerate}
         moderateLoadingId={moderateLoadingId}
       />
