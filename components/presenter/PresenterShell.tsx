@@ -60,6 +60,7 @@ export function PresenterShell() {
 
   const [showingInOverlayId, setShowingInOverlayId] = useState<string | null>(null);
   const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
+  const [hidingInOverlay, setHidingInOverlay] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const handleClearHistory = async () => {
@@ -67,55 +68,44 @@ export function PresenterShell() {
     setShowClearConfirm(false);
   };
 
-  // Show/hide in overlay handler - toggle display of chat highlight overlay
+  // Show in overlay handler - re-clicking a cue already on screen is a no-op
+  // (hiding is done via the dedicated force-hide button / auto-expire).
   const handleShowInOverlay = useCallback(async (message: CueMessage) => {
     if (showingInOverlayId) return;
     if (!message.questionPayload) return;
-
-    // Toggle: if already displayed, hide it
-    const isCurrentlyDisplayed = currentlyDisplayedId === message.id;
-    const action = isCurrentlyDisplayed ? "hide" : "show";
+    if (currentlyDisplayedId === message.id) return;
 
     setShowingInOverlayId(message.id);
     try {
       const payload = message.questionPayload;
-      await apiPost(
-        "/api/overlays/chat-highlight",
-        action === "show"
-          ? {
-              action: "show",
-              payload: {
-                messageId: message.id,
-                platform: payload.platform || "twitch",
-                username: payload.author?.toLowerCase() || "",
-                displayName: payload.author || "",
-                message: payload.text || "",
-                parts: payload.parts,
-                metadata: {
-                  color: payload.color,
-                  badges: payload.badges,
-                },
-                duration: 10,
-                from: "presenter",
-              },
-            }
-          : { action: "hide" }
-      );
+      await apiPost("/api/overlays/chat-highlight", {
+        action: "show",
+        payload: {
+          messageId: message.id,
+          platform: payload.platform || "twitch",
+          username: payload.author?.toLowerCase() || "",
+          displayName: payload.author || "",
+          message: payload.text || "",
+          parts: payload.parts,
+          metadata: {
+            color: payload.color,
+            badges: payload.badges,
+          },
+          duration: 10,
+          from: "presenter",
+        },
+      });
 
-      if (action === "show") {
-        setCurrentlyDisplayedId(message.id);
-        toast({
-          title: t("overlay.showingInOverlay"),
-          description: t("overlay.messageFrom", { author: payload.author }),
-        });
+      setCurrentlyDisplayedId(message.id);
+      toast({
+        title: t("overlay.showingInOverlay"),
+        description: t("overlay.messageFrom", { author: payload.author }),
+      });
 
-        // Auto-clear the displayed ID after duration
-        setTimeout(() => {
-          setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
-        }, 10000);
-      } else {
-        setCurrentlyDisplayedId(null);
-      }
+      // Auto-clear the displayed ID after duration
+      setTimeout(() => {
+        setCurrentlyDisplayedId((prev) => (prev === message.id ? null : prev));
+      }, 10000);
     } catch (error) {
       const errorMessage = isClientFetchError(error) ? error.errorMessage : String(error);
       console.error("Failed to update overlay:", errorMessage);
@@ -128,6 +118,26 @@ export function PresenterShell() {
       setShowingInOverlayId(null);
     }
   }, [showingInOverlayId, currentlyDisplayedId, toast, t]);
+
+  // Force-hide whatever cue/chat highlight is currently on the overlay.
+  const handleHideOverlay = useCallback(async () => {
+    if (hidingInOverlay) return;
+    setHidingInOverlay(true);
+    try {
+      await apiPost("/api/overlays/chat-highlight", { action: "hide" });
+      setCurrentlyDisplayedId(null);
+    } catch (error) {
+      const errorMessage = isClientFetchError(error) ? error.errorMessage : String(error);
+      console.error("Failed to hide overlay:", errorMessage);
+      toast({
+        title: t("status.error"),
+        description: t("overlay.failedToUpdate"),
+        variant: "destructive",
+      });
+    } finally {
+      setHidingInOverlay(false);
+    }
+  }, [hidingInOverlay, toast, t]);
 
   // Fetch presenter channel settings
   useEffect(() => {
@@ -234,6 +244,8 @@ export function PresenterShell() {
               onShowInOverlay={handleShowInOverlay}
               showingInOverlayId={showingInOverlayId}
               currentlyDisplayedId={currentlyDisplayedId}
+              onHideInOverlay={handleHideOverlay}
+              hidingInOverlay={hidingInOverlay}
             />
           </div>
 

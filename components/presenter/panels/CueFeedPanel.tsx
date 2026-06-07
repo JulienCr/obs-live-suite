@@ -17,6 +17,8 @@ interface CueFeedPanelProps {
   onShowInOverlay?: (message: CueMessage) => void;
   showingInOverlayId?: string | null;
   currentlyDisplayedId?: string | null;
+  onHideInOverlay?: () => void;
+  hidingInOverlay?: boolean;
 }
 
 export function CueFeedPanel({
@@ -28,6 +30,8 @@ export function CueFeedPanel({
   onShowInOverlay,
   showingInOverlayId,
   currentlyDisplayedId,
+  onHideInOverlay,
+  hidingInOverlay,
 }: CueFeedPanelProps) {
   const t = useTranslations("presenter");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -62,6 +66,8 @@ export function CueFeedPanel({
                 onShowInOverlay={onShowInOverlay}
                 isShowingInOverlay={showingInOverlayId === message.id}
                 isCurrentlyDisplayed={currentlyDisplayedId === message.id}
+                onHideInOverlay={onHideInOverlay}
+                isHidingOverlay={hidingInOverlay}
               />
             ))}
           </div>

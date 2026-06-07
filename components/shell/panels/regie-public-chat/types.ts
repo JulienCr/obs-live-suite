@@ -23,6 +23,9 @@ export interface RegiePublicChatMessageListProps {
   onShowInOverlay: (message: ChatMessage) => Promise<void>;
   showingInOverlayId: string | null;
   currentlyDisplayedId: string | null;
+  // Force-hide whatever chat highlight is currently on the overlay
+  onHideInOverlay: () => Promise<void>;
+  hidingInOverlay: boolean;
   // Moderation
   onModerate?: (message: ChatMessage, action: ModerationAction, duration?: number) => Promise<void>;
   moderateLoadingId?: string | null;

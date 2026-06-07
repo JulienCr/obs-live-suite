@@ -169,12 +169,6 @@ export const COMMAND_PALETTE_PANELS: { id: PanelId; keywords: string[] }[] =
     keywords: PANEL_REGISTRY[id].commandPaletteKeywords,
   }));
 
-/** Pre-computed i18n keys: "showLowerThirdPanel", etc. */
-export const COMMAND_PALETTE_I18N_KEYS: Record<PanelId, string> =
-  Object.fromEntries(
-    PANEL_IDS.map((id) => [id, `show${id.charAt(0).toUpperCase()}${id.slice(1)}Panel`])
-  ) as Record<PanelId, string>;
-
 /** Extra dockview params for a panel (e.g. driverId for media players) */
 export function getPanelParams(id: PanelId): Record<string, unknown> | undefined {
   return PANEL_REGISTRY[id].params;

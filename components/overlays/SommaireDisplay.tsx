@@ -137,11 +137,10 @@ export function SommaireDisplay({ categories, activeIndex, activeSubIndex }: Som
             variants={itemVariants}
             animate={{
               opacity: catOpacity,
-              scale: isCatActive && activeSubIndex === -1 ? 1.03 : 1,
-              x: isCatActive && activeSubIndex === -1 ? 6 : 0,
+              scale: isCatActive && activeSubIndex === -1 ? 1.12 : 1,
             }}
             transition={{ duration: 0.3, ease: "easeInOut" as const }}
-            style={{ marginBottom: 10 }}
+            style={{ marginBottom: 10, transformOrigin: "left center" }}
           >
             {/* Category title */}
             <div
@@ -212,8 +211,7 @@ export function SommaireDisplay({ categories, activeIndex, activeSubIndex }: Som
                   key={itemIdx}
                   animate={{
                     opacity: subOpacity,
-                    x: isSubActive ? 8 : 0,
-                    scale: isSubActive ? 1.03 : 1,
+                    scale: isSubActive ? 1.1 : 1,
                   }}
                   transition={{ duration: 0.3, ease: "easeInOut" as const }}
                   style={{
@@ -222,6 +220,7 @@ export function SommaireDisplay({ categories, activeIndex, activeSubIndex }: Som
                     fontSize: 16,
                     lineHeight: 1.7,
                     textShadow: TEXT_SHADOW,
+                    transformOrigin: "left center",
                   }}
                 >
                   <span style={{ marginRight: 8, opacity: 0.4 }}>•</span>

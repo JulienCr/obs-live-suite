@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowDown, MessageSquare, Star, Monitor, Loader2, MoreVertical, Trash2, Clock, Ban } from "lucide-react";
+import { ArrowDown, MessageSquare, Star, Monitor, Loader2, MoreVertical, Trash2, Clock, Ban, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   getMessageHighlights,
@@ -47,6 +47,8 @@ function ChatMessageRow({
   onShowInOverlay,
   isShowingInOverlay,
   isCurrentlyDisplayed,
+  onHideInOverlay,
+  isHidingOverlay,
   measureRef,
   onModerate,
   isModerating,
@@ -59,6 +61,8 @@ function ChatMessageRow({
   onShowInOverlay: () => void;
   isShowingInOverlay: boolean;
   isCurrentlyDisplayed: boolean;
+  onHideInOverlay: () => void;
+  isHidingOverlay: boolean;
   measureRef: (node: HTMLDivElement | null) => void;
   onModerate?: (action: ModerationAction, duration?: number) => void;
   isModerating?: boolean;
@@ -164,6 +168,27 @@ function ChatMessageRow({
 
         {/* Action buttons (visible on hover) */}
         <div className="flex items-center gap-0.5 shrink-0">
+          {/* Force-hide button - only for the message currently on the overlay */}
+          {isCurrentlyDisplayed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 opacity-100 text-red-500 hover:text-red-500"
+              onClick={(e) => {
+                e.stopPropagation();
+                onHideInOverlay();
+              }}
+              disabled={isHidingOverlay}
+              title="Hide from overlay"
+            >
+              {isHidingOverlay ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <EyeOff className="h-3 w-3" />
+              )}
+            </Button>
+          )}
+
           {/* Show in Overlay button */}
           <Button
             variant="ghost"
@@ -177,7 +202,7 @@ function ChatMessageRow({
               e.stopPropagation();
               onShowInOverlay();
             }}
-            disabled={isShowingInOverlay}
+            disabled={isShowingInOverlay || isCurrentlyDisplayed}
             title={isCurrentlyDisplayed ? "Currently on overlay" : "Show in overlay"}
           >
             {isShowingInOverlay ? (
@@ -302,6 +327,8 @@ export function RegiePublicChatMessageList({
   onShowInOverlay,
   showingInOverlayId,
   currentlyDisplayedId,
+  onHideInOverlay,
+  hidingInOverlay,
   onModerate,
   moderateLoadingId,
 }: RegiePublicChatMessageListProps) {
@@ -387,6 +414,8 @@ export function RegiePublicChatMessageList({
                   onShowInOverlay={() => onShowInOverlay(message)}
                   isShowingInOverlay={showingInOverlayId === message.id}
                   isCurrentlyDisplayed={currentlyDisplayedId === message.id}
+                  onHideInOverlay={onHideInOverlay}
+                  isHidingOverlay={hidingInOverlay}
                   measureRef={rowVirtualizer.measureElement}
                   onModerate={onModerate ? (action, duration) => onModerate(message, action, duration) : undefined}
                   isModerating={moderateLoadingId === message.id}

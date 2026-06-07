@@ -7,7 +7,7 @@ import { Eye, EyeOff, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
-import { parseSommaireMarkdown, type SommaireCategory } from "@/lib/models/Sommaire";
+import { parseSommaireMarkdown } from "@/lib/models/Sommaire";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
@@ -34,7 +34,10 @@ export function SommairePanel(_props: IDockviewPanelProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [activeSubIndex, setActiveSubIndex] = useState(-1);
-  const [parsedCategories, setParsedCategories] = useState<SommaireCategory[]>([]);
+
+  // Categories are derived from the markdown so the operator can pick the
+  // current item even while the sommaire is hidden.
+  const parsedCategories = useMemo(() => parseSommaireMarkdown(markdown), [markdown]);
 
   // Load saved markdown from DB on mount
   useEffect(() => {
@@ -74,31 +77,29 @@ export function SommairePanel(_props: IDockviewPanelProps) {
   }, [t]);
 
   const handleShow = useCallback(() => {
-    const categories = parseSommaireMarkdown(markdown);
-    if (categories.length === 0) {
+    if (parsedCategories.length === 0) {
       toast.error(t("noCategories"));
       return;
     }
-    setParsedCategories(categories);
-    setActiveIndex(-1);
-    setActiveSubIndex(-1);
     setIsVisible(true);
     saveMarkdown(markdown);
-    sendAction("show", { categories, activeIndex: -1, activeSubIndex: -1 });
-  }, [markdown, sendAction, saveMarkdown, t]);
+    // Show with whatever item is already selected (possibly chosen while hidden).
+    sendAction("show", { categories: parsedCategories, activeIndex, activeSubIndex });
+  }, [parsedCategories, markdown, activeIndex, activeSubIndex, sendAction, saveMarkdown, t]);
 
   const handleHide = useCallback(() => {
     setIsVisible(false);
-    setActiveIndex(-1);
-    setActiveSubIndex(-1);
+    // Keep the current item selection so the next show reuses it.
     sendAction("hide");
   }, [sendAction]);
 
   const handleHighlight = useCallback((catIdx: number, subIdx = -1) => {
     setActiveIndex(catIdx);
     setActiveSubIndex(subIdx);
-    sendAction("highlight", { activeIndex: catIdx, activeSubIndex: subIdx });
-  }, [sendAction]);
+    // Only push to the overlay when it is on screen; otherwise just remember
+    // the selection for the next show.
+    if (isVisible) sendAction("highlight", { activeIndex: catIdx, activeSubIndex: subIdx });
+  }, [isVisible, sendAction]);
 
   // Build flat navigation list: [catIdx, subIdx] pairs
   const navItems = useMemo(() => {
@@ -165,8 +166,8 @@ export function SommairePanel(_props: IDockviewPanelProps) {
           </Button>
         </div>
 
-        {/* Category + sub-item highlight controls */}
-        {isVisible && parsedCategories.length > 0 && (
+        {/* Category + sub-item highlight controls (available even while hidden) */}
+        {parsedCategories.length > 0 && (
           <div className="flex flex-col gap-2 border-t pt-3">
             {/* Navigation buttons */}
             <div className="flex items-center gap-1">

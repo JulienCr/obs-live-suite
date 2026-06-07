@@ -15,7 +15,7 @@ import { useWorkspacesStore } from "@/lib/stores";
 import { WorkspaceSaveDialog } from "./WorkspaceSaveDialog";
 import { WorkspaceManagerDialog } from "./WorkspaceManagerDialog";
 
-import { COMMAND_PALETTE_PANELS, COMMAND_PALETTE_I18N_KEYS, getPanelParams, type PanelId } from "@/lib/panels/registry";
+import { COMMAND_PALETTE_PANELS, getPanelParams, type PanelId } from "@/lib/panels/registry";
 
 interface Command {
   id: string;
@@ -30,6 +30,7 @@ export function CommandPalette(): React.ReactNode {
   const [managerDialogOpen, setManagerDialogOpen] = useState(false);
   const { api } = useDockview();
   const t = useTranslations("dashboard.commandPalette");
+  const tPanels = useTranslations("dashboard.panels");
 
   const workspacesWorkspaces = useWorkspacesStore((s) => s.workspaces);
   const workspacesResetToDefault = useWorkspacesStore((s) => s.resetToDefault);
@@ -90,7 +91,7 @@ export function CommandPalette(): React.ReactNode {
       },
       ...COMMAND_PALETTE_PANELS.map((p) => ({
         id: `panel-${p.id}`,
-        label: t(COMMAND_PALETTE_I18N_KEYS[p.id]),
+        label: t("addPanel", { name: tPanels(p.id) }),
         keywords: p.keywords,
         action: () => addPanel(p.id, p.id, p.id),
       })),
@@ -106,7 +107,7 @@ export function CommandPalette(): React.ReactNode {
         },
       },
     ],
-    [t, api, addPanel]
+    [t, tPanels, api, addPanel]
   );
 
   const workspaceCommands: Command[] = useMemo(() => {

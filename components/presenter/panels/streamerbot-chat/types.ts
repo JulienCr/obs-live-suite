@@ -53,6 +53,9 @@ export interface StreamerbotChatMessageListProps {
   onShowInOverlay?: (message: ChatMessage) => Promise<void>;
   showingInOverlayId?: string | null;
   currentlyDisplayedId?: string | null;
+  // Force-hide whatever chat highlight is currently on the overlay
+  onHideInOverlay?: () => Promise<void>;
+  hidingInOverlay?: boolean;
   onModerate?: (
     message: ChatMessage,
     action: ModerationAction,
