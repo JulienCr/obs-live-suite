@@ -88,6 +88,10 @@ export function useMidiDispatcher(): void {
     (channel: string, data: DispatchedEvent) => {
       if (channel === "title-reveal") {
         if (data?.type === TitleRevealEventType.PLAY) {
+          // Overlapping plays: complete a still-pending previous reveal first so
+          // the shared toggle CC keeps the FACE in the right state — firing a new
+          // ON while an OFF is still pending would otherwise invert it.
+          fireOffOnce();
           fire("title-reveal.on");
           // Arm the OFF for the natural end of the jingle.
           clearOffTimer();

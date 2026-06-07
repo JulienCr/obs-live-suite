@@ -69,7 +69,16 @@ export function MidiSettings() {
 
   const removeApp = useCallback(
     (id: string) =>
-      setData((prev) => ({ ...prev, apps: prev.apps.filter((a) => a.id !== id) })),
+      setData((prev) => ({
+        ...prev,
+        apps: prev.apps.filter((a) => a.id !== id),
+        // Drop messages that targeted the removed app so none dangle with a stale
+        // appId (which would otherwise be skipped at best, mis-routed at worst).
+        actions: prev.actions.map((action) => ({
+          ...action,
+          messages: action.messages.filter((m) => m.appId !== id),
+        })),
+      })),
     [setData]
   );
 
