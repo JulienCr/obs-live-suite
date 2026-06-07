@@ -94,6 +94,8 @@ export function CueFeedPanel({
                   onShowInOverlay={onShowInOverlay}
                   isShowingInOverlay={showingInOverlayId === message.id}
                   isCurrentlyDisplayed={currentlyDisplayedId === message.id}
+                  onHideInOverlay={onHideInOverlay}
+                  isHidingOverlay={hidingInOverlay}
                 />
               ))
           )}
