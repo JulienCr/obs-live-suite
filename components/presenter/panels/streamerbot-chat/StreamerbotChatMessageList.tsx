@@ -112,7 +112,7 @@ function ChatMessageRow({
       {message.metadata?.isReply && message.metadata.replyTo && (
         <div className="text-[10px] text-muted-foreground mb-0.5 truncate flex items-center gap-1">
           <PlatformIcon platform={message.platform} size="sm" />
-          <span>Replying to @{message.metadata.replyTo.displayName}</span>
+          <span>{t("chat.replyingTo", { displayName: message.metadata.replyTo.displayName })}</span>
         </div>
       )}
 

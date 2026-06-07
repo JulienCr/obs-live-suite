@@ -81,10 +81,19 @@ export function SommairePanel(_props: IDockviewPanelProps) {
       toast.error(t("noCategories"));
       return;
     }
+    // Guard against a stale selection that no longer exists after a markdown edit.
+    const validCat = activeIndex >= 0 && activeIndex < parsedCategories.length;
+    const safeIndex = validCat ? activeIndex : -1;
+    const safeSubIndex =
+      validCat && activeSubIndex >= 0 && activeSubIndex < parsedCategories[activeIndex].items.length
+        ? activeSubIndex
+        : -1;
+    if (safeIndex !== activeIndex) setActiveIndex(safeIndex);
+    if (safeSubIndex !== activeSubIndex) setActiveSubIndex(safeSubIndex);
     setIsVisible(true);
     saveMarkdown(markdown);
     // Show with whatever item is already selected (possibly chosen while hidden).
-    sendAction("show", { categories: parsedCategories, activeIndex, activeSubIndex });
+    sendAction("show", { categories: parsedCategories, activeIndex: safeIndex, activeSubIndex: safeSubIndex });
   }, [parsedCategories, markdown, activeIndex, activeSubIndex, sendAction, saveMarkdown, t]);
 
   const handleHide = useCallback(() => {

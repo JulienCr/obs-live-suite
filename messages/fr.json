@@ -1628,7 +1628,11 @@
     "overlay": {
       "showingInOverlay": "Affichage dans l'overlay",
       "messageFrom": "Message de {author}",
-      "failedToUpdate": "Échec de la mise à jour de l'overlay"
+      "failedToUpdate": "Échec de la mise à jour de l'overlay",
+      "sendToPresenter": "Envoyer au présentateur",
+      "sentToPresenter": "Message envoyé",
+      "questionSentToPresenter": "Question de {author} envoyée au présentateur",
+      "failedToSend": "Échec de l'envoi au présentateur"
     },
     "events": {
       "justFollowed": "vient de suivre !",

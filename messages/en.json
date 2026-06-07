@@ -1627,7 +1627,11 @@
     "overlay": {
       "showingInOverlay": "Showing in overlay",
       "messageFrom": "Message from {author}",
-      "failedToUpdate": "Failed to update overlay"
+      "failedToUpdate": "Failed to update overlay",
+      "sendToPresenter": "Send to presenter",
+      "sentToPresenter": "Message sent",
+      "questionSentToPresenter": "Question from {author} sent to presenter",
+      "failedToSend": "Failed to send message to presenter"
     },
     "events": {
       "justFollowed": "just followed!",

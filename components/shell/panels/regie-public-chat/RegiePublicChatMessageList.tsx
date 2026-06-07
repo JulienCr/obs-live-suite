@@ -113,7 +113,7 @@ function ChatMessageRow({
       {message.metadata?.isReply && message.metadata.replyTo && (
         <div className="text-[10px] text-muted-foreground mb-0.5 truncate flex items-center gap-1">
           <PlatformIcon platform={message.platform} size="sm" />
-          <span>Replying to @{message.metadata.replyTo.displayName}</span>
+          <span>{t("chat.replyingTo", { displayName: message.metadata.replyTo.displayName })}</span>
         </div>
       )}
 
@@ -179,7 +179,7 @@ function ChatMessageRow({
                 onHideInOverlay();
               }}
               disabled={isHidingOverlay}
-              title="Hide from overlay"
+              title={t("cueCard.hideFromOverlay")}
             >
               {isHidingOverlay ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -203,7 +203,7 @@ function ChatMessageRow({
               onShowInOverlay();
             }}
             disabled={isShowingInOverlay || isCurrentlyDisplayed}
-            title={isCurrentlyDisplayed ? "Currently on overlay" : "Show in overlay"}
+            title={isCurrentlyDisplayed ? t("cueCard.currentlyOnOverlay") : t("cueCard.showInOverlay")}
           >
             {isShowingInOverlay ? (
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -225,7 +225,7 @@ function ChatMessageRow({
               onHighlight();
             }}
             disabled={isHighlighting}
-            title="Send to presenter"
+            title={t("overlay.sendToPresenter")}
           >
             {isHighlighting ? (
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -332,6 +332,7 @@ export function RegiePublicChatMessageList({
   onModerate,
   moderateLoadingId,
 }: RegiePublicChatMessageListProps) {
+  const t = useTranslations("presenter");
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Virtual list configuration with dynamic row heights
@@ -388,8 +389,8 @@ export function RegiePublicChatMessageList({
               <MessageSquare className="h-6 w-6 mx-auto mb-2 opacity-50" />
               <p className="text-xs">
                 {status === StreamerbotConnectionStatus.CONNECTED
-                  ? "Waiting for messages..."
-                  : "Connect to see chat messages"}
+                  ? t("emptyStates.waitingForMessages")
+                  : t("emptyStates.connectToSeeMessages")}
               </p>
             </div>
           </div>
@@ -435,7 +436,7 @@ export function RegiePublicChatMessageList({
           onClick={handleScrollToBottom}
         >
           <ArrowDown className="h-4 w-4 mr-1" />
-          New messages
+          {t("chat.newMessages")}
         </Button>
       )}
     </>

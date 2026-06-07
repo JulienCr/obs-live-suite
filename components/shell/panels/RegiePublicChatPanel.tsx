@@ -97,20 +97,20 @@ function RegiePublicChatContent() {
 
       await apiPost("/api/presenter/cue/send", payload);
       toast({
-        title: "Message sent",
-        description: `Question from ${message.displayName} sent to presenter`,
+        title: t("overlay.sentToPresenter"),
+        description: t("overlay.questionSentToPresenter", { author: message.displayName }),
       });
     } catch (error) {
       console.error("Failed to highlight message:", error);
       toast({
-        title: "Error",
-        description: "Failed to send message to presenter",
+        title: t("status.error"),
+        description: t("overlay.failedToSend"),
         variant: "destructive",
       });
     } finally {
       setHighlightingMessageId(null);
     }
-  }, [highlightingMessageId, toast]);
+  }, [highlightingMessageId, toast, t]);
 
   // Show in overlay handler - displays the chat highlight overlay.
   // Re-clicking a message that is already on screen is a no-op (no toggle/hide).
@@ -137,8 +137,8 @@ function RegiePublicChatContent() {
 
       setCurrentlyDisplayedId(message.id);
       toast({
-        title: "Showing in overlay",
-        description: `Message from ${message.displayName}`,
+        title: t("overlay.showingInOverlay"),
+        description: t("overlay.messageFrom", { author: message.displayName }),
       });
 
       // Auto-clear the displayed ID after duration
@@ -148,14 +148,14 @@ function RegiePublicChatContent() {
     } catch (error) {
       console.error("Failed to update overlay:", error);
       toast({
-        title: "Error",
-        description: "Failed to update overlay",
+        title: t("status.error"),
+        description: t("overlay.failedToUpdate"),
         variant: "destructive",
       });
     } finally {
       setShowingInOverlayId(null);
     }
-  }, [showingInOverlayId, currentlyDisplayedId, toast]);
+  }, [showingInOverlayId, currentlyDisplayedId, toast, t]);
 
   // Force-hide whatever chat highlight is currently on the overlay.
   const handleHideOverlay = useCallback(async () => {
@@ -167,14 +167,14 @@ function RegiePublicChatContent() {
     } catch (error) {
       console.error("Failed to hide overlay:", error);
       toast({
-        title: "Error",
-        description: "Failed to hide overlay",
+        title: t("status.error"),
+        description: t("overlay.failedToUpdate"),
         variant: "destructive",
       });
     } finally {
       setHidingInOverlay(false);
     }
-  }, [hidingInOverlay, toast]);
+  }, [hidingInOverlay, toast, t]);
 
   // Moderation handler for delete/timeout/ban actions
   const handleModerate = useCallback(
