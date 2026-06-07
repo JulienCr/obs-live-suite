@@ -39,14 +39,21 @@ export function useMidiDispatcher(): void {
   const offTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const offPendingRef = useRef(false);
 
-  // Load the centralized MIDI config once.
+  // Load the centralized MIDI config, and re-load when the tab regains focus so
+  // edits saved from the settings page (possibly in another tab) take effect
+  // without requiring a full dashboard remount.
   useEffect(() => {
-    fetch("/api/settings/midi")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.settings) settingsRef.current = data.settings;
-      })
-      .catch(() => {});
+    const load = () => {
+      fetch("/api/settings/midi")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.settings) settingsRef.current = data.settings;
+        })
+        .catch(() => {});
+    };
+    load();
+    window.addEventListener("focus", load);
+    return () => window.removeEventListener("focus", load);
   }, []);
 
   const fire = useCallback(
@@ -55,6 +62,8 @@ export function useMidiDispatcher(): void {
       for (const msg of getMessagesForAction(settings, actionId)) {
         if (!msg.enabled) continue;
         const port = getPortForApp(settings, msg.appId);
+        // Unknown app id → skip rather than mis-send to the first available output.
+        if (port === null) continue;
         sendCC(port, { channel: msg.channel, cc: msg.cc, value: msg.value });
       }
     },
@@ -83,11 +92,12 @@ export function useMidiDispatcher(): void {
           // Arm the OFF for the natural end of the jingle.
           clearOffTimer();
           offPendingRef.current = true;
+          const raw = data.payload?.duration;
           const durationSec =
-            typeof data.payload?.duration === "number"
-              ? data.payload.duration
+            typeof raw === "number" && Number.isFinite(raw) && raw > 0
+              ? raw
               : DEFAULT_TITLE_REVEAL_DURATION;
-          offTimerRef.current = setTimeout(fireOffOnce, Math.max(0, durationSec * 1000));
+          offTimerRef.current = setTimeout(fireOffOnce, durationSec * 1000);
         } else if (data?.type === TitleRevealEventType.HIDE) {
           // Manual hide before the natural end: fire OFF now.
           fireOffOnce();

@@ -178,7 +178,13 @@ export function getMessagesForAction(
   return settings.actions.find((a) => a.id === actionId)?.messages ?? [];
 }
 
-/** MIDI output port for an app id ("" = first available). */
-export function getPortForApp(settings: MidiSettings, appId: string): string {
-  return settings.apps.find((a) => a.id === appId)?.port ?? "";
+/**
+ * MIDI output port for an app id. Returns the app's port ("" = first available
+ * output), or `null` when no app matches the id. Callers MUST skip `null`
+ * rather than treat it as "first available" — otherwise an orphaned message
+ * (deleted/typo'd appId) would mis-send to whatever device happens to be first.
+ */
+export function getPortForApp(settings: MidiSettings, appId: string): string | null {
+  const app = settings.apps.find((a) => a.id === appId);
+  return app ? app.port : null;
 }

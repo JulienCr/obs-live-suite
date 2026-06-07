@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { useMidi } from "@/hooks/useMidi";
+import { v4 as uuidv4 } from "uuid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,21 +77,27 @@ export function MidiSettings() {
     () =>
       setData((prev) => ({
         ...prev,
-        apps: [...prev.apps, { id: crypto.randomUUID(), label: "", port: "" }],
+        apps: [...prev.apps, { id: uuidv4(), label: "", port: "" }],
       })),
     [setData]
   );
 
   // ---- Actions → messages ----
-  const setActionMessages = useCallback(
-    (actionId: string, messages: MidiMessage[]) =>
-      setData((prev) => ({
-        ...prev,
-        actions: [
-          ...prev.actions.filter((a) => a.id !== actionId),
-          { id: actionId, messages },
-        ],
-      })),
+  // Mutate via an updater that reads the CURRENT messages from prev state, so
+  // batched updates (e.g. two quick "Add message" clicks) compose instead of
+  // clobbering each other.
+  const updateAction = useCallback(
+    (actionId: string, updater: (messages: MidiMessage[]) => MidiMessage[]) =>
+      setData((prev) => {
+        const current = prev.actions.find((a) => a.id === actionId)?.messages ?? [];
+        return {
+          ...prev,
+          actions: [
+            ...prev.actions.filter((a) => a.id !== actionId),
+            { id: actionId, messages: updater(current) },
+          ],
+        };
+      }),
     [setData]
   );
 
@@ -103,6 +110,7 @@ export function MidiSettings() {
   const testMessage = useCallback(
     (msg: MidiMessage) => {
       const port = getPortForApp(data, msg.appId);
+      if (port === null) return; // unknown app → nothing to test
       sendCC(port, { channel: msg.channel, cc: msg.cc, value: msg.value });
     },
     [data, sendCC]
@@ -221,15 +229,13 @@ export function MidiSettings() {
                           message={msg}
                           apps={data.apps}
                           onChange={(patch) =>
-                            setActionMessages(
-                              action.id,
-                              messages.map((m, i) => (i === index ? { ...m, ...patch } : m))
+                            updateAction(action.id, (msgs) =>
+                              msgs.map((m, i) => (i === index ? { ...m, ...patch } : m))
                             )
                           }
                           onRemove={() =>
-                            setActionMessages(
-                              action.id,
-                              messages.filter((_, i) => i !== index)
+                            updateAction(action.id, (msgs) =>
+                              msgs.filter((_, i) => i !== index)
                             )
                           }
                           onTest={() => testMessage(msg)}
@@ -241,7 +247,7 @@ export function MidiSettings() {
                       size="sm"
                       className="text-xs"
                       onClick={() =>
-                        setActionMessages(action.id, [...messages, newMessage(data.apps)])
+                        updateAction(action.id, (msgs) => [...msgs, newMessage(data.apps)])
                       }
                     >
                       <Plus className="w-3.5 h-3.5 mr-1" />

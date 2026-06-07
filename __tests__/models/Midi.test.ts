@@ -111,9 +111,9 @@ describe("lookup helpers", () => {
     expect(getMessagesForAction(settings, "does-not-exist")).toEqual([]);
   });
 
-  it("resolves an app's port, falling back to '' for unknown apps", () => {
+  it("resolves an app's port, returning null for unknown apps", () => {
     expect(getPortForApp(settings, "qlc")).toBe("qlc-in");
-    expect(getPortForApp(settings, "vm")).toBe("");
-    expect(getPortForApp(settings, "missing")).toBe("");
+    expect(getPortForApp(settings, "vm")).toBe(""); // known app, "" = first available
+    expect(getPortForApp(settings, "missing")).toBeNull();
   });
 });

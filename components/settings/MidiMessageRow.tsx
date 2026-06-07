@@ -15,8 +15,11 @@ import { Volume2, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { MidiApp, MidiMessage } from "@/lib/models/Midi";
 
-const clamp = (raw: string, min: number, max: number, fallback: number) =>
-  Math.max(min, Math.min(max, parseInt(raw, 10) || fallback));
+const clamp = (raw: string, min: number, max: number, fallback: number) => {
+  const n = parseInt(raw, 10);
+  // Number.isNaN (not `|| fallback`) so a typed "0" clamps to 0 instead of the fallback.
+  return Math.max(min, Math.min(max, Number.isNaN(n) ? fallback : n));
+};
 
 /**
  * One MIDI message row: target application + CC (channel / cc / value), an

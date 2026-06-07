@@ -20,8 +20,9 @@ export const GET = withSimpleErrorHandler(async () => {
  */
 export const POST = withSimpleErrorHandler(async (request: Request) => {
   const body = await request.json();
-  // Validate + apply defaults before persisting
-  const settings = midiSettingsSchema.parse(body);
+  // Validate without forcing top-level defaults: a partial body updates only the
+  // fields it carries (so sending just `actions` won't clobber stored `apps`).
+  const settings = midiSettingsSchema.partial().parse(body);
   const settingsService = SettingsService.getInstance();
   settingsService.saveMidiSettings(settings);
   return ApiResponses.ok({ success: true, message: "MIDI settings saved" });
