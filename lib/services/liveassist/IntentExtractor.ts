@@ -18,6 +18,8 @@ export type GenerateObjectFn = (args: {
   prompt: string;
 }) => Promise<{ object: unknown }>;
 
+const NOT_ACTIONNABLE: IntentExtraction = { actionnable: false, intent: "none", entite: "", confiance: 0 };
+
 const defaultGenerate: GenerateObjectFn = ({ schema, prompt }) =>
   generateObject({ model: createAiModel(), schema, prompt });
 
@@ -57,11 +59,16 @@ export class IntentExtractor {
     try {
       const { object } = await this.generate({ schema: this.schema, prompt });
       const parsed = this.schema.safeParse(object);
-      if (!parsed.success) return { actionnable: false, intent: "none", entite: "", confiance: 0 };
-      return parsed.data as IntentExtraction;
+      if (!parsed.success) return NOT_ACTIONNABLE;
+      const result = parsed.data as IntentExtraction;
+      // Only act on an intent that was a candidate for THIS window.
+      if (result.actionnable && !candidateProviderIds.includes(result.intent)) {
+        return NOT_ACTIONNABLE;
+      }
+      return result;
     } catch (error) {
       logger.warn(`extraction failed, treating as non-actionnable: ${error instanceof Error ? error.message : error}`);
-      return { actionnable: false, intent: "none", entite: "", confiance: 0 };
+      return NOT_ACTIONNABLE;
     }
   }
 }

@@ -29,4 +29,19 @@ describe("IntentExtractor", () => {
     expect(out.actionnable).toBe(false);
     expect(out.intent).toBe("none");
   });
+
+  it("falls back when the model picks an intent outside the candidates", async () => {
+    const fake = async () => ({ object: { actionnable: true, intent: "definition", entite: "X", confiance: 0.9 } });
+    const x = new IntentExtractor(["poster", "definition"], descriptions, fake);
+    const out = await x.extract("…", ["poster"]); // definition not a candidate this call
+    expect(out.actionnable).toBe(false);
+    expect(out.intent).toBe("none");
+  });
+
+  it("falls back when generate throws", async () => {
+    const fake = async () => { throw new Error("network"); };
+    const x = new IntentExtractor(["poster"], descriptions, fake);
+    const out = await x.extract("…", ["poster"]);
+    expect(out).toEqual({ actionnable: false, intent: "none", entite: "", confiance: 0 });
+  });
 });
