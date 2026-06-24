@@ -813,13 +813,11 @@ export class SettingsService {
    * Falls back to schema defaults if nothing is stored yet.
    */
   getLiveAssistSettings(): LiveAssistSettings {
-    const json = this.db.getSetting("liveAssist");
-    if (json) {
-      try {
-        return LiveAssistSettingsSchema.parse(JSON.parse(json));
-      } catch {
-        this.logger.warn("Failed to parse liveAssist settings, returning defaults");
-      }
+    try {
+      const json = this.db.getSetting("liveAssist");
+      if (json) return LiveAssistSettingsSchema.parse(JSON.parse(json));
+    } catch {
+      this.logger.warn("Failed to read/parse liveAssist settings, returning defaults");
     }
     return LiveAssistSettingsSchema.parse({});
   }
