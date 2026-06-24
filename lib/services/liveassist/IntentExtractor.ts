@@ -31,7 +31,8 @@ export class IntentExtractor {
   ) {
     this.schema = z.object({
       actionnable: z.boolean(),
-      intent: z.enum([...providerIds, "none"] as [string, ...string[]]),
+      // "none" first so TS infers [string, ...string[]] (a leading spread infers [...string[], string], which won't cast).
+      intent: z.enum(["none", ...providerIds] as [string, ...string[]]),
       entite: z.string(),
       confiance: z.number().min(0).max(1),
       raison: z.string().optional(),
