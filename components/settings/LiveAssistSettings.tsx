@@ -1,9 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { Button } from "@/components/ui/button";
-import { apiGet } from "@/lib/utils/ClientFetch";
 import type { LiveAssistSettings as Settings, SttDevice } from "@/lib/models/LiveAssist";
 
 export function LiveAssistSettings() {
@@ -17,13 +16,12 @@ export function LiveAssistSettings() {
       keywordsByProvider: { poster: [], definition: [] },
       windowBeforeSec: 15, windowAfterSec: 15, confidenceThreshold: 0.6,
     },
-    fromResponse: (res) => res.settings,
+    fromResponse: (res) => {
+      setDevices(res.devices ?? []);
+      return res.settings;
+    },
     toPayload: (state) => ({ settings: state }),
   });
-
-  useEffect(() => {
-    apiGet<{ devices: SttDevice[] }>("/api/settings/live-assist").then((r) => setDevices(r.devices ?? [])).catch(() => {});
-  }, []);
 
   return (
     <div className="flex flex-col gap-4 max-w-xl">
