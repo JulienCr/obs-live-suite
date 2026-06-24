@@ -22,6 +22,8 @@ import {
   DEFAULT_STUDIO_RETURN_SETTINGS,
 } from "../models/StudioReturn";
 import type { StudioReturnSettings, MonitorInfo } from "../models/StudioReturn";
+import { LiveAssistSettingsSchema } from "../models/LiveAssist";
+import type { SttDevice, LiveAssistSettings } from "../models/LiveAssist";
 
 // ============================================================================
 // SETTINGS SCHEMAS
@@ -120,6 +122,9 @@ export class SettingsService {
   private studioReturnStore: SettingsStore<typeof StudioReturnSettingsSchema.shape>;
   private wordHarvestMidiStore: SettingsStore<typeof WordHarvestMidiSettingsSchema.shape>;
   private titleRevealDefaultsStore: SettingsStore<typeof TitleRevealDefaultsSchema.shape>;
+
+  // In-memory STT device list (populated at runtime by the STT client)
+  private sttDevices: SttDevice[] = [];
 
   private constructor() {
     this.db = SettingsRepository.getInstance();
@@ -779,5 +784,51 @@ export class SettingsService {
   getInstagramCookieFilePath(): string {
     const dataDir = PathManager.getInstance().getDataDir();
     return join(dataDir, "instagram-cookies.txt");
+  }
+
+  // =========================================================================
+  // STT DEVICES (in-memory, populated at runtime by the STT client)
+  // =========================================================================
+
+  /**
+   * Get the list of STT audio input devices reported by the STT client.
+   */
+  getSttDevices(): SttDevice[] {
+    return this.sttDevices;
+  }
+
+  /**
+   * Replace the in-memory STT device list.
+   */
+  saveSttDevices(devices: SttDevice[]): void {
+    this.sttDevices = devices;
+  }
+
+  // =========================================================================
+  // LIVE ASSIST SETTINGS (persisted in the settings database)
+  // =========================================================================
+
+  /**
+   * Get Live Assist feature settings.
+   * Falls back to schema defaults if nothing is stored yet.
+   */
+  getLiveAssistSettings(): LiveAssistSettings {
+    const json = this.db.getSetting("liveAssist");
+    if (json) {
+      try {
+        return LiveAssistSettingsSchema.parse(JSON.parse(json));
+      } catch {
+        this.logger.warn("Failed to parse liveAssist settings, returning defaults");
+      }
+    }
+    return LiveAssistSettingsSchema.parse({});
+  }
+
+  /**
+   * Save Live Assist feature settings to the database.
+   */
+  saveLiveAssistSettings(settings: LiveAssistSettings): void {
+    this.db.setSetting("liveAssist", JSON.stringify(settings));
+    this.logger.info("Live Assist settings saved to database");
   }
 }
