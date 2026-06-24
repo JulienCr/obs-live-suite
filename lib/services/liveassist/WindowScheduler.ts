@@ -13,6 +13,9 @@ export class WindowScheduler {
   ) {}
 
   register(hit: KeywordHit, wallNowMs: number): void {
+    // Hits arrive in non-decreasing tHit order (sequential transcript segments),
+    // so the symmetric distance check only ever coalesces a later hit forward
+    // into a recent window — never a hit before an unrelated earlier center.
     // Coalesce into an existing pending window whose center is within afterMs.
     const near = this.pending.find((p) => Math.abs(p.tCenter - hit.tHit) <= this.afterMs);
     if (near) {

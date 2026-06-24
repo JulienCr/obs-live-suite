@@ -36,4 +36,14 @@ describe("WindowScheduler", () => {
     expect(s.collectReady(25000, 1000)).toHaveLength(1);
     expect(s.collectReady(25000, 1000)).toHaveLength(0);
   });
+
+  it("fires two independent windows for hits farther apart than afterMs", () => {
+    const s = new WindowScheduler(15000, 20000);
+    s.register({ providerId: "poster", keyword: "spectacle", tHit: 10000 }, 0);
+    s.register({ providerId: "definition", keyword: "définition", tHit: 30000 }, 0);
+    const ready = s.collectReady(45000, 1000); // latestT1 past both 25000 and 45000
+    expect(ready).toHaveLength(2);
+    expect(ready.map((r) => r.tCenter).sort((a, b) => a - b)).toEqual([10000, 30000]);
+    expect(ready.flatMap((r) => r.providerIds).sort()).toEqual(["definition", "poster"]);
+  });
 });
