@@ -2,7 +2,8 @@ import { WebSocketHub } from "./WebSocketHub";
 import { Logger } from "../utils/Logger";
 import { OverlayEvent, OverlayChannel, AckEvent, RoomEvent, RoomEventType, PosterEventType } from "../models/OverlayEvents";
 import { randomUUID } from "crypto";
-import { WEBSOCKET } from "../config/Constants";
+import { WEBSOCKET, LIVE_ASSIST } from "../config/Constants";
+import type { LiveAssistEvent } from "../models/LiveAssist";
 
 /**
  * Hardcoded presenter channel name
@@ -315,6 +316,19 @@ export class ChannelManager {
     };
     this.logger.debug(`Publishing to presenter: ${type}`);
     this.wsHub.broadcast(channel, event);
+  }
+
+  /**
+   * Publish a Live Assist event (suggestions, STT status) on its dedicated
+   * channel. No ack: dashboard panels are passive subscribers, like presenter.
+   */
+  publishLiveAssist(event: LiveAssistEvent): void {
+    this.logger.debug(`Publishing to live-assist: ${event.type}`);
+    this.wsHub.broadcast(LIVE_ASSIST.CHANNEL, {
+      ...event,
+      timestamp: Date.now(),
+      id: randomUUID(),
+    });
   }
 
   /**
