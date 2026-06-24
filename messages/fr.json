@@ -413,6 +413,14 @@
       "noCategories": "Aucune catégorie trouvée. Utilisez # pour les catégories.",
       "error": "Erreur lors du contrôle du sommaire",
       "aiUpdated": "Sommaire mis à jour par l'IA"
+    },
+    "liveAssist": {
+      "validate": "Valider",
+      "pin": "Épingler",
+      "onAir": "À l'antenne",
+      "dismiss": "Ignorer",
+      "connected": "Connecté",
+      "disconnected": "STT déconnecté"
     }
   },
   "navigation": {
@@ -447,7 +455,8 @@
       "backup": "Sauvegarde",
       "plugins": "Plugins",
       "helpSupport": "Aide et support",
-      "studioReturn": "Retour plateau"
+      "studioReturn": "Retour plateau",
+      "liveAssist": "Assistant Live"
     }
   },
   "settings": {
@@ -824,6 +833,17 @@
       "saving": "Enregistrement...",
       "loading": "Chargement...",
       "savedSuccess": "Paramètres enregistrés"
+    },
+    "liveAssist": {
+      "title": "Assistant Live",
+      "enabled": "Activé",
+      "device": "Micro d'entrée",
+      "model": "Modèle Whisper",
+      "keywords": "Mots-clés",
+      "windowBefore": "Avant (s)",
+      "windowAfter": "Après (s)",
+      "threshold": "Seuil de confiance",
+      "save": "Enregistrer"
     }
   },
   "assets": {

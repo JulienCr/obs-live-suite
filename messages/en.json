@@ -413,6 +413,14 @@
       "noCategories": "No categories found. Use # for categories.",
       "error": "Error controlling sommaire",
       "aiUpdated": "Sommaire updated by AI"
+    },
+    "liveAssist": {
+      "validate": "Validate",
+      "pin": "Pin",
+      "onAir": "On Air",
+      "dismiss": "Dismiss",
+      "connected": "Connected",
+      "disconnected": "STT disconnected"
     }
   },
   "navigation": {
@@ -447,7 +455,8 @@
       "backup": "Backup",
       "plugins": "Plugins",
       "helpSupport": "Help & Support",
-      "studioReturn": "Studio Return"
+      "studioReturn": "Studio Return",
+      "liveAssist": "Live Assist"
     }
   },
   "settings": {
@@ -824,6 +833,17 @@
       "saving": "Saving...",
       "loading": "Loading...",
       "savedSuccess": "Settings saved"
+    },
+    "liveAssist": {
+      "title": "Live Assist",
+      "enabled": "Enabled",
+      "device": "Input device",
+      "model": "Whisper model",
+      "keywords": "Keywords",
+      "windowBefore": "Before (s)",
+      "windowAfter": "After (s)",
+      "threshold": "Confidence threshold",
+      "save": "Save"
     }
   },
   "assets": {
