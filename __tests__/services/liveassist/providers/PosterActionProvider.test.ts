@@ -36,4 +36,15 @@ describe("PosterActionProvider", () => {
     expect(r.ok).toBe(true);
     expect(called).toEqual({ title: "Le Cid", fileUrl: "http://x/p.jpg" });
   });
+
+  it("apply returns ok:false and does not call the creator when fileUrl is missing", async () => {
+    let called = false;
+    const p = new PosterActionProvider(
+      { resolveAndFetch: async () => ({ title: "x", extract: "", thumbnail: undefined }) },
+      async () => { called = true; return { ok: true }; },
+    );
+    const r = await p.apply({ title: "Le Cid" }); // no fileUrl
+    expect(r.ok).toBe(false);
+    expect(called).toBe(false);
+  });
 });
