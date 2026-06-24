@@ -20,6 +20,7 @@ import {
   Wheat,
   Sparkles,
   List,
+  Headphones,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -46,6 +47,7 @@ export const PANEL_IDS = [
   "wordHarvest",
   "titleReveal",
   "sommaire",
+  "liveAssist",
 ] as const;
 
 export type PanelId = (typeof PANEL_IDS)[number];
@@ -148,6 +150,10 @@ export const PANEL_REGISTRY: Record<PanelId, PanelMeta> = {
   sommaire: {
     icon: List,
     commandPaletteKeywords: ["panel", "widget", "sommaire", "table", "contents", "add"],
+  },
+  liveAssist: {
+    icon: Headphones,
+    commandPaletteKeywords: ["panel", "widget", "assistant", "live", "écoute", "suggestions", "ai", "add"],
   },
 };
 

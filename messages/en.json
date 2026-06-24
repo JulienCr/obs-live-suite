@@ -19,7 +19,8 @@
       "mediaPlayerYoutube": "YouTube Player",
       "wordHarvest": "Word Harvest",
       "titleReveal": "Title Reveal",
-      "sommaire": "Table of Contents"
+      "sommaire": "Table of Contents",
+      "liveAssist": "Live Assistant"
     },
     "header": {
       "connected": "Connected",
@@ -1527,6 +1528,7 @@
     }
   },
   "presenter": {
+    "title": "Presenter",
     "meta": {
       "title": "Presenter Dashboard - OBS Live Suite",
       "description": "Private presenter dashboard for live shows"
@@ -1560,7 +1562,11 @@
       "disconnect": "Disconnect",
       "refresh": "Refresh",
       "tryAgain": "Try Again",
-      "send": "Send"
+      "send": "Send",
+      "hideRegie": "Hide control room",
+      "showRegie": "Show control room",
+      "lightMode": "Light theme",
+      "darkMode": "Dark theme"
     },
     "labels": {
       "pinned": "Pinned",

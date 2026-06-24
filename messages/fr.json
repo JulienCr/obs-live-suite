@@ -19,7 +19,8 @@
       "mediaPlayerYoutube": "Player YouTube",
       "wordHarvest": "Récolte de mots",
       "titleReveal": "Titre animé",
-      "sommaire": "Sommaire"
+      "sommaire": "Sommaire",
+      "liveAssist": "Assistant Live"
     },
     "header": {
       "connected": "Connecté",
@@ -1528,6 +1529,7 @@
     }
   },
   "presenter": {
+    "title": "Présentateur",
     "meta": {
       "title": "Tableau de bord Présentateur - OBS Live Suite",
       "description": "Tableau de bord privé du présentateur pour les émissions en direct"
@@ -1561,7 +1563,11 @@
       "disconnect": "Déconnecter",
       "refresh": "Actualiser",
       "tryAgain": "Réessayer",
-      "send": "Envoyer"
+      "send": "Envoyer",
+      "hideRegie": "Masquer la régie",
+      "showRegie": "Afficher la régie",
+      "lightMode": "Thème clair",
+      "darkMode": "Thème sombre"
     },
     "labels": {
       "pinned": "Épinglé",
