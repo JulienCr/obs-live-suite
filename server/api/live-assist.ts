@@ -151,9 +151,16 @@ export function buildOrchestrator(): {
   const store = new SuggestionStoreClass((event: unknown) => cm.publishLiveAssist(event));
   const extractor = new IntentExtractor(registry.ids(), registry.descriptions());
 
+  // Fix C: merge each provider's defaultKeywords as fallback when settings is empty.
+  const keywords: Record<string, string[]> = {};
+  for (const p of registry.all()) {
+    const configured = liveAssistSettings.keywordsByProvider[p.id];
+    keywords[p.id] = configured && configured.length ? configured : p.defaultKeywords;
+  }
+
   const orchestrator = new OrchestratorClass({
     buffer: new TranscriptBuffer(),
-    detector: new KeywordDetector(liveAssistSettings.keywordsByProvider),
+    detector: new KeywordDetector(keywords),
     scheduler: new WindowScheduler(liveAssistSettings.windowAfterSec * 1000, LIVE_ASSIST.WINDOW_MAX_WAIT_MS),
     extractor,
     registry,
@@ -163,7 +170,18 @@ export function buildOrchestrator(): {
       windowAfterSec: liveAssistSettings.windowAfterSec,
       confidenceThreshold: liveAssistSettings.confidenceThreshold,
     },
+    // Fix A: gate ingest on the live settings flag (re-read each call).
+    isEnabled: () => SettingsService.getInstance().getLiveAssistSettings().enabled,
+    // Fix B: publish STT connected/disconnected state to overlay subscribers.
+    publishStatus: (connected: boolean, device: string | null) =>
+      cm.publishLiveAssist({ type: "stt:status", payload: { connected, device } }),
   });
+
+  // Seed the device label so status reports include the configured device name.
+  orchestrator.setSttStatus(false, liveAssistSettings.inputDevice ?? null);
+
+  // Fix B: staleness ticker — fires twice per stale window to keep latency low.
+  setInterval(() => orchestrator.checkStaleness(Date.now()), Math.floor(LIVE_ASSIST.STT_STALE_MS / 2));
 
   setLiveAssistOrchestrator(orchestrator);
   return { orchestrator, store, registry };

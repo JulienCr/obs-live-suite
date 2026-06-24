@@ -49,6 +49,11 @@ def run():
         print(f"[stt] listening on device {device_index}")
         while True:
             time.sleep(2.0)  # batch ~2s of audio; replace with VAD silence detection
+            # Re-poll config each iteration so toggling enabled takes effect within one loop.
+            cfg_now = fetch_config(backend)
+            if not cfg_now.get("enabled", False):
+                buffer.clear()
+                continue
             if not buffer:
                 continue
             audio = np.concatenate(buffer).flatten()

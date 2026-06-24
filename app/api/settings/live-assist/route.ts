@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { withSimpleErrorHandler, ApiResponses } from "@/lib/utils/ApiResponses";
 import { SettingsService } from "@/lib/services/SettingsService";
 import { LiveAssistSettingsSchema } from "@/lib/models/LiveAssist";

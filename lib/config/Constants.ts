@@ -689,6 +689,8 @@ export const LIVE_ASSIST = {
   CHANNEL: "live-assist",
   /** Transcript buffer retention (ms). */
   BUFFER_RETENTION_MS: 120_000,
+  /** No segment received for this long ⇒ STT considered disconnected (ms). */
+  STT_STALE_MS: 10_000,
   /** Default context window before/after a keyword hit (seconds). */
   WINDOW_BEFORE_SEC: 15,
   WINDOW_AFTER_SEC: 15,

@@ -8,7 +8,7 @@ import { SuggestionStore } from "@/lib/services/liveassist/SuggestionStore";
 
 const seg = (text: string, t0: number, t1: number) => ({ text, t0, t1, final: true });
 
-function makeOrchestrator(extractObj: any) {
+function makeOrchestrator(extractObj: any, extraDeps?: Record<string, unknown>) {
   const buffer = new TranscriptBuffer();
   const detector = new KeywordDetector({ poster: ["spectacle"] });
   const scheduler = new WindowScheduler(15000, 20000);
@@ -28,6 +28,7 @@ function makeOrchestrator(extractObj: any) {
     buffer, detector, scheduler, extractor, registry, store,
     settings: { windowBeforeSec: 15, windowAfterSec: 15, confidenceThreshold: 0.6 },
     now: () => 0,
+    ...extraDeps,
   });
   return { orch, events };
 }
@@ -52,5 +53,52 @@ describe("LiveAssistOrchestrator", () => {
     await orch.ingestSegment(seg("le spectacle Le Cid", 10000, 11000));
     await orch.ingestSegment(seg("contexte", 26000, 27000));
     expect(events.some((e) => e.type === "suggestion:new")).toBe(false);
+  });
+
+  it("ignores segments when disabled", async () => {
+    const { orch, events } = makeOrchestrator(
+      { actionnable: true, intent: "poster", entite: "Le Cid", confiance: 0.9 },
+      { isEnabled: () => false },
+    );
+    await orch.ingestSegment(seg("le spectacle Le Cid", 10000, 11000));
+    await orch.ingestSegment(seg("contexte qui suit", 26000, 27000));
+    expect(events.some((e) => e.type === "suggestion:new")).toBe(false);
+  });
+
+  it("publishes stt:status connected on first segment", async () => {
+    const statusCalls: Array<[boolean, string | null]> = [];
+    const publishStatus = (connected: boolean, device: string | null) => {
+      statusCalls.push([connected, device]);
+    };
+    const { orch } = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 },
+      { publishStatus },
+    );
+    await orch.ingestSegment(seg("bonjour", 0, 1000));
+    expect(statusCalls.length).toBeGreaterThanOrEqual(1);
+    expect(statusCalls[0][0]).toBe(true);
+  });
+
+  it("publishes stt:status disconnected when stale", async () => {
+    const statusCalls: Array<[boolean, string | null]> = [];
+    const publishStatus = (connected: boolean, device: string | null) => {
+      statusCalls.push([connected, device]);
+    };
+    let fakeNow = 0;
+    const staleMs = 10_000;
+    const { orch } = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 },
+      { publishStatus, now: () => fakeNow, staleMs },
+    );
+    // Ingest a segment — this marks connected=true and sets lastSegmentAt=0.
+    await orch.ingestSegment(seg("bonjour", 0, 1000));
+    expect(statusCalls[0][0]).toBe(true);
+
+    // Advance time past the stale threshold and check staleness.
+    fakeNow = staleMs + 1;
+    orch.checkStaleness(fakeNow);
+    const disconnectCall = statusCalls.find(([c]) => c === false);
+    expect(disconnectCall).toBeDefined();
+    expect(disconnectCall![0]).toBe(false);
   });
 });

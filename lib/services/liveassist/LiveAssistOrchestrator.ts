@@ -1,5 +1,6 @@
 // lib/services/liveassist/LiveAssistOrchestrator.ts
 import { Logger } from "@/lib/utils/Logger";
+import { LIVE_ASSIST } from "@/lib/config/Constants";
 import type { TranscriptSegment } from "@/lib/models/LiveAssist";
 import { TranscriptBuffer } from "./TranscriptBuffer";
 import { KeywordDetector } from "./KeywordDetector";
@@ -19,14 +20,24 @@ interface Deps {
   store: SuggestionStore;
   settings: { windowBeforeSec: number; windowAfterSec: number; confidenceThreshold: number };
   now?: () => number;
+  isEnabled?: () => boolean;
+  publishStatus?: (connected: boolean, device: string | null) => void;
+  staleMs?: number;
 }
 
 export class LiveAssistOrchestrator {
   private status = { connected: false, device: null as string | null };
   private readonly now: () => number;
+  private readonly isEnabled: () => boolean;
+  private readonly publishStatus: (connected: boolean, device: string | null) => void;
+  private readonly staleMs: number;
+  private lastSegmentAt = 0;
 
   constructor(private readonly deps: Deps) {
     this.now = deps.now ?? Date.now;
+    this.isEnabled = deps.isEnabled ?? (() => true);
+    this.publishStatus = deps.publishStatus ?? (() => undefined);
+    this.staleMs = deps.staleMs ?? LIVE_ASSIST.STT_STALE_MS;
   }
 
   setSttStatus(connected: boolean, device: string | null): void {
@@ -36,9 +47,22 @@ export class LiveAssistOrchestrator {
     return { ...this.status };
   }
 
+  checkStaleness(nowMs: number): void {
+    if (this.status.connected && nowMs - this.lastSegmentAt > this.staleMs) {
+      this.status.connected = false;
+      this.publishStatus(false, this.status.device);
+    }
+  }
+
   async ingestSegment(segment: TranscriptSegment): Promise<void> {
     if (!segment.final) return;
+    if (!this.isEnabled()) return;
     this.deps.buffer.append(segment);
+    if (!this.status.connected) {
+      this.status.connected = true;
+      this.publishStatus(true, this.status.device);
+    }
+    this.lastSegmentAt = this.now();
     for (const hit of this.deps.detector.scan(segment)) {
       this.deps.scheduler.register(hit, this.now());
     }
