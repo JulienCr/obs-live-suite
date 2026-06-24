@@ -35,4 +35,25 @@ describe("SuggestionStore", () => {
     expect(updated?.status).toBe("applied");
     expect(events.at(-1)).toEqual({ type: "suggestion:update", payload: { id: "id1", status: "applied" } });
   });
+
+  it("does not publish when a suggestion is deduped", () => {
+    const events: any[] = [];
+    let t = 1000;
+    const store = new SuggestionStore((e) => events.push(e), { now: () => t, dedupWindowMs: 10000, makeId: () => String(t) });
+    store.add(built("Le Cid"));   // publishes
+    t = 5000;
+    store.add(built("Le Cid"));   // deduped → must NOT publish
+    expect(events).toHaveLength(1);
+    t = 20000;
+    store.add(built("Le Cid"));   // window elapsed → publishes again
+    expect(events).toHaveLength(2);
+  });
+
+  it("list() returns a copy, not the internal array", () => {
+    const store = new SuggestionStore(() => {}, { now: () => 1, makeId: () => "id" });
+    store.add(built("X"));
+    const copy = store.list();
+    copy.push({} as never);
+    expect(store.list()).toHaveLength(1);
+  });
 });
