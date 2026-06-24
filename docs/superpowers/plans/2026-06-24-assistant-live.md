@@ -1910,7 +1910,15 @@ In `lib/panels/registry.ts`:
 
 ```tsx
 // __tests__/components/SuggestionCard.test.tsx
+/**
+ * @jest-environment jsdom
+ */
 import { render, screen, fireEvent } from "@testing-library/react";
+
+// Repo convention (see __tests__/components/ChatMessagesPanel.test.tsx):
+// mock next-intl so t("key") returns the key — no provider needed.
+jest.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
+
 import { SuggestionCard } from "@/components/live-assist/SuggestionCard";
 
 const base = {
@@ -1927,18 +1935,19 @@ describe("SuggestionCard", () => {
     expect(screen.getByRole("img")).toHaveAttribute("src", "http://x/p.jpg");
   });
 
-  it("calls onApply when Valider is clicked", () => {
+  it("calls onApply with target 'pin' when the primary button is clicked", () => {
     const onApply = jest.fn();
     render(<SuggestionCard suggestion={base} onApply={onApply} onDismiss={() => {}} />);
-    fireEvent.click(screen.getByText(/valider/i));
+    // mocked t() returns the key; poster's primary button label is "validate"
+    fireEvent.click(screen.getByText("validate"));
     expect(onApply).toHaveBeenCalledWith(base, "pin");
   });
 
-  it("shows an extra 'À l'antenne' action for definition suggestions", () => {
+  it("shows an 'onAir' action for definition suggestions and calls onApply with 'on-air'", () => {
     const def = { ...base, intent: "definition", preview: { kind: "text" as const, text: "déf" }, applyPayload: { target: "pin", text: "déf" } };
     const onApply = jest.fn();
     render(<SuggestionCard suggestion={def} onApply={onApply} onDismiss={() => {}} />);
-    fireEvent.click(screen.getByText(/antenne/i));
+    fireEvent.click(screen.getByText("onAir")); // mocked t("onAir")
     expect(onApply).toHaveBeenCalledWith(def, "on-air");
   });
 });
@@ -2146,25 +2155,27 @@ git commit -m "feat(live-assist): dashboard panel, suggestion cards, store, regi
 
 ```tsx
 // __tests__/components/LiveAssistSettings.test.tsx
+/**
+ * @jest-environment jsdom
+ */
 import { render, screen, waitFor } from "@testing-library/react";
-import { NextIntlClientProvider } from "next-intl";
-import { LiveAssistSettings } from "@/components/settings/LiveAssistSettings";
 
-const messages = { settings: { liveAssist: {
-  title: "Assistant Live", enabled: "Activé", device: "Micro", model: "Modèle Whisper",
-  keywords: "Mots-clés", windowBefore: "Avant (s)", windowAfter: "Après (s)", threshold: "Seuil", save: "Enregistrer",
-} } };
+// Repo convention: mock next-intl so t("key") returns the key (no provider).
+jest.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
+
+import { LiveAssistSettings } from "@/components/settings/LiveAssistSettings";
 
 describe("LiveAssistSettings", () => {
   it("renders the device dropdown from reported devices", async () => {
+    // useSettings and the devices effect both GET /api/settings/live-assist
+    // via apiGet → fetch; one mock response feeds both.
     jest.spyOn(global, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ settings: { enabled: false, inputDevice: null, whisperModel: "large-v3", keywordsByProvider: { poster: ["spectacle"] }, windowBeforeSec: 15, windowAfterSec: 15, confidenceThreshold: 0.6 }, devices: [{ id: "mic1", label: "USB Mic" }] }), { status: 200 }),
+      new Response(JSON.stringify({
+        settings: { enabled: false, inputDevice: null, whisperModel: "large-v3", keywordsByProvider: { poster: ["spectacle"] }, windowBeforeSec: 15, windowAfterSec: 15, confidenceThreshold: 0.6 },
+        devices: [{ id: "mic1", label: "USB Mic" }],
+      }), { status: 200 }),
     );
-    render(
-      <NextIntlClientProvider locale="fr" messages={messages}>
-        <LiveAssistSettings />
-      </NextIntlClientProvider>,
-    );
+    render(<LiveAssistSettings />);
     await waitFor(() => expect(screen.getByText("USB Mic")).toBeInTheDocument());
   });
 });
