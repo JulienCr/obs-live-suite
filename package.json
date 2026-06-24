@@ -13,6 +13,7 @@
     "dev:backend": "tsx watch server/backend.ts",
     "backend": "tsx server/backend.ts",
     "setup:https": "node scripts/setup-https.js",
+    "cert:tailscale": "node scripts/setup-tailscale-cert.mjs",
     "build": "node scripts/build-safe.js",
     "build:direct": "next build",
     "start": "next start -H 0.0.0.0",
@@ -33,6 +34,7 @@
     "backup:appdata": "node scripts/backup-appdata.js",
     "reserve:ports": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/reserve-ports.ps1",
     "dev:mcp": "cd mcp-server && pnpm dev",
+    "dev:stt": "cd realtime-stt && python main.py",
     "test:mcp": "pnpm --filter obs-live-suite-mcp test",
     "studio-return:dev": "cd studio-return && pnpm dev",
     "studio-return:build": "cd studio-return && pnpm build"

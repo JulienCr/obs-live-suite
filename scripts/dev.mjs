@@ -2,13 +2,14 @@ import { spawn } from "child_process";
 
 const isWindows = process.platform === "win32";
 
-const RESET = "[0m";
-const GREY = "[38;5;244m";
+const RESET = "[0m";
+const GREY = "[38;5;244m";
 
 const procs = [
-  { name: "BACKEND", color: "[34m", script: "dev:backend" },
-  { name: "NEXT",    color: "[32m", script: "dev:frontend" },
-  { name: "MCP",     color: "[35m", script: "dev:mcp" },
+  { name: "BACKEND", color: "[34m", script: "dev:backend" },
+  { name: "NEXT",    color: "[32m", script: "dev:frontend" },
+  { name: "MCP",     color: "[35m", script: "dev:mcp" },
+  { name: "STT",     color: "[36m", script: "dev:stt" },
 ];
 
 const pad = (n) => String(n).padStart(2, "0");
