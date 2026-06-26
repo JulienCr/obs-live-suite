@@ -55,4 +55,5 @@ export type LiveAssistSettings = z.infer<typeof LiveAssistSettingsSchema>;
 export type LiveAssistEvent =
   | { type: "suggestion:new"; payload: { suggestion: Suggestion } }
   | { type: "suggestion:update"; payload: { id: string; status: Suggestion["status"] } }
-  | { type: "stt:status"; payload: { connected: boolean; device: string | null } };
+  | { type: "stt:status"; payload: { connected: boolean; device: string | null } }
+  | { type: "transcript"; payload: { text: string; t0: number; t1: number } };

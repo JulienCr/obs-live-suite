@@ -123,9 +123,6 @@ export class SettingsService {
   private wordHarvestMidiStore: SettingsStore<typeof WordHarvestMidiSettingsSchema.shape>;
   private titleRevealDefaultsStore: SettingsStore<typeof TitleRevealDefaultsSchema.shape>;
 
-  // In-memory STT device list (populated at runtime by the STT client)
-  private sttDevices: SttDevice[] = [];
-
   private constructor() {
     this.db = SettingsRepository.getInstance();
     this.logger = new Logger("SettingsService");
@@ -787,21 +784,29 @@ export class SettingsService {
   }
 
   // =========================================================================
-  // STT DEVICES (in-memory, populated at runtime by the STT client)
+  // STT DEVICES (persisted in the DB: the STT client reports them to the BACKEND
+  // process, but the settings page is served by the NEXT.JS process — two
+  // separate processes, so an in-memory list would never cross over. The shared
+  // SQLite DB makes the backend's report visible to the Next.js reader.)
   // =========================================================================
 
   /**
    * Get the list of STT audio input devices reported by the STT client.
    */
   getSttDevices(): SttDevice[] {
-    return this.sttDevices;
+    try {
+      const json = this.db.getSetting("liveAssist.devices");
+      return json ? (JSON.parse(json) as SttDevice[]) : [];
+    } catch {
+      return [];
+    }
   }
 
   /**
-   * Replace the in-memory STT device list.
+   * Replace the STT device list (reported by the STT client to the backend).
    */
   saveSttDevices(devices: SttDevice[]): void {
-    this.sttDevices = devices;
+    this.db.setSetting("liveAssist.devices", JSON.stringify(devices));
   }
 
   // =========================================================================

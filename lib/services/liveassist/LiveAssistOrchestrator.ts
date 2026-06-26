@@ -22,6 +22,7 @@ interface Deps {
   now?: () => number;
   isEnabled?: () => boolean;
   publishStatus?: (connected: boolean, device: string | null) => void;
+  publishTranscript?: (text: string, t0: number, t1: number) => void;
   staleMs?: number;
 }
 
@@ -30,13 +31,15 @@ export class LiveAssistOrchestrator {
   private readonly now: () => number;
   private readonly isEnabled: () => boolean;
   private readonly publishStatus: (connected: boolean, device: string | null) => void;
+  private readonly publishTranscript: (text: string, t0: number, t1: number) => void;
   private readonly staleMs: number;
-  private lastSegmentAt = 0;
+  private lastSeenAt = 0;
 
   constructor(private readonly deps: Deps) {
     this.now = deps.now ?? Date.now;
     this.isEnabled = deps.isEnabled ?? (() => true);
     this.publishStatus = deps.publishStatus ?? (() => undefined);
+    this.publishTranscript = deps.publishTranscript ?? (() => undefined);
     this.staleMs = deps.staleMs ?? LIVE_ASSIST.STT_STALE_MS;
   }
 
@@ -47,8 +50,23 @@ export class LiveAssistOrchestrator {
     return { ...this.status };
   }
 
+  /**
+   * Liveness signal from the STT service (a segment OR a config poll). The STT
+   * client polls /api/stt/config every ~2s even when disabled, so this is the
+   * heartbeat that keeps the status "connected" while the service runs — not
+   * just while segments happen to be flowing.
+   */
+  markSttAlive(device?: string | null): void {
+    this.lastSeenAt = this.now();
+    if (device !== undefined && device !== null) this.status.device = device;
+    if (!this.status.connected) {
+      this.status.connected = true;
+      this.publishStatus(true, this.status.device);
+    }
+  }
+
   checkStaleness(nowMs: number): void {
-    if (this.status.connected && nowMs - this.lastSegmentAt > this.staleMs) {
+    if (this.status.connected && nowMs - this.lastSeenAt > this.staleMs) {
       this.status.connected = false;
       this.publishStatus(false, this.status.device);
     }
@@ -57,12 +75,9 @@ export class LiveAssistOrchestrator {
   async ingestSegment(segment: TranscriptSegment): Promise<void> {
     if (!segment.final) return;
     if (!this.isEnabled()) return;
+    this.markSttAlive();
+    this.publishTranscript(segment.text, segment.t0, segment.t1);
     this.deps.buffer.append(segment);
-    if (!this.status.connected) {
-      this.status.connected = true;
-      this.publishStatus(true, this.status.device);
-    }
-    this.lastSegmentAt = this.now();
     for (const hit of this.deps.detector.scan(segment)) {
       this.deps.scheduler.register(hit, this.now());
     }
