@@ -92,17 +92,29 @@ export class LiveAssistOrchestrator {
     const window = this.deps.buffer.windowAround(tCenter, windowBeforeSec * 1000, windowAfterSec * 1000);
     if (!window.text.trim()) return;
 
+    logger.info(`window fired (providers=${providerIds.join(",")}): "${window.text.slice(0, 140)}"`);
+
     let extraction;
     try {
       extraction = await this.deps.extractor.extract(window.text, providerIds);
     } catch (error) {
-      logger.warn(`extractor error: ${error instanceof Error ? error.message : error}`);
+      logger.warn(`extractor FAILED (is an AI provider configured in Settings > AI?): ${error instanceof Error ? error.message : error}`);
       return;
     }
-    if (!extraction.actionnable || extraction.confiance < confidenceThreshold) return;
+    logger.info(
+      `extraction: actionnable=${extraction.actionnable} intent=${extraction.intent} entite="${extraction.entite}" confiance=${extraction.confiance}`,
+    );
+
+    if (!extraction.actionnable || extraction.confiance < confidenceThreshold) {
+      logger.info(`→ dropped (actionnable=${extraction.actionnable}, confiance ${extraction.confiance} < threshold ${confidenceThreshold})`);
+      return;
+    }
 
     const provider = this.deps.registry.get(extraction.intent);
-    if (!provider) return;
+    if (!provider) {
+      logger.warn(`→ no provider registered for intent "${extraction.intent}"`);
+      return;
+    }
 
     let built;
     try {
@@ -111,9 +123,13 @@ export class LiveAssistOrchestrator {
       logger.warn(`provider ${provider.id} build error: ${error instanceof Error ? error.message : error}`);
       return;
     }
-    if (!built) return;
+    if (!built) {
+      logger.info(`→ provider ${provider.id} found nothing for "${extraction.entite}"`);
+      return;
+    }
 
     this.deps.store.add({ ...built, confidence: extraction.confiance });
+    logger.info(`✓ suggestion created: ${provider.id} "${extraction.entite}"`);
   }
 }
 

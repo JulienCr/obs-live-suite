@@ -25,10 +25,14 @@ export class PosterActionProvider implements ActionProvider {
       return null;
     }
 
+    // Wikipedia titles carry disambiguators like "Titanic (film, 1997)" — strip the
+    // trailing parenthetical for a clean poster title while keeping the matched image.
+    const title = result.title.replace(/\s*\([^)]*\)\s*$/, "").trim() || result.title;
+
     const base = {
       intent: this.id,
       entity,
-      title: result.title,
+      title,
       triggerExcerpt: window.text,
       confidence: 0,
     };
@@ -37,7 +41,7 @@ export class PosterActionProvider implements ActionProvider {
       return {
         ...base,
         preview: { kind: "image", imageUrl: result.thumbnail },
-        applyPayload: { title: result.title, fileUrl: result.thumbnail },
+        applyPayload: { title, fileUrl: result.thumbnail },
       };
     }
     // No image → propose manual search rather than nothing.
@@ -45,9 +49,9 @@ export class PosterActionProvider implements ActionProvider {
       ...base,
       preview: {
         kind: "text",
-        text: `Affiche introuvable automatiquement. Recherche : https://www.google.com/search?tbm=isch&q=${encodeURIComponent(result.title + " affiche")}`,
+        text: `Affiche introuvable automatiquement. Recherche : https://www.google.com/search?tbm=isch&q=${encodeURIComponent(title + " affiche")}`,
       },
-      applyPayload: { title: result.title },
+      applyPayload: { title },
     };
   }
 

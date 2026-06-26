@@ -10,7 +10,6 @@ export type IntentExtraction = {
   intent: string;
   entite: string;
   confiance: number;
-  raison?: string;
 };
 
 export type GenerateObjectFn = (args: {
@@ -36,8 +35,10 @@ export class IntentExtractor {
       // "none" first so TS infers [string, ...string[]] (a leading spread infers [...string[], string], which won't cast).
       intent: z.enum(["none", ...providerIds] as [string, ...string[]]),
       entite: z.string(),
-      confiance: z.number().min(0).max(1),
-      raison: z.string().optional(),
+      // No optional fields and no numeric min/max: OpenAI structured-outputs (strict
+      // mode) requires every property in `required` and rejects unsupported keywords.
+      // The confidence range is enforced by the orchestrator's threshold check instead.
+      confiance: z.number(),
     });
   }
 
@@ -47,13 +48,18 @@ export class IntentExtractor {
       .join("\n");
 
     const prompt = [
-      "Tu analyses une transcription de plateau TV en français (parole, donc bruitée).",
-      "Détermine s'il y a UNE action concrète à proposer parmi les intents candidats ci-dessous.",
-      "Extrais l'entité concernée (titre de spectacle/film, sujet à définir). Si rien de clair, renvoie actionnable=false et intent='none'.",
+      "Tu assistes la régie d'une émission en direct. Tu analyses un extrait de transcription (parole, donc bruitée — ignore les artefacts type « Sous-titrage ST'501 »).",
+      "Objectif : dès qu'une entité correspondant à un des INTENTS CANDIDATS est CITÉE — même sans demande explicite, même au détour d'une phrase — on la signale pour enrichir l'antenne.",
       "",
-      `Intents candidats :\n${catalogue}`,
+      `INTENTS CANDIDATS :\n${catalogue}`,
       "",
-      `Transcription (fenêtre) :\n"""${windowText}"""`,
+      "Règles :",
+      "- Si une entité claire correspondant à un intent candidat est citée (p. ex. un titre de film / spectacle / pièce / concert pour « poster » ; un sujet à définir pour « definition ») → actionnable=true, intent = l'id exact de l'intent candidat, entite = le titre/sujet exact sans article. Pour « poster », ajoute le type entre parenthèses pour viser le bon article Wikipédia : « Titanic (film) », « Roméo et Juliette (pièce de théâtre) », « Les Bronzés font du ski (film) ».",
+      '- Sinon (rien de clair, trop vague, ou hors-sujet) → actionnable=false, intent="none", entite="".',
+      '- N\'utilise JAMAIS intent="none" lorsque actionnable=true.',
+      "- confiance ∈ [0,1] = ta certitude.",
+      "",
+      `Transcription :\n"""${windowText}"""`,
     ].join("\n");
 
     try {
