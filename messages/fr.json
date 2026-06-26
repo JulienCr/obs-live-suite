@@ -19,7 +19,8 @@
       "mediaPlayerYoutube": "Player YouTube",
       "wordHarvest": "Récolte de mots",
       "titleReveal": "Titre animé",
-      "sommaire": "Sommaire"
+      "sommaire": "Sommaire",
+      "liveAssist": "Assistant Live"
     },
     "header": {
       "connected": "Connecté",
@@ -412,6 +413,14 @@
       "noCategories": "Aucune catégorie trouvée. Utilisez # pour les catégories.",
       "error": "Erreur lors du contrôle du sommaire",
       "aiUpdated": "Sommaire mis à jour par l'IA"
+    },
+    "liveAssist": {
+      "validate": "Valider",
+      "pin": "Épingler",
+      "onAir": "À l'antenne",
+      "dismiss": "Ignorer",
+      "connected": "Connecté",
+      "disconnected": "STT déconnecté"
     }
   },
   "navigation": {
@@ -447,7 +456,8 @@
       "backup": "Sauvegarde",
       "plugins": "Plugins",
       "helpSupport": "Aide et support",
-      "studioReturn": "Retour plateau"
+      "studioReturn": "Retour plateau",
+      "liveAssist": "Assistant Live"
     }
   },
   "settings": {
@@ -824,6 +834,20 @@
       "saving": "Enregistrement...",
       "loading": "Chargement...",
       "savedSuccess": "Paramètres enregistrés"
+    },
+    "liveAssist": {
+      "title": "Assistant Live",
+      "enabled": "Activé",
+      "device": "Micro d'entrée",
+      "model": "Modèle Whisper",
+      "keywords": "Mots-clés",
+      "windowBefore": "Avant (s)",
+      "windowAfter": "Après (s)",
+      "threshold": "Seuil de confiance",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "loading": "Chargement…",
+      "noDevices": "Aucun micro détecté. Lance le service STT (pnpm dev:stt) — il remonte les périphériques au démarrage, puis recharge cette page."
     }
   },
   "assets": {
@@ -1575,6 +1599,7 @@
     }
   },
   "presenter": {
+    "title": "Présentateur",
     "meta": {
       "title": "Tableau de bord Présentateur - OBS Live Suite",
       "description": "Tableau de bord privé du présentateur pour les émissions en direct"
@@ -1608,7 +1633,11 @@
       "disconnect": "Déconnecter",
       "refresh": "Actualiser",
       "tryAgain": "Réessayer",
-      "send": "Envoyer"
+      "send": "Envoyer",
+      "hideRegie": "Masquer la régie",
+      "showRegie": "Afficher la régie",
+      "lightMode": "Thème clair",
+      "darkMode": "Thème sombre"
     },
     "labels": {
       "pinned": "Épinglé",

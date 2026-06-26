@@ -30,6 +30,7 @@ import { MediaPlayerPanel } from "./panels/MediaPlayerPanel";
 import { WordHarvestPanel } from "./panels/WordHarvestPanel";
 import { TitleRevealPanel } from "./panels/TitleRevealPanel";
 import { SommairePanel } from "./panels/SommairePanel";
+import { LiveAssistPanel } from "@/components/dashboard/panels/LiveAssistPanel";
 import { DockviewContext } from "./DockviewContext";
 import { LayoutPresetsProvider, LayoutPreset } from "./LayoutPresetsContext";
 import { PosterPreviewOverlay } from "@/components/overlay-preview/PosterPreviewOverlay";
@@ -68,6 +69,7 @@ const components = {
   wordHarvest: WordHarvestPanel,
   titleReveal: TitleRevealPanel,
   sommaire: SommairePanel,
+  liveAssist: LiveAssistPanel,
 } satisfies Record<PanelId, React.ComponentType<any>>;
 
 const tabComponents = {

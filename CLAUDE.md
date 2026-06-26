@@ -31,6 +31,7 @@ pnpm dev:frontend    # Next.js dev server only
 pnpm dev:backend     # Backend server only
 pnpm backend         # Backend without watch
 pnpm dev:mcp         # MCP server (tsx watch)
+pnpm dev:stt         # Real-time STT service (Python)
 pnpm studio-return:dev   # Studio Return Tauri app (dev)
 pnpm studio-return:build # Studio Return Tauri app (production)
 ```
@@ -379,10 +380,11 @@ Without config file, behavior is unchanged (probe HTTPS then HTTP on `127.0.0.1:
 - The `--debug` flag enables a green debug overlay (bottom-left) showing WebSocket connection status and message flow
 
 ## PM2 Deployment
-`ecosystem.config.cjs` defines three apps:
+`ecosystem.config.cjs` defines four apps:
 - `obs-backend`: Express + WebSocket (port 3002/3003)
 - `obs-frontend`: Next.js server (port 3000)
 - `obs-mcp`: MCP server (port 3004)
+- `obs-stt`: Real-time STT service (Python)
 
 All use fork mode with autorestart and memory limits.
 

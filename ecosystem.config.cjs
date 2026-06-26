@@ -74,6 +74,27 @@ module.exports = {
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
     },
+    {
+      name: 'obs-stt',
+      cwd: __dirname + '/realtime-stt',
+      // Run through the Node bootstrap (same as `pnpm dev:stt`) so production uses
+      // the .venv that has the STT deps installed — not the system `python`, which
+      // lacks faster-whisper/sounddevice/etc and would ModuleNotFoundError on boot.
+      script: 'run.mjs',
+      interpreter: 'node',
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1500M',
+      max_restarts: 3,
+      min_uptime: '5s',
+      windowsHide: true,
+      error_file: './.pm2/logs/stt-error.log',
+      out_file: './.pm2/logs/stt-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+    },
   ],
 };
 

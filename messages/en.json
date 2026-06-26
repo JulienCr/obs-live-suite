@@ -19,7 +19,8 @@
       "mediaPlayerYoutube": "YouTube Player",
       "wordHarvest": "Word Harvest",
       "titleReveal": "Title Reveal",
-      "sommaire": "Table of Contents"
+      "sommaire": "Table of Contents",
+      "liveAssist": "Live Assistant"
     },
     "header": {
       "connected": "Connected",
@@ -412,6 +413,14 @@
       "noCategories": "No categories found. Use # for categories.",
       "error": "Error controlling sommaire",
       "aiUpdated": "Sommaire updated by AI"
+    },
+    "liveAssist": {
+      "validate": "Validate",
+      "pin": "Pin",
+      "onAir": "On Air",
+      "dismiss": "Dismiss",
+      "connected": "Connected",
+      "disconnected": "STT disconnected"
     }
   },
   "navigation": {
@@ -447,7 +456,8 @@
       "backup": "Backup",
       "plugins": "Plugins",
       "helpSupport": "Help & Support",
-      "studioReturn": "Studio Return"
+      "studioReturn": "Studio Return",
+      "liveAssist": "Live Assist"
     }
   },
   "settings": {
@@ -824,6 +834,20 @@
       "saving": "Saving...",
       "loading": "Loading...",
       "savedSuccess": "Settings saved"
+    },
+    "liveAssist": {
+      "title": "Live Assist",
+      "enabled": "Enabled",
+      "device": "Input device",
+      "model": "Whisper model",
+      "keywords": "Keywords",
+      "windowBefore": "Before (s)",
+      "windowAfter": "After (s)",
+      "threshold": "Confidence threshold",
+      "save": "Save",
+      "saving": "Saving…",
+      "loading": "Loading…",
+      "noDevices": "No microphone detected. Start the STT service (pnpm dev:stt) — it reports devices on startup, then reload this page."
     }
   },
   "assets": {
@@ -1574,6 +1598,7 @@
     }
   },
   "presenter": {
+    "title": "Presenter",
     "meta": {
       "title": "Presenter Dashboard - OBS Live Suite",
       "description": "Private presenter dashboard for live shows"
@@ -1607,7 +1632,11 @@
       "disconnect": "Disconnect",
       "refresh": "Refresh",
       "tryAgain": "Try Again",
-      "send": "Send"
+      "send": "Send",
+      "hideRegie": "Hide control room",
+      "showRegie": "Show control room",
+      "lightMode": "Light theme",
+      "darkMode": "Dark theme"
     },
     "labels": {
       "pinned": "Pinned",

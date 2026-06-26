@@ -72,6 +72,10 @@ backups/
 localhost+*.pem
 rootCA.pem
 
+# Tailscale-issued (Let's Encrypt) certificate
+tailscale.crt
+tailscale.key
+
 # VDO.ninja static files (download separately)
 server/static/vdoninja/*
 !server/static/vdoninja/README.md
@@ -85,3 +89,9 @@ studio-return/src-tauri/target/
 studio-return/src-tauri/gen/
 studio-return/dist/
 studio-return/node_modules/
+
+# Python cache + virtualenv (realtime-stt)
+__pycache__/
+*.pyc
+.venv/
+realtime-stt/.venv/

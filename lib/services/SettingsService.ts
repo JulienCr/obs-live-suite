@@ -23,11 +23,10 @@ import type { TitleRevealDefaults } from "../models/TitleReveal";
 import type { TwitchSettings, TwitchOAuthTokens } from "../models/Twitch";
 import type { PresenterChannelSettings } from "../models/PresenterChannel";
 import type { ChatPredefinedMessage } from "../models/ChatMessages";
-import {
-  StudioReturnSettingsSchema,
-  DEFAULT_STUDIO_RETURN_SETTINGS,
-} from "../models/StudioReturn";
+import { StudioReturnSettingsSchema } from "../models/StudioReturn";
 import type { StudioReturnSettings, MonitorInfo } from "../models/StudioReturn";
+import { LiveAssistSettingsSchema } from "../models/LiveAssist";
+import type { SttDevice, LiveAssistSettings } from "../models/LiveAssist";
 
 // ============================================================================
 // SETTINGS SCHEMAS
@@ -870,5 +869,57 @@ export class SettingsService {
   getInstagramCookieFilePath(): string {
     const dataDir = PathManager.getInstance().getDataDir();
     return join(dataDir, "instagram-cookies.txt");
+  }
+
+  // =========================================================================
+  // STT DEVICES (persisted in the DB: the STT client reports them to the BACKEND
+  // process, but the settings page is served by the NEXT.JS process — two
+  // separate processes, so an in-memory list would never cross over. The shared
+  // SQLite DB makes the backend's report visible to the Next.js reader.)
+  // =========================================================================
+
+  /**
+   * Get the list of STT audio input devices reported by the STT client.
+   */
+  getSttDevices(): SttDevice[] {
+    try {
+      const json = this.db.getSetting("liveAssist.devices");
+      return json ? (JSON.parse(json) as SttDevice[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Replace the STT device list (reported by the STT client to the backend).
+   */
+  saveSttDevices(devices: SttDevice[]): void {
+    this.db.setSetting("liveAssist.devices", JSON.stringify(devices));
+  }
+
+  // =========================================================================
+  // LIVE ASSIST SETTINGS (persisted in the settings database)
+  // =========================================================================
+
+  /**
+   * Get Live Assist feature settings.
+   * Falls back to schema defaults if nothing is stored yet.
+   */
+  getLiveAssistSettings(): LiveAssistSettings {
+    try {
+      const json = this.db.getSetting("liveAssist");
+      if (json) return LiveAssistSettingsSchema.parse(JSON.parse(json));
+    } catch {
+      this.logger.warn("Failed to read/parse liveAssist settings, returning defaults");
+    }
+    return LiveAssistSettingsSchema.parse({});
+  }
+
+  /**
+   * Save Live Assist feature settings to the database.
+   */
+  saveLiveAssistSettings(settings: LiveAssistSettings): void {
+    this.db.setSetting("liveAssist", JSON.stringify(settings));
+    this.logger.info("Live Assist settings saved to database");
   }
 }

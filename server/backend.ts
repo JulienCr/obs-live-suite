@@ -34,6 +34,8 @@ import obsRouter from "./api/obs";
 import twitchRouter from "./api/twitch";
 import mediaPlayerRouter from "./api/media-player";
 import wordHarvestRouter from "./api/word-harvest";
+import { createLiveAssistRouter } from "./api/live-assist";
+import { buildOrchestrator } from "./api/liveAssistBoot";
 import { APP_PORT, BACKEND_PORT, WS_PORT } from "../lib/config/urls";
 import { createServerWithFallback } from "../lib/utils/CertificateManager";
 import { getPortConflictReport } from "../scripts/port-diagnostics.mjs";
@@ -46,6 +48,19 @@ const __dirname = path.dirname(__filename);
 
 // Exit code that tells PM2 (via `stop_exit_codes`) NOT to restart on port conflict.
 const PORT_IN_USE_EXIT_CODE = 100;
+
+/**
+ * True for origins reachable over Tailscale:
+ *   - MagicDNS names: https://edison.tail16943b.ts.net:3000
+ *   - CGNAT IPs (100.64.0.0/10): https://100.86.93.19:3000
+ * These devices are inside the tailnet, so their browser origin is trusted for CORS.
+ */
+function isTailscaleOrigin(origin: string): boolean {
+  return (
+    /^https?:\/\/[a-zA-Z0-9.-]+\.ts\.net(:[0-9]+)?$/.test(origin) ||
+    /^https?:\/\/100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.\d{1,3}\.\d{1,3}(:[0-9]+)?$/.test(origin)
+  );
+}
 
 class BackendServer {
   private logger: Logger;
@@ -108,6 +123,11 @@ class BackendServer {
     // Word Harvest game
     this.app.use('/api/word-harvest', wordHarvestRouter);
 
+    // Live Assist (real-time listening assistant)
+    const { orchestrator, store, registry } = buildOrchestrator();
+    this.app.use(createLiveAssistRouter({ orchestrator, store, registry }));
+    this.logger.info("✓ Live Assist routes configured");
+
     // 404 handler MUST be added LAST (after all routes)
     this.app.use((req, res) => {
       this.logger.warn(`404: ${req.method} ${req.path}`);
@@ -135,7 +155,9 @@ class BackendServer {
         origin.startsWith('https://localhost:') ||
         origin.match(/^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.).*:[0-9]+$/) ||
         // Allow local hostnames (no dots = local network name)
-        origin.match(/^https?:\/\/[a-zA-Z][a-zA-Z0-9-]*:[0-9]+$/)
+        origin.match(/^https?:\/\/[a-zA-Z][a-zA-Z0-9-]*:[0-9]+$/) ||
+        // Allow Tailscale MagicDNS names and CGNAT (100.64.0.0/10) IPs
+        isTailscaleOrigin(origin)
       );
       if (isLocalOrigin) {
         res.header('Access-Control-Allow-Origin', origin);

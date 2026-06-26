@@ -680,6 +680,38 @@ export const AI_CHAT = {
 } as const;
 
 // ============================================================================
+// LIVE ASSIST CONSTANTS
+// ============================================================================
+
+/** Real-time listening assistant configuration. */
+export const LIVE_ASSIST = {
+  /** WebSocket channel for suggestions + STT status. */
+  CHANNEL: "live-assist",
+  /** Transcript buffer retention (ms). */
+  BUFFER_RETENTION_MS: 120_000,
+  /** No segment received for this long ⇒ STT considered disconnected (ms). */
+  STT_STALE_MS: 10_000,
+  /** Default context window before/after a keyword hit (seconds). */
+  WINDOW_BEFORE_SEC: 15,
+  WINDOW_AFTER_SEC: 15,
+  /** Minimum extractor confidence to surface a suggestion. */
+  CONFIDENCE_THRESHOLD: 0.6,
+  /** Dedup window: same (intent, entity) ignored within this span (ms). */
+  DEDUP_WINDOW_MS: 600_000,
+  /** Cap on stored suggestions (server + client) to bound memory over a long show. */
+  MAX_STORED_SUGGESTIONS: 200,
+  /** Max wall-clock wait before firing a window even if no +15s audio arrived (ms). */
+  WINDOW_MAX_WAIT_MS: 20_000,
+  /** Default faster-whisper model. */
+  DEFAULT_WHISPER_MODEL: "large-v3",
+  /** Default keyword list per provider id. */
+  DEFAULT_KEYWORDS: {
+    poster: ["spectacle", "affiche", "pièce", "film", "concert"],
+    definition: ["définition", "c'est quoi", "qu'est-ce que", "ça veut dire"],
+  } as Record<string, string[]>,
+} as const;
+
+// ============================================================================
 // WORD HARVEST CONSTANTS
 // ============================================================================
 
