@@ -40,6 +40,9 @@ string at the end to confirm it appears in exactly those places.
    - Add a type guard `is<Name>Event` using a `Set` of its type strings (follow `isChatHighlightEvent`).
 2. **`server/api/overlays.ts`** — add a `POST /api/overlays/<channel>` handler that validates the
    payload with the Zod schema and calls `ChannelManager.publish(OverlayChannel.X, type, payload)`.
+   Also add your overlay's hide/reset to the **`POST /clear-all`** panic handler in the same file — it
+   lists every overlay explicitly (it is not derived from `OverlayChannel`), so a new source stays
+   on-air when the operator hits clear-all unless you add it.
 3. **`app/api/overlays/<channel>/route.ts`** — thin proxy: `withSimpleErrorHandler` wrapping
    `proxyToBackend("/api/overlays/<channel>", { method: "POST", body, ... })`. Do NOT hand-roll
    try/catch or fetch here (see the `dry-guardrails` skill).

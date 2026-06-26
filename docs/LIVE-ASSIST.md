@@ -48,12 +48,14 @@ and `app/api/settings/live-assist/route.ts`.
 ## WebSocket channel
 
 Channel `live-assist` (`LIVE_ASSIST.CHANNEL`), published via `ChannelManager.publishLiveAssist()`
-(no-ack — overlays don't acknowledge). Event union (`lib/models/LiveAssist.ts`):
+(no-ack — overlays don't acknowledge). Each event is `{ type, payload }` (no `id`/`timestamp`
+envelope, unlike `OverlayEvent`); the shapes below are the `payload` per `type`
+(`lib/models/LiveAssist.ts`):
 
-- `suggestion:new` — `{ suggestion }`
-- `suggestion:update` — `{ id, status }`
-- `stt:status` — `{ connected, device }`
-- `transcript` — `{ text, t0, t1 }` (live debug view of what STT hears)
+- `suggestion:new` — payload `{ suggestion }`
+- `suggestion:update` — payload `{ id, status }`
+- `stt:status` — payload `{ connected, device }`
+- `transcript` — payload `{ text, t0, t1 }` (live debug view of what STT hears)
 
 The panel subscribes through `lib/stores/liveAssistStore.ts` (zustand).
 
@@ -116,7 +118,10 @@ Current providers:
 - **Settings page** `/settings/live-assist` (`components/settings/LiveAssistSettings.tsx`): enabled toggle,
   input device dropdown (populated from `POST /api/stt/devices`), whisper model, per-provider keyword editor,
   before/after window seconds, confidence threshold. Persisted via `SettingsService.getLiveAssistSettings()` /
-  `saveLiveAssistSettings()`. Settings are re-read live — saves take effect without a backend restart.
+  `saveLiveAssistSettings()`. The **backend** re-reads settings live — keyword lists, window size, confidence
+  threshold and the enabled gate apply without a restart. **Exception:** the Python STT reads `inputDevice` and
+  `whisperModel` only once at startup (`main.py`), so changing the mic or model requires restarting the STT
+  service (`pnpm dev:stt` / PM2 `obs-stt`).
 - **LLM**: cloud by default via `createAiModel()` (Settings > AI: Ollama / OpenAI / Anthropic). No hardcoded provider.
 - **STT service** (`realtime-stt/`): `pnpm dev:stt` bootstraps the venv + installs deps + runs (`run.mjs`);
   PM2 app `obs-stt`. **Requires an NVIDIA GPU** — `main.py` loads faster-whisper with `device="cuda"`.
@@ -124,8 +129,9 @@ Current providers:
 
 ## Known gaps / TODO before production
 
-- **VAD is a placeholder.** `realtime-stt/main.py` batches a fixed `time.sleep(2.0)  # … replace with VAD
-  silence detection` (comment: "Use silero-vad or webrtcvad here"). Replace with real silence-boundary VAD so
+- **VAD is a placeholder.** `realtime-stt/main.py` batches a fixed ~2 s window (`time.sleep(2.0)`) instead of
+  detecting silence boundaries (inline comment: "replace with VAD silence detection" / "Use silero-vad or
+  webrtcvad here"). Replace with real silence-boundary VAD so
   segment timestamps align with utterance ends. *Mitigated today* by the backend wall-clock `WINDOW_MAX_WAIT_MS`
   — no suggestion is lost, only latency varies.
 - **Poster source quality → issue #116.** Wikipedia (especially FR) is a poor poster source (copyright, ambiguity).

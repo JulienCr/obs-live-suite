@@ -328,9 +328,9 @@ Real-time listening assistant (PR #117, branch `feat/assistant-live` — **WIP, 
 
 - **Pipeline**: Python STT (`realtime-stt/`, faster-whisper) → `POST /api/stt/segment` → `TranscriptBuffer` → `KeywordDetector` → `WindowScheduler` → `IntentExtractor` (LLM via `createAiModel()`) → `ActionProvider[]` → `SuggestionStore` → `ChannelManager.publishLiveAssist()` → `live-assist` WS channel → `LiveAssistPanel`.
 - **Backend**: `lib/services/liveassist/` (pipeline + `providers/`); router `server/api/live-assist.ts`, assembly `server/api/liveAssistBoot.ts` (`buildOrchestrator()`).
-- **Providers (v1)**: `poster` (Wikipedia thumbnail → `create-poster`), `definition` (Wikipedia extract → lower-third / pin). Add one ≈ 1 file implementing `ActionProvider`, registered in `liveAssistBoot.ts`.
+- **Providers (v1)**: `poster` (Wikipedia thumbnail → `POST /api/assets/posters`), `definition` (Wikipedia extract → `POST /api/overlays/lower` / pin). Add one ≈ 1 file implementing `ActionProvider`, registered in `liveAssistBoot.ts`.
 - **UI / store**: `components/dashboard/panels/LiveAssistPanel.tsx`, `components/live-assist/`, `lib/stores/liveAssistStore.ts`.
-- **Settings**: `/settings/live-assist` (device, whisper model, keywords, windows, threshold); LLM from Settings > AI. Saves apply live (no backend restart).
+- **Settings**: `/settings/live-assist` (device, whisper model, keywords, windows, threshold); LLM from Settings > AI. Backend re-reads saves live (keywords/windows/threshold/enabled); changing device or whisper model needs an STT restart.
 - **Run**: `pnpm dev:stt` (bootstraps venv); PM2 app `obs-stt`. **STT requires CUDA** (`device="cuda"` in `realtime-stt/main.py`).
 - **Constants**: `LIVE_ASSIST` in `lib/config/Constants.ts` · **Models**: `lib/models/LiveAssist.ts`.
 - **Status, HTTP contract, how to extend, known gaps → `docs/LIVE-ASSIST.md`**. Deep reference: `docs/superpowers/specs/2026-06-24-assistant-live-design.md` (+ plan).
