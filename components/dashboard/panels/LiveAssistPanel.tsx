@@ -3,7 +3,8 @@ import { useCallback, useEffect } from "react";
 import { type IDockviewPanelProps } from "dockview-react";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
-import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
+import { toast } from "sonner";
+import { apiGet, apiPost, extractErrorMessage } from "@/lib/utils/ClientFetch";
 import { useLiveAssistStore } from "@/lib/stores/liveAssistStore";
 import { SuggestionCard } from "@/components/live-assist/SuggestionCard";
 import { SttStatusBar } from "@/components/live-assist/SttStatusBar";
@@ -40,10 +41,14 @@ export function LiveAssistPanel(_props: IDockviewPanelProps) {
 
   const onApply = useCallback((s: Suggestion, target: "pin" | "on-air") => {
     const payload = s.intent === "definition" ? { ...s.applyPayload, target } : s.applyPayload;
-    apiPost(`/api/live-assist/suggestions/${s.id}/apply`, { intent: s.intent, payload }).catch(() => {});
+    apiPost(`/api/live-assist/suggestions/${s.id}/apply`, { intent: s.intent, payload }).catch((e) =>
+      toast.error(extractErrorMessage(e, "Échec de l'application de la suggestion")),
+    );
   }, []);
   const onDismiss = useCallback((s: Suggestion) => {
-    apiPost(`/api/live-assist/suggestions/${s.id}/dismiss`, {}).catch(() => {});
+    apiPost(`/api/live-assist/suggestions/${s.id}/dismiss`, {}).catch((e) =>
+      toast.error(extractErrorMessage(e, "Échec du rejet de la suggestion")),
+    );
   }, []);
 
   return (

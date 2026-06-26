@@ -77,8 +77,11 @@ module.exports = {
     {
       name: 'obs-stt',
       cwd: __dirname + '/realtime-stt',
-      script: 'main.py',
-      interpreter: 'python',
+      // Run through the Node bootstrap (same as `pnpm dev:stt`) so production uses
+      // the .venv that has the STT deps installed — not the system `python`, which
+      // lacks faster-whisper/sounddevice/etc and would ModuleNotFoundError on boot.
+      script: 'run.mjs',
+      interpreter: 'node',
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,

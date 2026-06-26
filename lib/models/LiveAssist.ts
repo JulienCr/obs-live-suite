@@ -45,8 +45,8 @@ export const LiveAssistSettingsSchema = z.object({
   keywordsByProvider: z
     .record(z.string(), z.array(z.string()))
     .default(LIVE_ASSIST.DEFAULT_KEYWORDS),
-  windowBeforeSec: z.number().int().positive().default(LIVE_ASSIST.WINDOW_BEFORE_SEC),
-  windowAfterSec: z.number().int().positive().default(LIVE_ASSIST.WINDOW_AFTER_SEC),
+  windowBeforeSec: z.number().int().nonnegative().default(LIVE_ASSIST.WINDOW_BEFORE_SEC),
+  windowAfterSec: z.number().int().nonnegative().default(LIVE_ASSIST.WINDOW_AFTER_SEC),
   confidenceThreshold: z.number().min(0).max(1).default(LIVE_ASSIST.CONFIDENCE_THRESHOLD),
 });
 export type LiveAssistSettings = z.infer<typeof LiveAssistSettingsSchema>;

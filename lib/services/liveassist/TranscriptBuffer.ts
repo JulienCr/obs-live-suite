@@ -9,6 +9,16 @@ export class TranscriptBuffer {
   constructor(private readonly retentionMs: number = LIVE_ASSIST.BUFFER_RETENTION_MS) {}
 
   append(segment: TranscriptSegment): void {
+    // The STT service timestamps segments relative to its own start (monotonic
+    // clock), so a restart (crash / model change / PM2 autorestart) resets t1
+    // back toward 0 while the backend keeps running. Without rebasing, `latest`
+    // stays high and evict() would discard every post-restart segment for the
+    // whole retention window — silently killing suggestions for minutes. A
+    // segment older than the entire retention window ⇒ clock reset ⇒ rebase.
+    if (segment.t1 < this.latest - this.retentionMs) {
+      this.segments = [];
+      this.latest = 0;
+    }
     this.segments.push(segment);
     if (segment.t1 > this.latest) this.latest = segment.t1;
     this.evict();

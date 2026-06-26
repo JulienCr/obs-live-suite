@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { LIVE_ASSIST } from "@/lib/config/Constants";
 import type { Suggestion } from "@/lib/models/LiveAssist";
 
 interface LiveAssistState {
@@ -18,7 +19,10 @@ export const useLiveAssistStore = create<LiveAssistState>((set) => ({
   status: { connected: false, device: null },
   transcripts: [],
   setAll: (suggestions) => set({ suggestions }),
-  upsert: (s) => set((st) => ({ suggestions: [s, ...st.suggestions.filter((x) => x.id !== s.id)] })),
+  upsert: (s) =>
+    set((st) => ({
+      suggestions: [s, ...st.suggestions.filter((x) => x.id !== s.id)].slice(0, LIVE_ASSIST.MAX_STORED_SUGGESTIONS),
+    })),
   updateStatus: (id, status) =>
     set((st) => ({ suggestions: st.suggestions.map((x) => (x.id === id ? { ...x, status } : x)) })),
   setStatusBar: (connected, device) => set({ status: { connected, device } }),

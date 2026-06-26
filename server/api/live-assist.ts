@@ -57,7 +57,15 @@ export function createLiveAssistRouter(deps: RouterDeps): Router {
     const intent = String(req.body?.intent ?? "");
     const provider = deps.registry.get(intent);
     if (!provider) return res.status(404).json({ error: "unknown provider" });
-    const result = await provider.apply(req.body?.payload ?? {});
+    let result;
+    try {
+      result = await provider.apply(req.body?.payload ?? {});
+    } catch (error) {
+      // apply() does network I/O (poster create / lower-third show); a rejection
+      // must surface as a clean error, not an unhandled 500 that leaves the
+      // suggestion stuck "pending".
+      return res.status(502).json({ error: error instanceof Error ? error.message : "apply error" });
+    }
     if (!result.ok) return res.status(422).json({ error: result.message ?? "apply failed" });
     deps.store.setStatus(req.params.id, "applied");
     return res.json({ ok: true });

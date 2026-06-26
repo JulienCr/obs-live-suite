@@ -9,6 +9,20 @@ export type Resolver = {
 };
 export type PosterCreator = (input: { title: string; fileUrl: string }) => Promise<ApplyResult>;
 
+/** Resolve a Wikipedia entity, returning null (and logging) instead of throwing. */
+export async function resolveOrNull(
+  resolver: Resolver,
+  entity: string,
+  log: Logger,
+): Promise<Awaited<ReturnType<Resolver["resolveAndFetch"]>> | null> {
+  try {
+    return await resolver.resolveAndFetch(entity);
+  } catch (error) {
+    log.info(`no Wikipedia result for "${entity}": ${error instanceof Error ? error.message : error}`);
+    return null;
+  }
+}
+
 export class PosterActionProvider implements ActionProvider {
   readonly id = "poster";
   readonly description = "Trouver l'affiche d'un spectacle/film/concert cité et l'ajouter aux posters";
@@ -17,13 +31,8 @@ export class PosterActionProvider implements ActionProvider {
   constructor(private readonly resolver: Resolver, private readonly createPoster: PosterCreator) {}
 
   async build(entity: string, window: TranscriptWindow): Promise<BuiltSuggestion | null> {
-    let result;
-    try {
-      result = await this.resolver.resolveAndFetch(entity);
-    } catch (error) {
-      logger.info(`no Wikipedia result for "${entity}": ${error instanceof Error ? error.message : error}`);
-      return null;
-    }
+    const result = await resolveOrNull(this.resolver, entity, logger);
+    if (!result) return null;
 
     // Wikipedia titles carry disambiguators like "Titanic (film, 1997)" — strip the
     // trailing parenthetical for a clean poster title while keeping the matched image.

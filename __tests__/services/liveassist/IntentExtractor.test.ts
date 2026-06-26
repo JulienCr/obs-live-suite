@@ -44,4 +44,12 @@ describe("IntentExtractor", () => {
     const out = await x.extract("…", ["poster"]);
     expect(out).toEqual({ actionnable: false, intent: "none", entite: "", confiance: 0 });
   });
+
+  it("clamps an out-of-range confiance into [0,1]", async () => {
+    // A model that ignores the [0,1] instruction and answers on a 0–100 scale.
+    const fake = async () => ({ object: { actionnable: true, intent: "poster", entite: "Le Cid", confiance: 85 } });
+    const x = new IntentExtractor(["poster"], descriptions, fake);
+    const out = await x.extract("…", ["poster"]);
+    expect(out.confiance).toBe(1);
+  });
 });

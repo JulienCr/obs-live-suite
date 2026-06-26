@@ -35,4 +35,15 @@ describe("TranscriptBuffer", () => {
     b.append(seg("b", 1000, 2000));
     expect(b.latestT1()).toBe(2000);
   });
+
+  it("rebases when the STT clock resets (service restart), keeping new segments", () => {
+    const b = new TranscriptBuffer(120000);
+    b.append(seg("contexte de fin de session", 595000, 600000));
+    expect(b.latestT1()).toBe(600000);
+    // STT restarts → its monotonic clock resets near 0.
+    b.append(seg("après redémarrage", 1000, 2000));
+    expect(b.latestT1()).toBe(2000); // rebased, not stuck at 600000
+    const w = b.windowAround(1500, 5000, 5000);
+    expect(w.text).toBe("après redémarrage"); // would be "" without the rebase
+  });
 });

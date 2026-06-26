@@ -1,7 +1,7 @@
 import { LIVE_ASSIST } from "@/lib/config/Constants";
 import { Logger } from "@/lib/utils/Logger";
 import type { ActionProvider, ApplyResult, BuiltSuggestion, TranscriptWindow } from "./ActionProvider";
-import type { Resolver } from "./PosterActionProvider";
+import { resolveOrNull, type Resolver } from "./PosterActionProvider";
 
 const logger = new Logger("DefinitionActionProvider");
 export type OnAir = (text: string) => Promise<ApplyResult>;
@@ -24,13 +24,8 @@ export class DefinitionActionProvider implements ActionProvider {
   ) {}
 
   async build(entity: string, window: TranscriptWindow): Promise<BuiltSuggestion | null> {
-    let result;
-    try {
-      result = await this.resolver.resolveAndFetch(entity);
-    } catch (error) {
-      logger.info(`no Wikipedia result for "${entity}": ${error instanceof Error ? error.message : error}`);
-      return null;
-    }
+    const result = await resolveOrNull(this.resolver, entity, logger);
+    if (!result) return null;
     const text = firstSentences(result.extract, this.maxSentences);
     return {
       intent: this.id,

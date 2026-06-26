@@ -1,16 +1,14 @@
 import { SettingsService } from "@/lib/services/SettingsService";
 import { ChannelManager } from "@/lib/services/ChannelManager";
 import { WikipediaResolverService } from "@/lib/services/WikipediaResolverService";
-import {
-  LiveAssistOrchestrator,
-  setLiveAssistOrchestrator,
-} from "@/lib/services/liveassist/LiveAssistOrchestrator";
+import { Logger } from "@/lib/utils/Logger";
+import { LiveAssistOrchestrator } from "@/lib/services/liveassist/LiveAssistOrchestrator";
 import { TranscriptBuffer } from "@/lib/services/liveassist/TranscriptBuffer";
 import { KeywordDetector } from "@/lib/services/liveassist/KeywordDetector";
 import { WindowScheduler } from "@/lib/services/liveassist/WindowScheduler";
 import { IntentExtractor } from "@/lib/services/liveassist/IntentExtractor";
 import { SuggestionStore } from "@/lib/services/liveassist/SuggestionStore";
-import { ProviderRegistry } from "@/lib/services/liveassist/providers/ActionProvider";
+import { ProviderRegistry, type ApplyResult } from "@/lib/services/liveassist/providers/ActionProvider";
 import { PosterActionProvider } from "@/lib/services/liveassist/providers/PosterActionProvider";
 import { DefinitionActionProvider } from "@/lib/services/liveassist/providers/DefinitionActionProvider";
 import { LIVE_ASSIST } from "@/lib/config/Constants";
@@ -28,8 +26,10 @@ import type { LiveAssistEvent } from "@/lib/models/LiveAssist";
 // runtime with "require is not defined").
 // ---------------------------------------------------------------------------
 
+const logger = new Logger("LiveAssistBoot");
+
 /**
- * Assembles real services, registers providers, and wires the singleton.
+ * Assembles real services and registers providers.
  * Called from server/backend.ts setupApiRoutes().
  */
 export function buildOrchestrator(): {
@@ -45,37 +45,30 @@ export function buildOrchestrator(): {
 
   const registry = new ProviderRegistry();
 
+  // Shared POST→ApplyResult helper for provider apply callbacks (one fetch shape).
+  const postJson = async (path: string, body: unknown, failLabel: string): Promise<ApplyResult> => {
+    const r = await fetch(`${APP_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return r.ok ? { ok: true } : { ok: false, message: `${failLabel} (${r.status})` };
+  };
+
   // Poster provider: creates a poster from a Wikipedia thumbnail via the frontend API.
   registry.register(
-    new PosterActionProvider(resolver, async ({ title, fileUrl }) => {
-      const r = await fetch(`${APP_URL}/api/assets/posters`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, fileUrl, type: "image", downloadToLocal: true }),
-      });
-      return r.ok
-        ? { ok: true }
-        : { ok: false, message: `poster create failed (${r.status})` };
-    }),
+    new PosterActionProvider(resolver, ({ title, fileUrl }) =>
+      postJson("/api/assets/posters", { title, fileUrl, type: "image", downloadToLocal: true }, "poster create failed"),
+    ),
   );
 
   // Definition provider: shows a brief Wikipedia extract on the lower-third overlay.
   // Endpoint mirrored from mcp-server/src/tools/lower-third.ts (show-lower-third-text):
   //   POST /api/overlays/lower  { action: 'show', payload: { contentType: 'text', body } }
   registry.register(
-    new DefinitionActionProvider(resolver, async (text) => {
-      const r = await fetch(`${APP_URL}/api/overlays/lower`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "show",
-          payload: { contentType: "text", body: text },
-        }),
-      });
-      return r.ok
-        ? { ok: true }
-        : { ok: false, message: `lower-third failed (${r.status})` };
-    }),
+    new DefinitionActionProvider(resolver, (text) =>
+      postJson("/api/overlays/lower", { action: "show", payload: { contentType: "text", body: text } }, "lower-third failed"),
+    ),
   );
 
   const store = new SuggestionStore((event: LiveAssistEvent) => cm.publishLiveAssist(event));
@@ -134,9 +127,10 @@ export function buildOrchestrator(): {
     const s = getSettings();
     detector.setKeywords(buildKeywords(s));
     scheduler.setAfterMs(s.windowAfterSec * 1000);
-    void orchestrator.tick(Date.now());
+    orchestrator.tick(Date.now()).catch((error) => {
+      logger.warn(`tick failed: ${error instanceof Error ? error.message : error}`);
+    });
   }, Math.floor(LIVE_ASSIST.STT_STALE_MS / 2));
 
-  setLiveAssistOrchestrator(orchestrator);
   return { orchestrator, store, registry };
 }

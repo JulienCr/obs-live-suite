@@ -89,10 +89,13 @@ def report_devices(backend, attempts=15, delay=2.0):
 
 
 def fetch_config(backend):
+    """Return the backend config, or None if it's unreachable. The caller keeps
+    the last known config on None — a transient blip must NOT be read as
+    'disabled', which would clear the buffer and drop already-captured speech."""
     try:
         return CLIENT.get(f"{backend}/api/stt/config").json()
     except Exception:
-        return {"enabled": False, "inputDevice": None, "whisperModel": "large-v3"}
+        return None
 
 
 def run():
@@ -100,7 +103,7 @@ def run():
     backend = resolve_backend(cfg["backend"])
     # Report devices in the background so it doesn't block model load / capture.
     threading.Thread(target=report_devices, args=(backend,), daemon=True).start()
-    remote = fetch_config(backend)
+    remote = fetch_config(backend) or {"enabled": False, "inputDevice": None, "whisperModel": "large-v3"}
     model = WhisperModel(remote.get("whisperModel", "large-v3"), device="cuda", compute_type="int8")
     sample_rate = 16000
     capture_start = time.monotonic()
@@ -115,10 +118,14 @@ def run():
     with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32",
                         device=device_index, callback=callback):
         print(f"[stt] listening on device {device_index}")
+        last_cfg = remote
         while True:
             time.sleep(2.0)  # batch ~2s of audio; replace with VAD silence detection
-            # Re-poll config each iteration so toggling enabled takes effect within one loop.
-            cfg_now = fetch_config(backend)
+            # Re-poll config each iteration so toggling enabled takes effect within
+            # one loop. Keep the last known config when the backend is momentarily
+            # unreachable so a blip doesn't disable capture and discard speech.
+            cfg_now = fetch_config(backend) or last_cfg
+            last_cfg = cfg_now
             if not cfg_now.get("enabled", False):
                 buffer.clear()
                 continue

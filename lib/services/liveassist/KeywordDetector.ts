@@ -3,7 +3,13 @@ import type { TranscriptSegment } from "@/lib/models/LiveAssist";
 export type KeywordHit = { providerId: string; keyword: string; tHit: number };
 
 const norm = (s: string) =>
-  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // strip combining accents
+    // Fold apostrophe variants to ASCII ': faster-whisper emits the typographic
+    // ’ (U+2019) but keywords like "c'est quoi" use ASCII ' (U+0027).
+    .replace(/[’‘ʼ´`]/g, "'");
 
 /** Escapes regex special chars in a literal keyword. */
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

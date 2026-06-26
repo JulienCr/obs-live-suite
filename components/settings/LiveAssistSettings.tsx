@@ -10,7 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mic } from "lucide-react";
 import { useSettings } from "@/lib/hooks/useSettings";
-import type { LiveAssistSettings as Settings, SttDevice } from "@/lib/models/LiveAssist";
+import { LiveAssistSettingsSchema, type LiveAssistSettings as Settings, type SttDevice } from "@/lib/models/LiveAssist";
 
 export function LiveAssistSettings() {
   const t = useTranslations("settings.liveAssist");
@@ -21,15 +21,9 @@ export function LiveAssistSettings() {
     Settings
   >({
     endpoint: "/api/settings/live-assist",
-    initialState: {
-      enabled: false,
-      inputDevice: null,
-      whisperModel: "large-v3",
-      keywordsByProvider: { poster: [], definition: [] },
-      windowBeforeSec: 15,
-      windowAfterSec: 15,
-      confidenceThreshold: 0.6,
-    },
+    // Single source of truth: derive the pre-load defaults from the schema (which
+    // itself defaults from LIVE_ASSIST) instead of re-hardcoding the literals.
+    initialState: LiveAssistSettingsSchema.parse({}),
     fromResponse: (res) => {
       setDevices(res.devices ?? []);
       return res.settings;

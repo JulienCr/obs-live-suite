@@ -29,6 +29,11 @@ export class SuggestionStore {
 
     const suggestion: Suggestion = { ...built, id: this.makeId(), status: "pending", createdAt: t };
     this.items.unshift(suggestion);
+    // Bound memory over a long show: items are newest-first, so the tail is the
+    // oldest — truncate it once past the cap.
+    if (this.items.length > LIVE_ASSIST.MAX_STORED_SUGGESTIONS) {
+      this.items.length = LIVE_ASSIST.MAX_STORED_SUGGESTIONS;
+    }
     this.publish({ type: "suggestion:new", payload: { suggestion } });
     return suggestion;
   }

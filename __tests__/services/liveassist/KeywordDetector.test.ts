@@ -26,4 +26,11 @@ describe("KeywordDetector", () => {
     const hits = detector.scan(seg("définition du spectacle"));
     expect(hits).toHaveLength(2);
   });
+
+  it("matches across apostrophe variants (ASCII keyword vs typographic U+2019 from STT)", () => {
+    // faster-whisper routinely emits the typographic apostrophe ’ (U+2019),
+    // while the keyword "c'est quoi" uses the ASCII ' (U+0027).
+    const hits = detector.scan(seg("alors c’est quoi exactement"));
+    expect(hits.map((h) => h.providerId)).toContain("definition");
+  });
 });

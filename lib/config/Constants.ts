@@ -698,6 +698,8 @@ export const LIVE_ASSIST = {
   CONFIDENCE_THRESHOLD: 0.6,
   /** Dedup window: same (intent, entity) ignored within this span (ms). */
   DEDUP_WINDOW_MS: 600_000,
+  /** Cap on stored suggestions (server + client) to bound memory over a long show. */
+  MAX_STORED_SUGGESTIONS: 200,
   /** Max wall-clock wait before firing a window even if no +15s audio arrived (ms). */
   WINDOW_MAX_WAIT_MS: 20_000,
   /** Default faster-whisper model. */

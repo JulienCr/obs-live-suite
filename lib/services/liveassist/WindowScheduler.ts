@@ -37,9 +37,13 @@ export class WindowScheduler {
   collectReady(latestT1: number, wallNowMs: number): ReadyWindow[] {
     const ready: ReadyWindow[] = [];
     const still: Pending[] = [];
+    // Never let the wall-clock fallback preempt the configured context window:
+    // if afterMs exceeds the fixed max-wait, wait at least afterMs before firing,
+    // otherwise a large "context after" setting (slider goes to 60s) is truncated.
+    const effectiveMaxWait = Math.max(this.maxWaitMs, this.afterMs);
     for (const p of this.pending) {
       const contextArrived = latestT1 >= p.tCenter + this.afterMs;
-      const maxWaitElapsed = wallNowMs - p.registeredWall >= this.maxWaitMs;
+      const maxWaitElapsed = wallNowMs - p.registeredWall >= effectiveMaxWait;
       if (contextArrived || maxWaitElapsed) {
         ready.push({ providerIds: [...p.providerIds], tCenter: p.tCenter });
       } else {

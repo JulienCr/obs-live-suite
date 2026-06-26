@@ -62,7 +62,7 @@ export class LiveAssistOrchestrator {
    */
   markSttAlive(device?: string | null): void {
     this.lastSeenAt = this.now();
-    if (device !== undefined && device !== null) this.status.device = device;
+    if (device != null) this.status.device = device;
     if (!this.status.connected) {
       this.status.connected = true;
       this.publishStatus(true, this.status.device);
@@ -151,18 +151,4 @@ export class LiveAssistOrchestrator {
     this.deps.store.add({ ...built, confidence: extraction.confiance });
     logger.info(`✓ suggestion created: ${provider.id} "${extraction.entite}"`);
   }
-}
-
-// ---- Singleton built from real services (used by the backend) ----
-let instance: LiveAssistOrchestrator | null = null;
-
-export function getLiveAssistOrchestrator(): LiveAssistOrchestrator {
-  if (instance) return instance;
-  // Real wiring is assembled in Task 12 (backend) where settings + services
-  // are available; see server/api/live-assist.ts buildOrchestrator().
-  throw new Error("LiveAssistOrchestrator not initialized — call setLiveAssistOrchestrator() first");
-}
-
-export function setLiveAssistOrchestrator(orch: LiveAssistOrchestrator): void {
-  instance = orch;
 }

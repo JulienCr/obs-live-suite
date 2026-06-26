@@ -71,7 +71,12 @@ export class IntentExtractor {
       if (result.actionnable && !candidateProviderIds.includes(result.intent)) {
         return NOT_ACTIONNABLE;
       }
-      return result;
+      // The output schema carries no numeric bounds (OpenAI strict mode), so the
+      // model can return confiance outside [0,1] (e.g. a 0–100 scale). Clamp it:
+      // an unbounded value would defeat the orchestrator's threshold gate and
+      // violate SuggestionSchema's confidence.max(1) once stored.
+      const confiance = Number.isFinite(result.confiance) ? Math.max(0, Math.min(1, result.confiance)) : 0;
+      return { ...result, confiance };
     } catch (error) {
       logger.warn(`extraction failed, treating as non-actionnable: ${error instanceof Error ? error.message : error}`);
       return NOT_ACTIONNABLE;

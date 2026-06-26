@@ -7,6 +7,13 @@ export const POST = withErrorHandler(async (request: Request, context: RouteCont
   const r = await fetch(`${BACKEND_URL}/api/live-assist/suggestions/${id}/apply`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
-  if (!r.ok) return ApiResponses.unprocessable((await r.json()).error ?? "apply failed");
+  if (!r.ok) {
+    // The backend error body may not be JSON (e.g. an HTML 500 page); read it
+    // defensively so a non-JSON body doesn't turn a clean 4xx into an opaque 500.
+    const text = await r.text();
+    let message = "apply failed";
+    try { message = JSON.parse(text)?.error ?? message; } catch { if (text) message = text; }
+    return ApiResponses.unprocessable(message);
+  }
   return ApiResponses.ok({ ok: true });
 }, "[LiveAssistProxy]");
