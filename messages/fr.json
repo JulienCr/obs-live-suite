@@ -843,7 +843,10 @@
       "windowBefore": "Avant (s)",
       "windowAfter": "Après (s)",
       "threshold": "Seuil de confiance",
-      "save": "Enregistrer"
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "loading": "Chargement…",
+      "noDevices": "Aucun micro détecté. Lance le service STT (pnpm dev:stt) — il remonte les périphériques au démarrage, puis recharge cette page."
     }
   },
   "assets": {

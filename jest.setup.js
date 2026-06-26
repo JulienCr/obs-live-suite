@@ -1,5 +1,12 @@
 import '@testing-library/jest-dom'
 
+// jsdom lacks ResizeObserver, which Radix UI primitives (Slider, etc.) require.
+global.ResizeObserver = global.ResizeObserver || class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
 // Mock certificates module which uses ESM-only features (import.meta.url)
 jest.mock('@/lib/config/certificates', () => ({
   PROJECT_ROOT: '/mock/project/root',

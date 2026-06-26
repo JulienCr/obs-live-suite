@@ -843,7 +843,10 @@
       "windowBefore": "Before (s)",
       "windowAfter": "After (s)",
       "threshold": "Confidence threshold",
-      "save": "Save"
+      "save": "Save",
+      "saving": "Saving…",
+      "loading": "Loading…",
+      "noDevices": "No microphone detected. Start the STT service (pnpm dev:stt) — it reports devices on startup, then reload this page."
     }
   },
   "assets": {
