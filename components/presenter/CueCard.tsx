@@ -132,6 +132,11 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
   const isQuestion = message.type === CueType.QUESTION;
   const isFromControl = message.from === CueFrom.CONTROL;
   const isFromSystem = message.from === CueFrom.SYSTEM;
+  // When the parent wires a dedicated force-hide button, the "show" button is a
+  // pure show (disabled once displayed). When it does NOT (e.g. the régie
+  // internal-chat view), the "show" button must stay clickable while displayed
+  // so its toggling handler can take the question back down.
+  const hasDedicatedHide = Boolean(onHideInOverlay);
 
   const cardStyle = cn(
     "relative transition-all",
@@ -435,8 +440,9 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
                   )}
                 </Button>
               )}
-              {/* Show in overlay button for questions - re-clicking when already
-                  displayed is a no-op (use the force-hide button to take it down) */}
+              {/* Show in overlay button for questions. With a dedicated force-hide
+                  button it's a pure show (disabled once displayed); without one it
+                  stays clickable while displayed so re-clicking toggles it off. */}
               {isQuestion && onShowInOverlay && (
                 <Button
                   variant={isCurrentlyDisplayed ? "default" : "outline-solid"}
@@ -445,8 +451,14 @@ export function CueCard({ message, onAction, isPresenter, compact, overlayState,
                     e.stopPropagation();
                     onShowInOverlay(message);
                   }}
-                  disabled={isShowingInOverlay || isCurrentlyDisplayed}
-                  title={isCurrentlyDisplayed ? t("cueCard.currentlyOnOverlay") : t("cueCard.showInOverlay")}
+                  disabled={isShowingInOverlay || (isCurrentlyDisplayed && hasDedicatedHide)}
+                  title={
+                    isCurrentlyDisplayed
+                      ? hasDedicatedHide
+                        ? t("cueCard.currentlyOnOverlay")
+                        : t("cueCard.hideFromOverlay")
+                      : t("cueCard.showInOverlay")
+                  }
                 >
                   {isShowingInOverlay ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
