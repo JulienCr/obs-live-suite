@@ -7,17 +7,8 @@
 import { createServer } from 'https';
 import { parse } from 'url';
 import next from 'next';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { getPortConflictReport } from './scripts/port-diagnostics.mjs';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Certificate paths (same as lib/config/certificates.ts)
-const CERT_PATH = path.join(__dirname, 'localhost+4.pem');
-const KEY_PATH = path.join(__dirname, 'localhost+4-key.pem');
+import { getHttpsServerOptions } from './lib/config/tlsContext.mjs';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0'; // Listen on all network interfaces
@@ -26,10 +17,15 @@ const port = parseInt(process.env.APP_PORT || '3000', 10);
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-const httpsOptions = {
-  key: fs.readFileSync(KEY_PATH),
-  cert: fs.readFileSync(CERT_PATH),
-};
+// HTTPS options with SNI: mkcert for localhost/edison/LAN, Tailscale Let's
+// Encrypt cert for *.ts.net (see lib/config/tlsContext.mjs).
+const httpsOptions = getHttpsServerOptions();
+if (!httpsOptions) {
+  throw new Error(
+    'No TLS certificates found. Run `node scripts/setup-https.js` (mkcert) ' +
+      'and/or `pnpm cert:tailscale` to generate them.'
+  );
+}
 
 // Exit code that tells PM2 (via `stop_exit_codes`) NOT to restart on port conflict.
 const PORT_IN_USE_EXIT_CODE = 100;

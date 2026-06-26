@@ -153,7 +153,8 @@ pnpm pm2:status       # Check status
 ```bash
 pnpm streamdeck:ids   # List Stream Deck action IDs
 pnpm backup:appdata   # Backup application data
-pnpm setup:https      # Generate HTTPS certificates
+pnpm setup:https      # Generate mkcert HTTPS certificates (localhost/edison/LAN)
+pnpm cert:tailscale   # Provision/renew the Tailscale HTTPS certificate
 ```
 
 ## OBS Browser Sources
@@ -169,6 +170,34 @@ Add these as Browser Sources in OBS (1920x1080, check "Shutdown source when not 
 | Quiz | `http://localhost:3000/overlays/quiz` |
 | Chat Highlight | `http://localhost:3000/overlays/chat-highlight` |
 | Composite | `http://localhost:3000/overlays/composite` |
+
+## Remote Access via Tailscale
+
+The app is reachable from any device on the tailnet with a **trusted certificate and no CA to install**, by using the machine's MagicDNS name:
+
+```
+https://edison.tail16943b.ts.net:3000
+```
+
+This serves a Let's Encrypt certificate (provisioned by `tailscale cert`) via SNI for `*.ts.net` names, while `localhost` / `edison` / LAN IPs keep using the local mkcert certificate. Ports 3002 (backend) and 3003 (WebSocket) are served the same way, so real-time overlays work too.
+
+> Accessing by raw Tailscale IP (`https://100.x.x.x:3000`) falls back to the mkcert cert (no SNI on IPs) and shows a warning — use the MagicDNS name instead.
+
+### Provisioning / updating the certificate
+
+Requires **MagicDNS** + **HTTPS Certificates** enabled in the [tailnet admin console](https://login.tailscale.com/admin/dns).
+
+```bash
+pnpm cert:tailscale   # detects this machine's MagicDNS name and writes tailscale.crt / tailscale.key
+```
+
+The running servers reload the certificate automatically when the files change — **no restart needed** after a renewal.
+
+**Renewal:** Let's Encrypt certificates last 90 days. `pnpm cert:tailscale` is idempotent (only renews when near expiry), so run it by hand before expiry or schedule it weekly (Windows Task Scheduler):
+
+```powershell
+schtasks /Create /TN "OBS Tailscale cert renew" /TR "node \"D:\dev\obs-tools\scripts\setup-tailscale-cert.mjs\"" /SC WEEKLY /D SUN /ST 04:00 /F
+```
 
 ## Application Routes
 
@@ -338,6 +367,7 @@ The backend runs independently to maintain WebSocket/OBS connections during hot-
 ### Mobile/HTTPS Issues
 - Visit `/cert` route to download and install certificate
 - Use `pnpm setup:https` to generate certificates
+- Tailscale access shows a cert warning or fails? The Let's Encrypt cert (90-day) likely expired — run `pnpm cert:tailscale` (see [Remote Access via Tailscale](#remote-access-via-tailscale))
 
 ## Documentation
 

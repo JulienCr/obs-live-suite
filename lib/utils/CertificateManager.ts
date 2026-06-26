@@ -19,6 +19,7 @@ import https from "https";
 import http from "http";
 import type { Application } from "express";
 import { CERT_PATH, KEY_PATH } from "@/lib/config/certificates";
+import { getHttpsServerOptions } from "@/lib/config/tlsContext.mjs";
 
 /**
  * Certificate configuration
@@ -110,7 +111,9 @@ export function createServerWithFallback(app: Application): {
   server: https.Server | http.Server;
   isHttps: boolean;
 } {
-  const httpsOptions = tryLoadCertificates();
+  // SNI-aware options: mkcert for localhost/edison/LAN, Tailscale cert for
+  // *.ts.net (lib/config/tlsContext.mjs). Falls back to HTTP if no cert exists.
+  const httpsOptions = getHttpsServerOptions();
 
   if (httpsOptions) {
     return {
@@ -134,7 +137,9 @@ export function createHttpServerWithFallback(): {
   server: https.Server | http.Server;
   isHttps: boolean;
 } {
-  const httpsOptions = tryLoadCertificates();
+  // SNI-aware options: mkcert for localhost/edison/LAN, Tailscale cert for
+  // *.ts.net (lib/config/tlsContext.mjs). Falls back to HTTP if no cert exists.
+  const httpsOptions = getHttpsServerOptions();
 
   if (httpsOptions) {
     return {
