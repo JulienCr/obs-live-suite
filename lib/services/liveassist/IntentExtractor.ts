@@ -26,7 +26,7 @@ export class IntentExtractor {
   private readonly schema: z.ZodTypeAny;
 
   constructor(
-    private readonly providerIds: string[],
+    providerIds: string[],
     private readonly descriptions: Record<string, string>,
     private readonly generate: GenerateObjectFn = defaultGenerate,
   ) {

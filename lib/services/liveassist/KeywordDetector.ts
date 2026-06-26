@@ -9,20 +9,27 @@ const norm = (s: string) =>
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export class KeywordDetector {
-  private readonly entries: { providerId: string; keyword: string; re: RegExp }[] = [];
+  private entries: { providerId: string; keyword: string; re: RegExp }[] = [];
 
   constructor(keywordsByProvider: Record<string, string[]>) {
+    this.setKeywords(keywordsByProvider);
+  }
+
+  /** Rebuilds the matcher from a new keyword map (live Settings reload). */
+  setKeywords(keywordsByProvider: Record<string, string[]>): void {
+    const entries: typeof this.entries = [];
     for (const [providerId, keywords] of Object.entries(keywordsByProvider)) {
       for (const keyword of keywords) {
         // Whole-word match on normalized text (no accents). \b is unreliable
         // around apostrophes, so we anchor on non-letter boundaries.
-        this.entries.push({
+        entries.push({
           providerId,
           keyword,
           re: new RegExp(`(^|[^a-z0-9])${escape(norm(keyword))}([^a-z0-9]|$)`, "i"),
         });
       }
     }
+    this.entries = entries;
   }
 
   scan(segment: TranscriptSegment): KeywordHit[] {

@@ -26,7 +26,7 @@ function makeOrchestrator(extractObj: any, extraDeps?: Record<string, unknown>) 
   const extractor = { extract: async () => extractObj } as any;
   const orch = new LiveAssistOrchestrator({
     buffer, detector, scheduler, extractor, registry, store,
-    settings: { windowBeforeSec: 15, windowAfterSec: 15, confidenceThreshold: 0.6 },
+    getSettings: () => ({ windowBeforeSec: 15, windowAfterSec: 15, confidenceThreshold: 0.6 }),
     now: () => 0,
     ...extraDeps,
   });
@@ -39,6 +39,40 @@ describe("LiveAssistOrchestrator", () => {
     await orch.ingestSegment(seg("le spectacle Le Cid", 10000, 11000));
     await orch.ingestSegment(seg("contexte qui suit", 26000, 27000)); // pushes latestT1 past 25000
     expect(events.some((e) => e.type === "suggestion:new")).toBe(true);
+  });
+
+  it("drains a pending window on tick when no further segment arrives (silence)", async () => {
+    let fakeNow = 0;
+    const { orch, events } = makeOrchestrator(
+      { actionnable: true, intent: "poster", entite: "Le Cid", confiance: 0.9 },
+      { now: () => fakeNow },
+    );
+    // Keyword fires at t=10s, registeredWall=0. No +15s context segment follows.
+    await orch.ingestSegment(seg("le spectacle Le Cid", 10000, 11000));
+    expect(events.some((e) => e.type === "suggestion:new")).toBe(false);
+
+    // Advance wall clock past WINDOW_MAX_WAIT_MS (20s); the ticker drains it.
+    fakeNow = 21000;
+    await orch.tick(fakeNow);
+    expect(events.some((e) => e.type === "suggestion:new")).toBe(true);
+  });
+
+  it("does not drain pending windows on tick while disabled", async () => {
+    let fakeNow = 0;
+    let enabled = true;
+    const { orch, events } = makeOrchestrator(
+      { actionnable: true, intent: "poster", entite: "Le Cid", confiance: 0.9 },
+      { now: () => fakeNow, isEnabled: () => enabled },
+    );
+    // Register a pending window while enabled (no +15s context yet → not fired).
+    await orch.ingestSegment(seg("le spectacle Le Cid", 10000, 11000));
+    expect(events.some((e) => e.type === "suggestion:new")).toBe(false);
+
+    // Operator disables the feature, then the max-wait elapses.
+    enabled = false;
+    fakeNow = 21000;
+    await orch.tick(fakeNow);
+    expect(events.some((e) => e.type === "suggestion:new")).toBe(false);
   });
 
   it("creates nothing when confidence is below threshold", async () => {

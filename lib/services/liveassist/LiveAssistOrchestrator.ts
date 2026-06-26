@@ -18,7 +18,11 @@ interface Deps {
   extractor: Pick<IntentExtractor, "extract">;
   registry: ProviderRegistry;
   store: SuggestionStore;
-  settings: { windowBeforeSec: number; windowAfterSec: number; confidenceThreshold: number };
+  /**
+   * Read live each window so Settings > Live Assist saves take effect without a
+   * backend restart (keywords + window size are refreshed separately, on tick).
+   */
+  getSettings: () => { windowBeforeSec: number; windowAfterSec: number; confidenceThreshold: number };
   now?: () => number;
   isEnabled?: () => boolean;
   publishStatus?: (connected: boolean, device: string | null) => void;
@@ -72,6 +76,17 @@ export class LiveAssistOrchestrator {
     }
   }
 
+  /**
+   * Periodic tick from the backend ticker. Flags STT staleness AND drains any
+   * pending window whose max-wait elapsed. Without the drain, a keyword followed
+   * by silence (no further finalized segment to carry the +Ns context) would
+   * never fire, because collectReady() is otherwise only reached from ingest.
+   */
+  async tick(nowMs: number): Promise<void> {
+    this.checkStaleness(nowMs);
+    if (this.isEnabled()) await this.drainReady();
+  }
+
   async ingestSegment(segment: TranscriptSegment): Promise<void> {
     if (!segment.final) return;
     if (!this.isEnabled()) return;
@@ -81,6 +96,11 @@ export class LiveAssistOrchestrator {
     for (const hit of this.deps.detector.scan(segment)) {
       this.deps.scheduler.register(hit, this.now());
     }
+    await this.drainReady();
+  }
+
+  /** Fires every pending window the scheduler now considers ready. */
+  private async drainReady(): Promise<void> {
     const ready = this.deps.scheduler.collectReady(this.deps.buffer.latestT1(), this.now());
     for (const win of ready) {
       await this.processWindow(win.providerIds, win.tCenter);
@@ -88,7 +108,7 @@ export class LiveAssistOrchestrator {
   }
 
   private async processWindow(providerIds: string[], tCenter: number): Promise<void> {
-    const { windowBeforeSec, windowAfterSec, confidenceThreshold } = this.deps.settings;
+    const { windowBeforeSec, windowAfterSec, confidenceThreshold } = this.deps.getSettings();
     const window = this.deps.buffer.windowAround(tCenter, windowBeforeSec * 1000, windowAfterSec * 1000);
     if (!window.text.trim()) return;
 

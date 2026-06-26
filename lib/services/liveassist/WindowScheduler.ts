@@ -8,9 +8,14 @@ export class WindowScheduler {
   private pending: Pending[] = [];
 
   constructor(
-    private readonly afterMs: number,
+    private afterMs: number,
     private readonly maxWaitMs: number,
   ) {}
+
+  /** Updates the context window size (live Settings reload). */
+  setAfterMs(afterMs: number): void {
+    this.afterMs = afterMs;
+  }
 
   register(hit: KeywordHit, wallNowMs: number): void {
     // Hits arrive in non-decreasing tHit order (sequential transcript segments),

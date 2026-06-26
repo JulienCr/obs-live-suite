@@ -37,7 +37,9 @@ export function buildOrchestrator(): {
   store: SuggestionStore;
   registry: ProviderRegistry;
 } {
-  const liveAssistSettings = SettingsService.getInstance().getLiveAssistSettings();
+  const settingsService = SettingsService.getInstance();
+  const getSettings = () => settingsService.getLiveAssistSettings();
+  const liveAssistSettings = getSettings();
   const cm = ChannelManager.getInstance();
   const resolver = WikipediaResolverService.getInstance();
 
@@ -80,29 +82,39 @@ export function buildOrchestrator(): {
   const extractor = new IntentExtractor(registry.ids(), registry.descriptions());
 
   // Merge each provider's defaultKeywords as fallback when settings is empty.
-  const keywords: Record<string, string[]> = {};
-  for (const p of registry.all()) {
-    const configured = liveAssistSettings.keywordsByProvider[p.id];
-    keywords[p.id] = configured && configured.length ? configured : p.defaultKeywords;
-  }
+  const buildKeywords = (s: ReturnType<typeof getSettings>): Record<string, string[]> => {
+    const keywords: Record<string, string[]> = {};
+    for (const p of registry.all()) {
+      const configured = s.keywordsByProvider[p.id];
+      keywords[p.id] = configured && configured.length ? configured : p.defaultKeywords;
+    }
+    return keywords;
+  };
+
+  const detector = new KeywordDetector(buildKeywords(liveAssistSettings));
+  const scheduler = new WindowScheduler(
+    liveAssistSettings.windowAfterSec * 1000,
+    LIVE_ASSIST.WINDOW_MAX_WAIT_MS,
+  );
 
   const orchestrator = new LiveAssistOrchestrator({
     buffer: new TranscriptBuffer(),
-    detector: new KeywordDetector(keywords),
-    scheduler: new WindowScheduler(
-      liveAssistSettings.windowAfterSec * 1000,
-      LIVE_ASSIST.WINDOW_MAX_WAIT_MS,
-    ),
+    detector,
+    scheduler,
     extractor,
     registry,
     store,
-    settings: {
-      windowBeforeSec: liveAssistSettings.windowBeforeSec,
-      windowAfterSec: liveAssistSettings.windowAfterSec,
-      confidenceThreshold: liveAssistSettings.confidenceThreshold,
+    // Read live so Settings > Live Assist saves apply without a backend restart.
+    getSettings: () => {
+      const s = getSettings();
+      return {
+        windowBeforeSec: s.windowBeforeSec,
+        windowAfterSec: s.windowAfterSec,
+        confidenceThreshold: s.confidenceThreshold,
+      };
     },
     // Gate ingest on the live settings flag (re-read each call).
-    isEnabled: () => SettingsService.getInstance().getLiveAssistSettings().enabled,
+    isEnabled: () => getSettings().enabled,
     // Publish STT connected/disconnected state to overlay subscribers.
     publishStatus: (connected, device) =>
       cm.publishLiveAssist({ type: "stt:status", payload: { connected, device } }),
@@ -114,11 +126,16 @@ export function buildOrchestrator(): {
   // Seed the device label so status reports include the configured device name.
   orchestrator.setSttStatus(false, liveAssistSettings.inputDevice ?? null);
 
-  // Staleness ticker — fires twice per stale window to keep latency low.
-  setInterval(
-    () => orchestrator.checkStaleness(Date.now()),
-    Math.floor(LIVE_ASSIST.STT_STALE_MS / 2),
-  );
+  // Periodic ticker — fires twice per stale window to keep latency low. Besides
+  // flagging STT staleness it (a) re-syncs keyword list + window size from live
+  // settings so Settings saves apply without a restart, and (b) drains pending
+  // windows whose max-wait elapsed (a keyword followed by silence still fires).
+  setInterval(() => {
+    const s = getSettings();
+    detector.setKeywords(buildKeywords(s));
+    scheduler.setAfterMs(s.windowAfterSec * 1000);
+    void orchestrator.tick(Date.now());
+  }, Math.floor(LIVE_ASSIST.STT_STALE_MS / 2));
 
   setLiveAssistOrchestrator(orchestrator);
   return { orchestrator, store, registry };

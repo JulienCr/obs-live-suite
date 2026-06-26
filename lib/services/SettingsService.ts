@@ -17,10 +17,7 @@ import type { TitleRevealDefaults } from "../models/TitleReveal";
 import type { TwitchSettings, TwitchOAuthTokens } from "../models/Twitch";
 import type { PresenterChannelSettings } from "../models/PresenterChannel";
 import type { ChatPredefinedMessage } from "../models/ChatMessages";
-import {
-  StudioReturnSettingsSchema,
-  DEFAULT_STUDIO_RETURN_SETTINGS,
-} from "../models/StudioReturn";
+import { StudioReturnSettingsSchema } from "../models/StudioReturn";
 import type { StudioReturnSettings, MonitorInfo } from "../models/StudioReturn";
 import { LiveAssistSettingsSchema } from "../models/LiveAssist";
 import type { SttDevice, LiveAssistSettings } from "../models/LiveAssist";
