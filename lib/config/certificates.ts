@@ -23,6 +23,15 @@ export const KEY_FILENAME = "localhost+4-key.pem";
 export const CERT_PATH = path.join(PROJECT_ROOT, CERT_FILENAME);
 export const KEY_PATH = path.join(PROJECT_ROOT, KEY_FILENAME);
 
+// Tailscale-issued (Let's Encrypt) certificate, produced by `tailscale cert`
+// (scripts/setup-tailscale-cert.mjs). Served via SNI for *.ts.net names so
+// remote tailnet devices get a trusted cert with NO custom CA installed.
+// The actual TLS context selection lives in lib/config/tlsContext.mjs.
+export const TAILSCALE_CERT_FILENAME = "tailscale.crt";
+export const TAILSCALE_KEY_FILENAME = "tailscale.key";
+export const TAILSCALE_CERT_PATH = path.join(PROJECT_ROOT, TAILSCALE_CERT_FILENAME);
+export const TAILSCALE_KEY_PATH = path.join(PROJECT_ROOT, TAILSCALE_KEY_FILENAME);
+
 // Hostnames included in the certificate (for reference)
 export const CERT_HOSTNAMES = [
   "localhost",

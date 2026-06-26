@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import { useTheme } from "next-themes";
 import { VdoNinjaPanel } from "./panels/VdoNinjaPanel";
 import { CueFeedPanel } from "./panels/CueFeedPanel";
 import { QuickReplyPanel } from "./panels/QuickReplyPanel";
@@ -10,7 +11,7 @@ import { StreamerbotChatPanel } from "./panels/StreamerbotChatPanel";
 import { usePresenterWebSocket } from "./hooks/usePresenterWebSocket";
 import { useOverlayState } from "./hooks/useOverlayState";
 import { useChatHighlightSync } from "@/hooks/useChatHighlightSync";
-import { Wifi, WifiOff, Users, Trash2 } from "lucide-react";
+import { Wifi, WifiOff, Users, Trash2, Sun, Moon, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiGet, apiPost, isClientFetchError } from "@/lib/utils/ClientFetch";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,36 @@ export function PresenterShell() {
   const [currentlyDisplayedId, setCurrentlyDisplayedId] = useState<string | null>(null);
   const [hidingInOverlay, setHidingInOverlay] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  // Theme toggle (light/dark). next-themes returns undefined before mount, so we
+  // guard with `mounted` to avoid a hydration mismatch on the icon.
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = !mounted || theme !== "light";
+
+  // "Chat-only" mode: hide the control-room (régie) pane to show only the Twitch
+  // chat full-screen. Persisted so a presenter's choice survives reloads.
+  const REGIE_HIDDEN_KEY = "presenter-hide-regie";
+  const [regieHidden, setRegieHidden] = useState(false);
+  useEffect(() => {
+    try {
+      setRegieHidden(localStorage.getItem(REGIE_HIDDEN_KEY) === "true");
+    } catch {
+      /* localStorage unavailable */
+    }
+  }, []);
+  const toggleRegie = useCallback(() => {
+    setRegieHidden((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(REGIE_HIDDEN_KEY, String(next));
+      } catch {
+        /* localStorage unavailable */
+      }
+      return next;
+    });
+  }, []);
 
   // Keep currentlyDisplayedId in sync with the real overlay state (auto-hide,
   // explicit hide, or external action) instead of a local timer.
@@ -182,11 +213,33 @@ export function PresenterShell() {
           <span className="text-sm font-medium">
             {t("title")}
           </span>
-          <span className="text-xs text-muted-foreground">
-            ({role})
-          </span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          {/* Toggle control-room (régie) pane — chat-only mode */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleRegie}
+            className="h-7 w-7"
+            title={regieHidden ? t("actions.showRegie") : t("actions.hideRegie")}
+            aria-pressed={regieHidden}
+          >
+            {regieHidden ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </Button>
+          {/* Light/dark theme toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            className="h-7 w-7"
+            title={isDark ? t("actions.lightMode") : t("actions.darkMode")}
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
           {/* Clear History Button */}
           <Button
             variant="ghost"
@@ -229,41 +282,50 @@ export function PresenterShell() {
 
       {/* Main Content - Responsive Layout */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Left Pane - Video + Cues */}
-        <div className="flex-1 flex flex-col md:w-1/2 lg:w-2/3 min-h-0">
-          {/* Video (hidden on mobile) */}
-          <div className="hidden md:block h-1/2 border-b min-h-0">
-            <VdoNinjaPanel url={vdoNinjaUrl} />
-          </div>
+        {/* Left Pane - Video + Cues (régie) — hidden in chat-only mode */}
+        {!regieHidden && (
+          <div className="flex-1 flex flex-col md:w-1/2 lg:w-2/3 min-h-0">
+            {/* Video (hidden on mobile) */}
+            <div className="hidden md:block h-1/2 border-b min-h-0">
+              <VdoNinjaPanel url={vdoNinjaUrl} />
+            </div>
 
-          {/* Cue Feed */}
-          <div className="flex-1 overflow-hidden min-h-0">
-            <CueFeedPanel
-              messages={messages}
-              pinnedMessages={pinnedMessages}
-              onAction={sendAction}
-              isPresenter={role === "presenter"}
-              overlayState={overlayState}
-              onShowInOverlay={handleShowInOverlay}
-              showingInOverlayId={showingInOverlayId}
-              currentlyDisplayedId={currentlyDisplayedId}
-              onHideInOverlay={handleHideOverlay}
-              hidingInOverlay={hidingInOverlay}
-            />
-          </div>
+            {/* Cue Feed */}
+            <div className="flex-1 overflow-hidden min-h-0">
+              <CueFeedPanel
+                messages={messages}
+                pinnedMessages={pinnedMessages}
+                onAction={sendAction}
+                isPresenter={role === "presenter"}
+                overlayState={overlayState}
+                onShowInOverlay={handleShowInOverlay}
+                showingInOverlayId={showingInOverlayId}
+                currentlyDisplayedId={currentlyDisplayedId}
+                onHideInOverlay={handleHideOverlay}
+                hidingInOverlay={hidingInOverlay}
+              />
+            </div>
 
-          {/* Quick Reply */}
-          <div className="shrink-0 border-t">
-            <QuickReplyPanel
-              quickReplies={quickReplies}
-              onSend={sendReply}
-              canSendCustomMessages={presenterSettings?.canSendCustomMessages ?? true}
-            />
+            {/* Quick Reply */}
+            <div className="shrink-0 border-t">
+              <QuickReplyPanel
+                quickReplies={quickReplies}
+                onSend={sendReply}
+                canSendCustomMessages={presenterSettings?.canSendCustomMessages ?? true}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Right Pane - Streamer.bot Chat */}
-        <div className="h-1/2 md:h-full md:w-1/2 lg:w-1/3 border-t md:border-t-0 md:border-l min-h-0">
+        {/* Right Pane - Streamer.bot Chat (full-screen when régie is hidden) */}
+        <div
+          className={cn(
+            "min-h-0",
+            regieHidden
+              ? "flex-1 h-full w-full"
+              : "h-1/2 md:h-full md:w-1/2 lg:w-1/3 border-t md:border-t-0 md:border-l"
+          )}
+        >
           <StreamerbotChatPanel
             allowSendMessage={presenterSettings?.allowPresenterToSendMessage}
             showClearButton={false}

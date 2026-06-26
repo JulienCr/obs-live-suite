@@ -14,7 +14,7 @@ export default function PresenterLayout({
     <ThemeProvider
       attribute="class"
       defaultTheme="dark"
-      forcedTheme="dark"
+      storageKey="presenter-theme"
       enableSystem={false}
       disableTransitionOnChange
     >

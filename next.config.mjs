@@ -18,6 +18,11 @@ const nextConfig = {
     'https://edison:3000',
     'http://edison',
     'https://edison',
+    // Tailscale MagicDNS (access from any tailnet device with a trusted cert)
+    'http://edison.tail16943b.ts.net:3000',
+    'https://edison.tail16943b.ts.net:3000',
+    'http://edison.tail16943b.ts.net',
+    'https://edison.tail16943b.ts.net',
     'http://localhost:3000',
     'https://localhost:3000',
   ],

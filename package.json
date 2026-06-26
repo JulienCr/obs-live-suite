@@ -13,6 +13,7 @@
     "dev:backend": "tsx watch server/backend.ts",
     "backend": "tsx server/backend.ts",
     "setup:https": "node scripts/setup-https.js",
+    "cert:tailscale": "node scripts/setup-tailscale-cert.mjs",
     "build": "node scripts/build-safe.js",
     "build:direct": "next build",
     "start": "next start -H 0.0.0.0",

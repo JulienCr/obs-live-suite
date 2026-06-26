@@ -33,16 +33,25 @@ export const USE_HTTPS: boolean = (() => {
     return process.env.USE_HTTPS === "true";
   }
 
-  // Server-side: auto-detect from certificate files (matches createServerWithFallback behavior)
+  // Server-side: auto-detect from certificate files. This MUST stay in lock-step
+  // with getHttpsServerOptions() in lib/config/tlsContext.mjs, which starts the
+  // servers as HTTPS when EITHER the mkcert pair OR the Tailscale pair is present.
+  // Checking only mkcert here would leave BACKEND_URL on http:// while the backend
+  // listens on https://, so the frontend /api/* proxy would speak plaintext to a
+  // TLS socket (Tailscale-only setups). Filenames mirror the *_PATH constants there.
   if (typeof window === "undefined") {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require("fs");
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const path = require("path");
-      const certPath = path.join(process.cwd(), "localhost+4.pem");
-      const keyPath = path.join(process.cwd(), "localhost+4-key.pem");
-      return fs.existsSync(certPath) && fs.existsSync(keyPath);
+      const root = process.cwd();
+      const hasPair = (cert: string, key: string) =>
+        fs.existsSync(path.join(root, cert)) && fs.existsSync(path.join(root, key));
+      return (
+        hasPair("localhost+4.pem", "localhost+4-key.pem") ||
+        hasPair("tailscale.crt", "tailscale.key")
+      );
     } catch {
       return false;
     }
