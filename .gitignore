@@ -90,6 +90,8 @@ studio-return/src-tauri/gen/
 studio-return/dist/
 studio-return/node_modules/
 
-# Python cache
+# Python cache + virtualenv (realtime-stt)
 __pycache__/
 *.pyc
+.venv/
+realtime-stt/.venv/

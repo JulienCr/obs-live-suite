@@ -2,14 +2,15 @@ import { spawn } from "child_process";
 
 const isWindows = process.platform === "win32";
 
-const RESET = "[0m";
-const GREY = "[38;5;244m";
+const E = "\x1b"; // ESC — ANSI escape introducer (explicit so edits can't strip the raw byte)
+const RESET = `${E}[0m`;
+const GREY = `${E}[38;5;244m`;
 
 const procs = [
-  { name: "BACKEND", color: "[34m", script: "dev:backend" },
-  { name: "NEXT",    color: "[32m", script: "dev:frontend" },
-  { name: "MCP",     color: "[35m", script: "dev:mcp" },
-  { name: "STT",     color: "[36m", script: "dev:stt" },
+  { name: "BACKEND", color: `${E}[34m`, script: "dev:backend" },
+  { name: "NEXT",    color: `${E}[32m`, script: "dev:frontend" },
+  { name: "MCP",     color: `${E}[35m`, script: "dev:mcp" },
+  { name: "STT",     color: `${E}[36m`, script: "dev:stt", optional: true },
 ];
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -56,6 +57,9 @@ const children = procs.map((p) => {
 
   child.on("exit", (code) => {
     process.stdout.write(prefix(p) + `exited (code=${code})\n`);
+    // Optional services (STT needs a Python venv + GPU) must not bring down the
+    // whole dev stack when they fail to start or crash.
+    if (p.optional) return;
     if (!shuttingDown) {
       shuttingDown = true;
       for (const c of children) {

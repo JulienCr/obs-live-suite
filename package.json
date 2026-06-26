@@ -34,7 +34,7 @@
     "backup:appdata": "node scripts/backup-appdata.js",
     "reserve:ports": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/reserve-ports.ps1",
     "dev:mcp": "cd mcp-server && pnpm dev",
-    "dev:stt": "cd realtime-stt && python main.py",
+    "dev:stt": "node realtime-stt/run.mjs",
     "test:mcp": "pnpm --filter obs-live-suite-mcp test",
     "studio-return:dev": "cd studio-return && pnpm dev",
     "studio-return:build": "cd studio-return && pnpm build"
