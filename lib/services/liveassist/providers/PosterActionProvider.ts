@@ -23,12 +23,31 @@ export async function resolveOrNull(
   }
 }
 
-export class PosterActionProvider implements ActionProvider {
-  readonly id = "poster";
-  readonly description = "Trouver l'affiche d'un spectacle/film/concert cité et l'ajouter aux posters";
-  readonly defaultKeywords = LIVE_ASSIST.DEFAULT_KEYWORDS.poster;
+/** Per-instance configuration so one class serves multiple sources (Wikipedia, TMDB, …). */
+export type PosterProviderOptions = {
+  id?: string;
+  description?: string;
+  defaultKeywords?: string[];
+  defaultContextPrompt?: string;
+};
 
-  constructor(private readonly resolver: Resolver, private readonly createPoster: PosterCreator) {}
+export class PosterActionProvider implements ActionProvider {
+  readonly id: string;
+  readonly description: string;
+  readonly defaultKeywords: string[];
+  readonly defaultContextPrompt?: string;
+
+  constructor(
+    private readonly resolver: Resolver,
+    private readonly createPoster: PosterCreator,
+    opts: PosterProviderOptions = {},
+  ) {
+    this.id = opts.id ?? "poster";
+    this.description =
+      opts.description ?? "Trouver l'affiche d'un spectacle/pièce/concert cité et l'ajouter aux posters";
+    this.defaultKeywords = opts.defaultKeywords ?? LIVE_ASSIST.DEFAULT_KEYWORDS.poster;
+    this.defaultContextPrompt = opts.defaultContextPrompt ?? LIVE_ASSIST.DEFAULT_CONTEXT_PROMPTS.poster;
+  }
 
   async build(entity: string, window: TranscriptWindow): Promise<BuiltSuggestion | null> {
     const result = await resolveOrNull(this.resolver, entity, logger);

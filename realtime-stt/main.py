@@ -111,9 +111,14 @@ def run():
 
     # VAD-gated chunking: accumulate speech, transcribe on a silence boundary.
     # (Use silero-vad or webrtcvad here; pseudocode loop kept minimal.)
+    # The callback runs on PortAudio's audio thread while the main loop drains the
+    # buffer, so all buffer access is guarded by a lock to avoid losing a frame
+    # that arrives between concatenate() and clear().
     buffer = []
+    buffer_lock = threading.Lock()
     def callback(indata, frames, t, status):
-        buffer.append(indata.copy())
+        with buffer_lock:
+            buffer.append(indata.copy())
 
     with sd.InputStream(samplerate=sample_rate, channels=1, dtype="float32",
                         device=device_index, callback=callback):
@@ -127,12 +132,17 @@ def run():
             cfg_now = fetch_config(backend) or last_cfg
             last_cfg = cfg_now
             if not cfg_now.get("enabled", False):
+                with buffer_lock:
+                    buffer.clear()
+                continue
+            # Atomically swap out the captured chunks so a frame arriving mid-drain
+            # is preserved for the next iteration instead of being cleared away.
+            with buffer_lock:
+                if not buffer:
+                    continue
+                chunks = buffer[:]
                 buffer.clear()
-                continue
-            if not buffer:
-                continue
-            audio = np.concatenate(buffer).flatten()
-            buffer.clear()
+            audio = np.concatenate(chunks).flatten()
             t1_ms = int((time.monotonic() - capture_start) * 1000)
             t0_ms = t1_ms - int(len(audio) / sample_rate * 1000)
             segments, _ = model.transcribe(audio, language="fr", vad_filter=True)

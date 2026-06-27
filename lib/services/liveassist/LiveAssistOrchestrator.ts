@@ -7,6 +7,7 @@ import { KeywordDetector } from "./KeywordDetector";
 import { WindowScheduler } from "./WindowScheduler";
 import { SuggestionStore } from "./SuggestionStore";
 import { ProviderRegistry } from "./providers/ActionProvider";
+import type { BuiltSuggestion } from "./providers/ActionProvider";
 import type { IntentExtractor } from "./IntentExtractor";
 
 const logger = new Logger("LiveAssistOrchestrator");
@@ -25,8 +26,23 @@ interface Deps {
   getSettings: () => { windowBeforeSec: number; windowAfterSec: number; confidenceThreshold: number };
   now?: () => number;
   isEnabled?: () => boolean;
+  /**
+   * Gate the live transcript re-broadcast (the panel's "Transcription (debug)"
+   * view). Read live so Settings saves take effect without a backend restart.
+   * When off, no `transcript` event is published — the websocket isn't loaded
+   * for a view nobody is watching.
+   */
+  isTranscriptDebugEnabled?: () => boolean;
   publishStatus?: (connected: boolean, device: string | null) => void;
   publishTranscript?: (text: string, t0: number, t1: number) => void;
+  /** Map a device id (e.g. "1") to its human label (e.g. "USB Mic") for status display. */
+  resolveDeviceLabel?: (id: string) => string;
+  /**
+   * Non-LLM fast-path: fuzzy-match a finalized segment against existing poster
+   * titles and return ready-to-store suggestions. Runs per segment (no window,
+   * no extractor). Returns [] when disabled.
+   */
+  matchLocalPosters?: (text: string) => BuiltSuggestion[];
   staleMs?: number;
 }
 
@@ -34,21 +50,30 @@ export class LiveAssistOrchestrator {
   private status = { connected: false, device: null as string | null };
   private readonly now: () => number;
   private readonly isEnabled: () => boolean;
+  private readonly isTranscriptDebugEnabled: () => boolean;
   private readonly publishStatus: (connected: boolean, device: string | null) => void;
   private readonly publishTranscript: (text: string, t0: number, t1: number) => void;
+  private readonly resolveDeviceLabel: (id: string) => string;
   private readonly staleMs: number;
   private lastSeenAt = 0;
 
   constructor(private readonly deps: Deps) {
     this.now = deps.now ?? Date.now;
     this.isEnabled = deps.isEnabled ?? (() => true);
+    this.isTranscriptDebugEnabled = deps.isTranscriptDebugEnabled ?? (() => true);
     this.publishStatus = deps.publishStatus ?? (() => undefined);
     this.publishTranscript = deps.publishTranscript ?? (() => undefined);
+    this.resolveDeviceLabel = deps.resolveDeviceLabel ?? ((id) => id);
     this.staleMs = deps.staleMs ?? LIVE_ASSIST.STT_STALE_MS;
   }
 
+  /** Resolve a device id to its label; null/empty stays null. */
+  private labelFor(device: string | null): string | null {
+    return device ? this.resolveDeviceLabel(device) : null;
+  }
+
   setSttStatus(connected: boolean, device: string | null): void {
-    this.status = { connected, device };
+    this.status = { connected, device: this.labelFor(device) };
   }
   getStatus() {
     return { ...this.status };
@@ -62,7 +87,7 @@ export class LiveAssistOrchestrator {
    */
   markSttAlive(device?: string | null): void {
     this.lastSeenAt = this.now();
-    if (device != null) this.status.device = device;
+    if (device != null) this.status.device = this.labelFor(device);
     if (!this.status.connected) {
       this.status.connected = true;
       this.publishStatus(true, this.status.device);
@@ -91,8 +116,12 @@ export class LiveAssistOrchestrator {
     if (!segment.final) return;
     if (!this.isEnabled()) return;
     this.markSttAlive();
-    this.publishTranscript(segment.text, segment.t0, segment.t1);
+    if (this.isTranscriptDebugEnabled()) this.publishTranscript(segment.text, segment.t0, segment.t1);
     this.deps.buffer.append(segment);
+    // Non-LLM fast-path: a directly-named local poster fires immediately, no window.
+    for (const built of this.deps.matchLocalPosters?.(segment.text) ?? []) {
+      this.deps.store.add(built);
+    }
     for (const hit of this.deps.detector.scan(segment)) {
       this.deps.scheduler.register(hit, this.now());
     }
@@ -125,8 +154,21 @@ export class LiveAssistOrchestrator {
       `extraction: actionnable=${extraction.actionnable} intent=${extraction.intent} entite="${extraction.entite}" confiance=${extraction.confiance}`,
     );
 
-    if (!extraction.actionnable || extraction.confiance < confidenceThreshold) {
-      logger.info(`→ dropped (actionnable=${extraction.actionnable}, confiance ${extraction.confiance} < threshold ${confidenceThreshold})`);
+    // Report the ACTUAL drop reason — these are two distinct gates, and lumping
+    // them together printed a nonsense "confiance 0.9 < threshold 0.6".
+    if (!extraction.actionnable) {
+      logger.info(`→ dropped (non actionnable; confiance ${extraction.confiance})`);
+      return;
+    }
+    // A DEDUCED entity (the title wasn't named, the LLM guessed it) is gated behind a
+    // stricter bar to limit wrong guesses; an explicitly-cited entity uses the normal seuil.
+    const minConfiance = extraction.infere
+      ? Math.max(confidenceThreshold, LIVE_ASSIST.INFERRED_CONFIDENCE_THRESHOLD)
+      : confidenceThreshold;
+    if (extraction.confiance < minConfiance) {
+      logger.info(
+        `→ dropped (confiance ${extraction.confiance} < seuil ${minConfiance}${extraction.infere ? " [déduit]" : ""})`,
+      );
       return;
     }
 

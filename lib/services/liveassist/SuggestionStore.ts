@@ -42,6 +42,11 @@ export class SuggestionStore {
     return [...this.items];
   }
 
+  /** Fetch a single stored suggestion by id (used by the authoritative apply route). */
+  get(id: string): Suggestion | undefined {
+    return this.items.find((s) => s.id === id);
+  }
+
   setStatus(id: string, status: Suggestion["status"]): Suggestion | undefined {
     const s = this.items.find((x) => x.id === id);
     if (!s) return undefined;

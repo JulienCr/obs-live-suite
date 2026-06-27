@@ -35,6 +35,9 @@ interface LLMSettings {
   // Anthropic
   anthropic_api_key?: string;
   anthropic_model?: string;
+
+  // TMDB (affiches films/séries)
+  tmdb_api_key?: string;
 }
 
 interface LLMSettingsResponse {
@@ -79,6 +82,33 @@ export function OllamaSettings() {
     message: string;
   } | null>(null);
   const [isClearingCache, setIsClearingCache] = useState(false);
+  const [isTestingTmdb, setIsTestingTmdb] = useState(false);
+  const [tmdbTestResult, setTmdbTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleTestTmdb = async () => {
+    setIsTestingTmdb(true);
+    setTmdbTestResult(null);
+    try {
+      const data = await apiPost<{ success: boolean; message?: string }>(
+        "/api/settings/integrations/tmdb-test",
+        { apiKey: settings.tmdb_api_key ?? "" },
+      );
+      const message = data.message || (data.success ? "Connexion TMDB OK." : "Échec de la connexion TMDB.");
+      setTmdbTestResult({ success: data.success, message });
+      if (data.success) toast.success(message);
+      else toast.error(message);
+    } catch (error) {
+      const message = isClientFetchError(error)
+        ? error.errorMessage
+        : error instanceof Error
+          ? error.message
+          : "Échec de la connexion TMDB.";
+      setTmdbTestResult({ success: false, message });
+      toast.error(message);
+    } finally {
+      setIsTestingTmdb(false);
+    }
+  };
 
   // Load available models when provider changes
   useEffect(() => {
@@ -410,6 +440,73 @@ export function OllamaSettings() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* TMDB (movie/TV posters) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>TMDB (affiches films/séries)</CardTitle>
+          <CardDescription>
+            The Movie Database API settings
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="tmdb_api_key">API Key</Label>
+            <Input
+              id="tmdb_api_key"
+              type="password"
+              value={settings.tmdb_api_key || ""}
+              onChange={(e) =>
+                setSettings({ ...settings, tmdb_api_key: e.target.value })
+              }
+              placeholder="TMDB API key"
+            />
+            <p className="text-sm text-muted-foreground">
+              Get your API key from{" "}
+              <a
+                href="https://www.themoviedb.org/settings/api"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                themoviedb.org
+              </a>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              This product uses the TMDB API but is not endorsed or certified by TMDB.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleTestTmdb}
+              disabled={isTestingTmdb || !settings.tmdb_api_key}
+            >
+              {isTestingTmdb ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Test en cours…
+                </>
+              ) : (
+                "Tester la connexion"
+              )}
+            </Button>
+
+            {tmdbTestResult && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded border">
+                {tmdbTestResult.success ? (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-red-500" />
+                )}
+                <span className="text-sm">{tmdbTestResult.message}</span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Test & Save */}
       <div className="flex justify-between items-center">

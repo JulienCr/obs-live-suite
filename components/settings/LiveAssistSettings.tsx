@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -58,6 +59,54 @@ export function LiveAssistSettings() {
         />
       </div>
 
+      {/* Transcription debug — re-broadcasts each STT segment to the panel's live
+          debug view. Off by default to avoid loading the websocket for nothing. */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-1">
+          <Label htmlFor="liveAssistTranscriptDebug" className="text-base font-medium">
+            {t("transcriptDebug")}
+          </Label>
+          <p className="text-sm text-muted-foreground">{t("transcriptDebugHelp")}</p>
+        </div>
+        <Switch
+          id="liveAssistTranscriptDebug"
+          checked={data.transcriptDebug}
+          onCheckedChange={(checked) => setData({ ...data, transcriptDebug: checked })}
+        />
+      </div>
+
+      {/* Local posters — fuzzy-match spoken words against existing poster titles (no LLM). */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-1">
+          <Label htmlFor="liveAssistLocalPosters" className="text-base font-medium">
+            {t("localPosters")}
+          </Label>
+          <p className="text-sm text-muted-foreground">{t("localPostersHelp")}</p>
+        </div>
+        <Switch
+          id="liveAssistLocalPosters"
+          checked={data.localPostersEnabled}
+          onCheckedChange={(checked) => setData({ ...data, localPostersEnabled: checked })}
+        />
+      </div>
+
+      {data.localPostersEnabled && (
+        <div className="space-y-3">
+          <Label className="text-base font-medium">{t("localPosterSensitivity")}</Label>
+          <div className="flex items-center gap-4">
+            <Slider
+              value={[data.localPosterMinSimilarity]}
+              onValueChange={([v]) => setData({ ...data, localPosterMinSimilarity: v })}
+              min={0.5}
+              max={1}
+              step={0.05}
+              className="flex-1"
+            />
+            <span className="text-sm font-mono w-12 text-right">{data.localPosterMinSimilarity.toFixed(2)}</span>
+          </div>
+        </div>
+      )}
+
       {/* Input device */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
@@ -96,27 +145,47 @@ export function LiveAssistSettings() {
         />
       </div>
 
-      {/* Keyword editors (one per provider) */}
+      {/* Per-provider editors: keywords + the extraction context prompt (the "Règle"
+          injected into the LLM). Leaving the prompt empty falls back to the
+          provider's built-in default. */}
       {Object.entries(data.keywordsByProvider).map(([provider, words]) => (
-        <div key={provider} className="space-y-2">
-          <Label className="text-base font-medium">
-            {t("keywords")} — {provider}
-          </Label>
-          <Input
-            value={words.join(", ")}
-            onChange={(e) =>
-              setData({
-                ...data,
-                keywordsByProvider: {
-                  ...data.keywordsByProvider,
-                  [provider]: e.target.value
-                    .split(",")
-                    .map((w) => w.trim())
-                    .filter(Boolean),
-                },
-              })
-            }
-          />
+        <div key={provider} className="space-y-2 rounded-md border p-3">
+          <Label className="text-base font-medium">{provider}</Label>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">{t("keywords")}</Label>
+            <Input
+              value={words.join(", ")}
+              onChange={(e) =>
+                setData({
+                  ...data,
+                  keywordsByProvider: {
+                    ...data.keywordsByProvider,
+                    [provider]: e.target.value
+                      .split(",")
+                      .map((w) => w.trim())
+                      .filter(Boolean),
+                  },
+                })
+              }
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">{t("contextPrompt")}</Label>
+            <Textarea
+              rows={2}
+              placeholder={t("contextPromptPlaceholder")}
+              value={data.contextPromptsByProvider?.[provider] ?? ""}
+              onChange={(e) =>
+                setData({
+                  ...data,
+                  contextPromptsByProvider: {
+                    ...data.contextPromptsByProvider,
+                    [provider]: e.target.value,
+                  },
+                })
+              }
+            />
+          </div>
         </div>
       ))}
 

@@ -39,9 +39,10 @@ export function LiveAssistPanel(_props: IDockviewPanelProps) {
   );
   useWebSocketChannel<LiveAssistEvent>("live-assist", handleEvent, { logPrefix: "LiveAssistPanel" });
 
-  const onApply = useCallback((s: Suggestion, target: "pin" | "on-air") => {
-    const payload = s.intent === "definition" ? { ...s.applyPayload, target } : s.applyPayload;
-    apiPost(`/api/live-assist/suggestions/${s.id}/apply`, { intent: s.intent, payload }).catch((e) =>
+  const onApply = useCallback((s: Suggestion, target: "pin" | "on-air" | "left" | "right") => {
+    // The server is authoritative: it reloads the stored suggestion by id and uses
+    // its own applyPayload. We only send the runtime pin/on-air choice.
+    apiPost(`/api/live-assist/suggestions/${s.id}/apply`, { target }).catch((e) =>
       toast.error(extractErrorMessage(e, "Échec de l'application de la suggestion")),
     );
   }, []);
@@ -69,8 +70,8 @@ export function LiveAssistPanel(_props: IDockviewPanelProps) {
             </div>
             <div className="px-3 pb-2 max-h-40 overflow-auto text-xs font-mono leading-relaxed space-y-0.5">
               {transcripts.map((line, i) => (
-                <div key={i} className={i === 0 ? "text-foreground" : "text-muted-foreground"}>
-                  {line}
+                <div key={line.id} className={i === 0 ? "text-foreground" : "text-muted-foreground"}>
+                  {line.text}
                 </div>
               ))}
             </div>

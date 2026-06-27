@@ -2,11 +2,20 @@ import { create } from "zustand";
 import { LIVE_ASSIST } from "@/lib/config/Constants";
 import type { Suggestion } from "@/lib/models/LiveAssist";
 
+/** A live transcript line with a stable id (the list is prepended, so the array
+ *  index is NOT a stable React key). */
+export interface TranscriptLine {
+  id: number;
+  text: string;
+}
+
 interface LiveAssistState {
   suggestions: Suggestion[];
   status: { connected: boolean; device: string | null };
   /** Rolling live transcript (newest first), for debugging what the STT hears. */
-  transcripts: string[];
+  transcripts: TranscriptLine[];
+  /** Monotonic counter backing the transcript line ids. */
+  transcriptSeq: number;
   setAll: (s: Suggestion[]) => void;
   upsert: (s: Suggestion) => void;
   updateStatus: (id: string, status: Suggestion["status"]) => void;
@@ -18,6 +27,7 @@ export const useLiveAssistStore = create<LiveAssistState>((set) => ({
   suggestions: [],
   status: { connected: false, device: null },
   transcripts: [],
+  transcriptSeq: 0,
   setAll: (suggestions) => set({ suggestions }),
   upsert: (s) =>
     set((st) => ({
@@ -26,5 +36,9 @@ export const useLiveAssistStore = create<LiveAssistState>((set) => ({
   updateStatus: (id, status) =>
     set((st) => ({ suggestions: st.suggestions.map((x) => (x.id === id ? { ...x, status } : x)) })),
   setStatusBar: (connected, device) => set({ status: { connected, device } }),
-  addTranscript: (text) => set((st) => ({ transcripts: [text, ...st.transcripts].slice(0, 50) })),
+  addTranscript: (text) =>
+    set((st) => {
+      const id = st.transcriptSeq + 1;
+      return { transcripts: [{ id, text }, ...st.transcripts].slice(0, 50), transcriptSeq: id };
+    }),
 }));

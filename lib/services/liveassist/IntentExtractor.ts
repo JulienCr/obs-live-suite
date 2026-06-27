@@ -10,6 +10,8 @@ export type IntentExtraction = {
   intent: string;
   entite: string;
   confiance: number;
+  /** True when the entity was DEDUCED from clues (not explicitly named); gated stricter. */
+  infere: boolean;
 };
 
 export type GenerateObjectFn = (args: {
@@ -17,7 +19,7 @@ export type GenerateObjectFn = (args: {
   prompt: string;
 }) => Promise<{ object: unknown }>;
 
-const NOT_ACTIONNABLE: IntentExtraction = { actionnable: false, intent: "none", entite: "", confiance: 0 };
+const NOT_ACTIONNABLE: IntentExtraction = { actionnable: false, intent: "none", entite: "", confiance: 0, infere: false };
 
 const defaultGenerate: GenerateObjectFn = ({ schema, prompt }) =>
   generateObject({ model: createAiModel(), schema, prompt });
@@ -25,11 +27,15 @@ const defaultGenerate: GenerateObjectFn = ({ schema, prompt }) =>
 export class IntentExtractor {
   private readonly schema: z.ZodTypeAny;
 
+  private contextPrompts: Record<string, string>;
+
   constructor(
     providerIds: string[],
     private readonly descriptions: Record<string, string>,
     private readonly generate: GenerateObjectFn = defaultGenerate,
+    contextPrompts: Record<string, string> = {},
   ) {
+    this.contextPrompts = contextPrompts;
     this.schema = z.object({
       actionnable: z.boolean(),
       // "none" first so TS infers [string, ...string[]] (a leading spread infers [...string[], string], which won't cast).
@@ -39,12 +45,26 @@ export class IntentExtractor {
       // mode) requires every property in `required` and rejects unsupported keywords.
       // The confidence range is enforced by the orchestrator's threshold check instead.
       confiance: z.number(),
+      // True when entite was DEDUCED from clues rather than explicitly named.
+      infere: z.boolean(),
     });
   }
 
+  /** Replace the per-provider context prompts (called when Settings change, live). */
+  setContextPrompts(contextPrompts: Record<string, string>): void {
+    this.contextPrompts = contextPrompts;
+  }
+
   async extract(windowText: string, candidateProviderIds: string[]): Promise<IntentExtraction> {
+    // Each candidate contributes its description plus, when present, an adapted
+    // "Règle" telling the model how to form the entity for THAT source (Wikipedia
+    // théâtre vs TMDB cinéma vs definition). This replaces the old hard-coded
+    // poster rule so a new provider is fully described by its own config.
     const catalogue = candidateProviderIds
-      .map((id) => `- ${id} : ${this.descriptions[id] ?? id}`)
+      .map((id) => {
+        const rule = this.contextPrompts[id];
+        return `- ${id} : ${this.descriptions[id] ?? id}${rule ? `\n    Règle : ${rule}` : ""}`;
+      })
       .join("\n");
 
     const prompt = [
@@ -54,10 +74,11 @@ export class IntentExtractor {
       `INTENTS CANDIDATS :\n${catalogue}`,
       "",
       "Règles :",
-      "- Si une entité claire correspondant à un intent candidat est citée (p. ex. un titre de film / spectacle / pièce / concert pour « poster » ; un sujet à définir pour « definition ») → actionnable=true, intent = l'id exact de l'intent candidat, entite = le titre/sujet exact sans article. Pour « poster », ajoute le type entre parenthèses pour viser le bon article Wikipédia : « Titanic (film) », « Roméo et Juliette (pièce de théâtre) », « Les Bronzés font du ski (film) ».",
+      "- Si une entité correspondant à un intent candidat est citée — OU, lorsque sa « Règle » l'autorise, déductible des indices — → actionnable=true, intent = l'id exact de l'intent candidat, entite = l'entité formée selon la « Règle » de cet intent.",
       '- Sinon (rien de clair, trop vague, ou hors-sujet) → actionnable=false, intent="none", entite="".',
       '- N\'utilise JAMAIS intent="none" lorsque actionnable=true.',
       "- confiance ∈ [0,1] = ta certitude.",
+      "- infere = true UNIQUEMENT si tu as DÉDUIT l'entité (non nommée explicitement, devinée d'après les indices) ; false si elle était citée telle quelle.",
       "",
       `Transcription :\n"""${windowText}"""`,
     ].join("\n");
