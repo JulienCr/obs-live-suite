@@ -15,7 +15,11 @@ import type { LiveAssistOrchestrator } from "@/lib/services/liveassist/LiveAssis
 
 interface RouterDeps {
   orchestrator: Pick<LiveAssistOrchestrator, "ingestSegment" | "getStatus" | "markSttAlive">;
-  store: { list: () => unknown[]; setStatus: (id: string, status: "applied" | "dismissed") => unknown };
+  store: {
+    list: () => unknown[];
+    get: (id: string) => { intent: string; applyPayload: Record<string, unknown> } | undefined;
+    setStatus: (id: string, status: "applied" | "dismissed") => unknown;
+  };
   registry: { get: (id: string) => { apply: (p: Record<string, unknown>) => Promise<ApplyResult> } | undefined };
 }
 
@@ -54,12 +58,26 @@ export function createLiveAssistRouter(deps: RouterDeps): Router {
   });
 
   router.post("/api/live-assist/suggestions/:id/apply", async (req, res) => {
-    const intent = String(req.body?.intent ?? "");
-    const provider = deps.registry.get(intent);
+    // Server-authoritative: load the STORED suggestion by id and act on its own
+    // intent + applyPayload. The client is trusted only for `target` (the runtime
+    // pin-vs-on-air choice for definitions) — a forged intent/payload is ignored.
+    const suggestion = deps.store.get(req.params.id);
+    if (!suggestion) return res.status(404).json({ error: "unknown suggestion" });
+    const provider = deps.registry.get(suggestion.intent);
     if (!provider) return res.status(404).json({ error: "unknown provider" });
+
+    // `target` is the only client-trusted field: the runtime pin/on-air choice for
+    // definitions, or the left/right side for a local poster. Anything else is ignored.
+    const rawTarget = req.body?.target;
+    const target = ["pin", "on-air", "left", "right"].includes(rawTarget) ? rawTarget : undefined;
+    const payload: Record<string, unknown> = {
+      ...suggestion.applyPayload,
+      ...(target ? { target } : {}),
+    };
+
     let result;
     try {
-      result = await provider.apply(req.body?.payload ?? {});
+      result = await provider.apply(payload);
     } catch (error) {
       // apply() does network I/O (poster create / lower-third show); a rejection
       // must surface as a clean error, not an unhandled 500 that leaves the

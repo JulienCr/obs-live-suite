@@ -41,6 +41,21 @@ describe("LiveAssistOrchestrator", () => {
     expect(events.some((e) => e.type === "suggestion:new")).toBe(true);
   });
 
+  it("fires a local-poster suggestion via the fast-path on ingest (no window/LLM)", async () => {
+    const built = {
+      intent: "local-poster", entity: "p3", title: "Eclypsia",
+      preview: { kind: "image", imageUrl: "u" }, triggerExcerpt: "x",
+      applyPayload: { posterId: "p3" }, confidence: 0.9,
+    };
+    const { orch, events } = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 }, // extractor would say no
+      { matchLocalPosters: (text: string) => (text.includes("eclypsia") ? [built] : []) },
+    );
+    // No registered keyword in this text → only the fast-path can produce a suggestion.
+    await orch.ingestSegment(seg("on recoit eclypsia", 0, 1000));
+    expect(events.some((e) => e.type === "suggestion:new")).toBe(true);
+  });
+
   it("drains a pending window on tick when no further segment arrives (silence)", async () => {
     let fakeNow = 0;
     const { orch, events } = makeOrchestrator(
@@ -75,6 +90,21 @@ describe("LiveAssistOrchestrator", () => {
     expect(events.some((e) => e.type === "suggestion:new")).toBe(false);
   });
 
+  it("gates a DEDUCED (infere) suggestion behind the stricter inferred bar (0.7)", async () => {
+    // 0.65 clears the normal 0.6 seuil but not the inferred 0.7 bar → dropped.
+    // ("spectacle" is the fixture's registered keyword that fires the window.)
+    const dropped = makeOrchestrator({ actionnable: true, intent: "poster", entite: "Basic Instinct", confiance: 0.65, infere: true });
+    await dropped.orch.ingestSegment(seg("le spectacle avec Sharon Stone", 10000, 11000));
+    await dropped.orch.ingestSegment(seg("contexte", 26000, 27000));
+    expect(dropped.events.some((e) => e.type === "suggestion:new")).toBe(false);
+
+    // 0.75 clears the inferred bar → created.
+    const kept = makeOrchestrator({ actionnable: true, intent: "poster", entite: "Basic Instinct", confiance: 0.75, infere: true });
+    await kept.orch.ingestSegment(seg("le spectacle avec Sharon Stone", 10000, 11000));
+    await kept.orch.ingestSegment(seg("contexte", 26000, 27000));
+    expect(kept.events.some((e) => e.type === "suggestion:new")).toBe(true);
+  });
+
   it("creates nothing when confidence is below threshold", async () => {
     const { orch, events } = makeOrchestrator({ actionnable: true, intent: "poster", entite: "Le Cid", confiance: 0.3 });
     await orch.ingestSegment(seg("le spectacle Le Cid", 10000, 11000));
@@ -99,6 +129,29 @@ describe("LiveAssistOrchestrator", () => {
     expect(events.some((e) => e.type === "suggestion:new")).toBe(false);
   });
 
+  it("publishes the live transcript for the debug view by default", async () => {
+    const transcripts: string[] = [];
+    const { orch } = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 },
+      { publishTranscript: (text: string) => transcripts.push(text) },
+    );
+    await orch.ingestSegment(seg("bonjour le monde", 0, 1000));
+    expect(transcripts).toEqual(["bonjour le monde"]);
+  });
+
+  it("does not publish the transcript when debug is disabled (no websocket fan-out)", async () => {
+    const transcripts: string[] = [];
+    const { orch } = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 },
+      {
+        publishTranscript: (text: string) => transcripts.push(text),
+        isTranscriptDebugEnabled: () => false,
+      },
+    );
+    await orch.ingestSegment(seg("bonjour le monde", 0, 1000));
+    expect(transcripts).toEqual([]);
+  });
+
   it("publishes stt:status connected on first segment", async () => {
     const statusCalls: Array<[boolean, string | null]> = [];
     const publishStatus = (connected: boolean, device: string | null) => {
@@ -111,6 +164,20 @@ describe("LiveAssistOrchestrator", () => {
     await orch.ingestSegment(seg("bonjour", 0, 1000));
     expect(statusCalls.length).toBeGreaterThanOrEqual(1);
     expect(statusCalls[0][0]).toBe(true);
+  });
+
+  it("resolves a device id to its label in status (setSttStatus + markSttAlive)", async () => {
+    const { orch } = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 },
+      { resolveDeviceLabel: (id: string) => (id === "1" ? "USB Mic" : id) },
+    );
+    orch.setSttStatus(false, "1");
+    expect(orch.getStatus().device).toBe("USB Mic");
+    orch.markSttAlive("1");
+    expect(orch.getStatus().device).toBe("USB Mic");
+    // null device stays null (no lookup)
+    orch.setSttStatus(false, null);
+    expect(orch.getStatus().device).toBeNull();
   });
 
   it("publishes stt:status disconnected when stale", async () => {

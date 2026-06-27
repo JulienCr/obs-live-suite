@@ -84,6 +84,21 @@ export const BACKEND_URL = process.env.BACKEND_URL || `${HTTP_PROTOCOL}://localh
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || `${HTTP_PROTOCOL}://localhost:${APP_PORT}`;
 
 /**
+ * Internal loopback URL for server-to-server calls FROM the backend TO the
+ * Next.js app (e.g. the Live Assist providers creating a poster / text preset).
+ *
+ * Deliberately NOT `APP_URL`:
+ *  - Uses `127.0.0.1` (never `localhost`) to dodge Node 22's `localhost`→`::1`
+ *    resolution, which yields ECONNREFUSED / "fetch failed" when the dev server
+ *    listens on IPv4 only (mirrors the MCP server's config).
+ *  - Ignores `NEXT_PUBLIC_APP_URL` (which may point at a public host like
+ *    `https://edison:3000` that isn't a reliable loopback target).
+ * TLS cert mismatch on the loopback is tolerated by `NODE_TLS_REJECT_UNAUTHORIZED=0`
+ * in dev (set in `.env` / by `pnpm setup:https`).
+ */
+export const INTERNAL_APP_URL = process.env.INTERNAL_APP_URL || `${HTTP_PROTOCOL}://127.0.0.1:${APP_PORT}`;
+
+/**
  * WebSocket hub URL (ws:// or wss:// protocol)
  * Used by clients to connect to the WebSocket server
  */

@@ -2,6 +2,7 @@ import {
   TranscriptSegmentSchema,
   SuggestionSchema,
   LiveAssistSettingsSchema,
+  migrateLiveAssistSettings,
 } from "@/lib/models/LiveAssist";
 
 describe("LiveAssist models", () => {
@@ -30,6 +31,42 @@ describe("LiveAssist models", () => {
     expect(cfg.windowAfterSec).toBe(15);
     expect(cfg.confidenceThreshold).toBeCloseTo(0.6);
     expect(cfg.enabled).toBe(false);
+    expect(cfg.transcriptDebug).toBe(false);
     expect(cfg.keywordsByProvider.poster).toContain("spectacle");
+  });
+
+  describe("migrateLiveAssistSettings", () => {
+    it("migrates the exact pre-split legacy poster default and adds poster-tmdb", () => {
+      const stored = LiveAssistSettingsSchema.parse({
+        keywordsByProvider: {
+          poster: ["spectacle", "affiche", "pièce", "film", "concert"], // legacy default
+          definition: ["définition"],
+        },
+      });
+      const out = migrateLiveAssistSettings(stored);
+      // film/série removed from Wikipedia poster…
+      expect(out.keywordsByProvider.poster).not.toContain("film");
+      expect(out.keywordsByProvider.poster).toContain("spectacle");
+      // …and a TMDB provider seeded with its defaults
+      expect(out.keywordsByProvider["poster-tmdb"]).toContain("film");
+      expect(out.keywordsByProvider["poster-tmdb"]).toContain("série");
+    });
+
+    it("leaves a customised poster list untouched but still adds the missing poster-tmdb", () => {
+      const stored = LiveAssistSettingsSchema.parse({
+        keywordsByProvider: { poster: ["mon", "custom", "film"], definition: ["définition"] },
+      });
+      const out = migrateLiveAssistSettings(stored);
+      expect(out.keywordsByProvider.poster).toEqual(["mon", "custom", "film"]); // untouched
+      expect(out.keywordsByProvider["poster-tmdb"]).toBeDefined(); // additively surfaced
+    });
+
+    it("is a no-op when poster-tmdb is already present", () => {
+      const stored = LiveAssistSettingsSchema.parse({
+        keywordsByProvider: { poster: ["spectacle"], "poster-tmdb": ["film"], definition: ["x"] },
+      });
+      const out = migrateLiveAssistSettings(stored);
+      expect(out.keywordsByProvider).toEqual(stored.keywordsByProvider);
+    });
   });
 });

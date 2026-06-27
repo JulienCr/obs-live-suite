@@ -417,10 +417,16 @@
     "liveAssist": {
       "validate": "Validate",
       "pin": "Pin",
+      "quickText": "Quick text",
       "onAir": "On Air",
+      "posterLeft": "Left",
+      "posterRight": "Right",
       "dismiss": "Dismiss",
       "connected": "Connected",
-      "disconnected": "STT disconnected"
+      "disconnected": "STT disconnected",
+      "listening": "Listening",
+      "transcript": "Transcript",
+      "toggleFailed": "Failed to update Live Assist"
     }
   },
   "navigation": {
@@ -838,9 +844,16 @@
     "liveAssist": {
       "title": "Live Assist",
       "enabled": "Enabled",
+      "transcriptDebug": "Transcription (debug)",
+      "transcriptDebugHelp": "Stream the live transcription to the panel. Off keeps the websocket clear when you're not debugging.",
+      "localPosters": "Local posters",
+      "localPostersHelp": "Suggest a poster already in the library when its title is mentioned (no AI).",
+      "localPosterSensitivity": "Sensitivity (local posters)",
       "device": "Input device",
       "model": "Whisper model",
       "keywords": "Keywords",
+      "contextPrompt": "Context prompt (extraction)",
+      "contextPromptPlaceholder": "Leave empty to use the provider's default prompt.",
       "windowBefore": "Before (s)",
       "windowAfter": "After (s)",
       "threshold": "Confidence threshold",

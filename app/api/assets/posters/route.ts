@@ -7,6 +7,7 @@ import {
 } from "@/lib/utils/ApiResponses";
 import { parseBooleanQueryParam } from "@/lib/utils/queryParams";
 import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
+import { resolvePosterFileUrl } from "@/lib/utils/downloadToLocal";
 
 const LOG_CONTEXT = "[PostersAPI]";
 
@@ -33,9 +34,14 @@ export const GET = withSimpleErrorHandler(async (request: Request) => {
 export const POST = withSimpleErrorHandler(async (request: Request) => {
   const body = await request.json();
 
+  // downloadToLocal is not part of posterSchema — pull it out and, when
+  // requested for a remote media URL, persist the file to local storage.
+  const { downloadToLocal, ...rest } = body;
+  rest.fileUrl = await resolvePosterFileUrl(rest.fileUrl, rest.type, downloadToLocal);
+
   const parseResult = posterSchema.safeParse({
     id: randomUUID(),
-    ...body,
+    ...rest,
     createdAt: new Date(),
     updatedAt: new Date(),
   });

@@ -26,6 +26,9 @@ export const GET = withSimpleErrorHandler(async () => {
     // Anthropic
     anthropic_api_key: db.getSetting("anthropic_api_key") || "",
     anthropic_model: db.getSetting("anthropic_model") || "claude-3-5-sonnet-20241022",
+
+    // TMDB (movie/TV posters)
+    tmdb_api_key: db.getSetting("tmdb_api_key") || "",
   };
 
   return ApiResponses.ok({ settings });
@@ -68,6 +71,11 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
   }
   if (body.anthropic_model !== undefined) {
     settingsToSave.anthropic_model = body.anthropic_model;
+  }
+
+  // TMDB (movie/TV posters)
+  if (body.tmdb_api_key !== undefined) {
+    settingsToSave.tmdb_api_key = body.tmdb_api_key;
   }
 
   // Save all settings

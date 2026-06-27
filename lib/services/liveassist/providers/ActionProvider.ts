@@ -8,6 +8,8 @@ export interface ActionProvider {
   id: string;
   description: string;
   defaultKeywords: string[];
+  /** Per-provider extraction guidance injected into the IntentExtractor prompt (the "Règle"). */
+  defaultContextPrompt?: string;
   build(entity: string, window: TranscriptWindow): Promise<BuiltSuggestion | null>;
   apply(payload: Record<string, unknown>): Promise<ApplyResult>;
 }
@@ -29,5 +31,13 @@ export class ProviderRegistry {
   }
   descriptions(): Record<string, string> {
     return Object.fromEntries(this.all().map((p) => [p.id, p.description]));
+  }
+  /** Per-provider default context prompts (only providers that declare one). */
+  contextPrompts(): Record<string, string> {
+    return Object.fromEntries(
+      this.all()
+        .filter((p) => p.defaultContextPrompt)
+        .map((p) => [p.id, p.defaultContextPrompt as string]),
+    );
   }
 }

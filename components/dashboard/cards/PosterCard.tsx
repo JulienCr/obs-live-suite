@@ -35,6 +35,7 @@ import { PosterQuickAdd } from "@/components/assets/PosterQuickAdd";
 import { apiGet, apiPost } from "@/lib/utils/ClientFetch";
 import { useSyncWithOverlayState } from "@/hooks/useSyncWithOverlayState";
 import { useArmedVideoPoster, type DisplayMode } from "@/hooks/useArmedVideoPoster";
+import { useDataChangeRefetch } from "@/hooks/useDataChangeRefetch";
 import { CLIENT_ID } from "@/lib/utils/clientId";
 import { posterEndpoint } from "@/lib/utils/posterHelpers";
 import { toast } from "sonner";
@@ -217,6 +218,11 @@ export function PosterContent({ className }: PosterContentProps) {
       setLoading(false);
     }
   };
+
+  // Refresh when a poster is created/changed elsewhere — notably the Live Assist
+  // backend adding an affiche server-side (this panel holds local state, so the
+  // React-Query-based useDataSync doesn't cover it).
+  useDataChangeRefetch("posters", fetchPosters);
 
   const fetchDefaultDisplayMode = async () => {
     try {

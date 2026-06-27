@@ -8,6 +8,7 @@ import { apiGet, apiPost, extractErrorMessage } from "@/lib/utils/ClientFetch";
 import { useLiveAssistStore } from "@/lib/stores/liveAssistStore";
 import { SuggestionCard } from "@/components/live-assist/SuggestionCard";
 import { SttStatusBar } from "@/components/live-assist/SttStatusBar";
+import { LiveAssistControls } from "@/components/live-assist/LiveAssistControls";
 import type { LiveAssistEvent, Suggestion } from "@/lib/models/LiveAssist";
 
 const config: PanelConfig = { id: "liveAssist", context: "dashboard" };
@@ -39,9 +40,10 @@ export function LiveAssistPanel(_props: IDockviewPanelProps) {
   );
   useWebSocketChannel<LiveAssistEvent>("live-assist", handleEvent, { logPrefix: "LiveAssistPanel" });
 
-  const onApply = useCallback((s: Suggestion, target: "pin" | "on-air") => {
-    const payload = s.intent === "definition" ? { ...s.applyPayload, target } : s.applyPayload;
-    apiPost(`/api/live-assist/suggestions/${s.id}/apply`, { intent: s.intent, payload }).catch((e) =>
+  const onApply = useCallback((s: Suggestion, target: "pin" | "on-air" | "left" | "right") => {
+    // The server is authoritative: it reloads the stored suggestion by id and uses
+    // its own applyPayload. We only send the runtime pin/on-air choice.
+    apiPost(`/api/live-assist/suggestions/${s.id}/apply`, { target }).catch((e) =>
       toast.error(extractErrorMessage(e, "Échec de l'application de la suggestion")),
     );
   }, []);
@@ -54,7 +56,11 @@ export function LiveAssistPanel(_props: IDockviewPanelProps) {
   return (
     <BasePanelWrapper config={config}>
       <div className="flex flex-col h-full">
-        <SttStatusBar />
+        {/* Header: STT status (left) + quick listening/transcript kill switches (right). */}
+        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b">
+          <SttStatusBar />
+          <LiveAssistControls />
+        </div>
         <div className="flex flex-col gap-2 p-3 overflow-auto flex-1">
           {suggestions.map((s) => (
             <SuggestionCard key={s.id} suggestion={s} onApply={onApply} onDismiss={onDismiss} />
@@ -69,8 +75,8 @@ export function LiveAssistPanel(_props: IDockviewPanelProps) {
             </div>
             <div className="px-3 pb-2 max-h-40 overflow-auto text-xs font-mono leading-relaxed space-y-0.5">
               {transcripts.map((line, i) => (
-                <div key={i} className={i === 0 ? "text-foreground" : "text-muted-foreground"}>
-                  {line}
+                <div key={line.id} className={i === 0 ? "text-foreground" : "text-muted-foreground"}>
+                  {line.text}
                 </div>
               ))}
             </div>

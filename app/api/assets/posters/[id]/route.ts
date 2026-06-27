@@ -6,6 +6,7 @@ import {
   RouteContext,
 } from "@/lib/utils/ApiResponses";
 import { broadcastDataChange } from "@/lib/utils/broadcastDataChange";
+import { resolvePosterFileUrl } from "@/lib/utils/downloadToLocal";
 
 const LOG_CONTEXT = "[PostersAPI]";
 
@@ -37,8 +38,15 @@ export const PATCH = withErrorHandler<{ id: string }>(
     const { id } = await context.params;
     const body = await request.json();
 
+    // downloadToLocal is not part of updatePosterSchema — pull it out and, when
+    // a remote fileUrl is provided, persist the file to local storage.
+    const { downloadToLocal, ...rest } = body;
+    if (rest.fileUrl) {
+      rest.fileUrl = await resolvePosterFileUrl(rest.fileUrl, rest.type, downloadToLocal);
+    }
+
     const parseResult = updatePosterSchema.safeParse({
-      ...body,
+      ...rest,
       id,
     });
 

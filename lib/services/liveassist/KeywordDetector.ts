@@ -2,7 +2,9 @@ import type { TranscriptSegment } from "@/lib/models/LiveAssist";
 
 export type KeywordHit = { providerId: string; keyword: string; tHit: number };
 
-const norm = (s: string) =>
+/** Normalize transcript/keyword text: lowercase, strip accents, fold apostrophes.
+ *  Shared with the LocalPosterMatcher so both match on the same normalized form. */
+export const norm = (s: string) =>
   s
     .toLowerCase()
     .normalize("NFD")

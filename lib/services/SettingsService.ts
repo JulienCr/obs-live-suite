@@ -25,7 +25,7 @@ import type { PresenterChannelSettings } from "../models/PresenterChannel";
 import type { ChatPredefinedMessage } from "../models/ChatMessages";
 import { StudioReturnSettingsSchema } from "../models/StudioReturn";
 import type { StudioReturnSettings, MonitorInfo } from "../models/StudioReturn";
-import { LiveAssistSettingsSchema } from "../models/LiveAssist";
+import { LiveAssistSettingsSchema, migrateLiveAssistSettings } from "../models/LiveAssist";
 import type { SttDevice, LiveAssistSettings } from "../models/LiveAssist";
 
 // ============================================================================
@@ -904,15 +904,28 @@ export class SettingsService {
   /**
    * Get Live Assist feature settings.
    * Falls back to schema defaults if nothing is stored yet.
+   *
+   * This is on the hot path (read live on every STT segment / tick so Settings
+   * saves apply without a restart). We still read the raw row from SQLite every
+   * call — cheap, and the source of truth across the backend/Next.js processes —
+   * but skip the JSON.parse + Zod parse + migration when the raw string is
+   * unchanged. Re-parsing is what's expensive, not the read.
    */
+  private liveAssistCache?: { raw: string; value: LiveAssistSettings };
+
   getLiveAssistSettings(): LiveAssistSettings {
+    const json = this.db.getSetting("liveAssist");
+    if (json && this.liveAssistCache?.raw === json) return this.liveAssistCache.value;
+    let value: LiveAssistSettings;
     try {
-      const json = this.db.getSetting("liveAssist");
-      if (json) return LiveAssistSettingsSchema.parse(JSON.parse(json));
+      value = json ? LiveAssistSettingsSchema.parse(JSON.parse(json)) : LiveAssistSettingsSchema.parse({});
     } catch {
       this.logger.warn("Failed to read/parse liveAssist settings, returning defaults");
+      return LiveAssistSettingsSchema.parse({});
     }
-    return LiveAssistSettingsSchema.parse({});
+    value = migrateLiveAssistSettings(value);
+    if (json) this.liveAssistCache = { raw: json, value };
+    return value;
   }
 
   /**
@@ -920,6 +933,7 @@ export class SettingsService {
    */
   saveLiveAssistSettings(settings: LiveAssistSettings): void {
     this.db.setSetting("liveAssist", JSON.stringify(settings));
+    this.liveAssistCache = undefined; // force a fresh parse on next read
     this.logger.info("Live Assist settings saved to database");
   }
 }

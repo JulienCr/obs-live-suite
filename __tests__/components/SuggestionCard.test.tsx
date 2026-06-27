@@ -38,4 +38,33 @@ describe("SuggestionCard", () => {
     fireEvent.click(screen.getByText("onAir")); // mocked t("onAir")
     expect(onApply).toHaveBeenCalledWith(def, "on-air");
   });
+
+  it("collapses to title only once applied, revealing detail on expand", () => {
+    const applied = { ...base, status: "applied" as const };
+    render(<SuggestionCard suggestion={applied} onApply={() => {}} onDismiss={() => {}} />);
+    expect(screen.getByText("Le Cid")).toBeInTheDocument();
+    expect(screen.queryByRole("img")).toBeNull(); // detail collapsed
+    expect(screen.queryByText("validate")).toBeNull(); // no actions once applied
+    fireEvent.click(screen.getByRole("button")); // the expand toggle
+    expect(screen.getByRole("img")).toBeInTheDocument();
+  });
+
+  it("renders Gauche/Droite for a local-poster and applies the chosen side", () => {
+    const lp = { ...base, intent: "local-poster", applyPayload: { posterId: "p3", fileUrl: "http://x/p.jpg", type: "image" } };
+    const onApply = jest.fn();
+    render(<SuggestionCard suggestion={lp} onApply={onApply} onDismiss={() => {}} />);
+    // mocked t() returns the key
+    fireEvent.click(screen.getByText("posterRight"));
+    expect(onApply).toHaveBeenCalledWith(lp, "right");
+    expect(screen.queryByText("validate")).toBeNull(); // no generic validate button for local posters
+  });
+
+  it("keeps a re-validate button on a dismissed suggestion, even collapsed", () => {
+    const dismissed = { ...base, status: "dismissed" as const };
+    const onApply = jest.fn();
+    render(<SuggestionCard suggestion={dismissed} onApply={onApply} onDismiss={() => {}} />);
+    expect(screen.queryByRole("img")).toBeNull(); // detail collapsed
+    fireEvent.click(screen.getByText("validate")); // change-your-mind button still present
+    expect(onApply).toHaveBeenCalledWith(dismissed, "pin");
+  });
 });

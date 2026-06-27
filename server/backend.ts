@@ -228,12 +228,15 @@ class BackendServer {
     this.logger.info("Starting backend server...");
 
     try {
-      // 0. Setup API routes (must be first)
-      this.setupApiRoutes();
-
-      // 1. Initialize database
+      // 0. Initialize database FIRST — setupApiRoutes() builds the Live Assist
+      // orchestrator (buildOrchestrator), which reads settings from the DB. With
+      // the DB up front, that read hits an initialized connection instead of
+      // relying on a fallback.
       DatabaseService.getInstance();
       this.logger.info("✓ Database initialized");
+
+      // 1. Setup API routes
+      this.setupApiRoutes();
 
       // 2. Start WebSocket Hub
       this.wsHub.start();

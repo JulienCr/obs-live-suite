@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useWebSocketChannel } from "./useWebSocketChannel";
 import { queryKeys } from "@/lib/queries/queryKeys";
 import { CLIENT_ID } from "@/lib/utils/clientId";
-import type { DataChangedEvent, SyncEntity } from "@/lib/models/DataSyncEvents";
+import { parseDataChangedEvent, type SyncEntity } from "@/lib/models/DataSyncEvents";
 
 const ENTITY_QUERY_KEYS: Record<SyncEntity, readonly string[]> = {
   guests: queryKeys.guests.all,
@@ -27,8 +27,10 @@ export function useDataSync(): void {
 
   const onMessage = useCallback(
     (data: unknown) => {
-      const event = data as DataChangedEvent;
-      if (event.type !== "data-changed") return;
+      // The event arrives wrapped in an OverlayEvent ({ type, payload, ... }) — the
+      // real DataChangedEvent is nested under `.payload`. parseDataChangedEvent unwraps.
+      const event = parseDataChangedEvent(data);
+      if (!event) return;
       if (event.clientId === CLIENT_ID) return;
 
       const queryKey = ENTITY_QUERY_KEYS[event.entity];

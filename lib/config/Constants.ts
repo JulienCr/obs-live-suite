@@ -704,11 +704,61 @@ export const LIVE_ASSIST = {
   WINDOW_MAX_WAIT_MS: 20_000,
   /** Default faster-whisper model. */
   DEFAULT_WHISPER_MODEL: "large-v3",
-  /** Default keyword list per provider id. */
+  /** Default keyword list per provider id.
+   *  `poster` (Wikipedia) handles théâtre/concerts; `poster-tmdb` (TMDB) handles
+   *  films/séries. `affiche` is intentionally listed under BOTH so both become
+   *  candidates and the LLM disambiguates film-vs-théâtre via the context prompts. */
   DEFAULT_KEYWORDS: {
-    poster: ["spectacle", "affiche", "pièce", "film", "concert"],
+    poster: ["spectacle", "pièce", "affiche", "concert"],
+    "poster-tmdb": ["film", "série", "affiche"],
     definition: ["définition", "c'est quoi", "qu'est-ce que", "ça veut dire"],
   } as Record<string, string[]>,
+  /** The pre-split `poster` default, used only to detect & migrate untouched configs. */
+  LEGACY_POSTER_KEYWORDS: ["spectacle", "affiche", "pièce", "film", "concert"],
+  /** Default per-provider extraction guidance injected into the IntentExtractor prompt.
+   *  Each provider's prompt shapes how the entity is formed for ITS source. */
+  DEFAULT_CONTEXT_PROMPTS: {
+    poster:
+      "entité = titre exact du spectacle / pièce / concert (sans article) ; ajoute le type entre parenthèses pour viser le bon article Wikipédia : « Roméo et Juliette (pièce de théâtre) », « Les Vieilles Canailles (concert) ».",
+    "poster-tmdb":
+      "entité = titre du film / série. S'il est nommé, reprends-le tel quel (sans année ni article). S'il n'est PAS nommé mais identifiable d'après les indices (acteur, intrigue, réplique, époque), PROPOSE le titre le plus emblématique qui correspond — p. ex. « le film avec Sharon Stone » → « Basic Instinct », « le film de requins de Spielberg » → « Les Dents de la mer », « la série des Stranger » → « Stranger Things » — avec infere=true et une confiance reflétant ta certitude. Ne reste non actionnable QUE si vraiment aucun titre plausible ne ressort. Base TMDB (cinéma/séries), sans parenthèses.",
+    definition: "entité = le concept / sujet exact à définir, sans article.",
+  } as Record<string, string>,
+  /** Stricter confidence bar for a DEDUCED (inferred) entity, to limit false guesses
+   *  while still admitting a confident iconic match (a human validates anyway). */
+  INFERRED_CONFIDENCE_THRESHOLD: 0.7,
+  /** LocalPosters fast-path: match spoken words against existing poster titles (no LLM). */
+  LOCAL_POSTER_MIN_SIMILARITY: 0.8,
+  /** Only title tokens at least this long can trigger (drops noise words). */
+  LOCAL_POSTER_MIN_TOKEN_LEN: 4,
+  /** Small French stop-word set excluded from title triggers. */
+  LOCAL_POSTER_STOPWORDS_FR: [
+    "le", "la", "les", "un", "une", "des", "de", "du", "et", "ou", "au", "aux",
+    "ce", "ces", "cette", "son", "sa", "ses", "leur", "leurs", "dans", "pour",
+    "par", "sur", "avec", "sans", "que", "qui", "quoi",
+  ] as string[],
+} as const;
+
+// ============================================================================
+// TMDB (The Movie Database) — poster source for films / séries
+// ============================================================================
+
+/** TMDB v3 API config. The API key is read at runtime from the `tmdb_api_key` setting. */
+export const TMDB = {
+  /** REST API base (v3). */
+  API_BASE: "https://api.themoviedb.org/3",
+  /** Image CDN base; combine with a size + poster_path. */
+  IMAGE_BASE: "https://image.tmdb.org/t/p",
+  /** Poster size segment (w780 ≈ good balance of quality vs weight for a local asset). */
+  POSTER_SIZE: "w780",
+  /** Preferred result language (falls back to original metadata when missing). */
+  LANGUAGE: "fr-FR",
+  /** In-memory resolver cache TTL (ms). */
+  CACHE_TTL_MS: 6 * 60 * 60 * 1000,
+  /** Abort a TMDB request after this many ms (search + connection test). */
+  REQUEST_TIMEOUT_MS: 8000,
+  /** Setting key holding the API key (mirrors `openai_api_key`). */
+  API_KEY_SETTING: "tmdb_api_key",
 } as const;
 
 // ============================================================================
