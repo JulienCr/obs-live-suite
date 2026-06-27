@@ -41,6 +41,7 @@ export interface DbPoster {
   endTime: number | null;         // End time in seconds for sub-video clip
   thumbnailUrl: string | null;    // Custom thumbnail URL for sub-video
   endBehavior: "stop" | "loop" | null;  // Behavior at end of sub-video clip
+  orientation: "landscape" | "portrait" | null;  // Video orientation (portrait = YouTube Shorts / vertical)
   createdAt: Date;
   updatedAt: Date;
 }

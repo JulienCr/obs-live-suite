@@ -2,6 +2,8 @@
  * URL detection utilities for PosterQuickAdd
  */
 
+import type { Orientation } from "@/lib/models/Poster";
+
 /**
  * Validates if a string is a valid URL
  */
@@ -41,6 +43,7 @@ export function isYouTubeUrl(url: string): boolean {
  * - https://www.youtube.com/watch?v=VIDEO_ID
  * - https://youtu.be/VIDEO_ID
  * - https://www.youtube.com/embed/VIDEO_ID
+ * - https://www.youtube.com/shorts/VIDEO_ID
  * - VIDEO_ID (bare ID)
  */
 export function extractYouTubeId(url: string): string | null {
@@ -58,6 +61,10 @@ export function extractYouTubeId(url: string): string | null {
       // Check for /embed/ID format
       const embedMatch = urlObj.pathname.match(/\/embed\/([^/?]+)/);
       if (embedMatch) return embedMatch[1];
+
+      // Check for /shorts/ID format (YouTube Shorts)
+      const shortsMatch = urlObj.pathname.match(/\/shorts\/([^/?]+)/);
+      if (shortsMatch) return shortsMatch[1];
     } else if (urlObj.hostname === 'youtu.be') {
       // Short URL format: youtu.be/ID
       return urlObj.pathname.slice(1).split('?')[0];
@@ -83,6 +90,33 @@ export function extractYouTubeId(url: string): string | null {
       return null;
     }
   }
+}
+
+/**
+ * Detects if a URL is a YouTube Shorts URL (youtube.com/shorts/VIDEO_ID).
+ * Shorts are vertical (9:16) videos and are rendered in portrait orientation.
+ */
+export function isYouTubeShortsUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+
+  try {
+    const urlObj = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
+    return urlObj.hostname.includes('youtube.com') && urlObj.pathname.startsWith('/shorts/');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Determines the orientation a video URL should be displayed in.
+ * Vertical sources (YouTube Shorts) are "portrait"; everything else "landscape".
+ * Single source of truth so all ingestion paths classify URLs identically.
+ */
+export function detectOrientationFromUrl(url: string): Orientation {
+  return isYouTubeShortsUrl(url) ? "portrait" : "landscape";
 }
 
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif'];

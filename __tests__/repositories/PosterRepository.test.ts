@@ -79,6 +79,7 @@ describe("PosterRepository", () => {
     endTime: null,
     thumbnailUrl: null,
     endBehavior: null,
+    orientation: null,
     createdAt: "2024-01-15T10:00:00.000Z",
     updatedAt: "2024-01-15T12:00:00.000Z",
   };
@@ -102,6 +103,7 @@ describe("PosterRepository", () => {
     endTime: null,
     thumbnailUrl: null,
     endBehavior: null,
+    orientation: null,
     createdAt: new Date("2024-01-15T10:00:00.000Z"),
     updatedAt: new Date("2024-01-15T12:00:00.000Z"),
   };
@@ -275,6 +277,7 @@ describe("PosterRepository", () => {
         null, // endTime
         null, // thumbnailUrl
         null, // endBehavior
+        null, // orientation
         expect.any(String), // createdAt ISO string
         expect.any(String)  // updatedAt ISO string
       );
@@ -315,6 +318,7 @@ describe("PosterRepository", () => {
         null, // endTime
         null, // thumbnailUrl
         null, // endBehavior
+        null, // orientation
         expect.any(String),
         expect.any(String)
       );
@@ -340,10 +344,10 @@ describe("PosterRepository", () => {
 
       repository.create(posterInput);
 
-      // Verify the date strings are passed correctly (positions 17 and 18 with new sub-video fields)
+      // Verify the date strings are passed correctly (positions 18 and 19 with sub-video + orientation fields)
       const runArgs = mockStmt.run.mock.calls[0];
-      expect(runArgs[17]).toBe("2024-06-01T00:00:00.000Z"); // createdAt
-      expect(runArgs[18]).toBe("2024-06-01T00:00:00.000Z"); // updatedAt
+      expect(runArgs[18]).toBe("2024-06-01T00:00:00.000Z"); // createdAt
+      expect(runArgs[19]).toBe("2024-06-01T00:00:00.000Z"); // updatedAt
     });
 
     it("should convert isEnabled boolean to integer", () => {
@@ -384,6 +388,29 @@ describe("PosterRepository", () => {
       runArgs = mockStmt.run.mock.calls[1];
       expect(runArgs[11]).toBe(0); // isEnabled = false -> 0
     });
+
+    it("should persist orientation when provided", () => {
+      const portraitPoster: DbPosterInput = {
+        id: "short-poster",
+        title: "A Short",
+        description: null,
+        source: null,
+        fileUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        type: "youtube",
+        duration: 30,
+        tags: [],
+        profileIds: [],
+        chatMessage: null,
+        isEnabled: true,
+        orientation: "portrait",
+      };
+
+      repository.create(portraitPoster);
+
+      // orientation is at position 17 (after endBehavior, before createdAt)
+      const runArgs = mockStmt.run.mock.calls[0];
+      expect(runArgs[17]).toBe("portrait");
+    });
   });
 
   describe("update", () => {
@@ -415,6 +442,7 @@ describe("PosterRepository", () => {
         null, // endTime
         null, // thumbnailUrl
         null, // endBehavior
+        null, // orientation
         expect.any(String), // updatedAt
         "poster-1"
       );
@@ -455,6 +483,7 @@ describe("PosterRepository", () => {
         null, // endTime
         null, // thumbnailUrl
         null, // endBehavior
+        null, // orientation
         expect.any(String),
         "poster-1"
       );
@@ -474,6 +503,25 @@ describe("PosterRepository", () => {
       expect(runArgs[8]).toBe('{"key":"value"}'); // metadata preserved
     });
 
+    it("should update orientation when provided", () => {
+      mockStmt.get.mockReturnValue(sampleDbRow);
+
+      repository.update("poster-1", { orientation: "portrait" });
+
+      // orientation is at position 16 (after endBehavior, before updatedAt)
+      const runArgs = mockStmt.run.mock.calls[0];
+      expect(runArgs[16]).toBe("portrait");
+    });
+
+    it("should keep existing orientation when not provided", () => {
+      mockStmt.get.mockReturnValue({ ...sampleDbRow, orientation: "portrait" });
+
+      repository.update("poster-1", { title: "New Title" });
+
+      const runArgs = mockStmt.run.mock.calls[0];
+      expect(runArgs[16]).toBe("portrait");
+    });
+
     it("should use provided updatedAt date", () => {
       mockStmt.get.mockReturnValue(sampleDbRow);
       const specificDate = new Date("2024-12-25T00:00:00.000Z");
@@ -485,11 +533,11 @@ describe("PosterRepository", () => {
 
       repository.update("poster-1", updates);
 
-      // updatedAt is at position 16 (second to last before id)
+      // updatedAt is at position 17 (second to last before id, after orientation)
       const runArgs = mockStmt.run.mock.calls[0];
       expect(runArgs[0]).toBe("Holiday Update");
-      expect(runArgs[16]).toBe("2024-12-25T00:00:00.000Z");
-      expect(runArgs[17]).toBe("poster-1");
+      expect(runArgs[17]).toBe("2024-12-25T00:00:00.000Z");
+      expect(runArgs[18]).toBe("poster-1");
     });
 
     it("should handle clearing optional fields with null", () => {
@@ -512,7 +560,7 @@ describe("PosterRepository", () => {
       expect(runArgs[5]).toBe(30);
       expect(runArgs[9]).toBe(null); // chatMessage cleared
       expect(runArgs[10]).toBe(1); // isEnabled
-      expect(runArgs[17]).toBe("poster-1"); // id at end
+      expect(runArgs[18]).toBe("poster-1"); // id at end
     });
   });
 
@@ -557,6 +605,24 @@ describe("PosterRepository", () => {
       const result = repository.getById("poster-1");
 
       expect(result!.isEnabled).toBe(false);
+    });
+
+    it("should pass through portrait orientation", () => {
+      const portraitRow = { ...sampleDbRow, orientation: "portrait" };
+      mockStmt.get.mockReturnValue(portraitRow);
+
+      const result = repository.getById("poster-1");
+
+      expect(result!.orientation).toBe("portrait");
+    });
+
+    it("should handle null orientation", () => {
+      const result = (() => {
+        mockStmt.get.mockReturnValue({ ...sampleDbRow, orientation: null });
+        return repository.getById("poster-1");
+      })();
+
+      expect(result!.orientation).toBeNull();
     });
 
     it("should correctly parse complex metadata", () => {

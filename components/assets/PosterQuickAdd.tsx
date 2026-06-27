@@ -11,6 +11,7 @@ import { Upload, Loader2, Image as ImageIcon, Video, Youtube, AlertCircle } from
 import {
   isYouTubeUrl,
   extractYouTubeId,
+  detectOrientationFromUrl,
   getInstagramUrlType,
   isDirectMediaUrl,
   getMediaTypeFromUrl,
@@ -48,6 +49,7 @@ interface PreviewState {
   source?: string;
   thumbnailUrl?: string;
   duration?: number | null;
+  orientation?: "landscape" | "portrait";
 }
 
 /**
@@ -196,6 +198,9 @@ export function PosterQuickAdd({
         needsManualDuration = true;
       }
 
+      // YouTube Shorts are vertical (9:16) — flag them so the overlay renders portrait.
+      const orientation = detectOrientationFromUrl(url);
+
       setPreview({
         fileUrl: embedUrl,
         type: "youtube",
@@ -203,6 +208,7 @@ export function PosterQuickAdd({
         source,
         thumbnailUrl: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
         duration,
+        orientation,
       });
       setYoutubeNeedsManualDuration(needsManualDuration);
       setManualDuration("");
@@ -391,6 +397,7 @@ export function PosterQuickAdd({
         duration: preview.duration || null,
         tags: [],
         isEnabled: true,
+        orientation: preview.orientation ?? null,
       });
 
       return data.poster;

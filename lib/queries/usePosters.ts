@@ -22,6 +22,7 @@ export interface Poster {
   startTime?: number | null;
   endTime?: number | null;
   thumbnailUrl?: string | null;
+  orientation?: "landscape" | "portrait" | null;
 }
 
 interface PostersResponse {
@@ -47,6 +48,7 @@ export interface CreatePosterInput {
   startTime?: number | null;
   endTime?: number | null;
   thumbnailUrl?: string | null;
+  orientation?: "landscape" | "portrait" | null;
 }
 
 export interface UpdatePosterInput {
@@ -64,6 +66,7 @@ export interface UpdatePosterInput {
   startTime?: number | null;
   endTime?: number | null;
   thumbnailUrl?: string | null;
+  orientation?: "landscape" | "portrait" | null;
 }
 
 export function usePosters() {

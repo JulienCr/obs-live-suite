@@ -105,7 +105,8 @@ export function PosterManager() {
   const handleUploadComplete = async (
     url: string,
     type: "image" | "video" | "youtube",
-    duration?: number
+    duration?: number,
+    orientation?: "landscape" | "portrait"
   ) => {
     // Create the poster directly
     try {
@@ -123,6 +124,7 @@ export function PosterManager() {
         type,
         tags: [],
         duration: duration ?? null,
+        orientation: orientation ?? null,
       });
 
       // Navigate to detail page for editing

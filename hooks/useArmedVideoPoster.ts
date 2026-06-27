@@ -39,6 +39,8 @@ export interface ArmedVideoPoster {
   endBehavior?: "stop" | "loop";
   source?: string;
   chapters?: VideoChapter[];
+  /** "portrait" for YouTube Shorts / vertical videos (9:16). */
+  orientation?: "landscape" | "portrait";
 
   /** false while staging locally, true after Go Live. */
   isLive: boolean;
@@ -62,6 +64,7 @@ export interface PosterInput {
   source?: string;
   chapters?: VideoChapter[];
   duration?: number;
+  orientation?: "landscape" | "portrait";
 }
 
 const VALID_DISPLAY_MODES: ReadonlySet<DisplayMode> = new Set(["left", "right", "bigpicture"]);
@@ -93,6 +96,7 @@ function loadInitial(): ArmedVideoPoster | null {
       endBehavior: parsed.endBehavior,
       source: parsed.source,
       chapters: parsed.chapters,
+      orientation: parsed.orientation,
       isLive: false, // Persistence is staging-only; never restore as live.
       currentTime: parsed.currentTime,
       isPlaying: parsed.isPlaying,
@@ -192,6 +196,7 @@ function buildShowPayload(armed: ArmedVideoPoster): Record<string, unknown> {
   if (armed.startTime != null) payload.startTime = armed.startTime;
   if (armed.endTime != null) payload.endTime = armed.endTime;
   if (armed.endBehavior) payload.endBehavior = armed.endBehavior;
+  if (armed.orientation) payload.orientation = armed.orientation;
   if (armed.displayMode !== "bigpicture") payload.side = armed.displayMode;
   return payload;
 }
@@ -231,6 +236,7 @@ export function useArmedVideoPoster(): UseArmedVideoPosterReturn {
         endBehavior: poster.endBehavior,
         source: poster.source,
         chapters: poster.chapters,
+        orientation: poster.orientation,
         isLive: false,
         currentTime: poster.startTime ?? 0,
         isPlaying: false,
@@ -402,6 +408,7 @@ export function useArmedVideoPosterSync(): void {
           endBehavior: p.endBehavior as "stop" | "loop" | undefined,
           source: typeof p.source === "string" ? p.source : undefined,
           chapters: Array.isArray(p.chapters) ? (p.chapters as VideoChapter[]) : undefined,
+          orientation: p.orientation as "landscape" | "portrait" | undefined,
           currentTime: typeof p.resumeFrom === "number" ? p.resumeFrom : 0,
           isPlaying: typeof p.resumePlaying === "boolean" ? p.resumePlaying : false,
           isMuted: true,

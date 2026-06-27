@@ -134,6 +134,7 @@ export class SubVideoService {
       endTime,
       thumbnailUrl: thumbnailUrl || null,
       endBehavior,
+      orientation: parentPoster.orientation, // Inherit vertical/landscape orientation from parent
       createdAt: now,
       updatedAt: now,
     };

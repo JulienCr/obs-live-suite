@@ -20,6 +20,13 @@ export const endBehaviorSchema = z.enum(["stop", "loop"]);
 export type EndBehavior = z.infer<typeof endBehaviorSchema>;
 
 /**
+ * Video orientation: "portrait" for vertical 9:16 videos (YouTube Shorts),
+ * "landscape" otherwise. Single source of truth for the union across the app.
+ */
+export const orientationSchema = z.enum(["landscape", "portrait"]);
+export type Orientation = z.infer<typeof orientationSchema>;
+
+/**
  * Video chapter schema - markers in the timeline for navigation
  */
 export const videoChapterSchema = z.object({
@@ -57,6 +64,8 @@ export const posterSchema = z.object({
   endTime: z.number().min(0).nullable().default(null),
   thumbnailUrl: z.string().nullable().default(null),
   endBehavior: endBehaviorSchema.nullable().default(null),
+  // Video orientation: "portrait" for YouTube Shorts / vertical videos (9:16), "landscape" otherwise
+  orientation: orientationSchema.nullable().default(null),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });

@@ -27,6 +27,7 @@ export const POST = withErrorHandler<{ id: string }>(
       fileUrl: poster.fileUrl,
       type: poster.type as "image" | "video" | "youtube",
       transition: 'fade' as const,
+      ...(poster.orientation ? { orientation: poster.orientation } : {}),
     };
 
     const enrichedPayload = enrichPosterPayload(basePayload);

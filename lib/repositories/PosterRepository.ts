@@ -11,13 +11,14 @@ import type {
  */
 type DbPosterRow = Omit<
   DbPoster,
-  "tags" | "profileIds" | "metadata" | "isEnabled" | "endBehavior" | "createdAt" | "updatedAt"
+  "tags" | "profileIds" | "metadata" | "isEnabled" | "endBehavior" | "orientation" | "createdAt" | "updatedAt"
 > & {
   tags: string;
   profileIds: string;
   metadata: string | null;
   isEnabled: number;
   endBehavior: string | null;
+  orientation: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -65,13 +66,14 @@ export class PosterRepository extends EnabledBaseRepository<
   }
 
   /**
-   * Override transformRow to handle endBehavior type casting
+   * Override transformRow to handle endBehavior / orientation type casting
    */
   protected override transformRow(row: DbPosterRow): DbPoster {
     const base = super.transformRow(row);
     return {
       ...base,
       endBehavior: row.endBehavior as DbPoster["endBehavior"],
+      orientation: row.orientation as DbPoster["orientation"],
     };
   }
 
@@ -81,8 +83,8 @@ export class PosterRepository extends EnabledBaseRepository<
   create(poster: DbPosterInput): void {
     const now = new Date();
     const stmt = this.rawDb.prepare(`
-      INSERT INTO posters (id, title, description, source, fileUrl, type, duration, tags, profileIds, metadata, chatMessage, isEnabled, parentPosterId, startTime, endTime, thumbnailUrl, endBehavior, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO posters (id, title, description, source, fileUrl, type, duration, tags, profileIds, metadata, chatMessage, isEnabled, parentPosterId, startTime, endTime, thumbnailUrl, endBehavior, orientation, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       poster.id,
@@ -102,6 +104,7 @@ export class PosterRepository extends EnabledBaseRepository<
       poster.endTime ?? null,
       poster.thumbnailUrl || null,
       poster.endBehavior || null,
+      poster.orientation || null,
       this.prepareValue(poster.createdAt || now),
       this.prepareValue(poster.updatedAt || now)
     );
@@ -135,12 +138,13 @@ export class PosterRepository extends EnabledBaseRepository<
       endTime: updates.endTime !== undefined ? updates.endTime : existing.endTime,
       thumbnailUrl: updates.thumbnailUrl !== undefined ? updates.thumbnailUrl : existing.thumbnailUrl,
       endBehavior: updates.endBehavior !== undefined ? updates.endBehavior : existing.endBehavior,
+      orientation: updates.orientation !== undefined ? updates.orientation : existing.orientation,
       updatedAt: updates.updatedAt || new Date(),
     };
 
     const stmt = this.rawDb.prepare(`
       UPDATE posters
-      SET title = ?, description = ?, source = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, chatMessage = ?, isEnabled = ?, parentPosterId = ?, startTime = ?, endTime = ?, thumbnailUrl = ?, endBehavior = ?, updatedAt = ?
+      SET title = ?, description = ?, source = ?, fileUrl = ?, type = ?, duration = ?, tags = ?, profileIds = ?, metadata = ?, chatMessage = ?, isEnabled = ?, parentPosterId = ?, startTime = ?, endTime = ?, thumbnailUrl = ?, endBehavior = ?, orientation = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
@@ -160,6 +164,7 @@ export class PosterRepository extends EnabledBaseRepository<
       merged.endTime ?? null,
       merged.thumbnailUrl || null,
       merged.endBehavior || null,
+      merged.orientation || null,
       this.prepareValue(merged.updatedAt),
       id
     );
