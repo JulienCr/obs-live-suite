@@ -8,6 +8,7 @@ import { apiGet, apiPost, extractErrorMessage } from "@/lib/utils/ClientFetch";
 import { useLiveAssistStore } from "@/lib/stores/liveAssistStore";
 import { SuggestionCard } from "@/components/live-assist/SuggestionCard";
 import { SttStatusBar } from "@/components/live-assist/SttStatusBar";
+import { LiveAssistControls } from "@/components/live-assist/LiveAssistControls";
 import type { LiveAssistEvent, Suggestion } from "@/lib/models/LiveAssist";
 
 const config: PanelConfig = { id: "liveAssist", context: "dashboard" };
@@ -55,7 +56,11 @@ export function LiveAssistPanel(_props: IDockviewPanelProps) {
   return (
     <BasePanelWrapper config={config}>
       <div className="flex flex-col h-full">
-        <SttStatusBar />
+        {/* Header: STT status (left) + quick listening/transcript kill switches (right). */}
+        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b">
+          <SttStatusBar />
+          <LiveAssistControls />
+        </div>
         <div className="flex flex-col gap-2 p-3 overflow-auto flex-1">
           {suggestions.map((s) => (
             <SuggestionCard key={s.id} suggestion={s} onApply={onApply} onDismiss={onDismiss} />

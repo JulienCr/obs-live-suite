@@ -423,7 +423,10 @@
       "posterRight": "Droite",
       "dismiss": "Ignorer",
       "connected": "Connecté",
-      "disconnected": "STT déconnecté"
+      "disconnected": "STT déconnecté",
+      "listening": "Écoute",
+      "transcript": "Transcript",
+      "toggleFailed": "Échec de la mise à jour de l'Assistant Live"
     }
   },
   "navigation": {

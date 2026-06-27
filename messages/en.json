@@ -423,7 +423,10 @@
       "posterRight": "Right",
       "dismiss": "Dismiss",
       "connected": "Connected",
-      "disconnected": "STT disconnected"
+      "disconnected": "STT disconnected",
+      "listening": "Listening",
+      "transcript": "Transcript",
+      "toggleFailed": "Failed to update Live Assist"
     }
   },
   "navigation": {
