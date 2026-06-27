@@ -152,6 +152,39 @@ describe("LiveAssistOrchestrator", () => {
     expect(transcripts).toEqual([]);
   });
 
+  it("records the transcript to file even when the debug re-broadcast is off", async () => {
+    const recorded: string[] = [];
+    const transcripts: string[] = [];
+    const { orch } = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 },
+      {
+        recordTranscript: (text: string) => recorded.push(text),
+        publishTranscript: (text: string) => transcripts.push(text),
+        isTranscriptDebugEnabled: () => false,
+      },
+    );
+    await orch.ingestSegment(seg("bonjour le monde", 0, 1000));
+    expect(recorded).toEqual(["bonjour le monde"]); // persisted
+    expect(transcripts).toEqual([]); // but not re-broadcast
+  });
+
+  it("does not record non-final segments or segments while disabled", async () => {
+    const recorded: string[] = [];
+    const disabled = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 },
+      { recordTranscript: (text: string) => recorded.push(text), isEnabled: () => false },
+    );
+    await disabled.orch.ingestSegment(seg("ignoré (disabled)", 0, 1000));
+    expect(recorded).toEqual([]);
+
+    const enabled = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 },
+      { recordTranscript: (text: string) => recorded.push(text) },
+    );
+    await enabled.orch.ingestSegment({ text: "ignoré (non final)", t0: 0, t1: 1000, final: false });
+    expect(recorded).toEqual([]);
+  });
+
   it("publishes stt:status connected on first segment", async () => {
     const statusCalls: Array<[boolean, string | null]> = [];
     const publishStatus = (connected: boolean, device: string | null) => {

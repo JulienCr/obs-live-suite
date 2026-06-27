@@ -133,6 +133,16 @@ export class PathManager {
   }
 
   /**
+   * Get the Live Assist transcripts directory (one .log file per backend launch).
+   * Intentionally NOT created in ensureDirectories(): TranscriptRecorder creates it
+   * lazily and disables itself on failure, so a transcript-only disk problem must
+   * not be able to throw during PathManager construction and abort backend startup.
+   */
+  getTranscriptsDir(): string {
+    return join(this.getLogsDir(), "transcripts");
+  }
+
+  /**
    * Get the backups directory
    */
   getBackupsDir(): string {

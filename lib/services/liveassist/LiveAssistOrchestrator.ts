@@ -35,6 +35,13 @@ interface Deps {
   isTranscriptDebugEnabled?: () => boolean;
   publishStatus?: (connected: boolean, device: string | null) => void;
   publishTranscript?: (text: string, t0: number, t1: number) => void;
+  /**
+   * Persist each finalized segment to the per-launch transcript file. Unlike
+   * `publishTranscript`, this is NOT gated by `isTranscriptDebugEnabled` — the file
+   * recording is always on while Live Assist is enabled (the debug flag only controls
+   * the live websocket re-broadcast). No-op by default.
+   */
+  recordTranscript?: (text: string) => void;
   /** Map a device id (e.g. "1") to its human label (e.g. "USB Mic") for status display. */
   resolveDeviceLabel?: (id: string) => string;
   /**
@@ -53,6 +60,7 @@ export class LiveAssistOrchestrator {
   private readonly isTranscriptDebugEnabled: () => boolean;
   private readonly publishStatus: (connected: boolean, device: string | null) => void;
   private readonly publishTranscript: (text: string, t0: number, t1: number) => void;
+  private readonly recordTranscript: (text: string) => void;
   private readonly resolveDeviceLabel: (id: string) => string;
   private readonly staleMs: number;
   private lastSeenAt = 0;
@@ -63,6 +71,7 @@ export class LiveAssistOrchestrator {
     this.isTranscriptDebugEnabled = deps.isTranscriptDebugEnabled ?? (() => true);
     this.publishStatus = deps.publishStatus ?? (() => undefined);
     this.publishTranscript = deps.publishTranscript ?? (() => undefined);
+    this.recordTranscript = deps.recordTranscript ?? (() => undefined);
     this.resolveDeviceLabel = deps.resolveDeviceLabel ?? ((id) => id);
     this.staleMs = deps.staleMs ?? LIVE_ASSIST.STT_STALE_MS;
   }
@@ -116,6 +125,9 @@ export class LiveAssistOrchestrator {
     if (!segment.final) return;
     if (!this.isEnabled()) return;
     this.markSttAlive();
+    // Always persist to the transcript file (gated only by enabled/final above);
+    // the debug flag below only governs the live websocket re-broadcast.
+    this.recordTranscript(segment.text);
     if (this.isTranscriptDebugEnabled()) this.publishTranscript(segment.text, segment.t0, segment.t1);
     this.deps.buffer.append(segment);
     // Non-LLM fast-path: a directly-named local poster fires immediately, no window.
