@@ -2,6 +2,47 @@ import React, { useRef } from "react";
 import { buildYouTubeEmbedUrl } from "@/lib/utils/youtubeUrlBuilder";
 import { extractYouTubeId } from "@/lib/utils/urlDetection";
 
+// Overlay browser source is a fixed 1920x1080 canvas. Side-mode posters are
+// allocated a box sized as a percentage of that canvas (see mediaStyle below).
+const CANVAS_WIDTH = 1920;
+const CANVAS_HEIGHT = 1080;
+
+/**
+ * Largest aspect-correct size that fills the allocated box.
+ *
+ * Side-mode posters previously used only maxWidth/maxHeight, so a poster
+ * smaller than its box rendered at its intrinsic pixel size and never filled
+ * the space. This computes explicit width/height that fill the box (scaling
+ * small posters up, capping large ones down) while preserving aspect ratio,
+ * so the element keeps hugging the poster (shadow/rounded corners stay tight).
+ *
+ * @param aspectRatio width / height of the poster
+ * @param boxWidthPct  allocated box width  as % of canvas width
+ * @param boxHeightPct allocated box height as % of canvas height
+ * @returns CSS percentage strings for `width` / `height`
+ */
+function fitPosterToBox(
+  aspectRatio: number,
+  boxWidthPct: number,
+  boxHeightPct: number
+): { width: string; height: string } {
+  const boxWidthPx = (boxWidthPct / 100) * CANVAS_WIDTH;
+  const boxHeightPx = (boxHeightPct / 100) * CANVAS_HEIGHT;
+
+  // Start width-constrained; fall back to height-constrained if it overflows.
+  let widthPx = boxWidthPx;
+  let heightPx = widthPx / aspectRatio;
+  if (heightPx > boxHeightPx) {
+    heightPx = boxHeightPx;
+    widthPx = heightPx * aspectRatio;
+  }
+
+  return {
+    width: `${(widthPx / CANVAS_WIDTH) * 100}%`,
+    height: `${(heightPx / CANVAS_HEIGHT) * 100}%`,
+  };
+}
+
 interface PosterDisplayProps {
   fileUrl: string;
   type: "image" | "video" | "youtube";
@@ -175,7 +216,7 @@ export function PosterDisplay({
           borderRadius: '8px',
           ...(isLandscape
             ? {
-                // Landscape: bottom corner positioning
+                // Landscape: bottom corner, filled to its allocated box
                 ...(isLeftSide
                   ? {
                       left: '30px',
@@ -188,11 +229,10 @@ export function PosterDisplay({
                 bottom: '30px',
                 top: 'auto',
                 transform: 'none',
-                maxWidth: '35%',
-                maxHeight: '40%',
+                ...fitPosterToBox(aspectRatio, 35, 40),
               }
             : {
-                // Portrait/Square: center side positioning
+                // Portrait/Square: center side, filled to its allocated box
                 ...(isLeftSide
                   ? {
                       left: '30px',
@@ -205,8 +245,7 @@ export function PosterDisplay({
                 top: '50%',
                 bottom: 'auto',
                 transform: 'translate(0%, -50%)',
-                maxWidth: '90%',
-                maxHeight: '90%',
+                ...fitPosterToBox(aspectRatio, 90, 90),
               }),
         };
 
