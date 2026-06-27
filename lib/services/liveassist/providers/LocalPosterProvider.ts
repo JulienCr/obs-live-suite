@@ -8,6 +8,12 @@ export type PosterShower = (payload: {
   type: string;
   side: "left" | "right";
   transition: "fade";
+  // Sub-video clip fields (only set for a matched video clip) — accepted by
+  // posterShowPayloadSchema and honored by the overlay.
+  startTime?: number;
+  endTime?: number;
+  endBehavior?: "stop" | "loop";
+  chapters?: unknown[];
 }) => Promise<ApplyResult>;
 
 /** Ensures a poster is enabled (so it appears in the Affiches panel). */
@@ -38,13 +44,27 @@ export class LocalPosterProvider implements ActionProvider {
   /** Build a suggestion directly from a fuzzy-matched poster. */
   static toSuggestion(poster: MatchablePoster, triggerText: string, score: number): BuiltSuggestion {
     const imageUrl = poster.thumbnailUrl ?? (poster.type === "image" ? poster.fileUrl : undefined);
+    const applyPayload: Record<string, unknown> = {
+      posterId: poster.id,
+      fileUrl: poster.fileUrl,
+      type: poster.type,
+    };
+    // Carry the saved sub-video clip range/chapters so applying a matched clip honors
+    // its bounds instead of playing the raw file from the start (parity with PosterCard).
+    if (poster.type === "video") {
+      if (poster.startTime != null) applyPayload.startTime = poster.startTime;
+      if (poster.endTime != null) applyPayload.endTime = poster.endTime;
+      if (poster.endBehavior) applyPayload.endBehavior = poster.endBehavior;
+      const chapters = (poster.metadata as { chapters?: unknown } | null | undefined)?.chapters;
+      if (Array.isArray(chapters) && chapters.length) applyPayload.chapters = chapters;
+    }
     return {
       intent: "local-poster",
       entity: poster.id, // stable dedup key
       title: poster.title,
       preview: imageUrl ? { kind: "image", imageUrl } : { kind: "text", text: `🖼️ ${poster.title}` },
       triggerExcerpt: triggerText,
-      applyPayload: { posterId: poster.id, fileUrl: poster.fileUrl, type: poster.type },
+      applyPayload,
       confidence: Math.max(0, Math.min(1, score)),
     };
   }
@@ -59,6 +79,12 @@ export class LocalPosterProvider implements ActionProvider {
     // Add it to the Affiches panel: ensure the poster is enabled (idempotent) before
     // showing it — a matched poster may be disabled in the library.
     if (posterId) await this.enablePoster(posterId);
-    return this.showPoster({ posterId, fileUrl, type, side, transition: "fade" });
+    // Forward the sub-video clip fields the suggestion carried (absent for images).
+    const clip: { startTime?: number; endTime?: number; endBehavior?: "stop" | "loop"; chapters?: unknown[] } = {};
+    if (typeof payload.startTime === "number") clip.startTime = payload.startTime;
+    if (typeof payload.endTime === "number") clip.endTime = payload.endTime;
+    if (payload.endBehavior === "stop" || payload.endBehavior === "loop") clip.endBehavior = payload.endBehavior;
+    if (Array.isArray(payload.chapters)) clip.chapters = payload.chapters;
+    return this.showPoster({ posterId, fileUrl, type, side, transition: "fade", ...clip });
   }
 }

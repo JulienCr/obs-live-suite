@@ -9,6 +9,13 @@ export interface MatchablePoster {
   fileUrl: string;
   type: string;
   thumbnailUrl?: string | null;
+  // Sub-video clip fields, forwarded into the show payload so a matched video clip
+  // honors its saved range/chapters instead of playing the raw file from the start
+  // (parity with the dashboard PosterCard show path). A raw Poster row satisfies these.
+  startTime?: number | null;
+  endTime?: number | null;
+  endBehavior?: "stop" | "loop" | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface PosterMatch {
@@ -60,10 +67,17 @@ export class LocalPosterMatcher {
     const matches: PosterMatch[] = [];
     for (const { poster, tokens } of this.index) {
       let best = 0;
-      for (const token of tokens) {
+      outer: for (const token of tokens) {
         for (const word of words) {
+          // Cheap upper bound: similarity ≤ 1 − |Δlen|/maxLen (since Levenshtein ≥ |Δlen|).
+          // Skip the O(len²) edit-distance DP whenever the lengths alone can't clear the bar.
+          const maxLen = Math.max(token.length, word.length);
+          if (1 - Math.abs(token.length - word.length) / maxLen < this.minSimilarity) continue;
           const s = similarity(token, word);
-          if (s > best) best = s;
+          if (s > best) {
+            best = s;
+            if (best >= 1) break outer; // exact match — no pair can beat it
+          }
         }
       }
       if (best >= this.minSimilarity) matches.push({ poster, score: best });

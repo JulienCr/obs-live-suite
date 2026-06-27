@@ -62,11 +62,9 @@ export interface DownloadResult {
  * Determine whether a fileUrl is a remote http(s) URL (not a local asset path).
  */
 function isRemoteHttpUrl(url: string): boolean {
-  return (
-    url.startsWith("http") &&
-    !url.startsWith("/data/") &&
-    !url.startsWith("/uploads/")
-  );
+  // A real http(s) URL can never start with a local "/data/" or "/uploads/" path,
+  // so the explicit scheme check alone is sufficient (and rejects e.g. "httpfoo").
+  return url.startsWith("http://") || url.startsWith("https://");
 }
 
 /**

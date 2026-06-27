@@ -86,7 +86,7 @@ export class TmdbResolverService {
     try {
       const res = await this.fetchImpl(
         `${TMDB.API_BASE}/configuration?api_key=${encodeURIComponent(apiKey)}`,
-        { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(8000) },
+        { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(TMDB.REQUEST_TIMEOUT_MS) },
       );
       if (res.ok) return { ok: true, message: "Connexion TMDB OK." };
       if (res.status === 401) return { ok: false, message: "Clé TMDB invalide (401)." };
@@ -119,7 +119,7 @@ export class TmdbResolverService {
 
     const res = await this.fetchImpl(url, {
       headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(TMDB.REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`TMDB search failed (${res.status})`);
 

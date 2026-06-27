@@ -67,7 +67,11 @@ export function buildOrchestrator(): {
   // (NEXT_PUBLIC_APP_URL, e.g. https://edison:3000) here, falling back to the 127.0.0.1
   // loopback. localhost/127.0.0.1 both failed in the Tailscale-HTTPS setup because the
   // served cert is for the public host, not loopback.
-  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || INTERNAL_APP_URL;
+  // Prefer runtime env (now that .env is loaded) over the imported constant, which
+  // captured its fallback before dotenvConfig() ran: NEXT_PUBLIC_APP_URL (real public
+  // origin) → INTERNAL_APP_URL env (explicit loopback override) → the stale import.
+  const appBaseUrl =
+    process.env.NEXT_PUBLIC_APP_URL || process.env.INTERNAL_APP_URL || INTERNAL_APP_URL;
   logger.info(`Live Assist provider calls target ${appBaseUrl}`);
 
   // Shared POST→ApplyResult helper for provider apply callbacks (one fetch shape).
@@ -125,8 +129,13 @@ export function buildOrchestrator(): {
   // that poster (no creation, no LLM). Index all posters — incl. disabled — refreshed
   // live below. apply() posts the same /api/overlays/poster show payload as the MCP tool.
   const localPosterMatcher = new LocalPosterMatcher();
-  const refreshLocalPosters = (s: ReturnType<typeof getSettings>) =>
+  // Re-index posters from the DB. Skipped when LocalPosters is disabled so the
+  // 5s tick doesn't run getAll()+re-tokenize for a feature nobody is using; the
+  // next tick after it's re-enabled repopulates the index.
+  const refreshLocalPosters = (s: ReturnType<typeof getSettings>) => {
+    if (!s.localPostersEnabled) return;
     localPosterMatcher.setPosters(PosterRepository.getInstance().getAll(), s.localPosterMinSimilarity);
+  };
   refreshLocalPosters(liveAssistSettings);
   registry.register(
     new LocalPosterProvider(

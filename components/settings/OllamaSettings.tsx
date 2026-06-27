@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Loader2, CheckCircle, XCircle, RefreshCw, Trash2 } from "lucide-react";
 import { useSettings } from "@/lib/hooks/useSettings";
-import { apiGet, apiPost, apiDelete, isClientFetchError } from "@/lib/utils/ClientFetch";
+import { apiGet, apiPost, apiDelete, isClientFetchError, extractErrorMessage } from "@/lib/utils/ClientFetch";
 
 type LLMProvider = "ollama" | "openai" | "anthropic";
 
@@ -98,11 +98,7 @@ export function OllamaSettings() {
       if (data.success) toast.success(message);
       else toast.error(message);
     } catch (error) {
-      const message = isClientFetchError(error)
-        ? error.errorMessage
-        : error instanceof Error
-          ? error.message
-          : "Échec de la connexion TMDB.";
+      const message = extractErrorMessage(error, "Échec de la connexion TMDB.");
       setTmdbTestResult({ success: false, message });
       toast.error(message);
     } finally {

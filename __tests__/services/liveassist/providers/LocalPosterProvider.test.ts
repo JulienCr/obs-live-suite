@@ -27,6 +27,32 @@ describe("LocalPosterProvider", () => {
       const noThumb = LocalPosterProvider.toSuggestion({ id: "v", title: "Casseroles", fileUrl: "v.mp4", type: "video" }, "t", 0.9);
       expect(noThumb.preview.kind).toBe("text");
     });
+
+    it("carries a video clip's range/chapters into the apply payload (not just the raw file)", () => {
+      const s = LocalPosterProvider.toSuggestion(
+        {
+          id: "clip", title: "Best of", fileUrl: "full.mp4", type: "video", thumbnailUrl: "t.jpg",
+          startTime: 12, endTime: 34, endBehavior: "loop",
+          metadata: { chapters: [{ timestamp: 5, title: "intro" }] },
+        },
+        "le best of",
+        0.9,
+      );
+      expect(s.applyPayload).toEqual({
+        posterId: "clip", fileUrl: "full.mp4", type: "video",
+        startTime: 12, endTime: 34, endBehavior: "loop",
+        chapters: [{ timestamp: 5, title: "intro" }],
+      });
+    });
+
+    it("omits clip fields for an image poster", () => {
+      const s = LocalPosterProvider.toSuggestion(
+        { id: "p", title: "Affiche", fileUrl: "a.jpg", type: "image", startTime: 9, endTime: 99 },
+        "x",
+        0.9,
+      );
+      expect(s.applyPayload).toEqual({ posterId: "p", fileUrl: "a.jpg", type: "image" });
+    });
   });
 
   describe("apply", () => {
@@ -63,6 +89,22 @@ describe("LocalPosterProvider", () => {
     it("fails cleanly when the fileUrl is missing", async () => {
       const p = new LocalPosterProvider(async () => ({ ok: true }), okEnabler);
       expect((await p.apply({ posterId: "p" })).ok).toBe(false);
+    });
+
+    it("forwards a stored clip's range/chapters to the show payload", async () => {
+      const shown: Array<Record<string, unknown>> = [];
+      const p = new LocalPosterProvider(async (payload) => {
+        shown.push(payload as Record<string, unknown>);
+        return { ok: true };
+      }, okEnabler);
+      await p.apply({
+        posterId: "clip", fileUrl: "full.mp4", type: "video", target: "left",
+        startTime: 12, endTime: 34, endBehavior: "loop", chapters: [{ timestamp: 5, title: "intro" }],
+      });
+      expect(shown[0]).toEqual({
+        posterId: "clip", fileUrl: "full.mp4", type: "video", side: "left", transition: "fade",
+        startTime: 12, endTime: 34, endBehavior: "loop", chapters: [{ timestamp: 5, title: "intro" }],
+      });
     });
   });
 });

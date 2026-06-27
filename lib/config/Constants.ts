@@ -755,6 +755,8 @@ export const TMDB = {
   LANGUAGE: "fr-FR",
   /** In-memory resolver cache TTL (ms). */
   CACHE_TTL_MS: 6 * 60 * 60 * 1000,
+  /** Abort a TMDB request after this many ms (search + connection test). */
+  REQUEST_TIMEOUT_MS: 8000,
   /** Setting key holding the API key (mirrors `openai_api_key`). */
   API_KEY_SETTING: "tmdb_api_key",
 } as const;

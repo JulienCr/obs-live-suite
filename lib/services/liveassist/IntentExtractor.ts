@@ -85,7 +85,13 @@ export class IntentExtractor {
 
     try {
       const { object } = await this.generate({ schema: this.schema, prompt });
-      const parsed = this.schema.safeParse(object);
+      // Default `infere` to false when the model omitted it: non-strict providers
+      // (e.g. a local Ollama model) may not honor the required field, and its
+      // absence alone shouldn't collapse an otherwise-valid extraction back to
+      // NOT_ACTIONNABLE (the pre-`infere` behavior). Other required fields stay enforced.
+      const candidate =
+        object && typeof object === "object" ? { infere: false, ...(object as object) } : object;
+      const parsed = this.schema.safeParse(candidate);
       if (!parsed.success) return NOT_ACTIONNABLE;
       const result = parsed.data as IntentExtraction;
       // Only act on an intent that was a candidate for THIS window.
