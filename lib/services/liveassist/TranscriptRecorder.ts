@@ -8,6 +8,13 @@ const logger = new Logger("TranscriptRecorder");
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /**
+ * Collapse any line breaks (and surrounding whitespace) into a single space so one
+ * record is always exactly one line. Without this, a `\n`/`\r` in STT text or an
+ * LLM-derived title could inject extra lines / forge entries in the line-based log.
+ */
+const oneLine = (s: string) => s.replace(/\s*[\r\n]+\s*/g, " ").trim();
+
+/**
  * Persists Live Assist transcripts (and the suggestions they trigger) to a plain-text
  * log file — one file per backend launch, named by the launch instant:
  * `liveassist-YYYY-MM-DD_HH-MM-SS.log`.
@@ -37,7 +44,7 @@ export class TranscriptRecorder {
 
   /** Append one finalized transcript segment (empty/whitespace text is ignored). */
   recordTranscript(text: string): void {
-    const t = text.trim();
+    const t = oneLine(text);
     if (!t) return;
     this.write(`[${this.timestamp()}] ${t}`);
   }
@@ -47,7 +54,7 @@ export class TranscriptRecorder {
    * human-readable name (the card's `title`), not the opaque `entity` dedup key.
    */
   recordSuggestion(intent: string, label: string, confidence: number): void {
-    this.write(`[${this.timestamp()}] >> SUGGESTION ${intent} « ${label} » (${confidence.toFixed(2)})`);
+    this.write(`[${this.timestamp()}] >> SUGGESTION ${intent} « ${oneLine(label)} » (${confidence.toFixed(2)})`);
   }
 
   private timestamp(): string {

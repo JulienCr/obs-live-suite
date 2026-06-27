@@ -47,6 +47,21 @@ describe("TranscriptRecorder", () => {
     expect(readFileSync(join(dir, FILE), "utf-8")).toBe("[14:30:05] vrai texte\n");
   });
 
+  it("collapses embedded newlines so one segment stays one line (no log forging)", () => {
+    const rec = new TranscriptRecorder(dir, () => LAUNCH);
+    rec.recordTranscript("ligne une\nligne deux\r\n[00:00:00] forgé");
+    const content = readFileSync(join(dir, FILE), "utf-8");
+    expect(content).toBe("[14:30:05] ligne une ligne deux [00:00:00] forgé\n");
+    expect(content.split("\n").filter(Boolean)).toHaveLength(1);
+  });
+
+  it("collapses newlines in a suggestion label too", () => {
+    const rec = new TranscriptRecorder(dir, () => LAUNCH);
+    rec.recordSuggestion("poster", "Titre\nmalicieux", 0.5);
+    const content = readFileSync(join(dir, FILE), "utf-8");
+    expect(content).toBe("[14:30:05] >> SUGGESTION poster « Titre malicieux » (0.50)\n");
+  });
+
   it("writes a formatted suggestion line", () => {
     const rec = new TranscriptRecorder(dir, () => LAUNCH);
     rec.recordSuggestion("poster-tmdb", "Basic Instinct", 0.92);
