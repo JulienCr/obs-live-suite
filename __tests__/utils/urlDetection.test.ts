@@ -91,6 +91,21 @@ describe("extractYouTubeId", () => {
     expect(extractYouTubeId("dQw4w9WgXcQ")).toBeNull();
   });
 
+  it("returns null for look-alike spoofed domains", () => {
+    expect(
+      extractYouTubeId("https://notyoutube.com/watch?v=dQw4w9WgXcQ")
+    ).toBeNull();
+    expect(
+      extractYouTubeId("https://youtube.com.evil.tld/shorts/dQw4w9WgXcQ")
+    ).toBeNull();
+  });
+
+  it("extracts ID from youtube.com subdomains", () => {
+    expect(extractYouTubeId("https://m.youtube.com/watch?v=dQw4w9WgXcQ")).toBe(
+      "dQw4w9WgXcQ"
+    );
+  });
+
   it("returns null for invalid input", () => {
     expect(extractYouTubeId("not-a-video")).toBeNull();
   });
@@ -127,6 +142,13 @@ describe("isYouTubeShortsUrl", () => {
 
   it("returns false for non-YouTube URLs", () => {
     expect(isYouTubeShortsUrl("https://vimeo.com/shorts/123")).toBe(false);
+  });
+
+  it("returns false for look-alike spoofed domains", () => {
+    expect(isYouTubeShortsUrl("https://notyoutube.com/shorts/abc")).toBe(false);
+    expect(isYouTubeShortsUrl("https://youtube.com.evil.tld/shorts/abc")).toBe(
+      false
+    );
   });
 
   it("returns false for empty or null inputs", () => {

@@ -5,6 +5,15 @@
 import type { Orientation } from "@/lib/models/Poster";
 
 /**
+ * True only for the youtube.com registrable domain or its subdomains
+ * (youtube.com, www./m./music.youtube.com). Anchored so look-alike hosts
+ * like notyoutube.com or youtube.com.evil.tld are rejected.
+ */
+function isYouTubeHostname(hostname: string): boolean {
+  return /(^|\.)youtube\.com$/i.test(hostname);
+}
+
+/**
  * Validates if a string is a valid URL
  */
 export function isValidUrl(url: string): boolean {
@@ -53,7 +62,7 @@ export function extractYouTubeId(url: string): string | null {
 
   // Helper to extract ID from URL object
   const getIdFromUrl = (urlObj: URL): string | null => {
-    if (urlObj.hostname.includes('youtube.com')) {
+    if (isYouTubeHostname(urlObj.hostname)) {
       // Check for /watch?v=ID format
       const videoId = urlObj.searchParams.get('v');
       if (videoId) return videoId;
@@ -104,7 +113,7 @@ export function isYouTubeShortsUrl(url: string): boolean {
 
   try {
     const urlObj = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
-    return urlObj.hostname.includes('youtube.com') && urlObj.pathname.startsWith('/shorts/');
+    return isYouTubeHostname(urlObj.hostname) && urlObj.pathname.startsWith('/shorts/');
   } catch {
     return false;
   }
