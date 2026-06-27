@@ -56,6 +56,7 @@ export class PathManager {
       this.getPostersDir(),
       this.getAvatarsDir(),
       this.getLogsDir(),
+      this.getTranscriptsDir(),
       this.getBackupsDir(),
       this.getQuizDir(),
       this.getQuizSessionsDir(),
@@ -130,6 +131,13 @@ export class PathManager {
   getLogFilePath(): string {
     const logFile = this.appConfig.logFile;
     return this.resolvePath(logFile);
+  }
+
+  /**
+   * Get the Live Assist transcripts directory (one .log file per backend launch)
+   */
+  getTranscriptsDir(): string {
+    return join(this.getLogsDir(), "transcripts");
   }
 
   /**

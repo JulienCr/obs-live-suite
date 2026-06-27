@@ -9,6 +9,8 @@ import { KeywordDetector } from "@/lib/services/liveassist/KeywordDetector";
 import { WindowScheduler } from "@/lib/services/liveassist/WindowScheduler";
 import { IntentExtractor } from "@/lib/services/liveassist/IntentExtractor";
 import { SuggestionStore } from "@/lib/services/liveassist/SuggestionStore";
+import { TranscriptRecorder } from "@/lib/services/liveassist/TranscriptRecorder";
+import { PathManager } from "@/lib/config/PathManager";
 import { ProviderRegistry, type ApplyResult } from "@/lib/services/liveassist/providers/ActionProvider";
 import { PosterActionProvider } from "@/lib/services/liveassist/providers/PosterActionProvider";
 import { DefinitionActionProvider } from "@/lib/services/liveassist/providers/DefinitionActionProvider";
@@ -145,7 +147,21 @@ export function buildOrchestrator(): {
     ),
   );
 
-  const store = new SuggestionStore((event: LiveAssistEvent) => cm.publishLiveAssist(event));
+  // Persist transcripts (+ the suggestions they trigger) to a per-launch .log file.
+  // One file per backend boot, in ~/.obs-live-suite/logs/transcripts/.
+  const recorder = new TranscriptRecorder(PathManager.getInstance().getTranscriptsDir());
+  logger.info(`Live Assist transcripts → ${PathManager.getInstance().getTranscriptsDir()}`);
+
+  // Record every created suggestion at the single choke point (store.add → publish),
+  // so both the LLM-window path and the local-poster fast-path are captured.
+  const store = new SuggestionStore((event: LiveAssistEvent) => {
+    if (event.type === "suggestion:new") {
+      const s = event.payload.suggestion;
+      // Log the human-readable card title (s.entity is an opaque id for local posters).
+      recorder.recordSuggestion(s.intent, s.title, s.confidence);
+    }
+    cm.publishLiveAssist(event);
+  });
 
   // Merge each provider's defaultKeywords as fallback when settings is empty.
   const buildKeywords = (s: ReturnType<typeof getSettings>): Record<string, string[]> => {
@@ -218,6 +234,9 @@ export function buildOrchestrator(): {
     // Publish each finalized transcript segment (live debug view in the panel).
     publishTranscript: (text, t0, t1) =>
       cm.publishLiveAssist({ type: "transcript", payload: { text, t0, t1 } }),
+    // Persist each finalized transcript segment to the per-launch .log file
+    // (always on while enabled, independent of the debug re-broadcast above).
+    recordTranscript: (text) => recorder.recordTranscript(text),
   });
 
   // Seed the device label so status reports include the configured device name.

@@ -78,6 +78,13 @@ All in `lib/services/liveassist/`. The orchestrator owns the flow; each stage is
    `setStatus(id, status)`, `list()`; publishes `suggestion:new` / `suggestion:update`.
 7. **`LiveAssistOrchestrator`** — `ingestSegment()` (per segment), `tick(now)` (periodic: staleness +
    drains pending windows), `markSttAlive()` / `checkStaleness()` (heartbeat → `stt:status`).
+8. **`TranscriptRecorder`** — persists each finalized segment (and every suggestion it triggers) to a
+   plain-text `.log`, **one file per backend launch** (`liveassist-YYYY-MM-DD_HH-MM-SS.log` in
+   `~/.obs-live-suite/logs/transcripts/`). Recording is **always on while Live Assist is enabled**,
+   independent of the `transcriptDebug` toggle (which only gates the websocket re-broadcast). The file
+   is created lazily on the first segment; a disk error disables recording (logged once) and never
+   breaks the pipeline. Wired in `buildOrchestrator()` via the orchestrator's `recordTranscript` callback
+   (segments) and the `SuggestionStore` publisher (suggestions).
 
 Assembled at boot by `buildOrchestrator()` in `server/api/liveAssistBoot.ts` (kept in its own module so
 the router test doesn't pull in the WebSocketHub/TLS chain). A `setInterval(STT_STALE_MS/2)` ticker
