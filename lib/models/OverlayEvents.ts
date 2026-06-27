@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { videoChapterSchema, endBehaviorSchema, VideoChapter } from "./Poster";
+import { videoChapterSchema, endBehaviorSchema, orientationSchema, VideoChapter } from "./Poster";
 import type { WordHarvestEvent } from "./WordHarvest";
 export type { WordHarvestEvent } from "./WordHarvest";
 export { isWordHarvestEvent, WordHarvestEventType } from "./WordHarvest";
@@ -228,6 +228,8 @@ export const posterShowPayloadSchema = z.object({
   posterId: z.string().uuid().optional(),
   fileUrl: z.string(),
   type: z.enum(["image", "video", "youtube"]).optional(),
+  // Video orientation: "portrait" for YouTube Shorts / vertical videos (9:16).
+  orientation: orientationSchema.optional(),
   transition: z.enum(["fade", "slide", "cut", "blur-sm"]).default("fade"),
   duration: z.number().int().positive().optional(),
   side: z.enum(["left", "right"]).optional(),

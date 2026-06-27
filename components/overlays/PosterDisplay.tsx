@@ -8,6 +8,7 @@ interface PosterDisplayProps {
   aspectRatio: number;
   positioning: "side" | "center"; // side = left/right positioning, center = big-picture centered
   side?: "left" | "right"; // only used when positioning="side"
+  orientation?: "landscape" | "portrait"; // "portrait" = vertical 9:16 (YouTube Shorts)
   videoRef?: React.RefObject<HTMLVideoElement | null>;
   youtubeRef?: React.RefObject<HTMLIFrameElement | null>;
   initialTime?: number; // Initial seek position (resumeFrom from cue, else sub-video clip start)
@@ -31,6 +32,7 @@ export function PosterDisplay({
   aspectRatio,
   positioning,
   side = "left",
+  orientation = "landscape",
   videoRef,
   youtubeRef,
   initialTime,
@@ -40,6 +42,7 @@ export function PosterDisplay({
   onYouTubeIframeLoad,
 }: PosterDisplayProps) {
   const isLeftSide = side === "left";
+  const isPortrait = orientation === "portrait";
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const effectiveVideoRef = videoRef || localVideoRef;
 
@@ -82,11 +85,14 @@ export function PosterDisplay({
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '100vw',
-            height: '100vh',
-            aspectRatio: '16 / 9',
             margin: 0,
             padding: 0,
+            // Portrait (Shorts): drive off height and let width derive from the
+            // 9:16 ratio so the vertical video fills the screen height, centered
+            // as a pillar (no side letterboxing). Landscape fills the viewport 16:9.
+            ...(isPortrait
+              ? { height: '100vh', aspectRatio: '9 / 16' }
+              : { width: '100vw', height: '100vh', aspectRatio: '16 / 9' }),
           }
         : {
             // Side mode: positioned left or right, centered vertically
@@ -105,8 +111,11 @@ export function PosterDisplay({
                 }),
             top: '50%',
             transform: 'translate(0%, -50%)',
-            width: '50%',
-            aspectRatio: '16 / 9',
+            // Portrait (Shorts): tall 9:16 pillar hugging the side; landscape keeps
+            // the half-width 16:9 box.
+            ...(isPortrait
+              ? { height: '90%', aspectRatio: '9 / 16' }
+              : { width: '50%', aspectRatio: '16 / 9' }),
           };
 
     return (

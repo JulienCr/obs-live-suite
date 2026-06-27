@@ -2,6 +2,8 @@ import {
   isValidUrl,
   isYouTubeUrl,
   extractYouTubeId,
+  isYouTubeShortsUrl,
+  detectOrientationFromUrl,
   isDirectMediaUrl,
   getMediaTypeFromUrl,
   getFilenameFromUrl,
@@ -71,10 +73,37 @@ describe("extractYouTubeId", () => {
     ).toBe("dQw4w9WgXcQ");
   });
 
+  it("extracts ID from /shorts/ format", () => {
+    expect(
+      extractYouTubeId("https://www.youtube.com/shorts/dQw4w9WgXcQ")
+    ).toBe("dQw4w9WgXcQ");
+  });
+
+  it("extracts ID from /shorts/ format with query params", () => {
+    expect(
+      extractYouTubeId("https://www.youtube.com/shorts/dQw4w9WgXcQ?feature=share")
+    ).toBe("dQw4w9WgXcQ");
+  });
+
   it("returns null for bare 11-char ID (parsed as hostname with https prefix)", () => {
     // "dQw4w9WgXcQ" becomes a valid URL as "https://dQw4w9WgXcQ",
     // so the bare ID regex fallback is never reached
     expect(extractYouTubeId("dQw4w9WgXcQ")).toBeNull();
+  });
+
+  it("returns null for look-alike spoofed domains", () => {
+    expect(
+      extractYouTubeId("https://notyoutube.com/watch?v=dQw4w9WgXcQ")
+    ).toBeNull();
+    expect(
+      extractYouTubeId("https://youtube.com.evil.tld/shorts/dQw4w9WgXcQ")
+    ).toBeNull();
+  });
+
+  it("extracts ID from youtube.com subdomains", () => {
+    expect(extractYouTubeId("https://m.youtube.com/watch?v=dQw4w9WgXcQ")).toBe(
+      "dQw4w9WgXcQ"
+    );
   });
 
   it("returns null for invalid input", () => {
@@ -87,6 +116,64 @@ describe("extractYouTubeId", () => {
 
   it("returns null for null", () => {
     expect(extractYouTubeId(null as unknown as string)).toBeNull();
+  });
+});
+
+describe("isYouTubeShortsUrl", () => {
+  it("detects /shorts/ URLs", () => {
+    expect(
+      isYouTubeShortsUrl("https://www.youtube.com/shorts/dQw4w9WgXcQ")
+    ).toBe(true);
+  });
+
+  it("detects /shorts/ URLs without protocol", () => {
+    expect(isYouTubeShortsUrl("youtube.com/shorts/dQw4w9WgXcQ")).toBe(true);
+  });
+
+  it("returns false for regular watch URLs", () => {
+    expect(
+      isYouTubeShortsUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    ).toBe(false);
+  });
+
+  it("returns false for youtu.be URLs", () => {
+    expect(isYouTubeShortsUrl("https://youtu.be/dQw4w9WgXcQ")).toBe(false);
+  });
+
+  it("returns false for non-YouTube URLs", () => {
+    expect(isYouTubeShortsUrl("https://vimeo.com/shorts/123")).toBe(false);
+  });
+
+  it("returns false for look-alike spoofed domains", () => {
+    expect(isYouTubeShortsUrl("https://notyoutube.com/shorts/abc")).toBe(false);
+    expect(isYouTubeShortsUrl("https://youtube.com.evil.tld/shorts/abc")).toBe(
+      false
+    );
+  });
+
+  it("returns false for empty or null inputs", () => {
+    expect(isYouTubeShortsUrl("")).toBe(false);
+    expect(isYouTubeShortsUrl(null as unknown as string)).toBe(false);
+  });
+});
+
+describe("detectOrientationFromUrl", () => {
+  it("returns portrait for YouTube Shorts URLs", () => {
+    expect(
+      detectOrientationFromUrl("https://www.youtube.com/shorts/dQw4w9WgXcQ")
+    ).toBe("portrait");
+  });
+
+  it("returns landscape for regular YouTube URLs", () => {
+    expect(
+      detectOrientationFromUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    ).toBe("landscape");
+  });
+
+  it("returns landscape for non-YouTube inputs", () => {
+    expect(detectOrientationFromUrl("https://example.com/video.mp4")).toBe(
+      "landscape"
+    );
   });
 });
 

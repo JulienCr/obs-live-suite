@@ -51,6 +51,7 @@ interface Poster {
   startTime?: number | null;
   endTime?: number | null;
   endBehavior?: "stop" | "loop" | null;
+  orientation?: "landscape" | "portrait" | null;
   metadata?: {
     chapters?: VideoChapter[];
     [key: string]: unknown;
@@ -242,6 +243,7 @@ export function PosterContent({ className }: PosterContentProps) {
           source: poster.source,
           chapters: poster.metadata?.chapters,
           duration: poster.duration ?? undefined,
+          orientation: poster.orientation ?? undefined,
         },
         mode
       );

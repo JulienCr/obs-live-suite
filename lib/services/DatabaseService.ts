@@ -155,6 +155,12 @@ export class DatabaseService {
         column: "endBehavior",
         definition: "TEXT",
       },
+      {
+        name: "posters_orientation",
+        table: "posters",
+        column: "orientation",
+        definition: "TEXT", // 'landscape' | 'portrait' | NULL (NULL = landscape)
+      },
 
       // Wikipedia cache columns
       {

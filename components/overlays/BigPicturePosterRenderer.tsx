@@ -23,6 +23,7 @@ interface PosterData {
   initialTime?: number; // Initial seek position (resumeFrom from cue, else sub-video startTime)
   initialPlaying?: boolean; // If false, media starts paused (armed-to-air carrying a paused state)
   showId: string; // Unique ID to force React remount on each show
+  orientation?: "landscape" | "portrait"; // "portrait" = vertical 9:16 (YouTube Shorts)
   subVideoConfig?: {
     startTime?: number;
     endTime?: number;
@@ -128,6 +129,7 @@ export function BigPicturePosterRenderer() {
               initialTime: capturedStartTime,
               initialPlaying: capturedPlaying,
               showId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              orientation: data.payload.orientation,
               subVideoConfig: data.payload.startTime !== undefined ? {
                 startTime: data.payload.startTime,
                 endTime: data.payload.endTime,
@@ -219,6 +221,7 @@ export function BigPicturePosterRenderer() {
                 initialTime={state.current.initialTime}
                 initialPlaying={state.current.initialPlaying}
                 videoKey={state.current.showId}
+                orientation={state.current.orientation}
                 subVideoConfig={state.current.subVideoConfig}
                 onYouTubeIframeLoad={state.current.type === "youtube" ? playback.handleYouTubeIframeLoad : undefined}
               />

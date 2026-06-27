@@ -7,12 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload, Link2, Loader2, AlertCircle } from "lucide-react";
-import { extractYouTubeId } from "@/lib/utils/urlDetection";
+import { extractYouTubeId, detectOrientationFromUrl } from "@/lib/utils/urlDetection";
 import { parseDurationString } from "@/lib/utils/durationParser";
 import { useToast } from "@/hooks/use-toast";
 
 interface PosterUploaderProps {
-  onUpload: (url: string, type: "image" | "video" | "youtube", duration?: number) => void;
+  onUpload: (
+    url: string,
+    type: "image" | "video" | "youtube",
+    duration?: number,
+    orientation?: "landscape" | "portrait"
+  ) => void;
   onCancel: () => void;
 }
 
@@ -30,6 +35,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
   const [youtubeNeedsManualDuration, setYoutubeNeedsManualDuration] = useState(false);
   const [manualDuration, setManualDuration] = useState("");
   const [pendingYoutubeUrl, setPendingYoutubeUrl] = useState("");
+  const [pendingOrientation, setPendingOrientation] = useState<"landscape" | "portrait">("landscape");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = (e: DragEvent) => {
@@ -99,6 +105,9 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
     }
 
     const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    // YouTube Shorts are vertical (9:16) — flag them so the overlay renders portrait.
+    // Detect from the raw input now; embedUrl below has lost the /shorts/ signal.
+    const orientation = detectOrientationFromUrl(youtubeUrl);
     setUploading(true);
 
     try {
@@ -109,7 +118,7 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
         const data = await response.json();
         if (data.success && data.metadata?.duration) {
           // Successfully got duration, create poster directly
-          onUpload(embedUrl, "youtube", data.metadata.duration);
+          onUpload(embedUrl, "youtube", data.metadata.duration, orientation);
           setYoutubeUrl("");
           return;
         }
@@ -117,10 +126,12 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
 
       // API call failed or no duration - request manual input
       setPendingYoutubeUrl(embedUrl);
+      setPendingOrientation(orientation);
       setYoutubeNeedsManualDuration(true);
     } catch (error) {
       // Network error or API unavailable - request manual input
       setPendingYoutubeUrl(embedUrl);
+      setPendingOrientation(orientation);
       setYoutubeNeedsManualDuration(true);
     } finally {
       setUploading(false);
@@ -138,9 +149,10 @@ export function PosterUploader({ onUpload, onCancel }: PosterUploaderProps) {
       return;
     }
 
-    onUpload(pendingYoutubeUrl, "youtube", duration);
+    onUpload(pendingYoutubeUrl, "youtube", duration, pendingOrientation);
     setYoutubeNeedsManualDuration(false);
     setPendingYoutubeUrl("");
+    setPendingOrientation("landscape");
     setManualDuration("");
     setYoutubeUrl("");
   };
