@@ -161,6 +161,15 @@ export class StreamerbotGateway extends ConnectionManager {
 
   private processMessage(message: ChatMessage): void {
     this.lastEventTime = Date.now();
+    // Diagnostic: for non-chat events (follow/sub/raid/cheer…), log the RAW
+    // Streamer.bot payload so the real field shape can be confirmed against our
+    // normalizers (the package types these loosely / not at all for YouTube).
+    // These events are low-frequency, so the noise is negligible.
+    if (message.eventType !== "message") {
+      this.logger.info(
+        `event[${message.platform}.${message.eventType}] name="${message.displayName}" raw=${JSON.stringify(message.rawPayload)}`
+      );
+    }
     this.persistMessage(message);
     this.broadcastMessage(message);
     this.notifyChatListeners(message);

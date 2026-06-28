@@ -28,6 +28,20 @@ import type { ChatMessage } from "../../lib/models/StreamerbotChat";
 const router = Router();
 
 // ---------------------------------------------------------------------------
+// Localhost-only guard. /dev spawns a local process (the Twitch CLI); the
+// backend listens on all interfaces (incl. Tailscale), so without this any LAN
+// peer could trigger process spawning. Only loopback callers are allowed.
+// ---------------------------------------------------------------------------
+router.use((req, res, next) => {
+  const ip = req.socket.remoteAddress ?? "";
+  const isLoopback = ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1";
+  if (!isLoopback) {
+    return res.status(403).json({ error: "dev routes are localhost-only" });
+  }
+  next();
+});
+
+// ---------------------------------------------------------------------------
 // Mapping: our UI eventType → Twitch CLI event name
 // ---------------------------------------------------------------------------
 const CLI_EVENT_TYPES: Record<string, string> = {
@@ -39,29 +53,40 @@ const CLI_EVENT_TYPES: Record<string, string> = {
   cheer:    "channel.cheer",
 };
 
+const VALID_TIERS = new Set(["1000", "2000", "3000"]);
+
+/** Clamp request-supplied numbers to a sane bounded integer (no NaN, no shell metachars). */
+function clampInt(value: unknown, min: number, max: number, fallback: number): number {
+  const n = Math.trunc(Number(value));
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
 // ---------------------------------------------------------------------------
 // POST /dev/simulate
 // Called by the HTML page. Triggers the Twitch CLI and captures the event it
 // forwards to a throwaway listener, then injects it into the gateway.
 // ---------------------------------------------------------------------------
 router.post("/simulate", async (req, res) => {
-  const {
-    eventType,
-    viewers = 42,
-    subTier = 1000,
-  } = req.body as Record<string, string | number>;
+  const body = req.body as Record<string, unknown>;
+  const eventType = String(body.eventType ?? "");
 
-  const cliEvent = CLI_EVENT_TYPES[String(eventType)];
+  const cliEvent = CLI_EVENT_TYPES[eventType];
   if (!cliEvent) {
     return res.status(400).json({ error: `Unknown eventType: ${eventType}` });
   }
+
+  // Coerce request-supplied values to safe, bounded forms before they reach the
+  // CLI args (defence in depth — spawn already runs with shell:false).
+  const viewers = clampInt(body.viewers, 1, 1_000_000, 42);
+  const subTier = VALID_TIERS.has(String(body.subTier)) ? String(body.subTier) : "1000";
 
   const extraArgs: string[] = [];
   // Raid: set viewer count via -C (cost).
   if (eventType === "raid") extraArgs.push("-C", String(viewers));
   // Sub / ReSub / GiftSub: set tier.
-  if (["sub", "resub", "giftsub"].includes(String(eventType))) {
-    extraArgs.push("--tier", String(subTier));
+  if (["sub", "resub", "giftsub"].includes(eventType)) {
+    extraArgs.push("--tier", subTier);
   }
 
   try {
@@ -129,7 +154,10 @@ function triggerAndCapture(
 
 function runCli(args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
-    const proc = spawn("twitch", args, { shell: true });
+    // shell:false → args are passed straight to the executable, never parsed by a
+    // shell, so request-supplied values can't be interpreted as commands.
+    // `twitch`/`twitch.exe` is resolved from PATH by Node directly.
+    const proc = spawn("twitch", args, { shell: false });
     let out = "";
     proc.stdout.on("data", (d: Buffer) => { out += d.toString(); });
     proc.stderr.on("data", (d: Buffer) => { out += d.toString(); });
