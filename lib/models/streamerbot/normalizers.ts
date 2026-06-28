@@ -110,7 +110,11 @@ function resolveViewer(
   nestedKeys: string[] = ["user", "fromUser", "targetUser"],
 ): { login: string; name: string } {
   let login = asStr(data.user_login) || asStr(data.userLogin) || asStr(data.userName) || asStr(data.username);
-  let name = asStr(data.user_name) || asStr(data.displayName) || asStr(data.userName) || asStr(data.username);
+  // YouTube exposes the display name as a flat string `user` (login is `userName`).
+  // Only read it when it's a string — on Twitch `user` is a nested object handled below.
+  const flatUserName = typeof data.user === "string" ? asStr(data.user) : "";
+  let name =
+    asStr(data.user_name) || asStr(data.displayName) || flatUserName || asStr(data.userName) || asStr(data.username);
   for (const key of nestedKeys) {
     const nested = data[key];
     if (nested && typeof nested === "object") {
@@ -283,14 +287,14 @@ export function normalizeTwitchCheerEvent(event: TwitchCheerEvent): ChatMessage 
  */
 export function normalizeYouTubeChatMessage(event: YouTubeChatMessageEvent): ChatMessage {
   const data = event.data as unknown as LooseData;
-  const { name } = resolveViewer(data);
+  const { login, name } = resolveViewer(data);
   const text = asStr(data.message);
   return {
     id: asStr(data.messageId) || `yt-${Date.now()}-${Math.random()}`,
     timestamp: Date.now(),
     platform: "youtube",
     eventType: "message",
-    username: name,
+    username: login || name,
     displayName: name,
     message: text,
     parts: [{ type: "text", text }],

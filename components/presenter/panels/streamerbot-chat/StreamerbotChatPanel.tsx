@@ -260,6 +260,8 @@ export function StreamerbotChatPanel({
       {allowSendMessage && canSendMessages && (
         <ChatMessageInput
           onSend={sendMessage}
+          sendTarget={preferences.sendTarget}
+          onSendTargetChange={(target) => updatePreferences({ sendTarget: target })}
           disabled={status !== StreamerbotConnectionStatus.CONNECTED}
           placeholder={t("chat.sendPlaceholder")}
         />

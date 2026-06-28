@@ -122,6 +122,13 @@ export const chatPlatformSchema = z.enum(["twitch", "youtube", "trovo"]);
 export type ChatPlatform = z.infer<typeof chatPlatformSchema>;
 
 /**
+ * Target platform(s) for messages sent FROM the app's chat input.
+ * "both" fans the message out to Twitch and YouTube.
+ */
+export const chatSendTargetSchema = z.enum(["twitch", "youtube", "both"]);
+export type ChatSendTarget = z.infer<typeof chatSendTargetSchema>;
+
+/**
  * Normalized chat message schema
  * This is the format we store/display internally after normalization from Streamer.bot events
  */
@@ -164,6 +171,7 @@ export const chatUIPreferencesSchema = z.object({
   rememberPassword: z.boolean().default(false),
   autoScroll: z.boolean().default(true),
   maxMessages: z.number().int().min(100).max(10000).default(2000),
+  sendTarget: chatSendTargetSchema.default("both"),
 });
 
 export type ChatUIPreferences = z.infer<typeof chatUIPreferencesSchema>;
@@ -179,6 +187,7 @@ export const DEFAULT_CHAT_UI_PREFERENCES: ChatUIPreferences = {
   rememberPassword: false,
   autoScroll: true,
   maxMessages: 2000,
+  sendTarget: "both",
 };
 
 /**

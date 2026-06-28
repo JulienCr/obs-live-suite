@@ -30,10 +30,21 @@ the viewer event renders with an **empty name and no error** (the original bug).
 | Sub / ReSub | camelCase | `userName` (=login) **+ separate `displayName`**, `subTier` (number) |
 | GiftSub | camelCase | gifter `userName`/`displayName` + `recipientUsername`/`recipientDisplayName`, `subTier` |
 | Cheer | camelCase | `username` (lowercase **s**, not `userName`), `displayName`, `bits` |
+| YouTube Message | flat, mixed | `user` (=**display name, a STRING**), `userName` (=login), `message` (text), `messageId` |
 
 Don't pattern-match off a *neighbouring* normalizer — the next event likely uses
 a different convention. Tier comes as a **number** (`subTier`) and we stringify it
 to our `"1000"|"2000"|"3000"` union.
+
+**YouTube quirk (bit us):** unlike Twitch — where `data.user` is a nested *object*
+(`{ login, name }`) — YouTube's `data.user` is a flat *string* = the display name,
+and `userName` is the login. `resolveViewer()` originally read `user` **only** as a
+nested object, so YouTube messages showed the login instead of the real name; it now
+also reads the flat-string `user`. Also: the `.d.ts` types YouTube events as
+`UnknownEventData` (event *names* only, no data shape), so the field-shape source of
+truth for YouTube is the **docs repo** (`github.com/Streamerbot/docs`):
+`streamerbot/3.api/.variables/youtube/YouTubeUser.md` and
+`…/2.triggers/youtube/chat/message.md` — *not* the package `.d.ts`.
 
 ## 2. Subscribing ≠ handling — the two lists drift
 
@@ -75,3 +86,30 @@ it instead of rebuilding a harness.
   pinned via flags, but they're never empty, which is exactly what validates §1.
 - Useful CLI flags: `--tier` (sub tier), `-C` (raid viewer count). `-l`/`--user-login`
   does **not** exist.
+
+## 5. Defensive normalizers DON'T protect the render — guard the consumer too
+
+A dashboard white-screen on an incoming message (`Cannot read properties of undefined
+(reading 'toLowerCase')` in `getMessageHighlights`) is **not** a normalizer bug — the
+normalizers use `resolveViewer`/`asStr` and can only emit strings (worst case `""`).
+The crash is the **consumer**: `useStreamerbotMessages.ts` (`getMessageHighlights` +
+the search filter) and any chat-render code must null-guard `username`/`displayName`/
+`message` (use the `toLower()` helper) because a partial message can arrive from a path
+that bypasses the current normalizer: a **stale `tsx watch` backend** still running the
+old normalizer (the usual trigger — restart the backend after a checkout), a DB
+**history reload** (`/api/streamerbot-chat/history` returns raw rows), or a future
+**unhandled event type**. Persist failures are swallowed (`persistMessage` try/catch)
+but the message still broadcasts, so a bad row crashes the live UI without ever being
+saved. Fix at both layers: correct the normalizer field shape *and* keep the consumer
+crash-proof.
+
+## 6. Sending FROM the app (the other direction)
+
+`useStreamerbotClient.sendMessage(message, target)` posts to
+`/api/streamerbot-chat/send` → `gateway.sendMessage` → `client.sendMessage(platform…)`.
+`target` is `"twitch" | "youtube" | "both"` (`chatSendTargetSchema`), persisted in
+`chatUIPreferences.sendTarget` and chosen via the selector in `ChatMessageInput`.
+`"both"` fans out with `Promise.allSettled` and succeeds if *either* platform accepts —
+**YouTube send throws if YouTube isn't live in Streamer.bot**, which is expected and
+must not block the Twitch send. The default was historically `"twitch"`, so "it only
+sends to Twitch" means the platform arg never reached the call.

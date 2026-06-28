@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type ChatMessage,
+  type ChatSendTarget,
   type StreamerbotConnectionSettings,
   StreamerbotConnectionStatus,
   StreamerbotErrorType,
@@ -26,7 +27,7 @@ export interface UseStreamerbotClientReturn {
   connect: () => Promise<void>;
   disconnect: () => void;
   isUsingFallback: boolean;
-  sendMessage: (message: string, platform?: "twitch" | "youtube") => Promise<boolean>;
+  sendMessage: (message: string, target?: ChatSendTarget) => Promise<boolean>;
   canSendMessages: boolean;
 }
 
@@ -250,25 +251,34 @@ export function useStreamerbotClient({
     };
   }, [handleError]); // Only run on mount/unmount
 
-  // Send message function
+  // Send message function. "both" fans the message out to Twitch and YouTube;
+  // a single failing platform (e.g. YouTube not live) doesn't block the other.
   const sendMessage = useCallback(
-    async (message: string, platform: "twitch" | "youtube" = "twitch"): Promise<boolean> => {
+    async (message: string, target: ChatSendTarget = "both"): Promise<boolean> => {
       if (status !== StreamerbotConnectionStatus.CONNECTED) {
         console.warn("[Streamerbot] Cannot send message - not connected");
         return false;
       }
 
-      try {
-        console.log(`[Streamerbot] Sending message to ${platform}:`, message);
+      const platforms: Array<"twitch" | "youtube"> =
+        target === "both" ? ["twitch", "youtube"] : [target];
 
-        await apiPost(`${getBackendUrl()}/api/streamerbot-chat/send`, { platform, message });
+      console.log(`[Streamerbot] Sending message to ${platforms.join("+")}:`, message);
 
-        console.log("[Streamerbot] Message sent successfully");
-        return true;
-      } catch (err) {
-        console.error("[Streamerbot] Failed to send message:", err);
-        return false;
-      }
+      const results = await Promise.allSettled(
+        platforms.map((platform) =>
+          apiPost(`${getBackendUrl()}/api/streamerbot-chat/send`, { platform, message })
+        )
+      );
+
+      results.forEach((result, i) => {
+        if (result.status === "rejected") {
+          console.warn(`[Streamerbot] Failed to send to ${platforms[i]}:`, result.reason);
+        }
+      });
+
+      // Succeed if at least one platform accepted the message.
+      return results.some((result) => result.status === "fulfilled");
     },
     [status]
   );

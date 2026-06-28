@@ -1676,6 +1676,10 @@
     "chat": {
       "searchPlaceholder": "Rechercher des messages...",
       "sendPlaceholder": "Envoyer un message au chat...",
+      "sendTo": {
+        "label": "Envoyer à",
+        "both": "Les deux"
+      },
       "newMessages": "Nouveaux messages",
       "replyingTo": "Réponse à @{displayName}",
       "moderation": {

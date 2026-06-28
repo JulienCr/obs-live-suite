@@ -23,6 +23,13 @@ export interface UseStreamerbotMessagesReturn {
 const DEFAULT_MAX_MESSAGES = 2000;
 
 /**
+ * Lowercase a possibly-missing string. Chat messages can arrive with undefined
+ * username/displayName/message (malformed payloads, a stale backend, unhandled
+ * event types); calling .toLowerCase() directly on those crashes the whole panel.
+ */
+const toLower = (v?: string | null): string => (v ?? "").toLowerCase();
+
+/**
  * React hook for managing Streamer.bot chat messages with bounded buffer
  */
 export function useStreamerbotMessages({
@@ -80,9 +87,9 @@ export function useStreamerbotMessages({
       const search = searchTerm.toLowerCase();
       result = result.filter(
         (m) =>
-          m.message.toLowerCase().includes(search) ||
-          m.username.toLowerCase().includes(search) ||
-          m.displayName.toLowerCase().includes(search)
+          toLower(m.message).includes(search) ||
+          toLower(m.username).includes(search) ||
+          toLower(m.displayName).includes(search)
       );
     }
 
@@ -123,9 +130,9 @@ export function getMessageHighlights(
 
   // Check keyword highlights
   let keywordMatch: HighlightRule | null = null;
-  const messageLower = message.message.toLowerCase();
-  const usernameLower = message.username.toLowerCase();
-  const displayNameLower = message.displayName.toLowerCase();
+  const messageLower = toLower(message.message);
+  const usernameLower = toLower(message.username);
+  const displayNameLower = toLower(message.displayName);
 
   for (const rule of rules) {
     if (!rule.enabled) continue;
