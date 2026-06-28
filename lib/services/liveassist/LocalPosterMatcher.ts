@@ -49,11 +49,17 @@ function tokenize(normalized: string): string[] {
   return normalized.split(/[^a-z0-9]+/).filter(Boolean);
 }
 
-/** Distinctive title tokens eligible to trigger a match (long enough, not a stop-word). */
+/** Distinctive title tokens eligible to trigger a match (long enough, not a stop-word).
+ *  DISTINCT — a title that repeats a word ("Bla Bla") must count it once, else `idTokenCount`
+ *  and the matched-hit count both inflate and break the mono-identity / corroboration gates. */
 function triggerTokens(title: string): string[] {
-  return tokenize(norm(title)).filter(
-    (t) => t.length >= LIVE_ASSIST.LOCAL_POSTER_MIN_TOKEN_LEN && !STOPWORDS.has(t),
-  );
+  return [
+    ...new Set(
+      tokenize(norm(title)).filter(
+        (t) => t.length >= LIVE_ASSIST.LOCAL_POSTER_MIN_TOKEN_LEN && !STOPWORDS.has(t),
+      ),
+    ),
+  ];
 }
 
 /**
@@ -93,7 +99,7 @@ export class LocalPosterMatcher {
    *  "ambiguous" (e.g. "thierry" across 4 Thierry-variant posters): it identifies no single
    *  poster, so it can't fire one on its own — only a title-unique token (or corroboration) can. */
   private tokenTitleCount: Map<string, number> = new Map();
-  private readonly maxMatches = 3;
+  private readonly maxMatches = LIVE_ASSIST.LOCAL_POSTER_MAX_MATCHES;
 
   /** Rebuild the index from the current posters (live refresh). */
   setPosters(posters: MatchablePoster[], minSimilarity: number = LIVE_ASSIST.LOCAL_POSTER_MIN_SIMILARITY): void {

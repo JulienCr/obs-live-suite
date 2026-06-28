@@ -756,6 +756,8 @@ export const LIVE_ASSIST = {
    *  tokens, where STT typos actually occur. This kills the 1-edit-on-a-5-char-word
    *  false positives (e.g. spoken "ferme" matching the title token "femme" at 0.80). */
   LOCAL_POSTER_FUZZY_MIN_LEN: 6,
+  /** Max local-poster suggestions returned per segment (best-scoring first). */
+  LOCAL_POSTER_MAX_MATCHES: 3,
   /** Show-domain keywords that gate the local-poster "context" rule: an EVERYDAY-word
    *  title (e.g. "Pilote") fires only when one of these appears in the recent transcript
    *  window — i.e. the conversation is about a show. Distinctive titles fire without them.

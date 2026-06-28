@@ -4,7 +4,7 @@
 // Source: hermitdave/FrequencyWords (OpenSubtitles 2018) English 50k, top 9000 surface
 // forms, normalized (lowercase + NFD accent-strip + apostrophe-fold) and split on
 // non-alphanumerics, keeping sub-tokens >= 4 chars (same norm()/tokenizer as the
-// LocalPosterMatcher). 8203 entries.
+// LocalPosterMatcher). 8191 entries.
 //
 // Purpose: part of the "general word" gate for the local-poster fast-path. A spoken word
 // that maps to a common English word cannot, on its own, fire a poster suggestion — it
@@ -13,7 +13,6 @@
 
 /** Common English words that must not single-handedly trigger a local-poster match. */
 export const ENGLISH_COMMON_WORDS: ReadonlySet<string> = new Set([
-  "10th", "12th", "13th", "14th", "15th", "16th", "17th", "18th", "19th", "20th", "21st",
   "aaah", "aaron", "abandon", "abandoned", "abby", "abducted", "abigail", "abilities",
   "ability", "able", "aboard", "abortion", "about", "above", "abraham", "abroad", "absence",
   "absent", "absolute", "absolutely", "absurd", "abuse", "abused", "academic", "academy",
@@ -149,8 +148,8 @@ export const ENGLISH_COMMON_WORDS: ReadonlySet<string> = new Set([
   "causing", "caution", "cautious", "cavalry", "cave", "caves", "cease", "ceiling", "celebrate",
   "celebrated", "celebrating", "celebration", "celebrity", "cell", "cellar", "cellphone",
   "cells", "cement", "cemetery", "cent", "center", "central", "centre", "cents", "centuries",
-  "century", "cereal", "ceremony", "certain", "certainly", "certificate", "ch00ffff", "chad",
-  "chain", "chains", "chair", "chairman", "chairs", "challenge", "challenged", "challenges",
+  "century", "cereal", "ceremony", "certain", "certainly", "certificate", "chad", "chain",
+  "chains", "chair", "chairman", "chairs", "challenge", "challenged", "challenges",
   "challenging", "chamber", "chambers", "champ", "champagne", "champion", "championship",
   "chan", "chance", "chancellor", "chances", "chandler", "chang", "change", "changed",
   "changes", "changing", "channel", "channels", "chanting", "chaos", "chap", "chapel",

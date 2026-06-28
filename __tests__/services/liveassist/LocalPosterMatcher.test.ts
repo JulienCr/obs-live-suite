@@ -182,6 +182,15 @@ describe("LocalPosterMatcher", () => {
       expect(r.map((x) => x.poster.id)).toEqual(["a"]);
     });
 
+    it("treats a title's repeated word as one identity token (no self-corroboration)", () => {
+      const m = new LocalPosterMatcher();
+      // "boue" is everyday; the duplicated word must NOT count twice (else it would fire as
+      // bogus 2-token corroboration / fail the mono-identity context gate).
+      m.setPosters([{ id: "x", title: "Boue Boue", fileUrl: "u", type: "image" }]);
+      expect(m.match("il y a de la boue partout")).toHaveLength(0); // one distinct everyday token, no context
+      expect(m.match("un spectacle de Boue Boue")[0]?.rule).toBe("context"); // mono-identity + domain word
+    });
+
     it("a multi-token title does not fire on a single everyday word via context", () => {
       const m = new LocalPosterMatcher();
       m.setPosters([{ id: "x", title: "La Petite Maison dans la prairie", fileUrl: "u", type: "image" }]);

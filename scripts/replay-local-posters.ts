@@ -15,6 +15,7 @@
 import Database from "better-sqlite3";
 import { readFileSync } from "node:fs";
 import { PathManager } from "@/lib/config/PathManager";
+import { LiveAssistSettingsSchema } from "@/lib/models/LiveAssist";
 import {
   parseTranscriptLog,
   replayLocalPosters,
@@ -53,6 +54,13 @@ const db = new Database(dbPath, { readonly: true });
 const rows = db
   .prepare("SELECT id, title, fileUrl, type, thumbnailUrl, startTime, endTime, endBehavior, metadata FROM posters")
   .all() as Array<Record<string, unknown>>;
+// Read the SAVED Live Assist settings so the replay reflects the user's ACTUAL config
+// (custom domain keywords / similarity), not just the constant defaults. Falls back to
+// schema defaults when the row is absent/unparseable. CLI flags still override below.
+const settingsRow = db.prepare("SELECT value FROM settings WHERE key = ?").get("liveAssist") as
+  | { value?: string }
+  | undefined;
+const settings = LiveAssistSettingsSchema.parse(safeJson(settingsRow?.value) ?? {});
 db.close();
 
 const posters: MatchablePoster[] = rows.map((r) => ({
@@ -68,11 +76,12 @@ const posters: MatchablePoster[] = rows.map((r) => ({
 }));
 
 // Parse with timestamps so the context look-back uses the REAL time window (windowBeforeSec),
-// faithful to live. Domain keywords default to the LIVE_ASSIST set; --min overrides the
-// long-token fuzz bar, --window overrides the look-back seconds.
+// faithful to live. Similarity + domain keywords come from the SAVED settings; --min / --window
+// override the fuzz bar and look-back seconds for what-if tuning.
 const segments = parseTranscriptLog(readFileSync(logFile, "utf-8"));
 const proposals = replayLocalPosters(segments, posters, {
-  ...(minStr ? { minSimilarity: Number(minStr) } : {}),
+  minSimilarity: minStr ? Number(minStr) : settings.localPosterMinSimilarity,
+  domainKeywords: settings.localPosterDomainKeywords,
   ...(windowStr ? { windowBeforeSec: Number(windowStr) } : {}),
 });
 

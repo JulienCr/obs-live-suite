@@ -46,7 +46,9 @@ for (const line of lines) {
   const surface = line.split(/\s+/)[0];
   if (!surface) continue;
   for (const tok of norm(surface).split(/[^a-z0-9]+/)) {
-    if (tok.length >= MIN_LEN) words.add(tok);
+    // Skip tokens containing a digit: real common words have none, and bare numbers are
+    // gated separately by isGeneralWord(). Drops subtitle junk like "1ch00ffff", "2eme".
+    if (tok.length >= MIN_LEN && !/[0-9]/.test(tok)) words.add(tok);
   }
 }
 
