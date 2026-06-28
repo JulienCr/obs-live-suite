@@ -737,6 +737,54 @@ export const LIVE_ASSIST = {
     "ce", "ces", "cette", "son", "sa", "ses", "leur", "leurs", "dans", "pour",
     "par", "sur", "avec", "sans", "que", "qui", "quoi",
   ] as string[],
+  /** Whisper "silence hallucination" filter. faster-whisper was trained on
+   *  YouTube/TV subtitles, so during silence/non-speech it emits subtitle credits
+   *  and boilerplate ("Sous-titrage Société Radio-Canada", "Merci d'avoir regardé
+   *  cette vidéo", …). These segments are dropped at ingest. Matched on the
+   *  normalized form (lowercase, accent-stripped, apostrophe-folded — same `norm()`
+   *  as keywords), ignoring surrounding punctuation/quotes. Store readable text
+   *  here (accents/apostrophes OK); normalization happens at match time. */
+  HALLUCINATION_PHRASES: [
+    // Matched whole-segment (exact, after normalization + punctuation strip), so a
+    // CTA like "Abonnez-vous" only drops a segment that IS exactly that — real speech
+    // ("abonnez-vous à la newsletter") is kept. Brand/credit families are handled by
+    // HALLUCINATION_PATTERNS below instead, to catch their many variants.
+    // FR
+    "Abonnez-vous",
+    "N'oubliez pas de vous abonner",
+    "[Musique]",
+    "[Applaudissements]",
+    "(Rires)",
+    "[Rires]",
+    // EN
+    "Thanks for watching",
+    "Thank you for watching",
+    "Please subscribe",
+    "[Music]",
+    "[Applause]",
+  ] as string[],
+  /** Regex families (run on the normalized — lowercased, accent-stripped,
+   *  apostrophe-folded — text). Brand/credit tokens never occur in genuine studio
+   *  speech, so these are matched anywhere; the `^…` ones assume the hallucination
+   *  is the whole segment. Sources: openai/whisper discussions #928/#1873, the
+   *  HF `whisper-hallucinations` dataset, whisper.cpp #2660. */
+  HALLUCINATION_PATTERNS: [
+    // "Sous-titrage ST' 501", "… Société Radio-Canada", "… FR 2021",
+    // "Sous-titres réalisés par la communauté d'Amara.org" (incl. the malformed "para" variant)
+    /^sous-?titr(age|es)\b/,
+    // Amara.org credit in any language wrapper (FR/EN/DE/ES/IT/PT/ZH…)
+    /amara\s*\.?\s*org/,
+    // SousTitreur.com credit ("❤️ par SousTitreur.com")
+    /soustitreur\s*\.?\s*com/,
+    // Cross-language TV/credit line ending in a year ("copyright wdr 2021", "… zdf … 2017")
+    /\b(copyright|untertitel|legendas?|sottotitoli|subtitulos)\b.*\b(19|20)\d{2}\b/,
+    // Transcription-service credits (Otter / CastingWords)
+    /\b(transcri(bed|ption|pt)|transcrit)\b.*\b(otter\s*\.?\s*ai|castingwords)\b/,
+    // FR sign-off family ("merci d'avoir regardé [cette|la] vidéo", "… regardé !")
+    /^merci d'avoir regard/,
+    // FR sign-off ("j'espère que vous avez apprécié [cette|la] vidéo")
+    /^j'espere que vous avez apprecie/,
+  ] as RegExp[],
 } as const;
 
 // ============================================================================

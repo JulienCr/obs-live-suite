@@ -129,6 +129,28 @@ describe("LiveAssistOrchestrator", () => {
     expect(events.some((e) => e.type === "suggestion:new")).toBe(false);
   });
 
+  it("drops a hallucination segment (not recorded, not broadcast, no scan) but stays connected", async () => {
+    const transcripts: string[] = [];
+    const recorded: string[] = [];
+    const statusCalls: Array<[boolean, string | null]> = [];
+    const { orch, events } = makeOrchestrator(
+      { actionnable: true, intent: "poster", entite: "Le Cid", confiance: 0.9 },
+      {
+        isHallucination: (text: string) => text.startsWith("Sous-titrage"),
+        recordTranscript: (text: string) => recorded.push(text),
+        publishTranscript: (text: string) => transcripts.push(text),
+        publishStatus: (c: boolean, d: string | null) => statusCalls.push([c, d]),
+      },
+    );
+    // Contains the fixture keyword "spectacle" — a non-hallucination segment would
+    // register a window. Being a hallucination, it's dropped before record/scan/publish.
+    await orch.ingestSegment(seg("Sous-titrage spectacle Société Radio-Canada", 10000, 11000));
+    expect(recorded).toEqual([]); // not persisted to the transcript file
+    expect(transcripts).toEqual([]); // not re-broadcast
+    expect(events.some((e) => e.type === "suggestion:new")).toBe(false); // no window/suggestion
+    expect(statusCalls[0]?.[0]).toBe(true); // STT still marked connected (alive)
+  });
+
   it("publishes the live transcript for the debug view by default", async () => {
     const transcripts: string[] = [];
     const { orch } = makeOrchestrator(

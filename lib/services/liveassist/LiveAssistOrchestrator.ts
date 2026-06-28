@@ -9,6 +9,7 @@ import { SuggestionStore } from "./SuggestionStore";
 import { ProviderRegistry } from "./providers/ActionProvider";
 import type { BuiltSuggestion } from "./providers/ActionProvider";
 import type { IntentExtractor } from "./IntentExtractor";
+import { isHallucination as defaultIsHallucination } from "./hallucinationFilter";
 
 const logger = new Logger("LiveAssistOrchestrator");
 
@@ -50,6 +51,12 @@ interface Deps {
    * no extractor). Returns [] when disabled.
    */
   matchLocalPosters?: (text: string) => BuiltSuggestion[];
+  /**
+   * Drop a finalized segment that is a known Whisper "silence hallucination"
+   * (subtitle credits / boilerplate emitted during non-speech). Defaults to the
+   * shared `isHallucination` filter; injectable for tests.
+   */
+  isHallucination?: (text: string) => boolean;
   staleMs?: number;
 }
 
@@ -62,6 +69,7 @@ export class LiveAssistOrchestrator {
   private readonly publishTranscript: (text: string, t0: number, t1: number) => void;
   private readonly recordTranscript: (text: string) => void;
   private readonly resolveDeviceLabel: (id: string) => string;
+  private readonly isHallucination: (text: string) => boolean;
   private readonly staleMs: number;
   private lastSeenAt = 0;
 
@@ -73,6 +81,7 @@ export class LiveAssistOrchestrator {
     this.publishTranscript = deps.publishTranscript ?? (() => undefined);
     this.recordTranscript = deps.recordTranscript ?? (() => undefined);
     this.resolveDeviceLabel = deps.resolveDeviceLabel ?? ((id) => id);
+    this.isHallucination = deps.isHallucination ?? defaultIsHallucination;
     this.staleMs = deps.staleMs ?? LIVE_ASSIST.STT_STALE_MS;
   }
 
@@ -125,6 +134,12 @@ export class LiveAssistOrchestrator {
     if (!segment.final) return;
     if (!this.isEnabled()) return;
     this.markSttAlive();
+    // Drop known Whisper "silence hallucinations" (subtitle credits / boilerplate
+    // emitted during non-speech) BEFORE anything else — so they never reach the
+    // transcript file, the buffer, keyword detection, the debug view, or a
+    // suggestion. markSttAlive() above already ran: a hallucination still proves the
+    // STT service is producing output.
+    if (this.isHallucination(segment.text)) return;
     // Always persist to the transcript file (gated only by enabled/final above);
     // the debug flag below only governs the live websocket re-broadcast.
     this.recordTranscript(segment.text);

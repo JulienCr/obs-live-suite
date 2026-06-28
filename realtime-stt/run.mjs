@@ -58,8 +58,16 @@ if (!upToDate) {
   log("requirements installed.");
 }
 
-// 3. run main.py with the venv python, forwarding signals + exit code
-const child = spawn(venvPy, ["main.py"], { cwd: here, stdio: "inherit" });
+// 3. run main.py with the venv python, forwarding signals + exit code.
+// `-u` + PYTHONUNBUFFERED force unbuffered stdout/stderr: under PM2 the child's
+// stdio is a pipe, so Python block-buffers (~8 KB) and a long-running service with
+// sparse output never flushes — leaving stt-out.log empty. Unbuffered makes each
+// print() land in the log immediately, like the (Node) backend/frontend do.
+const child = spawn(venvPy, ["-u", "main.py"], {
+  cwd: here,
+  stdio: "inherit",
+  env: { ...process.env, PYTHONUNBUFFERED: "1" },
+});
 child.on("exit", (code) => process.exit(code ?? 0));
 for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => child.kill(sig));
