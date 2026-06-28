@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, KeyboardEvent } from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,7 @@ export function ChatMessageInput({
   placeholder = "Send a message...",
   className,
 }: ChatMessageInputProps) {
+  const t = useTranslations("presenter.chat");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -62,11 +64,11 @@ export function ChatMessageInput({
         onValueChange={(v) => onSendTargetChange?.(v as ChatSendTarget)}
         disabled={disabled || sending}
       >
-        <SelectTrigger className="h-8 w-[96px] text-xs shrink-0" aria-label="Send to">
+        <SelectTrigger className="h-8 w-[96px] text-xs shrink-0" aria-label={t("sendTo.label")}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="both">Both</SelectItem>
+          <SelectItem value="both">{t("sendTo.both")}</SelectItem>
           <SelectItem value="twitch">Twitch</SelectItem>
           <SelectItem value="youtube">YouTube</SelectItem>
         </SelectContent>

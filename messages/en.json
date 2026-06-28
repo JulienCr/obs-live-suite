@@ -1675,6 +1675,10 @@
     "chat": {
       "searchPlaceholder": "Search messages...",
       "sendPlaceholder": "Send a message to chat...",
+      "sendTo": {
+        "label": "Send to",
+        "both": "Both"
+      },
       "newMessages": "New messages",
       "replyingTo": "Replying to @{displayName}",
       "moderation": {

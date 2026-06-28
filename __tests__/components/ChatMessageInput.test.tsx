@@ -5,6 +5,11 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ChatMessageInput } from "@/components/presenter/chat/ChatMessageInput";
 
+// Mock next-intl: t(key) -> key (project convention for component tests)
+jest.mock("next-intl", () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 /**
  * The platform selector lets the user route a sent message to Twitch, YouTube, or
  * both. The input must forward the *selected* target to onSend (previously every
