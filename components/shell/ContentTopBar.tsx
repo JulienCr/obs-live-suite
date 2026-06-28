@@ -9,7 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Maximize, Minimize, Loader2, Check, MonitorOff, FolderOpen } from "lucide-react";
+import { Maximize, Minimize, Loader2, Check, MonitorOff, FolderOpen, EyeOff } from "lucide-react";
+import { toast } from "sonner";
+import { apiPost, extractErrorMessage } from "@/lib/utils/ClientFetch";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { AiChatButton } from "@/components/ai-chat/AiChatButton";
 import { useAppMode } from "@/components/shell/AppModeContext";
@@ -108,6 +110,21 @@ export function ContentTopBar() {
 
       {/* AI Chat */}
       <AiChatButton />
+
+      {/* Hide all on-air overlays at once (panic). One click, no confirmation. */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() =>
+          apiPost("/api/actions/panic", {}).catch((e) =>
+            toast.error(extractErrorMessage(e, t("hideAllFailed"))),
+          )
+        }
+        title={t("hideAll")}
+        className="h-8 w-8 p-0"
+      >
+        <EyeOff className="w-4 h-4" />
+      </Button>
 
       {/* Fullscreen Toggle */}
       <Button

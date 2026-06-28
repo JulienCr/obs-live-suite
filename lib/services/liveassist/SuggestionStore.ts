@@ -54,4 +54,10 @@ export class SuggestionStore {
     this.publish({ type: "suggestion:update", payload: { id, status } });
     return s;
   }
+
+  /** Drop every stored suggestion (panic "vider"). Broadcast so all dashboards empty in sync. */
+  clear(): void {
+    this.items.length = 0;
+    this.publish({ type: "suggestions:cleared", payload: {} });
+  }
 }

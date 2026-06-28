@@ -1,6 +1,9 @@
 "use client";
 import { useCallback, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { type IDockviewPanelProps } from "dockview-react";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { BasePanelWrapper, type PanelConfig } from "@/components/panels";
 import { useWebSocketChannel } from "@/hooks/useWebSocketChannel";
 import { toast } from "sonner";
@@ -14,7 +17,8 @@ import type { LiveAssistEvent, Suggestion } from "@/lib/models/LiveAssist";
 const config: PanelConfig = { id: "liveAssist", context: "dashboard" };
 
 export function LiveAssistPanel(_props: IDockviewPanelProps) {
-  const { suggestions, transcripts, setAll, upsert, updateStatus, setStatusBar, addTranscript } =
+  const t = useTranslations("dashboard.liveAssist");
+  const { suggestions, transcripts, setAll, upsert, updateStatus, clearAll, setStatusBar, addTranscript } =
     useLiveAssistStore();
 
   useEffect(() => {
@@ -33,10 +37,11 @@ export function LiveAssistPanel(_props: IDockviewPanelProps) {
     (e: LiveAssistEvent) => {
       if (e.type === "suggestion:new") upsert(e.payload.suggestion);
       else if (e.type === "suggestion:update") updateStatus(e.payload.id, e.payload.status);
+      else if (e.type === "suggestions:cleared") clearAll();
       else if (e.type === "stt:status") setStatusBar(e.payload.connected, e.payload.device);
       else if (e.type === "transcript") addTranscript(e.payload.text);
     },
-    [upsert, updateStatus, setStatusBar, addTranscript],
+    [upsert, updateStatus, clearAll, setStatusBar, addTranscript],
   );
   useWebSocketChannel<LiveAssistEvent>("live-assist", handleEvent, { logPrefix: "LiveAssistPanel" });
 
@@ -52,6 +57,11 @@ export function LiveAssistPanel(_props: IDockviewPanelProps) {
       toast.error(extractErrorMessage(e, "Échec du rejet de la suggestion")),
     );
   }, []);
+  const onClearAll = useCallback(() => {
+    apiPost("/api/live-assist/suggestions/clear", {}).catch((e) =>
+      toast.error(extractErrorMessage(e, t("clearFailed"))),
+    );
+  }, [t]);
 
   return (
     <BasePanelWrapper config={config}>
@@ -59,7 +69,20 @@ export function LiveAssistPanel(_props: IDockviewPanelProps) {
         {/* Header: STT status (left) + quick listening/transcript kill switches (right). */}
         <div className="flex items-center justify-between gap-2 px-3 py-2 border-b">
           <SttStatusBar />
-          <LiveAssistControls />
+          <div className="flex items-center gap-2">
+            <LiveAssistControls />
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1.5 px-2 text-xs"
+              onClick={onClearAll}
+              disabled={suggestions.length === 0}
+              title={t("clearAll")}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {t("clearAll")}
+            </Button>
+          </div>
         </div>
         <div className="flex flex-col gap-2 p-3 overflow-auto flex-1">
           {suggestions.map((s) => (

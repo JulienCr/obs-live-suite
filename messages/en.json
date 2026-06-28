@@ -32,6 +32,8 @@
       "noProfile": "No Profile",
       "fullscreen": "Fullscreen",
       "exitFullscreen": "Exit Fullscreen",
+      "hideAll": "Hide all",
+      "hideAllFailed": "Failed to hide overlays",
       "switchToAdmin": "Switch to ADMIN Mode",
       "switchToLive": "Switch to LIVE Mode",
       "onAirDialogTitle": "You are currently ON AIR",
@@ -426,7 +428,9 @@
       "disconnected": "STT disconnected",
       "listening": "Listening",
       "transcript": "Transcript",
-      "toggleFailed": "Failed to update Live Assist"
+      "toggleFailed": "Failed to update Live Assist",
+      "clearAll": "Clear",
+      "clearFailed": "Failed to clear suggestions"
     }
   },
   "navigation": {

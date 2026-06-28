@@ -19,6 +19,7 @@ interface LiveAssistState {
   setAll: (s: Suggestion[]) => void;
   upsert: (s: Suggestion) => void;
   updateStatus: (id: string, status: Suggestion["status"]) => void;
+  clearAll: () => void;
   setStatusBar: (connected: boolean, device: string | null) => void;
   addTranscript: (text: string) => void;
 }
@@ -35,6 +36,7 @@ export const useLiveAssistStore = create<LiveAssistState>((set) => ({
     })),
   updateStatus: (id, status) =>
     set((st) => ({ suggestions: st.suggestions.map((x) => (x.id === id ? { ...x, status } : x)) })),
+  clearAll: () => set({ suggestions: [] }),
   setStatusBar: (connected, device) => set({ status: { connected, device } }),
   addTranscript: (text) =>
     set((st) => {
