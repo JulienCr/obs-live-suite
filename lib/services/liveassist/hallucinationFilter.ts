@@ -20,8 +20,10 @@ const NORM_PHRASES = new Set(LIVE_ASSIST.HALLUCINATION_PHRASES.map(norm));
  * "Abonnez-vous" is dropped, but "abonnez-vous à la newsletter" is real speech and kept.
  */
 export function isHallucination(text: string): boolean {
+  // Strip surrounding whitespace/quotes/punctuation (NOT []() — those are
+  // significant for caption tags like "[Musique]").
   const t = norm(text)
-    .replace(/^[\s"'«».,!?…–—-]+|[\s"'«».,!?…–—-]+$/g, "")
+    .replace(/^[\s"'«».,;:!?…–—-]+|[\s"'«».,;:!?…–—-]+$/g, "")
     .trim();
   if (!t) return false; // empty / punctuation-only carries no signal — not flagged
   if (NORM_PHRASES.has(t)) return true;

@@ -11,11 +11,21 @@ describe("isHallucination", () => {
       expect(isHallucination(text)).toBe(true);
     });
 
+    // Matched by the brand/sign-off regex families (not the exact-phrase list).
     it.each([
       "Merci d'avoir regardé cette vidéo",
       "Amara.org",
       "SousTitreur.com",
-    ])("exact phrase: %s", (text) => {
+    ])("brand / sign-off family: %s", (text) => {
+      expect(isHallucination(text)).toBe(true);
+    });
+
+    // Matched by the exact HALLUCINATION_PHRASES list (whole-segment).
+    it.each([
+      "Abonnez-vous",
+      "[Musique]",
+      "Thanks for watching",
+    ])("exact phrase list: %s", (text) => {
       expect(isHallucination(text)).toBe(true);
     });
 
