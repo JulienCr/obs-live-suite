@@ -88,19 +88,62 @@ export function normalizeTwitchChatMessage(event: TwitchChatMessageEvent): ChatM
   };
 }
 
+// ---------------------------------------------------------------------------
+// Defensive field extraction
+//
+// The @streamerbot/client package types Twitch events loosely and YouTube events
+// not at all (`UnknownEventData`), and Streamer.bot has shipped DIFFERENT payload
+// shapes across versions for the same event: flat snake_case (user_login /
+// user_name — the current Follow/EventSub shape), flat camelCase (userName /
+// displayName — Sub/ReSub/Cheer), or a nested user object (user / fromUser /
+// targetUser). Reading a single assumed field silently yields an empty name when
+// the shape differs, which is the exact bug this guards against. So we read each
+// identity from every plausible location and fall back gracefully.
+// ---------------------------------------------------------------------------
+type LooseData = Record<string, unknown>;
+
+const asStr = (v: unknown): string => (typeof v === "string" ? v : v == null ? "" : String(v));
+
+/** Resolve a viewer's { login, name } from flat snake_case, flat camelCase, or a nested user object. */
+function resolveViewer(
+  data: LooseData,
+  nestedKeys: string[] = ["user", "fromUser", "targetUser"],
+): { login: string; name: string } {
+  let login = asStr(data.user_login) || asStr(data.userLogin) || asStr(data.userName) || asStr(data.username);
+  let name = asStr(data.user_name) || asStr(data.displayName) || asStr(data.userName) || asStr(data.username);
+  for (const key of nestedKeys) {
+    const nested = data[key];
+    if (nested && typeof nested === "object") {
+      const n = nested as LooseData;
+      login = login || asStr(n.login) || asStr(n.userLogin) || asStr(n.name);
+      name = name || asStr(n.name) || asStr(n.displayName) || asStr(n.login);
+    }
+  }
+  name = name || login;
+  return { login, name };
+}
+
+/** Normalize a subscription tier (number 1000 or string "1000") to our union. */
+function resolveTier(v: unknown): "1000" | "2000" | "3000" {
+  const s = asStr(v);
+  return s === "2000" || s === "3000" ? s : "1000";
+}
+
 /**
  * Normalize a Twitch.Follow event
  */
 export function normalizeTwitchFollowEvent(event: TwitchFollowEvent): ChatMessage {
-  const { data } = event;
+  const data = event.data as unknown as LooseData;
+  const { login, name } = resolveViewer(data);
+  const userId = asStr(data.user_id) || asStr(data.userId) || login;
   return {
-    id: `follow-${data.userId}-${Date.now()}`,
+    id: `follow-${userId}-${Date.now()}`,
     timestamp: Date.now(),
     platform: "twitch",
     eventType: "follow",
-    username: data.userLogin,
-    displayName: data.userName,
-    message: `${data.userName} just followed!`,
+    username: login,
+    displayName: name,
+    message: `${name} just followed!`,
     rawPayload: event,
   };
 }
@@ -109,17 +152,19 @@ export function normalizeTwitchFollowEvent(event: TwitchFollowEvent): ChatMessag
  * Normalize a Twitch.Sub event
  */
 export function normalizeTwitchSubEvent(event: TwitchSubEvent): ChatMessage {
-  const { data } = event;
+  const data = event.data as unknown as LooseData;
+  const { login, name } = resolveViewer(data);
+  const userId = asStr(data.userId) || asStr(data.user_id) || login;
   return {
-    id: `sub-${data.userId}-${Date.now()}`,
+    id: `sub-${userId}-${Date.now()}`,
     timestamp: Date.now(),
     platform: "twitch",
     eventType: "sub",
-    username: data.userLogin,
-    displayName: data.userName,
-    message: data.message || `${data.userName} subscribed!`,
+    username: login,
+    displayName: name,
+    message: asStr(data.message) || `${name} subscribed!`,
     metadata: {
-      subscriptionTier: data.tier as "1000" | "2000" | "3000",
+      subscriptionTier: resolveTier(data.subTier ?? data.tier),
     },
     rawPayload: event,
   };
@@ -129,18 +174,21 @@ export function normalizeTwitchSubEvent(event: TwitchSubEvent): ChatMessage {
  * Normalize a Twitch.ReSub event
  */
 export function normalizeTwitchReSubEvent(event: TwitchReSubEvent): ChatMessage {
-  const { data } = event;
+  const data = event.data as unknown as LooseData;
+  const { login, name } = resolveViewer(data);
+  const userId = asStr(data.userId) || asStr(data.user_id) || login;
+  const months = Number(data.cumulativeMonths ?? data.monthsSubscribed ?? 0) || 0;
   return {
-    id: `resub-${data.userId}-${Date.now()}`,
+    id: `resub-${userId}-${Date.now()}`,
     timestamp: Date.now(),
     platform: "twitch",
     eventType: "resub",
-    username: data.userLogin,
-    displayName: data.userName,
-    message: data.message || `${data.userName} resubscribed for ${data.cumulativeMonths} months!`,
+    username: login,
+    displayName: name,
+    message: asStr(data.message) || `${name} resubscribed for ${months} months!`,
     metadata: {
-      subscriptionTier: data.tier as "1000" | "2000" | "3000",
-      monthsSubscribed: data.cumulativeMonths,
+      subscriptionTier: resolveTier(data.subTier ?? data.tier),
+      monthsSubscribed: months,
     },
     rawPayload: event,
   };
@@ -150,18 +198,29 @@ export function normalizeTwitchReSubEvent(event: TwitchReSubEvent): ChatMessage 
  * Normalize a Twitch.GiftSub event
  */
 export function normalizeTwitchGiftSubEvent(event: TwitchGiftSubEvent): ChatMessage {
-  const { data } = event;
+  const data = event.data as unknown as LooseData;
+  const isAnonymous = Boolean(data.isAnonymous);
+  const gifter = resolveViewer(data);
+  const gifterName = isAnonymous ? "Anonymous" : gifter.name || "Anonymous";
+  const recipientName =
+    asStr(data.recipientDisplayName) ||
+    asStr(data.recipientUsername) ||
+    asStr(data.recipientUserName) ||
+    asStr((data.recipient as LooseData | undefined)?.name) ||
+    "?";
+  const userId = asStr(data.userId) || asStr(data.user_id) || gifter.login;
+  const recipientId = asStr(data.recipientUserId) || recipientName;
   return {
-    id: `giftsub-${data.userId}-${data.recipientUserId}-${Date.now()}`,
+    id: `giftsub-${userId}-${recipientId}-${Date.now()}`,
     timestamp: Date.now(),
     platform: "twitch",
     eventType: "giftsub",
-    username: data.userName || "Anonymous",
-    displayName: data.userName || "Anonymous",
-    message: `${data.userName || "An anonymous user"} gifted a sub to ${data.recipientUserName}!`,
+    username: isAnonymous ? "anonymous" : gifter.login,
+    displayName: gifterName,
+    message: `${gifterName} gifted a sub to ${recipientName}!`,
     metadata: {
-      subscriptionTier: data.tier as "1000" | "2000" | "3000",
-      eventData: { recipient: data.recipientUserName, totalGifts: data.totalGifts },
+      subscriptionTier: resolveTier(data.subTier ?? data.tier),
+      eventData: { recipient: recipientName, totalGifts: Number(data.totalSubsGifted ?? 0) || undefined },
     },
     rawPayload: event,
   };
@@ -171,17 +230,22 @@ export function normalizeTwitchGiftSubEvent(event: TwitchGiftSubEvent): ChatMess
  * Normalize a Twitch.Raid event
  */
 export function normalizeTwitchRaidEvent(event: TwitchRaidEvent): ChatMessage {
-  const { data } = event;
+  const data = event.data as unknown as LooseData;
+  const nested = resolveViewer(data, ["fromUser", "user"]);
+  const login = asStr(data.from_broadcaster_user_login) || nested.login;
+  const name = asStr(data.from_broadcaster_user_name) || nested.name || login;
+  const userId = asStr(data.from_broadcaster_user_id) || asStr(data.userId) || login;
+  const viewers = Number(data.viewers ?? 0) || 0;
   return {
-    id: `raid-${data.userId}-${Date.now()}`,
+    id: `raid-${userId}-${Date.now()}`,
     timestamp: Date.now(),
     platform: "twitch",
     eventType: "raid",
-    username: data.userLogin,
-    displayName: data.userName,
-    message: `${data.userName} is raiding with ${data.viewers} viewers!`,
+    username: login,
+    displayName: name,
+    message: `${name} is raiding with ${viewers} viewers!`,
     metadata: {
-      eventData: { viewers: data.viewers },
+      eventData: { viewers },
     },
     rawPayload: event,
   };
@@ -191,17 +255,20 @@ export function normalizeTwitchRaidEvent(event: TwitchRaidEvent): ChatMessage {
  * Normalize a Twitch.Cheer event
  */
 export function normalizeTwitchCheerEvent(event: TwitchCheerEvent): ChatMessage {
-  const { data } = event;
+  const data = event.data as unknown as LooseData;
+  const { login, name } = resolveViewer(data);
+  const userId = asStr(data.userId) || asStr(data.user_id) || login;
+  const bits = Number(data.bits ?? 0) || 0;
   return {
-    id: `cheer-${data.userId}-${Date.now()}`,
+    id: `cheer-${userId}-${Date.now()}`,
     timestamp: Date.now(),
     platform: "twitch",
     eventType: "cheer",
-    username: data.userName,
-    displayName: data.userName,
-    message: data.message || `${data.userName} cheered ${data.bits} bits!`,
+    username: login,
+    displayName: name,
+    message: asStr(data.message) || `${name} cheered ${bits} bits!`,
     metadata: {
-      eventData: { bits: data.bits },
+      eventData: { bits },
     },
     rawPayload: event,
   };
@@ -215,20 +282,22 @@ export function normalizeTwitchCheerEvent(event: TwitchCheerEvent): ChatMessage 
  * Normalize a YouTube.Message event
  */
 export function normalizeYouTubeChatMessage(event: YouTubeChatMessageEvent): ChatMessage {
-  const { data } = event;
+  const data = event.data as unknown as LooseData;
+  const { name } = resolveViewer(data);
+  const text = asStr(data.message);
   return {
-    id: data.messageId || `yt-${Date.now()}-${Math.random()}`,
+    id: asStr(data.messageId) || `yt-${Date.now()}-${Math.random()}`,
     timestamp: Date.now(),
     platform: "youtube",
     eventType: "message",
-    username: data.userName,
-    displayName: data.userName,
-    message: data.message,
-    parts: [{ type: "text", text: data.message }],
+    username: name,
+    displayName: name,
+    message: text,
+    parts: [{ type: "text", text }],
     metadata: {
-      isMod: data.isModerator,
-      isBroadcaster: data.isOwner,
-      isSubscriber: data.isSponsor,
+      isMod: Boolean(data.isModerator),
+      isBroadcaster: Boolean(data.isOwner),
+      isSubscriber: Boolean(data.isSponsor),
     },
     rawPayload: event,
   };
@@ -238,17 +307,19 @@ export function normalizeYouTubeChatMessage(event: YouTubeChatMessageEvent): Cha
  * Normalize a YouTube.NewSponsor event (membership)
  */
 export function normalizeYouTubeNewSponsor(event: YouTubeNewSponsorEvent): ChatMessage {
-  const { data } = event;
+  const data = event.data as unknown as LooseData;
+  const { name } = resolveViewer(data);
+  const userId = asStr(data.userId) || name;
   return {
-    id: `sponsor-${data.userId}-${Date.now()}`,
+    id: `sponsor-${userId}-${Date.now()}`,
     timestamp: Date.now(),
     platform: "youtube",
     eventType: "sub",
-    username: data.userName,
-    displayName: data.userName,
-    message: `${data.userName} became a member!`,
+    username: name,
+    displayName: name,
+    message: `${name} became a member!`,
     metadata: {
-      eventData: { level: data.level },
+      eventData: { level: asStr(data.level) || undefined },
     },
     rawPayload: event,
   };
@@ -258,17 +329,21 @@ export function normalizeYouTubeNewSponsor(event: YouTubeNewSponsorEvent): ChatM
  * Normalize a YouTube.SuperChat event
  */
 export function normalizeYouTubeSuperChat(event: YouTubeSuperChatEvent): ChatMessage {
-  const { data } = event;
+  const data = event.data as unknown as LooseData;
+  const { name } = resolveViewer(data);
+  const userId = asStr(data.userId) || name;
+  const amount = Number(data.amount ?? 0) || 0;
+  const currency = asStr(data.currency);
   return {
-    id: `superchat-${data.userId}-${Date.now()}`,
+    id: `superchat-${userId}-${Date.now()}`,
     timestamp: Date.now(),
     platform: "youtube",
     eventType: "superchat",
-    username: data.userName,
-    displayName: data.userName,
-    message: data.message || `${data.userName} sent ${data.currency} ${data.amount}!`,
+    username: name,
+    displayName: name,
+    message: asStr(data.message) || `${name} sent ${currency} ${amount}!`,
     metadata: {
-      eventData: { amount: data.amount, currency: data.currency },
+      eventData: { amount, currency },
     },
     rawPayload: event,
   };
@@ -278,17 +353,21 @@ export function normalizeYouTubeSuperChat(event: YouTubeSuperChatEvent): ChatMes
  * Normalize a YouTube.SuperSticker event
  */
 export function normalizeYouTubeSuperSticker(event: YouTubeSuperStickerEvent): ChatMessage {
-  const { data } = event;
+  const data = event.data as unknown as LooseData;
+  const { name } = resolveViewer(data);
+  const userId = asStr(data.userId) || name;
+  const amount = Number(data.amount ?? 0) || 0;
+  const currency = asStr(data.currency);
   return {
-    id: `supersticker-${data.userId}-${Date.now()}`,
+    id: `supersticker-${userId}-${Date.now()}`,
     timestamp: Date.now(),
     platform: "youtube",
     eventType: "supersticker",
-    username: data.userName,
-    displayName: data.userName,
-    message: `${data.userName} sent a Super Sticker for ${data.currency} ${data.amount}!`,
+    username: name,
+    displayName: name,
+    message: `${name} sent a Super Sticker for ${currency} ${amount}!`,
     metadata: {
-      eventData: { amount: data.amount, currency: data.currency, sticker: data.sticker },
+      eventData: { amount, currency, sticker: asStr(data.sticker) || undefined },
     },
     rawPayload: event,
   };

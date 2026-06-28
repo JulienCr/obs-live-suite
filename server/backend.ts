@@ -36,6 +36,7 @@ import mediaPlayerRouter from "./api/media-player";
 import wordHarvestRouter from "./api/word-harvest";
 import { createLiveAssistRouter } from "./api/live-assist";
 import { buildOrchestrator } from "./api/liveAssistBoot";
+import devEventsRouter from "./api/dev-events";
 import { APP_PORT, BACKEND_PORT, WS_PORT } from "../lib/config/urls";
 import { createServerWithFallback } from "../lib/utils/CertificateManager";
 import { getPortConflictReport } from "../scripts/port-diagnostics.mjs";
@@ -127,6 +128,12 @@ class BackendServer {
     const { orchestrator, store, registry } = buildOrchestrator();
     this.app.use(createLiveAssistRouter({ orchestrator, store, registry }));
     this.logger.info("✓ Live Assist routes configured");
+
+    // Dev-only: viewer event simulator UI
+    if (process.env.NODE_ENV !== "production") {
+      this.app.use("/dev", devEventsRouter);
+      this.logger.info("✓ Dev event tester available at /dev");
+    }
 
     // 404 handler MUST be added LAST (after all routes)
     this.app.use((req, res) => {
