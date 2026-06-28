@@ -3,11 +3,23 @@
 import { useState, useCallback, KeyboardEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Send, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ChatSendTarget } from "@/lib/models/StreamerbotChat";
 
 interface ChatMessageInputProps {
-  onSend: (message: string) => Promise<boolean>;
+  onSend: (message: string, target: ChatSendTarget) => Promise<boolean>;
+  /** Currently selected destination platform(s). Defaults to "both". */
+  sendTarget?: ChatSendTarget;
+  /** Called when the user changes the destination (persist this to remember it). */
+  onSendTargetChange?: (target: ChatSendTarget) => void;
   disabled?: boolean;
   placeholder?: string;
   className?: string;
@@ -15,6 +27,8 @@ interface ChatMessageInputProps {
 
 export function ChatMessageInput({
   onSend,
+  sendTarget = "both",
+  onSendTargetChange,
   disabled,
   placeholder = "Send a message...",
   className,
@@ -26,13 +40,13 @@ export function ChatMessageInput({
     if (!message.trim() || sending || disabled) return;
 
     setSending(true);
-    const success = await onSend(message.trim());
+    const success = await onSend(message.trim(), sendTarget);
     setSending(false);
 
     if (success) {
       setMessage("");
     }
-  }, [message, sending, disabled, onSend]);
+  }, [message, sending, disabled, onSend, sendTarget]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -43,6 +57,20 @@ export function ChatMessageInput({
 
   return (
     <div className={cn("flex gap-2 p-2 border-t bg-card", className)}>
+      <Select
+        value={sendTarget}
+        onValueChange={(v) => onSendTargetChange?.(v as ChatSendTarget)}
+        disabled={disabled || sending}
+      >
+        <SelectTrigger className="h-8 w-[96px] text-xs shrink-0" aria-label="Send to">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="both">Both</SelectItem>
+          <SelectItem value="twitch">Twitch</SelectItem>
+          <SelectItem value="youtube">YouTube</SelectItem>
+        </SelectContent>
+      </Select>
       <Input
         value={message}
         onChange={(e) => setMessage(e.target.value)}
