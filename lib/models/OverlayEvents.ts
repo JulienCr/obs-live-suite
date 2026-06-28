@@ -29,6 +29,8 @@ export enum OverlayChannel {
   WORD_HARVEST = "word-harvest",
   TITLE_REVEAL = "title-reveal",
   SOMMAIRE = "sommaire",
+  /** Direct MIDI CC sends (POST /api/midi/cc → dispatcher → Web MIDI). */
+  MIDI = "midi",
 }
 
 /**

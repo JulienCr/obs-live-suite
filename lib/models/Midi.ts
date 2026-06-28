@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { WordHarvestEventType } from "./WordHarvest";
+import { OverlayChannel } from "./OverlayEvents";
 
 // =============================================================================
 // Centralized MIDI configuration (shared between client & server)
@@ -210,3 +211,36 @@ export function getPortForApp(settings: MidiSettings, appId: string): string | n
   const app = settings.apps.find((a) => a.id === appId);
   return app ? app.port : null;
 }
+
+// -----------------------------------------------------------------------------
+// Direct CC send (POST /api/midi/cc)
+//
+// A one-shot CC send bypassing the action catalog: the caller names the output
+// port (`bus`) and the CC directly. The backend route publishes the validated
+// payload on the MIDI channel; the dispatcher (hooks/useMidiDispatcher.ts) turns
+// it into a Web MIDI send. The single source of truth for the defaults below.
+// -----------------------------------------------------------------------------
+
+/** WebSocket channel carrying direct CC sends. */
+export const MIDI_CC_CHANNEL: string = OverlayChannel.MIDI;
+/** Event type published on MIDI_CC_CHANNEL. */
+export const MIDI_CC_EVENT = "cc";
+
+export const midiCcSendSchema = z.object({
+  /** MIDI output port name (e.g. "qlc-in"). Passed straight to sendCC. */
+  bus: z.string().min(1),
+  /** CC controller number (0-127), e.g. 81 for the FACE toggle. */
+  note: z.number().int().min(0).max(127),
+  /** CC value (0-127). */
+  value: z.number().int().min(0).max(127).default(127),
+  /** MIDI channel (1-16). */
+  channel: z.number().int().min(1).max(16).default(1),
+  /**
+   * Seconds before the SAME message is re-sent once. 0 (or absent) = single
+   * send; > 0 = a second identical send after `duration` seconds (e.g. to
+   * toggle a light back).
+   */
+  duration: z.number().min(0).default(0),
+});
+
+export type MidiCcSend = z.infer<typeof midiCcSendSchema>;

@@ -12,6 +12,9 @@ import {
   getActionOffsetMs,
   actionSupportsOffset,
   midiActionConfigSchema,
+  midiCcSendSchema,
+  MIDI_CC_CHANNEL,
+  MIDI_CC_EVENT,
   type MidiSettings,
 } from "../../lib/models/Midi";
 import { WordHarvestEventType } from "../../lib/models/WordHarvest";
@@ -124,6 +127,41 @@ describe("lookup helpers", () => {
   it("returns the configured action offset, 0 when unset", () => {
     expect(getActionOffsetMs(settings, "title-reveal.on")).toBe(-500);
     expect(getActionOffsetMs(settings, "missing")).toBe(0);
+  });
+});
+
+describe("midiCcSendSchema (direct CC send)", () => {
+  it("requires bus and note; defaults value/channel/duration", () => {
+    const p = midiCcSendSchema.parse({ bus: "qlc-in", note: 81 });
+    expect(p).toEqual({ bus: "qlc-in", note: 81, value: 127, channel: 1, duration: 0 });
+  });
+
+  it("keeps an explicit value and duration (seconds)", () => {
+    const p = midiCcSendSchema.parse({ bus: "qlc-in", note: 81, value: 64, duration: 2.5 });
+    expect(p).toMatchObject({ value: 64, duration: 2.5 });
+  });
+
+  it.each([
+    ["empty bus", { bus: "", note: 81 }],
+    ["missing bus", { note: 81 }],
+    ["missing note", { bus: "qlc-in" }],
+    ["note too high", { bus: "qlc-in", note: 128 }],
+    ["note negative", { bus: "qlc-in", note: -1 }],
+    ["value too high", { bus: "qlc-in", note: 81, value: 128 }],
+    ["channel 0", { bus: "qlc-in", note: 81, channel: 0 }],
+    ["channel 17", { bus: "qlc-in", note: 81, channel: 17 }],
+    ["negative duration", { bus: "qlc-in", note: 81, duration: -1 }],
+  ])("rejects %s", (_label, body) => {
+    expect(() => midiCcSendSchema.parse(body)).toThrow();
+  });
+
+  it("exposes the MIDI channel + event constants for the dispatcher", () => {
+    expect(MIDI_CC_CHANNEL).toBe("midi");
+    expect(MIDI_CC_EVENT).toBe("cc");
+  });
+
+  it("keeps the direct CC channel out of the action trigger channels", () => {
+    expect(MIDI_TRIGGER_CHANNELS).not.toContain(MIDI_CC_CHANNEL);
   });
 });
 

@@ -5,6 +5,8 @@ import { useMidi } from "./useMidi";
 import { useWebSocketChannel } from "./useWebSocketChannel";
 import {
   MIDI_TRIGGER_CHANNELS,
+  MIDI_CC_CHANNEL,
+  MIDI_CC_EVENT,
   WH_EVENT_TO_ACTION,
   DEFAULT_MIDI_SETTINGS,
   DEFAULT_TITLE_REVEAL_DURATION,
@@ -12,6 +14,7 @@ import {
   getActionOffsetMs,
   getPortForApp,
   type MidiSettings,
+  type MidiCcSend,
 } from "@/lib/models/Midi";
 import { TitleRevealEventType } from "@/lib/models/OverlayEvents";
 import type { WordHarvestEventType } from "@/lib/models/WordHarvest";
@@ -33,12 +36,17 @@ interface DispatchedEvent {
  * duration WITHOUT emitting a `hide` event, so the OFF is timed from the play
  * payload's duration. A manual `hide` fires the OFF immediately and cancels the
  * timer; the OFF fires at most once per ON.
+ *
+ * It also serves direct CC sends (POST /api/midi/cc): a one-shot CC to a named
+ * port, optionally re-sent once after `duration` seconds.
  */
 export function useMidiDispatcher(): void {
-  const { sendCC } = useMidi();
+  const { sendCC, outputs } = useMidi();
   const settingsRef = useRef<MidiSettings>(DEFAULT_MIDI_SETTINGS);
   const offTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const offPendingRef = useRef(false);
+  // Pending "second send" timers for direct CC sends with a duration.
+  const repeatTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   // Load the centralized MIDI config, and re-load when the tab regains focus so
   // edits saved from the settings page (possibly in another tab) take effect
@@ -118,15 +126,48 @@ export function useMidiDispatcher(): void {
       if (channel === "word-harvest") {
         const actionId = WH_EVENT_TO_ACTION[data?.type as WordHarvestEventType];
         if (actionId) fire(actionId);
+        return;
+      }
+
+      if (channel === MIDI_CC_CHANNEL) {
+        if (data?.type !== MIDI_CC_EVENT) return;
+        const p = data.payload as MidiCcSend | undefined;
+        if (!p?.bus) return;
+        // `bus` is the MIDI output port name (e.g. "qlc-in"); `note` is the CC.
+        // Unknown bus → skip rather than mis-send to the first available output
+        // (sendCC falls back to it). Mirrors the fire() guard above.
+        if (!outputs.includes(p.bus)) {
+          console.warn(`[MidiDispatcher] Unknown MIDI bus "${p.bus}"; available:`, outputs);
+          return;
+        }
+        const send = () =>
+          sendCC(p.bus, { channel: p.channel, cc: p.note, value: p.value });
+        send();
+        if (p.duration > 0) {
+          const t = setTimeout(() => {
+            repeatTimersRef.current.delete(t);
+            send();
+          }, p.duration * 1000);
+          repeatTimersRef.current.add(t);
+        }
       }
     },
-    [fire, fireOffOnce, clearOffTimer]
+    [fire, fireOffOnce, clearOffTimer, sendCC, outputs]
   );
 
-  useWebSocketChannel<DispatchedEvent>(MIDI_TRIGGER_CHANNELS, handleMessage, {
-    logPrefix: "MidiDispatcher",
-  });
+  useWebSocketChannel<DispatchedEvent>(
+    [...MIDI_TRIGGER_CHANNELS, MIDI_CC_CHANNEL],
+    handleMessage,
+    { logPrefix: "MidiDispatcher" }
+  );
 
-  // Clean up a pending OFF timer on unmount.
-  useEffect(() => clearOffTimer, [clearOffTimer]);
+  // Clean up pending timers (OFF + direct-CC re-sends) on unmount.
+  useEffect(() => {
+    const repeatTimers = repeatTimersRef.current;
+    return () => {
+      clearOffTimer();
+      repeatTimers.forEach(clearTimeout);
+      repeatTimers.clear();
+    };
+  }, [clearOffTimer]);
 }
