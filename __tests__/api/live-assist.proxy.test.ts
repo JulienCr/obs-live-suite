@@ -15,14 +15,24 @@ describe("live-assist proxy", () => {
 
   it("proxies the clear POST to the backend", async () => {
     const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ ok: true }), { status: 200 }),
+      new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "content-type": "application/json" } }),
     );
     const res = await clearSuggestions(new Request("http://x/api/live-assist/suggestions/clear", { method: "POST" }));
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
     expect(fetchSpy).toHaveBeenCalledWith(
       expect.stringContaining("/api/live-assist/suggestions/clear"),
-      { method: "POST" },
+      expect.objectContaining({ method: "POST" }),
     );
+    fetchSpy.mockRestore();
+  });
+
+  it("forwards a backend error status instead of collapsing it to 422", async () => {
+    const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: "boom" }), { status: 503, headers: { "content-type": "application/json" } }),
+    );
+    const res = await clearSuggestions(new Request("http://x/api/live-assist/suggestions/clear", { method: "POST" }));
+    expect(res.status).toBe(503);
     fetchSpy.mockRestore();
   });
 });

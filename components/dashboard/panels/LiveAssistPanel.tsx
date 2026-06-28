@@ -58,10 +58,13 @@ export function LiveAssistPanel(_props: IDockviewPanelProps) {
     );
   }, []);
   const onClearAll = useCallback(() => {
-    apiPost("/api/live-assist/suggestions/clear", {}).catch((e) =>
-      toast.error(extractErrorMessage(e, t("clearFailed"))),
-    );
-  }, [t]);
+    // Empty locally as soon as the server confirms, so the operator isn't left
+    // staring at stale cards if the WS round-trip is slow/down. The broadcast
+    // `suggestions:cleared` event still arrives to sync the other dashboards.
+    apiPost("/api/live-assist/suggestions/clear", {})
+      .then(() => clearAll())
+      .catch((e) => toast.error(extractErrorMessage(e, t("clearFailed"))));
+  }, [clearAll, t]);
 
   return (
     <BasePanelWrapper config={config}>

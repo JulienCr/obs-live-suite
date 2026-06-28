@@ -121,6 +121,7 @@ export function ContentTopBar() {
           )
         }
         title={t("hideAll")}
+        aria-label={t("hideAll")}
         className="h-8 w-8 p-0"
       >
         <EyeOff className="w-4 h-4" />
