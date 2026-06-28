@@ -136,11 +136,23 @@ Current providers:
 
 ## Known gaps / TODO before production
 
-- **VAD is a placeholder.** `realtime-stt/main.py` batches a fixed ~2 s window (`time.sleep(2.0)`) instead of
-  detecting silence boundaries (inline comment: "replace with VAD silence detection" / "Use silero-vad or
-  webrtcvad here"). Replace with real silence-boundary VAD so
-  segment timestamps align with utterance ends. *Mitigated today* by the backend wall-clock `WINDOW_MAX_WAIT_MS`
-  — no suggestion is lost, only latency varies.
+- **~~VAD is a placeholder.~~ Done — three upstream gates in `realtime-stt/`.** The fixed `time.sleep(2.0)`
+  batch is replaced by Silero-VAD silence-boundary segmentation, plus two cheaper gates that kill faster-whisper's
+  silence hallucinations at the source (the upstream complement to the downstream `hallucinationFilter.ts`
+  text blocklist). Pure helpers live in `realtime-stt/stt/gates.py` (unit-tested in `tests/test_gates.py`);
+  the loop in `main.py` wires them to live audio:
+    - **(a) RMS gate** (`is_silence`) — skip `model.transcribe()` on a near-silent span (saves GPU).
+    - **(b) Confidence gate** (`keep_segment`) — drop segments by `no_speech_prob` / `avg_logprob` /
+      `compression_ratio` (faster-whisper computes these; they used to be discarded). Mapped per-utterance
+      confidence is forwarded into the `POST /api/stt/segment` `confidence` field.
+    - **(c) VAD segmentation** (`decide_flush`) — a ~300 ms tick accumulates audio into a bounded `pending`
+      buffer and flushes on a real end-of-utterance silence boundary via `faster_whisper.vad.get_speech_timestamps`
+      (no new dependency), or on a max-length cap. `transcribe()` now runs with `vad_filter=False` (already
+      pre-trimmed) and `condition_on_previous_text=False` (stops a hallucinated credit line bleeding forward).
+  All thresholds are named constants in `main.py` (`GATE_DEFAULTS`), overridable via `config.json`. **Residual
+  coupling:** Silero's `min_silence_duration_ms` (set from `vad_silence_ms`) doubles as both the end-of-utterance
+  hangover *and* the intra-utterance phrase-merge threshold, and the invariant `vad_silence_ms > vad_speech_pad_ms`
+  must hold or boundaries never fire. The backend wall-clock `WINDOW_MAX_WAIT_MS` still backstops latency.
 - **Poster source quality → issue #116.** Wikipedia (especially FR) is a poor poster source (copyright, ambiguity).
   Disambiguation + Google-images fallback are in place, but a real source (TMDB / EN-wiki / web search) is tracked
   in #116. Related idea: per-keyword contextualization prompts.
@@ -156,7 +168,8 @@ Current providers:
 - **Jest** — `__tests__/services/liveassist/**` (buffer, detector, scheduler, extractor, store, orchestrator,
   providers + registry), `__tests__/api/live-assist.backend.test.ts`, `__tests__/api/live-assist.proxy.test.ts`,
   `__tests__/models/LiveAssist.test.ts`, `__tests__/components/LiveAssistSettings.test.tsx`. Run: `pnpm test`.
-- **pytest** — `realtime-stt/tests/test_segmenter.py` (segment payload builder). Run: `cd realtime-stt && pytest`.
+- **pytest** — `realtime-stt/tests/test_segmenter.py` (segment payload builder) and `realtime-stt/tests/test_gates.py`
+  (the silence/confidence/VAD-boundary gate helpers). Run: `cd realtime-stt && pytest`.
 
 ## Reuse (DRY)
 
