@@ -42,11 +42,14 @@ export function ChatMessageInput({
     if (!message.trim() || sending || disabled) return;
 
     setSending(true);
-    const success = await onSend(message.trim(), sendTarget);
-    setSending(false);
-
-    if (success) {
-      setMessage("");
+    try {
+      const success = await onSend(message.trim(), sendTarget);
+      if (success) {
+        setMessage("");
+      }
+    } finally {
+      // Always re-enable the input, even if onSend rejects.
+      setSending(false);
     }
   }, [message, sending, disabled, onSend, sendTarget]);
 
@@ -59,20 +62,24 @@ export function ChatMessageInput({
 
   return (
     <div className={cn("flex gap-2 p-2 border-t bg-card", className)}>
-      <Select
-        value={sendTarget}
-        onValueChange={(v) => onSendTargetChange?.(v as ChatSendTarget)}
-        disabled={disabled || sending}
-      >
-        <SelectTrigger className="h-8 w-[96px] text-xs shrink-0" aria-label={t("sendTo.label")}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="both">{t("sendTo.both")}</SelectItem>
-          <SelectItem value="twitch">Twitch</SelectItem>
-          <SelectItem value="youtube">YouTube</SelectItem>
-        </SelectContent>
-      </Select>
+      {/* Only show the destination selector when the parent can persist the change.
+          Without onSendTargetChange the Select would be controlled but inert. */}
+      {onSendTargetChange && (
+        <Select
+          value={sendTarget}
+          onValueChange={(v) => onSendTargetChange(v as ChatSendTarget)}
+          disabled={disabled || sending}
+        >
+          <SelectTrigger className="h-8 w-[96px] text-xs shrink-0" aria-label={t("sendTo.label")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="both">{t("sendTo.both")}</SelectItem>
+            <SelectItem value="twitch">Twitch</SelectItem>
+            <SelectItem value="youtube">YouTube</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
       <Input
         value={message}
         onChange={(e) => setMessage(e.target.value)}
