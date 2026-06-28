@@ -150,13 +150,15 @@ def run():
     silence_hangover_ms = int(cfg["silence_hangover_ms"])
     vad_idle_ms = int(cfg["vad_idle_ms"])
     vad_preroll_ms = int(cfg["vad_preroll_ms"])
-    # Invariant: vad_silence_ms must exceed vad_speech_pad_ms. Silero pads each
-    # speech region by speech_pad_ms, which under-reports trailing silence by that
-    # pad; if the pad >= the hangover, padding eats the whole gap and an
-    # end-of-utterance boundary can never be detected (see docs/LIVE-ASSIST.md).
-    if vad_silence_ms <= vad_speech_pad_ms:
-        print(f"[stt] WARN vad_silence_ms ({vad_silence_ms}) <= vad_speech_pad_ms "
-              f"({vad_speech_pad_ms}); silence boundaries may never fire")
+    # Invariant: at end-of-utterance the measured trailing silence is about
+    # vad_silence_ms − vad_speech_pad_ms (Silero pads each region by speech_pad_ms,
+    # which under-reports the gap). That must clear silence_hangover_ms (and be > 0),
+    # else no end-of-utterance boundary can ever be detected (see docs/LIVE-ASSIST.md).
+    effective_trailing_ms = vad_silence_ms - vad_speech_pad_ms
+    if effective_trailing_ms <= max(silence_hangover_ms, 0):
+        print(f"[stt] WARN vad_silence_ms({vad_silence_ms}) - vad_speech_pad_ms({vad_speech_pad_ms}) "
+              f"= {effective_trailing_ms}ms <= silence_hangover_ms({silence_hangover_ms}); "
+              f"silence boundaries may never fire")
 
     vad_options = VadOptions(
         threshold=vad_threshold,
