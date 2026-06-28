@@ -41,6 +41,27 @@ describe("LocalPosterMatcher", () => {
     expect(m.match("le roi est mort")).toHaveLength(0); // "roi"<4 chars, "le" is a stop-word
   });
 
+  it("regression: does not match 'tout de suite' against 'Tout le monde le sait'", () => {
+    const m = new LocalPosterMatcher();
+    m.setPosters([{ id: "x", title: "Tout le monde le sait", fileUrl: "u", type: "image" }]);
+    // "tout" and "sait" are now stop-words; "monde" is not in the transcript
+    expect(m.match("de là tout de suite pour voir si ça fonctionne")).toHaveLength(0);
+  });
+
+  it("matches 'Tout le monde le sait' when 'monde' is spoken", () => {
+    const m = new LocalPosterMatcher();
+    m.setPosters([{ id: "x", title: "Tout le monde le sait", fileUrl: "u", type: "image" }]);
+    // "monde" is not a stop-word → valid trigger
+    expect(m.match("tout le monde le sait")).toHaveLength(1);
+  });
+
+  it("matches a short single-word proper-noun title on its own", () => {
+    const m = new LocalPosterMatcher();
+    m.setPosters([{ id: "x", title: "Faust", fileUrl: "u", type: "image" }]);
+    // "faust" is a proper noun, not a stop-word → trigger alone
+    expect(m.match("on joue Faust ce soir")[0]?.poster.id).toBe("x");
+  });
+
   it("respects a stricter minSimilarity (rejects the typo, keeps the exact word)", () => {
     const m = new LocalPosterMatcher();
     m.setPosters(posters, 0.99);
