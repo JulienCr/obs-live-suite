@@ -104,6 +104,43 @@ export function LiveAssistSettings() {
             />
             <span className="text-sm font-mono w-12 text-right">{data.localPosterMinSimilarity.toFixed(2)}</span>
           </div>
+
+          {/* Dry-run: log would-be matches to the transcript file without firing cards. */}
+          <div className="flex items-center justify-between gap-4 pt-1">
+            <div className="space-y-1">
+              <Label htmlFor="liveAssistLocalPostersShadow" className="text-sm font-medium">
+                {t("localPostersShadow")}
+              </Label>
+              <p className="text-sm text-muted-foreground">{t("localPostersShadowHelp")}</p>
+            </div>
+            <Switch
+              id="liveAssistLocalPostersShadow"
+              checked={data.localPostersShadow}
+              onCheckedChange={(checked) => setData({ ...data, localPostersShadow: checked })}
+            />
+          </div>
+
+          {/* Show-domain keywords: let an everyday-word title (e.g. "Pilote") fire when one
+              is spoken nearby. Distinctive titles fire without them. Comma-separated. */}
+          <div className="space-y-1 pt-1">
+            <Label htmlFor="liveAssistDomainKeywords" className="text-sm font-medium">
+              {t("localPosterDomainKeywords")}
+            </Label>
+            <p className="text-sm text-muted-foreground">{t("localPosterDomainKeywordsHelp")}</p>
+            <Input
+              id="liveAssistDomainKeywords"
+              value={data.localPosterDomainKeywords.join(", ")}
+              onChange={(e) =>
+                setData({
+                  ...data,
+                  localPosterDomainKeywords: e.target.value
+                    .split(",")
+                    .map((w) => w.trim())
+                    .filter(Boolean),
+                })
+              }
+            />
+          </div>
         </div>
       )}
 

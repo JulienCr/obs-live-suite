@@ -58,6 +58,12 @@ export const LiveAssistSettingsSchema = z.object({
   localPostersEnabled: z.boolean().default(true),
   /** Similarity bar (0–1) for a local poster title match; higher = stricter. */
   localPosterMinSimilarity: z.number().min(0).max(1).default(LIVE_ASSIST.LOCAL_POSTER_MIN_SIMILARITY),
+  /** Dry-run: compute & LOG would-be local-poster matches without firing any card.
+   *  Lets you replay real transcripts and measure precision before trusting the gate. */
+  localPostersShadow: z.boolean().default(false),
+  /** Show-domain keywords that let an everyday-word poster title fire when spoken in
+   *  context (e.g. "Pilote" fires near "spectacle"/"impro"). Distinctive titles ignore this. */
+  localPosterDomainKeywords: z.array(z.string()).default([...LIVE_ASSIST.LOCAL_POSTER_DOMAIN_KEYWORDS]),
   windowBeforeSec: z.number().int().nonnegative().default(LIVE_ASSIST.WINDOW_BEFORE_SEC),
   windowAfterSec: z.number().int().nonnegative().default(LIVE_ASSIST.WINDOW_AFTER_SEC),
   confidenceThreshold: z.number().min(0).max(1).default(LIVE_ASSIST.CONFIDENCE_THRESHOLD),

@@ -17,6 +17,10 @@ const customJestConfig = {
   testPathIgnorePatterns: [
     '/node_modules/',
     '/.next/',
+    // Nested git worktrees (.claude/worktrees/<branch>/) are independent checkouts with
+    // their own test copies — scanning them from the parent repo runs stale tests against
+    // the parent's source via the `@/` mapper. Each worktree runs its own tests in-place.
+    '/\\.claude/',
   ],
   collectCoverageFrom: [
     'lib/**/*.ts',
