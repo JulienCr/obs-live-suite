@@ -42,11 +42,12 @@ describe("ChannelManager.publishMidiCc", () => {
     jest.clearAllMocks();
   });
 
-  it("broadcasts a 'cc' event on the midi channel, no ack", () => {
+  it("broadcasts a 'cc' event on the midi channel exactly once (passive, no ack)", () => {
     const cm = ChannelManager.getInstance();
     const payload = midiCcSendSchema.parse({ bus: "qlc-in", note: 81, value: 127, duration: 2 });
     cm.publishMidiCc(payload);
 
+    // Exactly one broadcast: no ack timeout / system follow-up like the overlay publish path.
     expect(mockBroadcast).toHaveBeenCalledTimes(1);
     expect(mockBroadcast).toHaveBeenCalledWith(
       MIDI_CC_CHANNEL,
@@ -56,7 +57,5 @@ describe("ChannelManager.publishMidiCc", () => {
         payload,
       })
     );
-    // Passive subscriber: no ack timeout is set (no second broadcast / no system event).
-    expect(MIDI_CC_CHANNEL).toBe("midi");
   });
 });

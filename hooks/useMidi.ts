@@ -79,7 +79,13 @@ export function useMidi() {
     const cc = params.cc & 0x7f;
     const val = params.value & 0x7f;
 
-    output.send([statusByte, cc, val]);
+    try {
+      output.send([statusByte, cc, val]);
+    } catch (err) {
+      // A found-but-not-open port throws InvalidStateError. Don't let it bubble
+      // (it would abort the caller's loop / surface as a misleading WS parse error).
+      console.warn(`[useMidi] Failed to send CC to "${outputName || "first output"}":`, err);
+    }
   }, []);
 
   return { available, outputs, sendCC };

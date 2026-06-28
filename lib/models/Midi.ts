@@ -240,9 +240,10 @@ export const midiCcSendSchema = z.object({
   /**
    * Seconds before the SAME message is re-sent once. 0 (or absent) = single
    * send; > 0 = a second identical send after `duration` seconds (e.g. to
-   * toggle a light back).
+   * toggle a light back). Capped at 3600s — large/Infinity/NaN values would
+   * overflow setTimeout's 32-bit delay and fire the re-send almost immediately.
    */
-  duration: z.number().min(0).default(0),
+  duration: z.number().min(0).max(3600).default(0),
 });
 
 export type MidiCcSend = z.infer<typeof midiCcSendSchema>;

@@ -151,6 +151,8 @@ describe("midiCcSendSchema (direct CC send)", () => {
     ["channel 0", { bus: "qlc-in", note: 81, channel: 0 }],
     ["channel 17", { bus: "qlc-in", note: 81, channel: 17 }],
     ["negative duration", { bus: "qlc-in", note: 81, duration: -1 }],
+    ["duration over cap", { bus: "qlc-in", note: 81, duration: 100000 }],
+    ["duration Infinity", { bus: "qlc-in", note: 81, duration: Infinity }],
   ])("rejects %s", (_label, body) => {
     expect(() => midiCcSendSchema.parse(body)).toThrow();
   });
