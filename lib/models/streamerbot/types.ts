@@ -78,10 +78,10 @@ export interface TwitchChatMessageEvent {
 export interface TwitchFollowEvent {
   event: { source: "Twitch"; type: "Follow" };
   data: {
-    userId: string;
-    userName: string;
-    userLogin: string;
-    followedAt: string;
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    followed_at: string;
   };
 }
 
@@ -93,8 +93,8 @@ export interface TwitchSubEvent {
   data: {
     userId: string;
     userName: string;
-    userLogin: string;
-    tier: string;
+    displayName: string;
+    subTier: number;
     message?: string;
   };
 }
@@ -107,10 +107,11 @@ export interface TwitchReSubEvent {
   data: {
     userId: string;
     userName: string;
-    userLogin: string;
-    tier: string;
+    displayName: string;
+    subTier: number;
     cumulativeMonths: number;
     streakMonths?: number;
+    shareStreak?: boolean;
     message?: string;
   };
 }
@@ -123,10 +124,13 @@ export interface TwitchGiftSubEvent {
   data: {
     userId: string;
     userName: string;
+    displayName: string;
+    isAnonymous: boolean;
     recipientUserId: string;
-    recipientUserName: string;
-    tier: string;
-    totalGifts?: number;
+    recipientUsername: string;
+    recipientDisplayName: string;
+    subTier: number;
+    totalSubsGifted?: number;
   };
 }
 
@@ -136,9 +140,12 @@ export interface TwitchGiftSubEvent {
 export interface TwitchRaidEvent {
   event: { source: "Twitch"; type: "Raid" };
   data: {
-    userId: string;
-    userName: string;
-    userLogin: string;
+    from_broadcaster_user_id: string;
+    from_broadcaster_user_login: string;
+    from_broadcaster_user_name: string;
+    to_broadcaster_user_id: string;
+    to_broadcaster_user_login: string;
+    to_broadcaster_user_name: string;
     viewers: number;
   };
 }
@@ -150,7 +157,8 @@ export interface TwitchCheerEvent {
   event: { source: "Twitch"; type: "Cheer" };
   data: {
     userId: string;
-    userName: string;
+    username: string;
+    displayName: string;
     bits: number;
     message?: string;
   };

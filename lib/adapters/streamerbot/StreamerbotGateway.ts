@@ -1,7 +1,12 @@
 import { StreamerbotClient } from "@streamerbot/client";
+import { randomUUID } from "crypto";
 import { SettingsService } from "../../services/SettingsService";
 import { WebSocketHub } from "../../services/WebSocketHub";
+import { ChannelManager } from "../../services/ChannelManager";
 import { ChatMessageRepository } from "../../repositories/ChatMessageRepository";
+import { CueMessageRepository } from "../../repositories/CueMessageRepository";
+import { CueType, CueFrom, CueAction } from "../../models/Cue";
+import { RoomEventType } from "../../models/OverlayEvents";
 import {
   ConnectionManager,
   ConnectionStatus as BaseConnectionStatus,
@@ -140,14 +145,75 @@ export class StreamerbotGateway extends ConnectionManager {
    */
   private handleEvent(normalizer: () => ChatMessage): void {
     try {
-      const message = normalizer();
-      this.lastEventTime = Date.now();
-      this.persistMessage(message);
-      this.broadcastMessage(message);
-      this.notifyChatListeners(message);
+      this.processMessage(normalizer());
     } catch (error) {
       this.logger.error("Failed to normalize Streamer.bot event", error);
     }
+  }
+
+  /**
+   * Inject a pre-built ChatMessage through the full processing pipeline.
+   * For use in dev/test tooling only.
+   */
+  injectTestEvent(message: ChatMessage): void {
+    this.processMessage(message);
+  }
+
+  private processMessage(message: ChatMessage): void {
+    this.lastEventTime = Date.now();
+    this.persistMessage(message);
+    this.broadcastMessage(message);
+    this.notifyChatListeners(message);
+    this.maybeSendPresenterCue(message).catch((e) =>
+      this.logger.error("Failed to send presenter cue", e)
+    );
+  }
+
+  /**
+   * Send a cue to the presenter channel for notable viewer events (follow, sub, raid…)
+   */
+  private async maybeSendPresenterCue(message: ChatMessage): Promise<void> {
+    const VIEWER_EVENTS = ["follow", "sub", "resub", "giftsub", "raid"] as const;
+    if (!VIEWER_EVENTS.includes(message.eventType as typeof VIEWER_EVENTS[number])) return;
+
+    const name = message.displayName || message.username || "?";
+    const months = message.metadata?.monthsSubscribed;
+    const viewers = message.metadata?.eventData?.viewers;
+    const recipient = message.metadata?.eventData?.recipient;
+
+    const titles: Record<string, string> = {
+      follow: `${name} vient de follow !`,
+      sub: `${name} s'est abonné !`,
+      resub: `${name} a re-souscrit${months ? ` (${months} mois)` : ""} !`,
+      giftsub: recipient ? `${name} a offert un sub à ${recipient} !` : `${name} a offert un sub !`,
+      raid: `${name} raid avec ${viewers ?? "?"} viewers !`,
+    };
+
+    const title = titles[message.eventType] ?? message.message;
+
+    const cueRepo = CueMessageRepository.getInstance();
+    const cm = ChannelManager.getInstance();
+
+    const cue = cueRepo.create({
+      id: randomUUID(),
+      type: CueType.CUE,
+      fromRole: CueFrom.SYSTEM,
+      severity: "info",
+      title,
+      body: null,
+      pinned: false,
+      actions: [CueAction.ACK],
+      countdownPayload: null,
+      contextPayload: null,
+      questionPayload: null,
+      seenBy: [],
+      ackedBy: [],
+      resolvedAt: null,
+      resolvedBy: null,
+    });
+
+    await cm.publishToPresenter(RoomEventType.MESSAGE, cue);
+    cueRepo.deleteOld(100);
   }
 
   /**

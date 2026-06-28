@@ -94,13 +94,13 @@ export function normalizeTwitchChatMessage(event: TwitchChatMessageEvent): ChatM
 export function normalizeTwitchFollowEvent(event: TwitchFollowEvent): ChatMessage {
   const { data } = event;
   return {
-    id: `follow-${data.userId}-${Date.now()}`,
+    id: `follow-${data.user_id}-${Date.now()}`,
     timestamp: Date.now(),
     platform: "twitch",
     eventType: "follow",
-    username: data.userLogin,
-    displayName: data.userName,
-    message: `${data.userName} just followed!`,
+    username: data.user_login,
+    displayName: data.user_name,
+    message: `${data.user_name} just followed!`,
     rawPayload: event,
   };
 }
@@ -115,11 +115,11 @@ export function normalizeTwitchSubEvent(event: TwitchSubEvent): ChatMessage {
     timestamp: Date.now(),
     platform: "twitch",
     eventType: "sub",
-    username: data.userLogin,
-    displayName: data.userName,
-    message: data.message || `${data.userName} subscribed!`,
+    username: data.userName,
+    displayName: data.displayName,
+    message: data.message || `${data.displayName} subscribed!`,
     metadata: {
-      subscriptionTier: data.tier as "1000" | "2000" | "3000",
+      subscriptionTier: String(data.subTier) as "1000" | "2000" | "3000",
     },
     rawPayload: event,
   };
@@ -135,11 +135,11 @@ export function normalizeTwitchReSubEvent(event: TwitchReSubEvent): ChatMessage 
     timestamp: Date.now(),
     platform: "twitch",
     eventType: "resub",
-    username: data.userLogin,
-    displayName: data.userName,
-    message: data.message || `${data.userName} resubscribed for ${data.cumulativeMonths} months!`,
+    username: data.userName,
+    displayName: data.displayName,
+    message: data.message || `${data.displayName} resubscribed for ${data.cumulativeMonths} months!`,
     metadata: {
-      subscriptionTier: data.tier as "1000" | "2000" | "3000",
+      subscriptionTier: String(data.subTier) as "1000" | "2000" | "3000",
       monthsSubscribed: data.cumulativeMonths,
     },
     rawPayload: event,
@@ -151,17 +151,18 @@ export function normalizeTwitchReSubEvent(event: TwitchReSubEvent): ChatMessage 
  */
 export function normalizeTwitchGiftSubEvent(event: TwitchGiftSubEvent): ChatMessage {
   const { data } = event;
+  const gifterName = data.isAnonymous ? "Anonymous" : (data.displayName || data.userName);
   return {
     id: `giftsub-${data.userId}-${data.recipientUserId}-${Date.now()}`,
     timestamp: Date.now(),
     platform: "twitch",
     eventType: "giftsub",
-    username: data.userName || "Anonymous",
-    displayName: data.userName || "Anonymous",
-    message: `${data.userName || "An anonymous user"} gifted a sub to ${data.recipientUserName}!`,
+    username: data.isAnonymous ? "anonymous" : data.userName,
+    displayName: gifterName,
+    message: `${gifterName} gifted a sub to ${data.recipientDisplayName}!`,
     metadata: {
-      subscriptionTier: data.tier as "1000" | "2000" | "3000",
-      eventData: { recipient: data.recipientUserName, totalGifts: data.totalGifts },
+      subscriptionTier: String(data.subTier) as "1000" | "2000" | "3000",
+      eventData: { recipient: data.recipientDisplayName, totalGifts: data.totalSubsGifted },
     },
     rawPayload: event,
   };
@@ -173,13 +174,13 @@ export function normalizeTwitchGiftSubEvent(event: TwitchGiftSubEvent): ChatMess
 export function normalizeTwitchRaidEvent(event: TwitchRaidEvent): ChatMessage {
   const { data } = event;
   return {
-    id: `raid-${data.userId}-${Date.now()}`,
+    id: `raid-${data.from_broadcaster_user_id}-${Date.now()}`,
     timestamp: Date.now(),
     platform: "twitch",
     eventType: "raid",
-    username: data.userLogin,
-    displayName: data.userName,
-    message: `${data.userName} is raiding with ${data.viewers} viewers!`,
+    username: data.from_broadcaster_user_login,
+    displayName: data.from_broadcaster_user_name,
+    message: `${data.from_broadcaster_user_name} is raiding with ${data.viewers} viewers!`,
     metadata: {
       eventData: { viewers: data.viewers },
     },
@@ -197,9 +198,9 @@ export function normalizeTwitchCheerEvent(event: TwitchCheerEvent): ChatMessage 
     timestamp: Date.now(),
     platform: "twitch",
     eventType: "cheer",
-    username: data.userName,
-    displayName: data.userName,
-    message: data.message || `${data.userName} cheered ${data.bits} bits!`,
+    username: data.username,
+    displayName: data.displayName,
+    message: data.message || `${data.displayName} cheered ${data.bits} bits!`,
     metadata: {
       eventData: { bits: data.bits },
     },
