@@ -12,6 +12,7 @@
     "dev:frontend": "node server.js",
     "dev:backend": "tsx watch server/backend.ts",
     "backend": "tsx server/backend.ts",
+    "replay:liveassist": "tsx scripts/replay-local-posters.ts",
     "setup:https": "node scripts/setup-https.js",
     "cert:tailscale": "node scripts/setup-tailscale-cert.mjs",
     "build": "node scripts/build-safe.js",
