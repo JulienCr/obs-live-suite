@@ -4,11 +4,12 @@
 // rules, against the REAL poster library, to see what the fast-path WOULD propose —
 // "sans les suggestions": the recorder's own >> SUGGESTION/>> SHADOW lines are stripped.
 //
-//   pnpm replay:liveassist <transcript.log> [--db <data.db>] [--min 0.8]
+//   pnpm replay:liveassist <transcript.log> [--db <data.db>] [--min <0-1>] [--window <sec>]
 //
-// Reads posters straight from SQLite (read-only); no backend needs to be running. The DB
-// path defaults to PathManager's resolution (the same file the app uses); override with
-// --db. Tune the long-token fuzz bar with --min (defaults to the saved sensitivity).
+// Reads posters AND the saved Live Assist settings straight from SQLite (read-only); no
+// backend needs to be running. The DB path defaults to PathManager's resolution (the same
+// file the app uses). Similarity + domain keywords come from the saved settings; --min and
+// --window override the fuzz bar / look-back for what-if tuning.
 //
 // Run via tsx:  tsx scripts/replay-local-posters.ts <log>   (or the pnpm alias above)
 
@@ -23,22 +24,43 @@ import {
 } from "@/lib/services/liveassist/transcriptReplay";
 import type { MatchablePoster } from "@/lib/services/liveassist/LocalPosterMatcher";
 
+const USAGE = "usage: pnpm replay:liveassist <transcript.log> [--db <data.db>] [--min <0-1>] [--window <sec>]";
+const die = (msg: string): never => {
+  console.error(`${msg}\n${USAGE}`);
+  process.exit(1);
+};
+
 let logFile: string | undefined;
 let dbOverride: string | undefined;
 let minStr: string | undefined;
 let windowStr: string | undefined;
 const argv = process.argv.slice(2);
 for (let i = 0; i < argv.length; i++) {
-  if (argv[i] === "--db") dbOverride = argv[++i];
-  else if (argv[i] === "--min") minStr = argv[++i];
-  else if (argv[i] === "--window") windowStr = argv[++i];
-  else if (!argv[i].startsWith("--") && !logFile) logFile = argv[i];
+  const a = argv[i];
+  if (a === "--db" || a === "--min" || a === "--window") {
+    // A flag must be followed by a real value, not end-of-args or another flag.
+    const v = argv[++i];
+    if (v === undefined || v.startsWith("--")) die(`${a} requires a value`);
+    if (a === "--db") dbOverride = v;
+    else if (a === "--min") minStr = v;
+    else windowStr = v;
+  } else if (!a.startsWith("--") && !logFile) {
+    logFile = a;
+  }
 }
 
-if (!logFile) {
-  console.error("usage: pnpm replay:liveassist <transcript.log> [--db <data.db>] [--min 0.8] [--window 15]");
-  process.exit(1);
-}
+if (!logFile) die("missing <transcript.log>");
+
+// Parse --min/--window up front so a typo fails fast with a clear message rather than
+// silently passing NaN into the matcher (which would make every comparison fail → 0 proposals).
+const num = (s: string | undefined, flag: string): number | undefined => {
+  if (s === undefined) return undefined;
+  const n = Number(s);
+  if (!Number.isFinite(n)) die(`${flag} must be a number, got "${s}"`);
+  return n;
+};
+const minOverride = num(minStr, "--min");
+const windowOverride = num(windowStr, "--window");
 
 const safeJson = (s: unknown): Record<string, unknown> | null => {
   if (typeof s !== "string" || !s) return null;
@@ -78,11 +100,11 @@ const posters: MatchablePoster[] = rows.map((r) => ({
 // Parse with timestamps so the context look-back uses the REAL time window (windowBeforeSec),
 // faithful to live. Similarity + domain keywords come from the SAVED settings; --min / --window
 // override the fuzz bar and look-back seconds for what-if tuning.
-const segments = parseTranscriptLog(readFileSync(logFile, "utf-8"));
+const segments = parseTranscriptLog(readFileSync(logFile!, "utf-8"));
 const proposals = replayLocalPosters(segments, posters, {
-  minSimilarity: minStr ? Number(minStr) : settings.localPosterMinSimilarity,
+  minSimilarity: minOverride ?? settings.localPosterMinSimilarity,
   domainKeywords: settings.localPosterDomainKeywords,
-  ...(windowStr ? { windowBeforeSec: Number(windowStr) } : {}),
+  ...(windowOverride !== undefined ? { windowBeforeSec: windowOverride } : {}),
 });
 
 console.log(`DB: ${dbPath}`);

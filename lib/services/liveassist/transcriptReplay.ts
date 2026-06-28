@@ -77,10 +77,17 @@ export function replayLocalPosters(
   const k = Math.max(1, opts.contextSegments ?? 3);
 
   const proposals: ReplayProposal[] = [];
+  // Sliding lower bound for the timed window — segments are chronological (non-decreasing
+  // tSec), so `start` only advances, keeping the whole replay O(n) instead of O(n²).
+  let start = 0;
   for (let i = 0; i < segs.length; i++) {
-    const context = timed
-      ? segs.filter((s) => s.tSec <= segs[i].tSec && s.tSec >= segs[i].tSec - windowSec).map((s) => s.text).join(" ")
-      : segs.slice(Math.max(0, i - k + 1), i + 1).map((s) => s.text).join(" ");
+    let context: string;
+    if (timed) {
+      while (segs[start].tSec < segs[i].tSec - windowSec) start++;
+      context = segs.slice(start, i + 1).map((s) => s.text).join(" ");
+    } else {
+      context = segs.slice(Math.max(0, i - k + 1), i + 1).map((s) => s.text).join(" ");
+    }
     for (const match of matcher.match(segs[i].text, context)) {
       proposals.push({ segment: segs[i].text, match });
     }

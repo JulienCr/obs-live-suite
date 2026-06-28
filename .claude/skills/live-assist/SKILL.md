@@ -70,7 +70,7 @@ see the "Femme de boue" ⟵ spoken "fermé" case):
    (4 chars) that are **not** in `LOCAL_POSTER_STOPWORDS_FR`.
 2. **Length-aware fuzz.** A token of ≤ `LOCAL_POSTER_FUZZY_MIN_LEN` (6) chars must match a spoken word
    **exactly**; only longer tokens tolerate Levenshtein typos (≥ `localPosterMinSimilarity`, default
-   0.8). This kills the 1-edit-on-a-5-char-word collisions (spoken "ferme" ≈ title token "femme").
+   0.85). This kills the 1-edit-on-a-5-char-word collisions (spoken "ferme" ≈ title token "femme").
 3. **Domain words are context, not identity.** A matched token that is *itself* a domain keyword
    ("impro", "film") is dropped from the fire decision — saying "l'impro" must NOT light up every
    impro-titled poster. It still feeds the `context` signal. (Fire decisions use these *identity*
@@ -124,7 +124,7 @@ are disabled). Imported file-name titles ("WhatsApp Video 2026-04-26…") can st
 - **Shadow mode** (`localPostersShadow` setting): logs would-be matches to the transcript file
   (`>> SHADOW … via word→token [rule]`) WITHOUT firing cards. Real fires log `>> SUGGESTION … via
   word→token [rule]` (richer than the generic suggestion line).
-- **Offline replay**: `pnpm replay:liveassist <transcript.log> [--db <data.db>] [--min 0.8] [--window 15]`
+- **Offline replay**: `pnpm replay:liveassist <transcript.log> [--db <data.db>] [--min <0-1>] [--window <sec>]`
   feeds a recorded session (its `>>` marker lines stripped) through the CURRENT rules against the real
   poster DB and prints what it WOULD propose. It parses the `[HH:MM:SS]` timestamps and applies the
   REAL `windowBeforeSec` look-back (default 15s, `--window` to override), so the `context` rule behaves
