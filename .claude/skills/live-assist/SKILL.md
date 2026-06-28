@@ -56,6 +56,41 @@ interface ActionProvider {
   `lib/stores/liveAssistStore.ts`. **Models**: `lib/models/LiveAssist.ts`.
 - **STT service**: `realtime-stt/` (Python, `pnpm dev:stt`, requires CUDA).
 
+## Local poster fast-path (`LocalPosterMatcher`)
+
+Parallel to the keyword/LLM path, **every STT segment** is instantly fuzzy-matched against poster
+titles already in the DB — no window, no LLM. Entry point: `LiveAssistOrchestrator.ingestSegment()`
+→ `matchLocalPosters(text)` → `LocalPosterProvider.toSuggestion()`.
+
+**How matching works** (`lib/services/liveassist/LocalPosterMatcher.ts`):
+1. Each poster title is indexed as its *trigger tokens*: alphanumeric words ≥ `LOCAL_POSTER_MIN_TOKEN_LEN`
+   (4 chars) that are **not** in `LOCAL_POSTER_STOPWORDS_FR`.
+2. On each segment, spoken words are fuzzy-compared (Levenshtein) against trigger tokens. A poster
+   matches on its best token/word pair ≥ `LOCAL_POSTER_MIN_SIMILARITY` (0.8).
+3. A single distinctive trigger token is enough — e.g. "Faust" (5 chars, proper noun) matches alone.
+
+**Stopwords are the key tuning lever.** `LOCAL_POSTER_STOPWORDS_FR` in `lib/config/Constants.ts`
+is the spaCy French stopword list filtered to ≥4 chars (normalised — accents stripped, same `norm()`
+as the rest of the pipeline). It covers ~340 words and prevents common French words from being
+trigger tokens.
+
+**Design decisions to remember:**
+- Use the spaCy list as source of truth — don't hand-craft. Manually add only obvious omissions
+  (`"bien"` is notably absent from spaCy).
+- **No multi-token requirement.** Requiring 2+ token matches was considered and rejected: it breaks
+  short single-word proper-noun titles ("Faust", "Carmen") that must match on their own.
+- A poster whose title is made entirely of stopwords (unlikely for cultural titles) becomes
+  undetectable via the fast-path. That's acceptable — the keyword/LLM path covers it.
+
+**Debugging false positives** (spurious local-poster suggestions): check if the matched title
+token is in `LOCAL_POSTER_STOPWORDS_FR`. If not, add it (after checking it's not a distinctive word
+in any real poster title). Run `pnpm test LocalPosterMatcher` to verify.
+
+**Debugging false negatives** (a poster you'd expect to match doesn't): check `triggerTokens(title)`
+— if all title words are stopwords or < 4 chars, the poster has no triggers and can never match
+via the fast-path. Either add a more distinctive word to the title, or use a keyword to route it
+through the LLM path.
+
 ## Debugging "no suggestions appear"
 Walk the pipeline in order (the orchestrator logs each stage): is STT posting segments
 (`POST /api/stt/segment`)? did a keyword fire? did the window flush (timestamp or
