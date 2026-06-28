@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { SettingsService } from "@/lib/services/SettingsService";
 import { TwitchOAuthManager } from "@/lib/services/twitch/TwitchOAuthManager";
 import { SaveTwitchCredentialsSchema } from "@/lib/models/TwitchAuth";
@@ -18,6 +18,11 @@ export const GET = withSimpleErrorHandler(async () => {
   const settings = settingsService.getTwitchSettings();
   const clientSecret = settingsService.getTwitchClientSecret();
   const authStatus = oauthManager.getStatus();
+  // Time-sensitive token fields come from the DB (the shared source of truth the
+  // backend keeps fresh). This Next.js process does not own the refresh timer,
+  // so its in-memory expiry/scopes/user can drift — fall back to them only if the
+  // DB has no token row.
+  const tokens = settingsService.getTwitchOAuthTokens();
 
   return ApiResponses.ok({
     // Credentials (secret masked)
@@ -32,9 +37,9 @@ export const GET = withSimpleErrorHandler(async () => {
     // Auth status
     authStatus: {
       state: authStatus.state,
-      user: authStatus.user,
-      expiresAt: authStatus.expiresAt,
-      scopes: authStatus.scopes,
+      user: tokens?.user ?? authStatus.user,
+      expiresAt: tokens?.expiresAt ?? authStatus.expiresAt,
+      scopes: tokens?.scope ?? authStatus.scopes,
       error: authStatus.error,
     },
 

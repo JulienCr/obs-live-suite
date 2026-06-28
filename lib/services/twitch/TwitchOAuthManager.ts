@@ -13,7 +13,7 @@ import { DatabaseService } from "../DatabaseService";
 import { SettingsService } from "../SettingsService";
 import { WebSocketHub } from "../WebSocketHub";
 import { generateCodeVerifier, generateCodeChallenge, generateState } from "../../utils/pkce";
-import { TWITCH } from "../../config/Constants";
+import { TWITCH, TWITCH_REFRESH_OWNER_ENV } from "../../config/Constants";
 import { APP_URL } from "../../config/urls";
 import {
   TwitchAuthStatus,
@@ -199,6 +199,24 @@ export class TwitchOAuthManager {
    */
   isAuthenticated(): boolean {
     return this.status.state === "authorized" && this.status.user !== null;
+  }
+
+  /**
+   * Whether this process currently owns (runs) the background refresh timer.
+   * Only the backend sets {@link TWITCH_REFRESH_OWNER_ENV}; the Next.js process
+   * never refreshes so the two can't race on the single-use refresh token.
+   * Read at call time so tests and late env setup are honored.
+   */
+  isBackgroundRefreshOwner(): boolean {
+    return process.env[TWITCH_REFRESH_OWNER_ENV] === "1";
+  }
+
+  /**
+   * Whether a background refresh timer is currently scheduled.
+   * Exposed for diagnostics and tests.
+   */
+  hasActiveRefreshTimer(): boolean {
+    return this.refreshTimer !== null;
   }
 
   /**
@@ -429,6 +447,15 @@ export class TwitchOAuthManager {
    * Start the background token refresh timer
    */
   private startRefreshTimer(): void {
+    // Only the owning process (the backend) drives token refresh. A non-owner
+    // (e.g. the Next.js process) must not schedule refreshes: both processes
+    // share one DB and Twitch rotates the refresh token on every use, so two
+    // timers would race and invalidate each other's token.
+    if (!this.isBackgroundRefreshOwner()) {
+      this.logger.debug("Not the refresh owner; skipping token refresh timer");
+      return;
+    }
+
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
     }
@@ -512,7 +539,14 @@ export class TwitchOAuthManager {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Token refresh failed: ${response.status} ${errorText}`);
+        // 400/401 mean the refresh token itself is invalid or revoked — a
+        // permanent failure only re-OAuth can fix. Other statuses (5xx) and
+        // network errors (which reject before reaching here) are transient.
+        const permanent = response.status === 400 || response.status === 401;
+        throw Object.assign(
+          new Error(`Token refresh failed: ${response.status} ${errorText}`),
+          { permanent }
+        );
       }
 
       const data = await response.json();
@@ -556,8 +590,19 @@ export class TwitchOAuthManager {
         error instanceof Error ? error.message : "Token refresh failed"
       );
 
-      // Clear tokens and disconnect
-      this.settingsService.saveTwitchOAuthTokens(null);
+      // Clear the stored tokens ONLY on a permanent failure (Twitch rejected the
+      // refresh token itself — 400/401). Then re-OAuth is genuinely required, and
+      // clearing stops the backend auth-watch from retrying a dead token forever.
+      // Transient failures (network, 5xx) keep the tokens: wiping them would log
+      // out BOTH processes (shared DB) over a blip, and the next timer/auth-watch
+      // tick will retry. The backend is the sole refresh owner, so a permanent
+      // rejection is real here, never a cross-process race.
+      const permanent = !!(
+        error && typeof error === "object" && (error as { permanent?: boolean }).permanent
+      );
+      if (permanent) {
+        this.settingsService.saveTwitchOAuthTokens(null);
+      }
       this.stopRefreshTimer();
     } finally {
       this.refreshInProgress = false;
@@ -726,7 +771,12 @@ export class TwitchOAuthManager {
     // Stop existing refresh timer
     this.stopRefreshTimer();
 
-    // Reset state
+    // Reset state. This is a forced reload, not a state-machine transition, so
+    // assign directly back to the disconnected baseline (bypassing the
+    // transition guard). Without this, a process stuck in "error" could never
+    // recover: error → authorized is rejected by VALID_AUTH_TRANSITIONS, so
+    // re-initialization from valid stored tokens would be silently dropped.
+    this.status = { ...DEFAULT_AUTH_STATUS };
     this.initialized = false;
     this.initializationPromise = null;
 

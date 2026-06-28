@@ -448,7 +448,25 @@ export const TWITCH = {
    * @see lib/services/TwitchService.ts
    */
   TOKEN_REFRESH_BUFFER_MS: 300000,
+
+  /**
+   * Interval for the backend "auth watch" self-heal loop (30 seconds).
+   * While unauthenticated, the backend periodically reloads OAuth tokens from
+   * the DB so it recovers tokens written by another process (e.g. the Next.js
+   * OAuth callback) without needing a restart.
+   * @see lib/services/TwitchService.ts
+   */
+  AUTH_WATCH_INTERVAL_MS: 30000,
 } as const;
+
+/**
+ * Env var name flagging the single process that owns the Twitch token-refresh
+ * timer. Set to "1" in the Express backend only. Twitch rotates (single-use)
+ * refresh tokens, so two processes refreshing the same token would race and
+ * invalidate each other — only the owner runs the background refresh.
+ * @see lib/services/twitch/TwitchOAuthManager.ts · server/backend.ts
+ */
+export const TWITCH_REFRESH_OWNER_ENV = "TWITCH_REFRESH_OWNER";
 
 // ============================================================================
 // MEDIA PLAYER CONSTANTS

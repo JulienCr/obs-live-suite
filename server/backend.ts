@@ -42,6 +42,13 @@ import { createServerWithFallback } from "../lib/utils/CertificateManager";
 import { getPortConflictReport } from "../scripts/port-diagnostics.mjs";
 import { expressError } from "../lib/utils/apiError";
 import { MediaPlayerManager } from "../lib/services/MediaPlayerManager";
+import { TWITCH_REFRESH_OWNER_ENV } from "../lib/config/Constants";
+
+// This (the Express backend) is the single process that owns the Twitch OAuth
+// token-refresh timer. Set BEFORE any TwitchService.getInstance() so the
+// singleton constructs as the refresh owner. The Next.js process never sets
+// this, so the two can't race on Twitch's single-use refresh token.
+process.env[TWITCH_REFRESH_OWNER_ENV] = "1";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -281,17 +288,26 @@ class BackendServer {
         this.logger.warn(`Streamerbot gateway connection failed (will retry): ${error instanceof Error ? error.message : error}`);
       }
 
-      // 5. Start Twitch integration polling
+      // 5. Start Twitch integration
       try {
         if (settingsService.isTwitchEnabled()) {
-          await this.twitchService.ensureInitialized();
-          this.twitchService.startPolling();
-          this.logger.info("✓ Twitch polling started");
+          // Reload from the DB with a WAL checkpoint so we pick up tokens written
+          // by the Next.js process (OAuth callback) even across a backend restart.
+          // reloadOAuth() starts polling if authentication succeeds.
+          await this.twitchService.reloadOAuth();
+          // Self-heal: if not yet authenticated, keep reloading from the DB so the
+          // backend recovers tokens later without a manual restart/reload.
+          this.twitchService.startAuthWatch();
+          this.logger.info(
+            this.twitchService.getProviderStatus().twitchApiAvailable
+              ? "✓ Twitch integration connected"
+              : "Twitch integration enabled (waiting for authentication)"
+          );
         } else {
           this.logger.info("Twitch integration disabled");
         }
       } catch (error) {
-        this.logger.warn("Twitch polling failed to start", error);
+        this.logger.warn("Twitch integration failed to start", error);
       }
 
       // 6. Start HTTP/HTTPS API server using centralized certificate manager

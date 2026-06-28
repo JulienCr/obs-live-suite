@@ -45,6 +45,7 @@ export class TwitchService {
   private lastPollTime: number | null = null;
   private isPolling = false;
   private broadcasterId: string | null = null;
+  private authWatch: NodeJS.Timeout | null = null;
 
   private constructor() {
     this.logger = new Logger("TwitchService");
@@ -119,6 +120,48 @@ export class TwitchService {
       this.pollInterval = null;
       this.isPolling = false;
       this.logger.info("Stopped Twitch polling");
+    }
+  }
+
+  // ==========================================================================
+  // AUTH-WATCH (self-heal)
+  // ==========================================================================
+
+  /**
+   * Start a self-heal loop that keeps the in-memory OAuth state in sync with the
+   * shared DB. While unauthenticated, it reloads tokens from the DB (forcing a
+   * WAL checkpoint) so the backend recovers tokens written by another process
+   * (e.g. the Next.js OAuth callback) without needing a restart. Once
+   * authenticated each tick is a cheap no-op.
+   */
+  startAuthWatch(intervalMs: number = TWITCH.AUTH_WATCH_INTERVAL_MS): void {
+    if (this.authWatch) return;
+    this.authWatch = setInterval(() => {
+      void this.runAuthWatchTick();
+    }, intervalMs);
+    this.logger.info("Started Twitch auth-watch self-heal loop", { intervalMs });
+  }
+
+  /**
+   * Stop the auth-watch self-heal loop.
+   */
+  stopAuthWatch(): void {
+    if (this.authWatch) {
+      clearInterval(this.authWatch);
+      this.authWatch = null;
+      this.logger.debug("Stopped Twitch auth-watch loop");
+    }
+  }
+
+  private async runAuthWatchTick(): Promise<void> {
+    if (this.isAvailable()) return; // already authenticated → nothing to do
+    try {
+      await this.reloadOAuth(); // checkpoint + reinit; starts polling if now authed
+      if (this.isAvailable()) {
+        this.logger.info("Twitch auth-watch recovered authentication from stored tokens");
+      }
+    } catch (error) {
+      this.logger.debug("Twitch auth-watch reload failed (will retry)", error);
     }
   }
 
