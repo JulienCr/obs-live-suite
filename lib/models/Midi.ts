@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { WordHarvestEventType } from "./WordHarvest";
-import { OverlayChannel } from "./OverlayEvents";
 
 // =============================================================================
 // Centralized MIDI configuration (shared between client & server)
@@ -219,10 +218,13 @@ export function getPortForApp(settings: MidiSettings, appId: string): string | n
 // port (`bus`) and the CC directly. The backend route publishes the validated
 // payload on the MIDI channel; the dispatcher (hooks/useMidiDispatcher.ts) turns
 // it into a Web MIDI send. The single source of truth for the defaults below.
+//
+// MIDI is NOT an overlay, so it uses its own WS channel string (like the
+// presenter / live-assist channels) rather than the OverlayChannel enum.
 // -----------------------------------------------------------------------------
 
 /** WebSocket channel carrying direct CC sends. */
-export const MIDI_CC_CHANNEL: string = OverlayChannel.MIDI;
+export const MIDI_CC_CHANNEL = "midi";
 /** Event type published on MIDI_CC_CHANNEL. */
 export const MIDI_CC_EVENT = "cc";
 

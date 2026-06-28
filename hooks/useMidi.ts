@@ -55,14 +55,20 @@ export function useMidi() {
     const access = midiAccessRef.current;
     if (!access) return;
 
-    // Find output by name, or fall back to first available
     let output: MIDIOutput | undefined;
     if (outputName) {
+      // Named output: send only to that exact port. If it isn't connected, skip
+      // rather than fall back to the first available output (which would mis-send
+      // to the wrong device — e.g. a typo'd or momentarily disconnected port).
       access.outputs.forEach((o) => {
         if (o.name === outputName) output = o;
       });
-    }
-    if (!output) {
+      if (!output) {
+        console.warn(`[useMidi] MIDI output "${outputName}" not found; skipping send.`);
+        return;
+      }
+    } else {
+      // "" = explicit "first available output" convention.
       const first = access.outputs.values().next();
       if (!first.done) output = first.value;
     }

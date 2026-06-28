@@ -1,5 +1,5 @@
 import { proxyToBackend } from "@/lib/utils/ProxyHelper";
-import { withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
+import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
 
 const LOG_CONTEXT = "[MidiAPI:CC]";
 
@@ -10,7 +10,12 @@ const LOG_CONTEXT = "[MidiAPI:CC]";
  * Body: { bus, note, value?, channel?, duration? } (see midiCcSendSchema).
  */
 export const POST = withSimpleErrorHandler(async (request: Request) => {
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return ApiResponses.badRequest("Invalid JSON body");
+  }
   return proxyToBackend("/api/midi/cc", {
     method: "POST",
     body,

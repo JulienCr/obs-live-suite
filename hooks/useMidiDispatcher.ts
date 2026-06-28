@@ -13,8 +13,8 @@ import {
   getMessagesForAction,
   getActionOffsetMs,
   getPortForApp,
+  midiCcSendSchema,
   type MidiSettings,
-  type MidiCcSend,
 } from "@/lib/models/Midi";
 import { TitleRevealEventType } from "@/lib/models/OverlayEvents";
 import type { WordHarvestEventType } from "@/lib/models/WordHarvest";
@@ -41,7 +41,7 @@ interface DispatchedEvent {
  * port, optionally re-sent once after `duration` seconds.
  */
 export function useMidiDispatcher(): void {
-  const { sendCC, outputs } = useMidi();
+  const { sendCC } = useMidi();
   const settingsRef = useRef<MidiSettings>(DEFAULT_MIDI_SETTINGS);
   const offTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const offPendingRef = useRef(false);
@@ -131,15 +131,14 @@ export function useMidiDispatcher(): void {
 
       if (channel === MIDI_CC_CHANNEL) {
         if (data?.type !== MIDI_CC_EVENT) return;
-        const p = data.payload as MidiCcSend | undefined;
-        if (!p?.bus) return;
+        // Re-validate the WS payload here (not just at the POST route) so
+        // malformed traffic on this channel can't drive Web MIDI. Also applies
+        // the schema defaults (value/channel/duration).
+        const parsed = midiCcSendSchema.safeParse(data.payload);
+        if (!parsed.success) return;
+        const p = parsed.data;
         // `bus` is the MIDI output port name (e.g. "qlc-in"); `note` is the CC.
-        // Unknown bus → skip rather than mis-send to the first available output
-        // (sendCC falls back to it). Mirrors the fire() guard above.
-        if (!outputs.includes(p.bus)) {
-          console.warn(`[MidiDispatcher] Unknown MIDI bus "${p.bus}"; available:`, outputs);
-          return;
-        }
+        // An unknown/disconnected bus is skipped inside sendCC (no mis-send).
         const send = () =>
           sendCC(p.bus, { channel: p.channel, cc: p.note, value: p.value });
         send();
@@ -152,7 +151,7 @@ export function useMidiDispatcher(): void {
         }
       }
     },
-    [fire, fireOffOnce, clearOffTimer, sendCC, outputs]
+    [fire, fireOffOnce, clearOffTimer, sendCC]
   );
 
   useWebSocketChannel<DispatchedEvent>(

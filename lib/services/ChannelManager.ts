@@ -4,6 +4,7 @@ import { OverlayEvent, OverlayChannel, AckEvent, RoomEvent, RoomEventType, Poste
 import { randomUUID } from "crypto";
 import { WEBSOCKET, LIVE_ASSIST } from "../config/Constants";
 import type { LiveAssistEvent } from "../models/LiveAssist";
+import { MIDI_CC_CHANNEL, MIDI_CC_EVENT, type MidiCcSend } from "../models/Midi";
 
 /**
  * Hardcoded presenter channel name
@@ -326,6 +327,22 @@ export class ChannelManager {
     this.logger.debug(`Publishing to live-assist: ${event.type}`);
     this.wsHub.broadcast(LIVE_ASSIST.CHANNEL, {
       ...event,
+      timestamp: Date.now(),
+      id: randomUUID(),
+    });
+  }
+
+  /**
+   * Publish a direct MIDI CC send on its dedicated channel (MIDI is not an
+   * overlay). The dashboard's useMidiDispatcher turns it into a Web MIDI send.
+   * No ack: the dispatcher is a passive subscriber, like presenter/live-assist.
+   */
+  publishMidiCc(payload: MidiCcSend): void {
+    this.logger.debug(`Publishing to midi: ${MIDI_CC_EVENT}`);
+    this.wsHub.broadcast(MIDI_CC_CHANNEL, {
+      channel: MIDI_CC_CHANNEL,
+      type: MIDI_CC_EVENT,
+      payload,
       timestamp: Date.now(),
       id: randomUUID(),
     });

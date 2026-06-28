@@ -8,8 +8,7 @@
  */
 import { Router } from "express";
 import { ChannelManager } from "../../lib/services/ChannelManager";
-import { OverlayChannel } from "../../lib/models/OverlayEvents";
-import { midiCcSendSchema, MIDI_CC_EVENT } from "../../lib/models/Midi";
+import { midiCcSendSchema } from "../../lib/models/Midi";
 import { createContextHandler } from "../utils/expressRouteHandler";
 
 const router = Router();
@@ -24,7 +23,7 @@ const midiHandler = createContextHandler("[MidiAPI]");
  */
 router.post("/cc", midiHandler(async (req, res) => {
   const payload = midiCcSendSchema.parse(req.body);
-  await channelManager.publish(OverlayChannel.MIDI, MIDI_CC_EVENT, payload);
+  channelManager.publishMidiCc(payload);
   res.json({ success: true });
 }, "Failed to send MIDI CC"));
 
