@@ -110,6 +110,11 @@ Dashboard → API Route → ChannelManager.publish() → WebSocket → Overlay
 - `SettingsService` - Application settings
 - `RoomService` - Presenter room management
 - `RateLimiterService` - API rate limiting
+- `DSKService` - OBS Downstream Keyer ("Habillage") global overlay layer toggle
+- `WorkspaceService` - Dockview workspace layouts (built-in + user, default activation)
+- `MediaPlayerManager` - Routes media-player commands to Chrome extension drivers via WS (correlates command/response)
+- `WordHarvestManager` - "10 words" improv game state machine (collecting → complete → performing)
+- `SubVideoService` - YouTube timestamp clip extraction (yt-dlp/ffmpeg) into sub-posters
 
 **Quiz Services** (lib/services/Quiz*):
 - `QuizManager` - State machine orchestration
@@ -126,6 +131,9 @@ Dashboard → API Route → ChannelManager.publish() → WebSocket → Overlay
 - `OllamaSummarizerService` - LLM summarization via Ollama
 - `WikipediaCacheService` - Wikipedia result caching
 - `WikipediaResolverService` - Wikipedia search and resolution
+- `TmdbResolverService` - TMDB film/série poster + overview resolution (`tmdb_api_key` setting)
+- `YouTubeMetadataService` - YouTube Data API v3 video metadata (title, duration, thumbnail)
+- `TwitchService` (+ `twitch/`) - Twitch stream info via OAuth: polls every 30s, broadcasts updates, title/category edits, chat send; `twitch/TwitchOAuthManager`, `twitch/TwitchAPIClient`
 - `ai/AiProviderFactory` - Creates AI SDK LanguageModel from DB settings (Ollama/OpenAI/Anthropic)
 - `ai/AiToolBridge` - MCP tool discovery + conversion to AI SDK tools (cached 60s)
 - `ai/systemPrompt` - French system prompt for AI assistant
@@ -170,24 +178,40 @@ Dashboard → API Route → ChannelManager.publish() → WebSocket → Overlay
 - `obs-helpers.ts` - OBS utility functions
 - `quiz.ts` - Quiz control API
 - `quiz-bot.ts` - Streamer.bot webhook bridge
-- `rooms.ts` - Room CRUD and messaging
 - `cue.ts` - Presenter cue system
+- `presenter-settings.ts` - Presenter room/channel settings
 - `streamerbot-chat.ts` - Chat message forwarding
+- `chat-messages.ts` - Chat highlight message store + settings
+- `media-player.ts` - Media-player driver relay (Chrome extension WS commands)
+- `word-harvest.ts` - Word Harvest game control
+- `twitch.ts` - Twitch OAuth + stream info
+- `live-assist.ts` / `liveAssistBoot.ts` - Live Assist pipeline router + assembly
+- `dev-events.ts` - Dev-only event injection
 
 **app/api/** - Next.js API routes:
-- `/api/overlays/*` - Overlay control (lower, countdown, poster, quiz, chat-highlight)
+- `/api/overlays/*` - Overlay control (lower, countdown, poster, poster-bigpicture, chat-highlight, title-reveal, sommaire, reload)
 - `/api/obs/*` - OBS status, reconnect, record, stream
-- `/api/actions/*` - Stream Deck actions (lower, countdown, poster, macro, panic)
-- `/api/assets/*` - Guest, poster, theme, tag management
+- `/api/actions/*` - Stream Deck actions (lower, countdown, poster, sommaire, macro, panic)
+- `/api/assets/*` - Guest, poster, theme, tag, upload, thumbnail, title-reveals management
 - `/api/profiles/*` - Profile CRUD and activation
 - `/api/themes/*` - Theme CRUD
-- `/api/settings/*` - Settings management (general, obs, paths, integrations)
+- `/api/settings/*` - Settings management (general, obs, paths, overlay, integrations, studio-return, twitch, midi, instagram, live-assist, title-reveal-defaults)
 - `/api/presenter/*` - Room and cue management
 - `/api/quiz/*` - Quiz questions and state
+- `/api/word-harvest/*` - Word Harvest game (start, show/hide, approve/reject/use words, finale, state)
+- `/api/media-player/*` - Media-player status + per-driver actions (Chrome extension)
+- `/api/chat-messages/*` - Chat highlight message settings
+- `/api/panel-colors/*` - Dashboard panel color persistence
+- `/api/workspaces/*` - Dockview workspace CRUD + default activation
+- `/api/twitch/*` - Twitch OAuth (auth/callback), status, categories, polling, moderation, title/category update
+- `/api/youtube/metadata` - YouTube video metadata lookup
 - `/api/wikipedia/*` - Wikipedia search/resolve/summarize
 - `/api/llm/*` - LLM model listing and summarization
+- `/api/ollama/*` - Ollama connection test
 - `/api/ai/chat` - AI chat assistant (streaming, tool-calling via MCP)
 - `/api/updater/*` - Plugin scanning and updates
+
+> Live Assist STT ingestion (`POST /api/stt/segment`, `GET /api/stt/config`) is served by the **backend** Express server (port 3002), not Next.js.
 
 ### Data Storage
 - **Database**: SQLite via better-sqlite3 in `~/.obs-live-suite/data.db`
@@ -272,10 +296,14 @@ Browser source URLs for OBS (size: 1920x1080):
 - Poster BigPicture: `http://localhost:3000/overlays/poster-bigpicture`
 - Quiz: `http://localhost:3000/overlays/quiz`
 - Chat Highlight: `http://localhost:3000/overlays/chat-highlight`
-- Now Playing: `http://localhost:3000/overlays/now-playing`
+- Now Playing: `http://localhost:3000/overlays/now-playing` (media-player track/artwork)
+- Title Reveal: `http://localhost:3000/overlays/title-reveal` (full-screen animated titles)
+- Word Harvest: `http://localhost:3000/overlays/word-harvest` ("10 words" improv game)
 - Composite: `http://localhost:3000/overlays/composite`
 
 Each overlay connects to WebSocket hub and subscribes to its channel.
+
+**Composite** bundles Poster, Lower Third, Chat Highlight, Sommaire, Title Reveal, Word Harvest, and Countdown in one OBS browser source. **Sommaire** (table-of-contents, `SommaireRenderer`) has no standalone page — it ships via Composite; controlled by `/api/overlays/sommaire` and `/api/actions/sommaire/{show,hide}`.
 
 ## Quiz System
 - Host panel: `/quiz/host`
@@ -334,6 +362,14 @@ Real-time listening assistant (PR #117, branch `feat/assistant-live` — **WIP, 
 - **Run**: `pnpm dev:stt` (bootstraps venv); PM2 app `obs-stt`. **STT requires CUDA** (`device="cuda"` in `realtime-stt/main.py`).
 - **Constants**: `LIVE_ASSIST` in `lib/config/Constants.ts` · **Models**: `lib/models/LiveAssist.ts`.
 - **Status, HTTP contract, how to extend, known gaps → `docs/LIVE-ASSIST.md`**. Deep reference: `docs/superpowers/specs/2026-06-24-assistant-live-design.md` (+ plan).
+
+## Chrome Extension
+"OBS-Suite" companion (`chrome-extension/`, Manifest v3, **no build step** — load unpacked). Server URL stored in `chrome.storage.sync` (default `http://localhost:3000`). Two systems:
+
+1. **Poster capture** (`background.js` service worker): right-click an image → context menu "Show as Left/Right Poster". Downloads the image (bypasses CORS), `POST /api/assets/upload`, `POST /api/assets/posters` (tag `from-web`, deduped by `metadata.sourceUrl`), then `POST /api/overlays/poster`.
+2. **Media-player relay**: `background.js` holds a persistent WebSocket to the hub on `:3003` (derives `ws`/`wss` + host from server URL; MV3 keepalive via `chrome.alarms` ping every 0.5min). Content-script drivers (`drivers/youtube.js`, `drivers/artlist.js`, shared `drivers/driver-base.js`) register a `driverId` and execute play/pause/stop/next/prev/replay/fadeout/status. Backend side: `MediaPlayerManager` + `server/api/media-player.ts` + `/api/media-player/*`; feeds the Now Playing overlay.
+
+UI: `popup/` (status), `options/` (server URL + test). Docs: `chrome-extension/README.md`.
 
 ## Stream Deck Plugin
 - Location: `streamdeck-plugin/obslive-suite/`
@@ -431,11 +467,15 @@ All use fork mode with autorestart and memory limits.
 - `CueCard.tsx` - Individual cue display
 - `panels/` - Presenter panels (cue feed, VDO.Ninja, chat)
 
-**components/overlays/** - Overlay renderers:
+**components/overlays/** - Overlay renderers (each `*Renderer` wraps a `*Display` + WS subscription):
 - `LowerThirdRenderer.tsx` - Lower third display
 - `CountdownDisplay.tsx` - Countdown timer
 - `PosterDisplay.tsx` - Theatre poster
 - `ChatHighlightRenderer.tsx` - Chat highlight
+- `NowPlayingRenderer.tsx` - Media-player track/artwork
+- `SommaireRenderer.tsx` - Table-of-contents (Composite only)
+- `TitleRevealRenderer.tsx` - Full-screen animated title
+- `WordHarvestRenderer.tsx` - Word Harvest game (+ `WordHarvest*` sub-components)
 - `QuizRenderer.tsx` - Quiz display
 
 **components/quiz/** - Quiz system:
@@ -452,7 +492,13 @@ All use fork mode with autorestart and memory limits.
 **components/settings/** - Settings forms:
 - `GeneralSettings.tsx`, `OBSSettings.tsx`
 - `PathSettings.tsx`, `PluginSettings.tsx`
-- `RoomSettings.tsx`, `IntegrationSettings.tsx`
+- `PresenterChannelSettings.tsx`, `StreamerbotSettings.tsx`
+- `TwitchSettings.tsx` (`/settings/twitch` - OAuth + stream info)
+- `InstagramSettings.tsx` (`/settings/instagram` - session-id login for profile/media)
+- `MidiSettings.tsx` (`/settings/midi` - Web MIDI ports + per-action messages, e.g. QLC+)
+- `TitleRevealDefaultsSettings.tsx` (`/settings/title-reveal` - Title Reveal defaults)
+- `ChatMessagesSettings.tsx`, `OverlaySettings.tsx`, `StudioReturnSettings.tsx`
+- `LiveAssistSettings.tsx`, `OllamaSettings.tsx`, `BackupSettings.tsx`, `BackendSettings.tsx`
 
 **components/theme-editor/** - Theme editing:
 - `ThemeEditor.tsx` - Main editor with canvas
