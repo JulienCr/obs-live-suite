@@ -5,6 +5,7 @@ import {
   normalizeTwitchGiftSubEvent,
   normalizeTwitchRaidEvent,
   normalizeTwitchCheerEvent,
+  normalizeYouTubeChatMessage,
   normalizeYouTubeNewSponsor,
 } from "@/lib/models/streamerbot";
 
@@ -101,6 +102,26 @@ describe("Streamer.bot viewer-event normalizers", () => {
       expect(msg.displayName).toBe("Ivan");
       expect(msg.username).toBe("ivan");
       expect(msg.metadata?.eventData?.bits).toBe(100);
+    });
+  });
+
+  describe("YouTube.Message", () => {
+    it("uses the flat `user` display name and `userName` login from the real shape", () => {
+      const msg = normalizeYouTubeChatMessage(
+        ev({ messageId: "yt1", user: "Cool Viewer", userName: "coolviewer", message: "hi" }),
+      );
+      expect(msg.displayName).toBe("Cool Viewer");
+      expect(msg.username).toBe("coolviewer");
+      expect(msg.message).toBe("hi");
+      expect(msg.eventType).toBe("message");
+      expect(msg.platform).toBe("youtube");
+    });
+
+    it("never yields undefined fields on a degenerate payload (no crash downstream)", () => {
+      const msg = normalizeYouTubeChatMessage(ev({}));
+      expect(typeof msg.username).toBe("string");
+      expect(typeof msg.displayName).toBe("string");
+      expect(typeof msg.message).toBe("string");
     });
   });
 
