@@ -66,6 +66,10 @@ import { TwitchOAuthManager } from "@/lib/services/twitch/TwitchOAuthManager";
 
 const REFRESH_OWNER_ENV = "TWITCH_REFRESH_OWNER";
 
+// Captured before any test overwrites global.fetch, so afterEach can restore it
+// and avoid leaking a mock into other test files.
+const realFetch = global.fetch;
+
 function validTokens(overrides: Record<string, unknown> = {}) {
   return {
     accessToken: "access-abc",
@@ -103,6 +107,7 @@ describe("TwitchOAuthManager — dual-process robustness", () => {
       manager = null;
     }
     delete process.env[REFRESH_OWNER_ENV];
+    global.fetch = realFetch;
   });
 
   describe("Fix 1 — sole refresh owner", () => {
@@ -123,6 +128,24 @@ describe("TwitchOAuthManager — dual-process robustness", () => {
 
       expect(manager.isAuthenticated()).toBe(true);
       expect(manager.hasActiveRefreshTimer()).toBe(true);
+    });
+
+    it("a non-owner never calls Twitch's token endpoint on refreshToken()", async () => {
+      // No env → non-owner (Next.js). Even invoked directly (e.g. via expired-token
+      // init or getValidAccessToken), it must not hit Twitch and must not touch the
+      // shared tokens — otherwise it could rotate the single-use refresh token and
+      // trip the backend into wrongly clearing them.
+      mockTwitchState.tokens = validTokens();
+      manager = await freshManager();
+
+      const fetchSpy = jest.fn();
+      global.fetch = fetchSpy as unknown as typeof fetch;
+
+      await manager.refreshToken();
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(mockSaveTokens).not.toHaveBeenCalledWith(null);
+      expect(mockTwitchState.tokens).not.toBeNull();
     });
   });
 

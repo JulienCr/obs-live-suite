@@ -139,6 +139,8 @@ export class TwitchService {
     this.authWatch = setInterval(() => {
       void this.runAuthWatchTick();
     }, intervalMs);
+    // Best-effort self-heal; don't keep the process alive on its own.
+    this.authWatch.unref?.();
     this.logger.info("Started Twitch auth-watch self-heal loop", { intervalMs });
   }
 

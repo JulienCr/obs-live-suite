@@ -447,6 +447,13 @@ export class TwitchOAuthManager {
    * Start the background token refresh timer
    */
   private startRefreshTimer(): void {
+    // Clear any existing timer first — even if we bail as a non-owner below — so
+    // a stale timer can't outlive an ownership change.
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+
     // Only the owning process (the backend) drives token refresh. A non-owner
     // (e.g. the Next.js process) must not schedule refreshes: both processes
     // share one DB and Twitch rotates the refresh token on every use, so two
@@ -456,13 +463,11 @@ export class TwitchOAuthManager {
       return;
     }
 
-    if (this.refreshTimer) {
-      clearInterval(this.refreshTimer);
-    }
-
     this.refreshTimer = setInterval(() => {
       this.checkAndRefreshToken();
     }, REFRESH_CHECK_INTERVAL_MS);
+    // Best-effort background work; don't keep the process alive on its own.
+    this.refreshTimer.unref?.();
 
     this.logger.debug("Started token refresh timer");
   }
@@ -503,6 +508,18 @@ export class TwitchOAuthManager {
    * Refresh the access token
    */
   async refreshToken(): Promise<void> {
+    // Only the owner performs refreshes. A non-owner (e.g. the Next.js process)
+    // must never hit Twitch's token endpoint — not via the background timer, nor
+    // via initializeFromStoredTokens() on an expired token, nor getValidAccessToken().
+    // The refresh token is single-use: a non-owner refresh could rotate it out
+    // from under the backend, making the backend's next refresh fail with 400 and
+    // wrongly clear the shared DB tokens. Non-owners instead pick up fresh tokens
+    // the backend wrote to the DB (via reloadFromDatabase()).
+    if (!this.isBackgroundRefreshOwner()) {
+      this.logger.debug("Not the refresh owner; skipping token refresh");
+      return;
+    }
+
     if (this.refreshInProgress) {
       this.logger.debug("Refresh already in progress, skipping");
       return;
@@ -583,6 +600,13 @@ export class TwitchOAuthManager {
       this.logger.info("Token refreshed successfully", {
         expiresIn: Math.round(newTokens.expires_in / 60) + " minutes",
       });
+
+      // Ensure the periodic refresh timer is running. Covers refreshing from the
+      // expired-token startup path (initializeFromStoredTokens), which otherwise
+      // returns without scheduling the timer.
+      if (!this.hasActiveRefreshTimer()) {
+        this.startRefreshTimer();
+      }
     } catch (error) {
       this.logger.error("Token refresh failed", error);
       this.createAndSetError(
