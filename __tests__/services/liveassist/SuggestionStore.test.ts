@@ -56,4 +56,15 @@ describe("SuggestionStore", () => {
     copy.push({} as never);
     expect(store.list()).toHaveLength(1);
   });
+
+  it("clear() empties the store and publishes suggestions:cleared", () => {
+    const events: any[] = [];
+    let n = 0;
+    const store = new SuggestionStore((e) => events.push(e), { now: () => 1, makeId: () => `id${n++}` });
+    store.add(built("A"));
+    store.add(built("B"));
+    store.clear();
+    expect(store.list()).toHaveLength(0);
+    expect(events.at(-1)).toEqual({ type: "suggestions:cleared", payload: {} });
+  });
 });

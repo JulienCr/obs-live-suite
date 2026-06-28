@@ -32,6 +32,8 @@
       "noProfile": "Aucun profil",
       "fullscreen": "Plein écran",
       "exitFullscreen": "Quitter le plein écran",
+      "hideAll": "Tout masquer",
+      "hideAllFailed": "Échec du masquage des overlays",
       "switchToAdmin": "Passer en mode ADMIN",
       "switchToLive": "Passer en mode LIVE",
       "onAirDialogTitle": "Vous êtes actuellement ON AIR",
@@ -426,7 +428,9 @@
       "disconnected": "STT déconnecté",
       "listening": "Écoute",
       "transcript": "Transcript",
-      "toggleFailed": "Échec de la mise à jour de l'Assistant Live"
+      "toggleFailed": "Échec de la mise à jour de l'Assistant Live",
+      "clearAll": "Vider",
+      "clearFailed": "Échec du vidage des suggestions"
     }
   },
   "navigation": {

@@ -27,6 +27,19 @@ describe("live-assist backend router", () => {
     expect(res.status).toBe(400);
   });
 
+  it("clears all suggestions", async () => {
+    const clear = jest.fn();
+    const store = { list: () => [], setStatus: () => undefined, clear } as any;
+    const app = express()
+      .use(express.json())
+      .use(createLiveAssistRouter({ orchestrator: { getStatus: () => ({}) } as any, store, registry: { get: () => undefined } as any }));
+
+    const res = await request(app).post("/api/live-assist/suggestions/clear");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+    expect(clear).toHaveBeenCalledTimes(1);
+  });
+
   describe("authoritative apply", () => {
     const buildApp = (suggestion: any, apply: jest.Mock, registryGet = jest.fn()) => {
       const setStatus = jest.fn();

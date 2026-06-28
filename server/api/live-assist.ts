@@ -19,6 +19,7 @@ interface RouterDeps {
     list: () => unknown[];
     get: (id: string) => { intent: string; applyPayload: Record<string, unknown> } | undefined;
     setStatus: (id: string, status: "applied" | "dismissed") => unknown;
+    clear: () => void;
   };
   registry: { get: (id: string) => { apply: (p: Record<string, unknown>) => Promise<ApplyResult> } | undefined };
 }
@@ -55,6 +56,13 @@ export function createLiveAssistRouter(deps: RouterDeps): Router {
 
   router.get("/api/live-assist/suggestions", (_req, res) => {
     return res.json({ suggestions: deps.store.list(), sttStatus: deps.orchestrator.getStatus() });
+  });
+
+  // Declared before the `:id/...` routes: `/suggestions/clear` is a literal segment, so
+  // Express must not let `:id` swallow it. (Path depth already differs, but be explicit.)
+  router.post("/api/live-assist/suggestions/clear", (_req, res) => {
+    deps.store.clear();
+    return res.json({ ok: true });
   });
 
   router.post("/api/live-assist/suggestions/:id/apply", async (req, res) => {
