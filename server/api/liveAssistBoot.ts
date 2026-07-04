@@ -2,6 +2,7 @@ import { SettingsService } from "@/lib/services/SettingsService";
 import { ChannelManager } from "@/lib/services/ChannelManager";
 import { WikipediaResolverService } from "@/lib/services/WikipediaResolverService";
 import { TmdbResolverService } from "@/lib/services/TmdbResolverService";
+import { TheaterDataResolverService } from "@/lib/services/TheaterDataResolverService";
 import { Logger } from "@/lib/utils/Logger";
 import { LiveAssistOrchestrator } from "@/lib/services/liveassist/LiveAssistOrchestrator";
 import { TranscriptBuffer } from "@/lib/services/liveassist/TranscriptBuffer";
@@ -110,6 +111,18 @@ export function buildOrchestrator(): {
       description: "Trouver l'affiche officielle d'un film / série cité (TMDB) et l'ajouter aux posters",
       defaultKeywords: LIVE_ASSIST.DEFAULT_KEYWORDS["poster-tmdb"],
       defaultContextPrompt: LIVE_ASSIST.DEFAULT_CONTEXT_PROMPTS["poster-tmdb"],
+    }),
+  );
+
+  // Poster provider (theater-data): spectacles / impro / concerts — the REAL BilletReduc
+  // affiche from Julien's local show base (better than Wikipedia for stage shows, cf #116).
+  // Degrades silently when the base URL is unset or the server (WSL, manual) is down.
+  registry.register(
+    new PosterActionProvider(TheaterDataResolverService.getInstance(), createPoster, {
+      id: "poster-theatre",
+      description: "Trouver l'affiche d'un spectacle / pièce / impro cité (base locale BilletReduc) et l'ajouter aux posters",
+      defaultKeywords: LIVE_ASSIST.DEFAULT_KEYWORDS["poster-theatre"],
+      defaultContextPrompt: LIVE_ASSIST.DEFAULT_CONTEXT_PROMPTS["poster-theatre"],
     }),
   );
 

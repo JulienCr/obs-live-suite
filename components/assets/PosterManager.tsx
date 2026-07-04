@@ -12,6 +12,8 @@ import { EntityHeader } from "@/components/ui/EntityHeader";
 import { EnableSearchCombobox } from "@/components/ui/EnableSearchCombobox";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { PosterUploader } from "./PosterUploader";
+import { TheatreSearchCombobox } from "./TheatreSearchCombobox";
+import type { TheatreCandidate } from "@/lib/services/TheaterDataResolverService";
 import { VirtualizedPosterGrid } from "./VirtualizedPosterGrid";
 import { Trash2, Upload, Image as ImageIcon, Video, Youtube, Loader2 } from "lucide-react";
 import { apiGet } from "@/lib/utils/ClientFetch";
@@ -131,6 +133,26 @@ export function PosterManager() {
       router.push(`/assets/posters/${poster.id}`);
     } catch (error) {
       console.error("Failed to create poster:", error);
+    }
+    setShowUploader(false);
+  };
+
+  // Autofill from the local theater-data base: title + accroche + the real affiche.
+  // The image is downloaded locally (downloadToLocal) so it survives the base going offline.
+  const handleTheatreSelect = async (candidate: TheatreCandidate) => {
+    try {
+      const poster = await createPosterAsync({
+        title: candidate.title,
+        description: candidate.tagline || undefined,
+        fileUrl: candidate.posterUrl,
+        type: "image",
+        downloadToLocal: true,
+        tags: ["theatre"],
+        metadata: { theatreId: candidate.id, source: "theater-data" },
+      });
+      router.push(`/assets/posters/${poster.id}`);
+    } catch (error) {
+      console.error("Failed to create poster from theater-data:", error);
     }
     setShowUploader(false);
   };
@@ -306,12 +328,15 @@ export function PosterManager() {
         </div>
       )}
 
-      {/* Upload Step */}
+      {/* Upload Step — search the local shows base (autofill) OR upload manually. */}
       {showUploader && (
-        <PosterUploader
-          onUpload={handleUploadComplete}
-          onCancel={() => setShowUploader(false)}
-        />
+        <div className="space-y-3">
+          <TheatreSearchCombobox onSelect={handleTheatreSelect} />
+          <PosterUploader
+            onUpload={handleUploadComplete}
+            onCancel={() => setShowUploader(false)}
+          />
+        </div>
       )}
 
       {/* Active Posters Grid */}
