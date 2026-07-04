@@ -78,10 +78,14 @@ export class TheaterDataResolverService {
   }
 
   /** Base URL of the theater-data server, trailing slash stripped. Read live so a
-   *  Settings save takes effect without a restart. */
+   *  Settings save takes effect without a restart. Returns `""` when the integration
+   *  is explicitly disabled (setting saved blank); only a *missing* setting (never
+   *  configured → `null`) falls back to the default, so clearing the field in Settings
+   *  truly disables it instead of silently reviving localhost. */
   private getBaseUrl(): string {
     const raw = SettingsRepository.getInstance().getSetting(THEATER_DATA.URL_SETTING);
-    return (raw?.trim() || THEATER_DATA.URL_DEFAULT).replace(/\/+$/, "");
+    if (raw === null) return THEATER_DATA.URL_DEFAULT;
+    return raw.trim().replace(/\/+$/, "");
   }
 
   /**
@@ -93,11 +97,15 @@ export class TheaterDataResolverService {
     const q = query.trim();
     if (!q) return [];
 
-    const cacheKey = `${q.toLowerCase()}:${limit}`;
+    const base = this.getBaseUrl();
+    if (!base) return []; // integration disabled (setting saved blank) — no localhost hit
+
+    // Cache key includes the base URL so switching `theater_data_url` at runtime never
+    // serves stale candidates (their posterUrls embed the base that produced them).
+    const cacheKey = `${base}|${q.toLowerCase()}:${limit}`;
     const cached = this.cache.get(cacheKey);
     if (cached && cached.exp > this.now()) return cached.value;
 
-    const base = this.getBaseUrl();
     const url = `${base}/api/search?` + new URLSearchParams({ q, limit: String(limit) }).toString();
 
     try {

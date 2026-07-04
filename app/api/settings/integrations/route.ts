@@ -30,8 +30,10 @@ export const GET = withSimpleErrorHandler(async () => {
     // TMDB (movie/TV posters)
     tmdb_api_key: db.getSetting("tmdb_api_key") || "",
 
-    // theater-data (local BilletReduc show base)
-    theater_data_url: db.getSetting("theater_data_url") || THEATER_DATA.URL_DEFAULT,
+    // theater-data (local BilletReduc show base). Nullish-coalesce (not ||) so an
+    // explicitly blank value (integration disabled) survives instead of being reset
+    // to the default on every read — only a never-configured key falls back.
+    theater_data_url: db.getSetting("theater_data_url") ?? THEATER_DATA.URL_DEFAULT,
   };
 
   return ApiResponses.ok({ settings });

@@ -8,10 +8,13 @@ const LOG_CONTEXT = "[TheatreSearchAPI]";
  * GET /api/theatre/search?q=...&limit=...
  *
  * Server-side proxy over the local theater-data base (`GET /api/search`). Runs
- * server-side so there is no CORS and the base URL / French response shape never
- * leak to the browser. Returns normalized `TheatreCandidate[]`; when the base is
- * unset or the server (WSL, manual) is down, the resolver yields `[]` (empty
- * state in the UI), never an error.
+ * server-side so the JSON search avoids CORS and the setting/timeout/graceful
+ * degradation stay centralized (the French response shape is normalized here too).
+ * Each returned `posterUrl` is intentionally absolute (`${base}/poster/{id}`) so the
+ * browser loads thumbnails directly from theater-data (image loads need no CORS) —
+ * i.e. the base URL is deliberately exposed for images, not hidden. When the base is
+ * unset/disabled or the server (WSL, manual) is down, the resolver yields `[]`
+ * (empty state in the UI), never an error.
  */
 export const GET = withSimpleErrorHandler(async (request: Request) => {
   const { searchParams } = new URL(request.url);

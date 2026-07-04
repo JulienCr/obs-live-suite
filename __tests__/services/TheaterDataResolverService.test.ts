@@ -92,6 +92,33 @@ describe("TheaterDataResolverService", () => {
     expect(fetchImpl as jest.Mock).not.toHaveBeenCalled();
   });
 
+  it("treats a blank URL setting as disabled: returns [] without fetching", async () => {
+    mockGetSetting(""); // explicitly cleared in Settings → integration disabled
+    const fetchImpl = jest.fn() as unknown as typeof fetch;
+    const svc = TheaterDataResolverService.createForTest({ fetchImpl });
+
+    expect(await svc.search("impro")).toEqual([]);
+    await expect(svc.resolveAndFetch("impro")).rejects.toThrow(/no theater-data/i);
+    expect(fetchImpl as jest.Mock).not.toHaveBeenCalled();
+  });
+
+  it("does not serve cross-base stale cache when the URL changes at runtime", async () => {
+    const getSetting = jest.fn();
+    (SettingsRepository.getInstance as jest.Mock).mockReturnValue({ getSetting });
+    const fetchImpl = jest.fn(async () => okJson([{ id: 1, titre: "Dune" }])) as unknown as typeof fetch;
+    let t = 1000;
+    const svc = TheaterDataResolverService.createForTest({ fetchImpl, now: () => t });
+
+    getSetting.mockReturnValue("http://a:4173");
+    const [a] = await svc.search("dune");
+    getSetting.mockReturnValue("http://b:4173"); // URL changed in Settings
+    const [b] = await svc.search("dune");
+
+    expect(a.posterUrl).toBe("http://a:4173/poster/1");
+    expect(b.posterUrl).toBe("http://b:4173/poster/1");
+    expect((fetchImpl as jest.Mock).mock.calls).toHaveLength(2); // no stale cache hit
+  });
+
   it("search degrades to [] on a non-200 response", async () => {
     mockGetSetting("http://h:4173");
     const fetchImpl = jest.fn(async () => ({ ok: false, status: 500 }) as unknown as Response) as unknown as typeof fetch;
