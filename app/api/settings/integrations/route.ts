@@ -1,7 +1,7 @@
 import { SettingsRepository } from "@/lib/repositories/SettingsRepository";
 import { OllamaSummarizerService } from "@/lib/services/OllamaSummarizerService";
 import { ApiResponses, withSimpleErrorHandler } from "@/lib/utils/ApiResponses";
-import { LLM_URLS } from "@/lib/config/Constants";
+import { LLM_URLS, THEATER_DATA } from "@/lib/config/Constants";
 
 const LOG_CONTEXT = "[SettingsAPI:integrations]";
 
@@ -29,6 +29,9 @@ export const GET = withSimpleErrorHandler(async () => {
 
     // TMDB (movie/TV posters)
     tmdb_api_key: db.getSetting("tmdb_api_key") || "",
+
+    // theater-data (local BilletReduc show base)
+    theater_data_url: db.getSetting("theater_data_url") || THEATER_DATA.URL_DEFAULT,
   };
 
   return ApiResponses.ok({ settings });
@@ -76,6 +79,11 @@ export const POST = withSimpleErrorHandler(async (request: Request) => {
   // TMDB (movie/TV posters)
   if (body.tmdb_api_key !== undefined) {
     settingsToSave.tmdb_api_key = body.tmdb_api_key;
+  }
+
+  // theater-data (local BilletReduc show base)
+  if (body.theater_data_url !== undefined) {
+    settingsToSave.theater_data_url = body.theater_data_url;
   }
 
   // Save all settings

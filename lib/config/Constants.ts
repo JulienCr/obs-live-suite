@@ -724,11 +724,14 @@ export const LIVE_ASSIST = {
   DEFAULT_WHISPER_MODEL: "large-v3",
   /** Default keyword list per provider id.
    *  `poster` (Wikipedia) handles théâtre/concerts; `poster-tmdb` (TMDB) handles
-   *  films/séries. `affiche` is intentionally listed under BOTH so both become
-   *  candidates and the LLM disambiguates film-vs-théâtre via the context prompts. */
+   *  films/séries; `poster-theatre` (local BilletReduc base) handles spectacles with
+   *  their real affiche. `affiche` is intentionally listed under several so they all
+   *  become candidates and the LLM disambiguates via the context prompts (a human
+   *  validates each card anyway, so overlapping théâtre suggestions are acceptable). */
   DEFAULT_KEYWORDS: {
     poster: ["spectacle", "pièce", "affiche", "concert"],
     "poster-tmdb": ["film", "série", "affiche"],
+    "poster-theatre": ["spectacle", "pièce", "impro", "théâtre", "affiche"],
     definition: ["définition", "c'est quoi", "qu'est-ce que", "ça veut dire"],
   } as Record<string, string[]>,
   /** The pre-split `poster` default, used only to detect & migrate untouched configs. */
@@ -740,6 +743,8 @@ export const LIVE_ASSIST = {
       "entité = titre exact du spectacle / pièce / concert (sans article) ; ajoute le type entre parenthèses pour viser le bon article Wikipédia : « Roméo et Juliette (pièce de théâtre) », « Les Vieilles Canailles (concert) ».",
     "poster-tmdb":
       "entité = titre du film / série. S'il est nommé, reprends-le tel quel (sans année ni article). S'il n'est PAS nommé mais identifiable d'après les indices (acteur, intrigue, réplique, époque), PROPOSE le titre le plus emblématique qui correspond — p. ex. « le film avec Sharon Stone » → « Basic Instinct », « le film de requins de Spielberg » → « Les Dents de la mer », « la série des Stranger » → « Stranger Things » — avec infere=true et une confiance reflétant ta certitude. Ne reste non actionnable QUE si vraiment aucun titre plausible ne ressort. Base TMDB (cinéma/séries), sans parenthèses.",
+    "poster-theatre":
+      "entité = titre exact du spectacle / pièce / impro tel que prononcé, sans article et sans parenthèses. Cible une base locale de spectacles (BilletReduc, tous genres) via recherche plein-texte, donne donc le titre le plus proche de ce qui est dit.",
     definition: "entité = le concept / sujet exact à définir, sans article.",
   } as Record<string, string>,
   /** Stricter confidence bar for a DEDUCED (inferred) entity, to limit false guesses
@@ -867,6 +872,31 @@ export const TMDB = {
   REQUEST_TIMEOUT_MS: 8000,
   /** Setting key holding the API key (mirrors `openai_api_key`). */
   API_KEY_SETTING: "tmdb_api_key",
+} as const;
+
+// ============================================================================
+// THEATER-DATA — local BilletReduc show base (théâtre / impro / concerts…)
+// ============================================================================
+
+/**
+ * Config for the local `theater-data` project (a SQLite base of French shows synced
+ * from BilletReduc, exposed over HTTP on port 4173). Consumed via HTTP — no direct
+ * SQLite coupling. The base URL is read at runtime from the `theater_data_url` setting
+ * (mirrors `tmdb_api_key`); when the server is unreachable the resolver degrades
+ * silently (empty results / no suggestion). The server is launched manually in WSL
+ * (`pnpm web`), so it is often down — hence the short request timeout.
+ */
+export const THEATER_DATA = {
+  /** Setting key holding the base URL (e.g. http://localhost:4173). */
+  URL_SETTING: "theater_data_url",
+  /** Default base URL — WSL2 forwards localhost to Windows. */
+  URL_DEFAULT: "http://localhost:4173",
+  /** Max candidates fetched for the manual add-poster typeahead. */
+  SEARCH_LIMIT: 12,
+  /** Abort a request after this many ms — kept short since the server is often down. */
+  REQUEST_TIMEOUT_MS: 2000,
+  /** In-memory resolver cache TTL (ms). */
+  CACHE_TTL_MS: 5 * 60 * 1000,
 } as const;
 
 // ============================================================================

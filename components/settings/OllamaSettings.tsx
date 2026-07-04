@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Loader2, CheckCircle, XCircle, RefreshCw, Trash2 } from "lucide-react";
 import { useSettings } from "@/lib/hooks/useSettings";
 import { apiGet, apiPost, apiDelete, isClientFetchError, extractErrorMessage } from "@/lib/utils/ClientFetch";
+import { THEATER_DATA } from "@/lib/config/Constants";
 
 type LLMProvider = "ollama" | "openai" | "anthropic";
 
@@ -38,6 +39,9 @@ interface LLMSettings {
 
   // TMDB (affiches films/séries)
   tmdb_api_key?: string;
+
+  // theater-data (base locale spectacles BilletReduc)
+  theater_data_url?: string;
 }
 
 interface LLMSettingsResponse {
@@ -50,6 +54,7 @@ const INITIAL_STATE: LLMSettings = {
   ollama_model: "mistral:latest",
   openai_model: "gpt-5-mini",
   anthropic_model: "claude-3-5-sonnet-20241022",
+  theater_data_url: THEATER_DATA.URL_DEFAULT,
 };
 
 /**
@@ -84,6 +89,8 @@ export function OllamaSettings() {
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [isTestingTmdb, setIsTestingTmdb] = useState(false);
   const [tmdbTestResult, setTmdbTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isTestingTheatre, setIsTestingTheatre] = useState(false);
+  const [theatreTestResult, setTheatreTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const handleTestTmdb = async () => {
     setIsTestingTmdb(true);
@@ -103,6 +110,27 @@ export function OllamaSettings() {
       toast.error(message);
     } finally {
       setIsTestingTmdb(false);
+    }
+  };
+
+  const handleTestTheatre = async () => {
+    setIsTestingTheatre(true);
+    setTheatreTestResult(null);
+    try {
+      const data = await apiPost<{ success: boolean; message?: string }>(
+        "/api/settings/integrations/theatre-test",
+        { url: settings.theater_data_url ?? "" },
+      );
+      const message = data.message || (data.success ? "Base spectacles OK." : "Base spectacles injoignable.");
+      setTheatreTestResult({ success: data.success, message });
+      if (data.success) toast.success(message);
+      else toast.error(message);
+    } catch (error) {
+      const message = extractErrorMessage(error, "Base spectacles injoignable.");
+      setTheatreTestResult({ success: false, message });
+      toast.error(message);
+    } finally {
+      setIsTestingTheatre(false);
     }
   };
 
@@ -498,6 +526,64 @@ export function OllamaSettings() {
                   <XCircle className="h-4 w-4 text-red-500" />
                 )}
                 <span className="text-sm">{tmdbTestResult.message}</span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* theater-data (base locale spectacles BilletReduc) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Base spectacles (BilletReduc)</CardTitle>
+          <CardDescription>
+            Affiches de spectacles / impro depuis le projet local theater-data (lancé en WSL).
+            Optionnel : sert Live Assist et l&apos;ajout d&apos;affiche par recherche de titre.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="theater_data_url">URL du serveur</Label>
+            <Input
+              id="theater_data_url"
+              type="text"
+              value={settings.theater_data_url ?? ""}
+              onChange={(e) =>
+                setSettings({ ...settings, theater_data_url: e.target.value })
+              }
+              placeholder={THEATER_DATA.URL_DEFAULT}
+            />
+            <p className="text-sm text-muted-foreground">
+              Par défaut {THEATER_DATA.URL_DEFAULT} (WSL2 forwarde localhost). Laisser vide pour
+              désactiver l&apos;intégration.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleTestTheatre}
+              disabled={isTestingTheatre || !settings.theater_data_url}
+            >
+              {isTestingTheatre ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Test en cours…
+                </>
+              ) : (
+                "Tester la connexion"
+              )}
+            </Button>
+
+            {theatreTestResult && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded border">
+                {theatreTestResult.success ? (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-red-500" />
+                )}
+                <span className="text-sm">{theatreTestResult.message}</span>
               </div>
             )}
           </div>

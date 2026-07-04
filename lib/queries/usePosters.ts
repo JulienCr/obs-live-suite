@@ -40,6 +40,9 @@ export interface CreatePosterInput {
   tags?: string[];
   description?: string;
   source?: string;
+  /** When true and fileUrl is a remote http(s) URL, the server downloads the image
+   *  into local uploads so the poster survives the source going offline. */
+  downloadToLocal?: boolean;
   chatMessage?: string;
   isEnabled?: boolean;
   duration?: number | null;

@@ -903,6 +903,11 @@
     "posters": {
       "title": "Affiches",
       "addPoster": "Ajouter une affiche",
+      "theatreSearchLabel": "Depuis la base spectacles (BilletReduc)",
+      "theatreSearchPlaceholder": "Rechercher un spectacle par titre...",
+      "theatreSearchHint": "Tapez au moins 2 caractères pour rechercher un spectacle.",
+      "theatreNoResults": "Aucun spectacle trouvé.",
+      "theatreSearchError": "Base spectacles injoignable.",
       "uploadPoster": "Télécharger une affiche",
       "editPoster": "Modifier l'affiche",
       "updatePoster": "Mettre à jour l'affiche",
