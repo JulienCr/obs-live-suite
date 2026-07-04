@@ -34,6 +34,7 @@ import obsRouter from "./api/obs";
 import twitchRouter from "./api/twitch";
 import mediaPlayerRouter from "./api/media-player";
 import wordHarvestRouter from "./api/word-harvest";
+import midiRouter from "./api/midi";
 import { createLiveAssistRouter } from "./api/live-assist";
 import { buildOrchestrator } from "./api/liveAssistBoot";
 import devEventsRouter from "./api/dev-events";
@@ -130,6 +131,9 @@ class BackendServer {
 
     // Word Harvest game
     this.app.use('/api/word-harvest', wordHarvestRouter);
+
+    // Direct MIDI CC sends (→ dispatcher → Web MIDI)
+    this.app.use('/api/midi', midiRouter);
 
     // Live Assist (real-time listening assistant)
     const { orchestrator, store, registry } = buildOrchestrator();
