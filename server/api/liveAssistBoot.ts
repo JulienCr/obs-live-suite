@@ -137,6 +137,7 @@ export function buildOrchestrator(): {
   const refreshLocalPosters = (s: ReturnType<typeof getSettings>) => {
     if (!s.localPostersEnabled) return;
     localPosterMatcher.setPosters(PosterRepository.getInstance().getAll(), s.localPosterMinSimilarity);
+    localPosterMatcher.setDomainKeywords(s.localPosterDomainKeywords);
   };
   refreshLocalPosters(liveAssistSettings);
   registry.register(
@@ -152,13 +153,15 @@ export function buildOrchestrator(): {
   const recorder = new TranscriptRecorder(PathManager.getInstance().getTranscriptsDir());
   logger.info(`Live Assist transcripts → ${PathManager.getInstance().getTranscriptsDir()}`);
 
-  // Record every created suggestion at the single choke point (store.add → publish),
-  // so both the LLM-window path and the local-poster fast-path are captured.
+  // Record every created suggestion at the single choke point (store.add → publish).
+  // The local-poster fast-path logs its OWN richer line (recordLocalMatch: word→token,
+  // rule, shadow) from matchLocalPosters below, so skip the generic line for it to
+  // avoid a duplicate; the LLM-window intents still log here.
   const store = new SuggestionStore((event: LiveAssistEvent) => {
     if (event.type === "suggestion:new") {
       const s = event.payload.suggestion;
       // Log the human-readable card title (s.entity is an opaque id for local posters).
-      recorder.recordSuggestion(s.intent, s.title, s.confidence);
+      if (s.intent !== "local-poster") recorder.recordSuggestion(s.intent, s.title, s.confidence);
     }
     cm.publishLiveAssist(event);
   });
@@ -222,10 +225,26 @@ export function buildOrchestrator(): {
     // so toggling Settings > Live Assist takes effect without a backend restart).
     isTranscriptDebugEnabled: () => getSettings().transcriptDebug,
     // Non-LLM fast-path: a spoken poster title → a ready local-poster suggestion.
-    matchLocalPosters: (text) =>
-      getSettings().localPostersEnabled
-        ? localPosterMatcher.match(text).map((m) => LocalPosterProvider.toSuggestion(m.poster, text, m.score))
-        : [],
+    // Every match is logged with its word→token / rule (explainability). In shadow
+    // (dry-run) mode the matches are logged but NOT returned, so no card is fired —
+    // letting you measure precision on real transcripts before trusting the gate.
+    matchLocalPosters: (text, contextText) => {
+      const s = getSettings();
+      if (!s.localPostersEnabled) return [];
+      const matches = localPosterMatcher.match(text, contextText);
+      const fired = !s.localPostersShadow;
+      for (const m of matches) {
+        recorder.recordLocalMatch({
+          title: m.poster.title,
+          matchedWord: m.matchedWord,
+          matchedToken: m.matchedToken,
+          score: m.score,
+          rule: m.rule,
+          fired,
+        });
+      }
+      return fired ? matches.map((m) => LocalPosterProvider.toSuggestion(m.poster, text, m.score)) : [];
+    },
     // Show the device's human label (e.g. "USB Mic") in status, not its id ("1").
     resolveDeviceLabel: (id) => settingsService.getSttDevices().find((d) => d.id === id)?.label ?? id,
     // Publish STT connected/disconnected state to overlay subscribers.

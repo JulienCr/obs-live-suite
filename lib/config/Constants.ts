@@ -745,10 +745,27 @@ export const LIVE_ASSIST = {
   /** Stricter confidence bar for a DEDUCED (inferred) entity, to limit false guesses
    *  while still admitting a confident iconic match (a human validates anyway). */
   INFERRED_CONFIDENCE_THRESHOLD: 0.7,
-  /** LocalPosters fast-path: match spoken words against existing poster titles (no LLM). */
-  LOCAL_POSTER_MIN_SIMILARITY: 0.8,
+  /** LocalPosters fast-path: match spoken words against existing poster titles (no LLM).
+   *  0.85 floor so near-miss DIFFERENT words don't match ("construction"→"constructor" ≈ 0.83)
+   *  while real STT typos still do ("Éclipsia"→"Eclypsia" = 0.875). */
+  LOCAL_POSTER_MIN_SIMILARITY: 0.85,
   /** Only title tokens at least this long can trigger (drops noise words). */
   LOCAL_POSTER_MIN_TOKEN_LEN: 4,
+  /** Length-aware fuzz gate: title tokens this short (≤) must match a spoken word
+   *  EXACTLY — no edit budget. Fuzzy (Levenshtein) tolerance applies only to longer
+   *  tokens, where STT typos actually occur. This kills the 1-edit-on-a-5-char-word
+   *  false positives (e.g. spoken "ferme" matching the title token "femme" at 0.80). */
+  LOCAL_POSTER_FUZZY_MIN_LEN: 6,
+  /** Max local-poster suggestions returned per segment (best-scoring first). */
+  LOCAL_POSTER_MAX_MATCHES: 3,
+  /** Show-domain keywords that gate the local-poster "context" rule: an EVERYDAY-word
+   *  title (e.g. "Pilote") fires only when one of these appears in the recent transcript
+   *  window — i.e. the conversation is about a show. Distinctive titles fire without them.
+   *  Used ONLY by the matcher's context check (not registered in the KeywordDetector, so
+   *  no LLM window is opened). Normalized + whole-word matched. Editable in Settings. */
+  LOCAL_POSTER_DOMAIN_KEYWORDS: [
+    "spectacle", "impro", "pièce", "théâtre", "film", "cinéma", "concert", "série",
+  ],
   /** French stop-word set excluded from poster title triggers.
    *  Source: spaCy French stopwords (https://github.com/explosion/spaCy), filtered
    *  to ≥4 chars after norm() (lowercase + NFD accent-strip + apostrophe-fold),

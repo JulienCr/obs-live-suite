@@ -48,9 +48,10 @@ interface Deps {
   /**
    * Non-LLM fast-path: fuzzy-match a finalized segment against existing poster
    * titles and return ready-to-store suggestions. Runs per segment (no window,
-   * no extractor). Returns [] when disabled.
+   * no extractor). `contextText` is the recent look-back transcript, scanned for
+   * show-domain keywords that let an everyday-word title fire. Returns [] when disabled.
    */
-  matchLocalPosters?: (text: string) => BuiltSuggestion[];
+  matchLocalPosters?: (text: string, contextText: string) => BuiltSuggestion[];
   /**
    * Drop a finalized segment that is a known Whisper "silence hallucination"
    * (subtitle credits / boilerplate emitted during non-speech). Defaults to the
@@ -146,7 +147,12 @@ export class LiveAssistOrchestrator {
     if (this.isTranscriptDebugEnabled()) this.publishTranscript(segment.text, segment.t0, segment.t1);
     this.deps.buffer.append(segment);
     // Non-LLM fast-path: a directly-named local poster fires immediately, no window.
-    for (const built of this.deps.matchLocalPosters?.(segment.text) ?? []) {
+    // Pass the recent look-back transcript (≈ windowBeforeSec, ending at this segment) as
+    // context, so a show-domain keyword spoken in a nearby earlier segment can corroborate
+    // an everyday-word title (the matcher's `context` rule).
+    const { windowBeforeSec } = this.deps.getSettings();
+    const contextText = this.deps.buffer.windowAround(segment.t1, windowBeforeSec * 1000, 0).text;
+    for (const built of this.deps.matchLocalPosters?.(segment.text, contextText) ?? []) {
       this.deps.store.add(built);
     }
     for (const hit of this.deps.detector.scan(segment)) {

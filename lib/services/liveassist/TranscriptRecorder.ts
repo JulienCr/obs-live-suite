@@ -57,6 +57,28 @@ export class TranscriptRecorder {
     this.write(`[${this.timestamp()}] >> SUGGESTION ${intent} « ${oneLine(label)} » (${confidence.toFixed(2)})`);
   }
 
+  /**
+   * Append an EXPLAINABLE local-poster fast-path match — the matched spoken word, the
+   * title trigger token it hit, the score and the fire rule. `fired` distinguishes a
+   * real suggestion (`>> SUGGESTION`) from a dry-run shadow match (`>> SHADOW`, logged
+   * but never surfaced). This is the line you replay real transcripts against to tune
+   * the matcher; it replaces the generic recordSuggestion() line for local posters.
+   */
+  recordLocalMatch(detail: {
+    title: string;
+    matchedWord: string;
+    matchedToken: string;
+    score: number;
+    rule: string;
+    fired: boolean;
+  }): void {
+    const marker = detail.fired ? "SUGGESTION" : "SHADOW";
+    this.write(
+      `[${this.timestamp()}] >> ${marker} local-poster « ${oneLine(detail.title)} » ` +
+        `(${detail.score.toFixed(2)}) via ${oneLine(detail.matchedWord)}→${oneLine(detail.matchedToken)} [${detail.rule}]`,
+    );
+  }
+
   private timestamp(): string {
     const d = this.now();
     return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
