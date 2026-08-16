@@ -32,24 +32,47 @@ describe("LiveAssist models", () => {
     expect(cfg.confidenceThreshold).toBeCloseTo(0.6);
     expect(cfg.enabled).toBe(false);
     expect(cfg.transcriptDebug).toBe(false);
-    expect(cfg.keywordsByProvider.poster).toContain("spectacle");
+    // `poster` (Wikipedia) is dormant by default; théâtre → the non-LLM fast-paths.
+    expect(cfg.keywordsByProvider.poster).toEqual([]);
+    expect(cfg.keywordsByProvider["poster-tmdb"]).toContain("film");
+    // theater-db fast-path defaults
+    expect(cfg.theaterDbEnabled).toBe(true);
+    expect(cfg.theaterDbShadow).toBe(false);
+    expect(cfg.theaterDbMinSimilarity).toBeCloseTo(0.85);
   });
 
   describe("migrateLiveAssistSettings", () => {
-    it("migrates the exact pre-split legacy poster default and adds poster-tmdb", () => {
+    it("clears the pre-tmdb-split legacy poster default (poster goes dormant, adds poster-tmdb)", () => {
       const stored = LiveAssistSettingsSchema.parse({
         keywordsByProvider: {
-          poster: ["spectacle", "affiche", "pièce", "film", "concert"], // legacy default
+          poster: ["spectacle", "affiche", "pièce", "film", "concert"], // pre-tmdb-split legacy default
           definition: ["définition"],
         },
       });
       const out = migrateLiveAssistSettings(stored);
-      // film/série removed from Wikipedia poster…
-      expect(out.keywordsByProvider.poster).not.toContain("film");
-      expect(out.keywordsByProvider.poster).toContain("spectacle");
-      // …and a TMDB provider seeded with its defaults
+      // Wikipedia poster goes dormant…
+      expect(out.keywordsByProvider.poster).toEqual([]);
+      // …and a TMDB provider is seeded with its defaults
       expect(out.keywordsByProvider["poster-tmdb"]).toContain("film");
       expect(out.keywordsByProvider["poster-tmdb"]).toContain("série");
+    });
+
+    it("clears the tmdb-split-era poster default (théâtre moved to the fast-paths)", () => {
+      const stored = LiveAssistSettingsSchema.parse({
+        keywordsByProvider: { poster: ["spectacle", "pièce", "affiche", "concert"], definition: ["définition"] },
+      });
+      const out = migrateLiveAssistSettings(stored);
+      expect(out.keywordsByProvider.poster).toEqual([]);
+    });
+
+    it("prunes the orphan poster-theatre key and prompt (now the theater-db fast-path)", () => {
+      const stored = LiveAssistSettingsSchema.parse({
+        keywordsByProvider: { poster: [], "poster-theatre": ["impro"], definition: ["x"] },
+        contextPromptsByProvider: { "poster-theatre": "old rule" },
+      });
+      const out = migrateLiveAssistSettings(stored);
+      expect(out.keywordsByProvider["poster-theatre"]).toBeUndefined();
+      expect(out.contextPromptsByProvider["poster-theatre"]).toBeUndefined();
     });
 
     it("leaves a customised poster list untouched but still adds the missing poster-tmdb", () => {
@@ -61,9 +84,9 @@ describe("LiveAssist models", () => {
       expect(out.keywordsByProvider["poster-tmdb"]).toBeDefined(); // additively surfaced
     });
 
-    it("is a no-op when poster-tmdb is already present", () => {
+    it("is a no-op for keywordsByProvider when already up to date", () => {
       const stored = LiveAssistSettingsSchema.parse({
-        keywordsByProvider: { poster: ["spectacle"], "poster-tmdb": ["film"], definition: ["x"] },
+        keywordsByProvider: { poster: [], "poster-tmdb": ["film"], definition: ["x"] },
       });
       const out = migrateLiveAssistSettings(stored);
       expect(out.keywordsByProvider).toEqual(stored.keywordsByProvider);

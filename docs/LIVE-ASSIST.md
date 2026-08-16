@@ -7,12 +7,15 @@
 
 ## What it is
 
-A dedicated studio mic is transcribed in French (faster-whisper). When a configured **keyword**
-is heard, a **−15/+15 s** context window around it is sent to an **LLM extractor**, which decides
-whether a known entity (a show/film title, a topic to define…) was cited. If so, an **action
-provider** builds a **suggestion card** (title + preview + apply payload) that the operator
-validates, edits, or ignores in a Dockview panel. **Always human-in-the-loop** — nothing goes
-on-air automatically.
+A dedicated studio mic is transcribed in French (faster-whisper). Two paths turn speech into
+**suggestion cards** the operator validates or ignores in a Dockview panel (**always
+human-in-the-loop** — nothing goes on-air automatically):
+
+- **LLM path** — when a configured **keyword** is heard, a **−15/+15 s** context window is sent to
+  an **LLM extractor** (`poster-tmdb` for films/séries, `definition` for topics).
+- **Non-LLM fast-paths** — on every segment, with a show-domain word in context: `local-poster`
+  (fuzzy-match the spoken title against the **local** poster library) and `theater-db` (query the
+  **remote** BilletReduc base :4173 directly for a title not yet in the library). No window, no LLM.
 
 ```
 Python realtime-stt (capture + VAD + faster-whisper)  ──POST /api/stt/segment──►  Backend Express
@@ -115,10 +118,35 @@ To add one (≈ 1 file + 1 registration):
 4. Add i18n keys (`messages/fr.json`, `messages/en.json`) for any new UI label.
 
 Current providers:
-- **`poster`** — Wikipedia thumbnail → `apply` POSTs `/api/assets/posters` `{title,fileUrl,type:'image',downloadToLocal:true}`.
-  Strips Wikipedia disambiguators (`Titanic (film, 1997)` → `Titanic`); falls back to a Google-images link if no thumbnail.
-- **`definition`** — first N sentences of the Wikipedia extract; `apply` target `pin` (no-op, just keep the card) or
+
+*LLM path (keyword → window → extractor):*
+- **`poster-tmdb`** — TMDB poster for a film/série (inference from clues allowed) → `apply` POSTs `/api/assets/posters`.
+- **`definition`** — first N sentences of the Wikipedia extract; `apply` target `pin` (save as a text preset) or
   `on-air` → POSTs `/api/overlays/lower` `{action:'show',payload:{contentType:'text',body}}`.
+- **`poster`** (Wikipedia) — kept registered but **dormant** (empty default keywords; Wikipedia posters are poor, #116).
+  Re-add keywords in Settings to revive it. `WikipediaResolverService` is still shared by `definition`.
+
+*Non-LLM fast-paths (per segment, gated by the shared show-domain keywords — no window, no LLM):*
+- **`local-poster`** (`LocalPosterMatcher`) — fuzzy-matches the spoken title against titles ALREADY in the library;
+  `apply` enables + shows the existing poster (`PATCH /api/assets/posters/:id` + `POST /api/overlays/poster`).
+- **`theater-db`** (`TheaterDbMatcher`) — the REMOTE sibling. Deterministic, no-LLM query built from **the phrase that
+  follows a show-domain word, bounded at the first commentary word** (interjection "ah", conjunction "mais",
+  pronoun/opinion-verb "je crois") so the rest of the sentence isn't sent to the FTS (`"…de la pièce Roméo et Juliette Ah
+  ouais c'est…"` → query `romeo juliette`; `"du spectacle Le Retour de Richard mais je crois…"` → `retour richard`). Title-
+  internal connectors stay ("Roméo **et** Juliette"), and real title words the big stop-word list would drop (`retour`) are kept.
+  A **coverage** post-filter keeps the candidates whose TITLE covers the most query terms. **Performer/author mode:** when no
+  title matches but the query is a proper NAME (≥1 `!isGeneralWord` token — "roxane michelet", "cruau"), theater-data found the
+  show via its cast/accroche index → propose the top FTS hit (conf 0.7). The `isGeneralWord` gate is what stops ordinary
+  conversation ("un spectacle **génial** ce **soir**" — FTS matches ~anything on 2 words) from firing. STT misspellings of a
+  name ("Cruau"→"Creuau") miss the FTS → no card. This is shaped by two verified facts:
+  theater-data FTS is **AND-based** (`q="aimerais richard"`→[], `q="retour richard"`→ the show), and a single generic
+  token pulls the wrong shows — so the query must be the actual title words. A **coverage** post-filter keeps the candidates
+  whose TITLE covers the most query terms (fuzzy ≥ `theaterDbMinSimilarity`), so `Le retour de Richard 3` (retour+richard)
+  beats `Retour vers la rupture` (retour only). Called **fire-and-forget** from `ingestSegment` (never blocks the LLM path);
+  shows already in the library are skipped (that's `local-poster`'s job). `apply` = CREATE the poster (`downloadToLocal`,
+  `tags:['theatre']`, `metadata.theatreId`) then SHOW it on the chosen side. Settings: `theaterDbEnabled` /
+  `theaterDbShadow` / `theaterDbMinSimilarity`. **v1 limit:** the title must be announced AFTER the domain word (or as the
+  next segment); a title cited before it won't trigger the remote query.
 
 ## Configuration & run
 
@@ -153,13 +181,16 @@ Current providers:
   coupling:** Silero's `min_silence_duration_ms` (set from `vad_silence_ms`) doubles as both the end-of-utterance
   hangover *and* the intra-utterance phrase-merge threshold, and the invariant `vad_silence_ms > vad_speech_pad_ms`
   must hold or boundaries never fire. The backend wall-clock `WINDOW_MAX_WAIT_MS` still backstops latency.
-- **Poster source quality → issue #116.** Wikipedia (especially FR) is a poor poster source (copyright, ambiguity).
-  Disambiguation + Google-images fallback are in place, but a real source (TMDB / EN-wiki / web search) is tracked
-  in #116. Related idea: per-keyword contextualization prompts.
+- **Poster source quality → issue #116.** Wikipedia (especially FR) is a poor poster source (copyright, ambiguity),
+  so the Wikipedia `poster` provider is now **dormant** by default: films/séries → `poster-tmdb` (TMDB), théâtre →
+  the `theater-db` fast-path (BilletReduc :4173) + `local-poster`. `theater-db` needs the title announced after a
+  show-domain word ("du spectacle X"); a title cited before the domain word won't trigger the remote query in v1.
 - **OpenAI strict-mode extraction schema.** `IntentExtractor`'s schema uses `confiance: z.number()` with **no
   min/max** and the intent enum `["none", ...providerIds]`, because OpenAI structured-outputs (strict mode) rejects
   optional fields and numeric bounds. The confidence range is enforced by the orchestrator's threshold check, not Zod.
-- **Only two providers.** `poster` + `definition`. An Instagram provider was scoped as "phase 2" in the spec.
+- **Providers.** `poster-tmdb` + `definition` (LLM) · `local-poster` + `theater-db` (fast-paths) · `poster` (Wikipedia, dormant).
+  An Instagram provider was scoped as "phase 2" in the spec; not implemented. There is **no** "edit" card action (the
+  apply is server-authoritative — the client only sends `target`).
 - **Branch stacking.** PR #117 was stacked on `fix/chat-overlay-sommaire-lowerthird` (chat-highlight / régie / cue /
   lower-third polish); confirm that base is integrated before reading the PR diff in isolation.
 

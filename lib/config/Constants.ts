@@ -722,20 +722,22 @@ export const LIVE_ASSIST = {
   WINDOW_MAX_WAIT_MS: 20_000,
   /** Default faster-whisper model. */
   DEFAULT_WHISPER_MODEL: "large-v3",
-  /** Default keyword list per provider id.
-   *  `poster` (Wikipedia) handles théâtre/concerts; `poster-tmdb` (TMDB) handles
-   *  films/séries; `poster-theatre` (local BilletReduc base) handles spectacles with
-   *  their real affiche. `affiche` is intentionally listed under several so they all
-   *  become candidates and the LLM disambiguates via the context prompts (a human
-   *  validates each card anyway, so overlapping théâtre suggestions are acceptable). */
+  /** Default keyword list per LLM-path provider id. Only `poster-tmdb` (films/séries)
+   *  and `definition` open an LLM window. `poster` (Wikipedia) is kept registered but
+   *  DORMANT (empty keywords) — Wikipedia posters are poor (#116); re-add keywords in
+   *  Settings to revive it. Théâtre/spectacles are handled by the two NON-LLM fast-paths
+   *  (`local-poster` = local library, `theater-db` = remote BilletReduc base :4173), which
+   *  are gated by LOCAL_POSTER_DOMAIN_KEYWORDS, not by these detector keywords. */
   DEFAULT_KEYWORDS: {
-    poster: ["spectacle", "pièce", "affiche", "concert"],
+    poster: [],
     "poster-tmdb": ["film", "série", "affiche"],
-    "poster-theatre": ["spectacle", "pièce", "impro", "théâtre", "affiche"],
     definition: ["définition", "c'est quoi", "qu'est-ce que", "ça veut dire"],
   } as Record<string, string[]>,
-  /** The pre-split `poster` default, used only to detect & migrate untouched configs. */
+  /** The pre-tmdb-split `poster` default, used only to detect & migrate untouched configs. */
   LEGACY_POSTER_KEYWORDS: ["spectacle", "affiche", "pièce", "film", "concert"],
+  /** The `poster` default from the tmdb-split era (before théâtre moved to the theater-db
+   *  fast-path). Used only to detect an untouched config and clear it so `poster` goes dormant. */
+  POSTER_KEYWORDS_PRE_FASTPATH: ["spectacle", "pièce", "affiche", "concert"],
   /** Default per-provider extraction guidance injected into the IntentExtractor prompt.
    *  Each provider's prompt shapes how the entity is formed for ITS source. */
   DEFAULT_CONTEXT_PROMPTS: {
@@ -743,8 +745,6 @@ export const LIVE_ASSIST = {
       "entité = titre exact du spectacle / pièce / concert (sans article) ; ajoute le type entre parenthèses pour viser le bon article Wikipédia : « Roméo et Juliette (pièce de théâtre) », « Les Vieilles Canailles (concert) ».",
     "poster-tmdb":
       "entité = titre du film / série. S'il est nommé, reprends-le tel quel (sans année ni article). S'il n'est PAS nommé mais identifiable d'après les indices (acteur, intrigue, réplique, époque), PROPOSE le titre le plus emblématique qui correspond — p. ex. « le film avec Sharon Stone » → « Basic Instinct », « le film de requins de Spielberg » → « Les Dents de la mer », « la série des Stranger » → « Stranger Things » — avec infere=true et une confiance reflétant ta certitude. Ne reste non actionnable QUE si vraiment aucun titre plausible ne ressort. Base TMDB (cinéma/séries), sans parenthèses.",
-    "poster-theatre":
-      "entité = titre exact du spectacle / pièce / impro tel que prononcé, sans article et sans parenthèses. Cible une base locale de spectacles (BilletReduc, tous genres) via recherche plein-texte, donne donc le titre le plus proche de ce qui est dit.",
     definition: "entité = le concept / sujet exact à définir, sans article.",
   } as Record<string, string>,
   /** Stricter confidence bar for a DEDUCED (inferred) entity, to limit false guesses
@@ -763,13 +763,15 @@ export const LIVE_ASSIST = {
   LOCAL_POSTER_FUZZY_MIN_LEN: 6,
   /** Max local-poster suggestions returned per segment (best-scoring first). */
   LOCAL_POSTER_MAX_MATCHES: 3,
-  /** Show-domain keywords that gate the local-poster "context" rule: an EVERYDAY-word
-   *  title (e.g. "Pilote") fires only when one of these appears in the recent transcript
-   *  window — i.e. the conversation is about a show. Distinctive titles fire without them.
-   *  Used ONLY by the matcher's context check (not registered in the KeywordDetector, so
-   *  no LLM window is opened). Normalized + whole-word matched. Editable in Settings. */
+  /** Show-domain keywords shared by BOTH non-LLM fast-paths (local-poster + theater-db):
+   *  - local-poster: gates the "context" rule — an EVERYDAY-word title (e.g. "Pilote") fires
+   *    only when one of these appears in the recent transcript window.
+   *  - theater-db: gates the whole fast-path — a distinctive spoken word queries the remote
+   *    BilletReduc base only when the conversation is about a show.
+   *  Used ONLY by the matchers (not registered in the KeywordDetector, so no LLM window is
+   *  opened). Normalized + whole-word matched. Editable in Settings. */
   LOCAL_POSTER_DOMAIN_KEYWORDS: [
-    "spectacle", "impro", "pièce", "théâtre", "film", "cinéma", "concert", "série",
+    "spectacle", "impro", "pièce", "théâtre", "affiche", "film", "cinéma", "concert", "série",
   ],
   /** French stop-word set excluded from poster title triggers.
    *  Source: spaCy French stopwords (https://github.com/explosion/spaCy), filtered

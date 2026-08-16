@@ -144,6 +144,55 @@ export function LiveAssistSettings() {
         </div>
       )}
 
+      {/* theater-db — the remote fast-path: query the BilletReduc base (:4173) directly (no LLM)
+          when a distinctive show title is spoken in show context. Shares the show-domain
+          keywords above with local posters. */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-1">
+          <Label htmlFor="liveAssistTheaterDb" className="text-base font-medium">
+            {t("theaterDb")}
+          </Label>
+          <p className="text-sm text-muted-foreground">{t("theaterDbHelp")}</p>
+        </div>
+        <Switch
+          id="liveAssistTheaterDb"
+          checked={data.theaterDbEnabled}
+          onCheckedChange={(checked) => setData({ ...data, theaterDbEnabled: checked })}
+        />
+      </div>
+
+      {data.theaterDbEnabled && (
+        <div className="space-y-3">
+          <Label className="text-base font-medium">{t("theaterDbSensitivity")}</Label>
+          <div className="flex items-center gap-4">
+            <Slider
+              value={[data.theaterDbMinSimilarity]}
+              onValueChange={([v]) => setData({ ...data, theaterDbMinSimilarity: v })}
+              min={0.5}
+              max={1}
+              step={0.05}
+              className="flex-1"
+            />
+            <span className="text-sm font-mono w-12 text-right">{data.theaterDbMinSimilarity.toFixed(2)}</span>
+          </div>
+
+          {/* Dry-run: log would-be matches to the transcript file without firing cards. */}
+          <div className="flex items-center justify-between gap-4 pt-1">
+            <div className="space-y-1">
+              <Label htmlFor="liveAssistTheaterDbShadow" className="text-sm font-medium">
+                {t("theaterDbShadow")}
+              </Label>
+              <p className="text-sm text-muted-foreground">{t("theaterDbShadowHelp")}</p>
+            </div>
+            <Switch
+              id="liveAssistTheaterDbShadow"
+              checked={data.theaterDbShadow}
+              onCheckedChange={(checked) => setData({ ...data, theaterDbShadow: checked })}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Input device */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">

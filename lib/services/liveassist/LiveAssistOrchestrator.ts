@@ -53,6 +53,13 @@ interface Deps {
    */
   matchLocalPosters?: (text: string, contextText: string) => BuiltSuggestion[];
   /**
+   * Non-LLM REMOTE fast-path (sibling of matchLocalPosters): query the theater-data
+   * (BilletReduc) base for a spoken show title NOT in the local library. Async (network),
+   * so the orchestrator calls it fire-and-forget — a slow/unreachable base never delays the
+   * keyword/LLM path; results dedup by entity when they resolve. Returns [] when disabled/gated.
+   */
+  matchTheaterDb?: (text: string, contextText: string) => Promise<BuiltSuggestion[]>;
+  /**
    * Drop a finalized segment that is a known Whisper "silence hallucination"
    * (subtitle credits / boilerplate emitted during non-speech). Defaults to the
    * shared `isHallucination` filter; injectable for tests.
@@ -155,6 +162,12 @@ export class LiveAssistOrchestrator {
     for (const built of this.deps.matchLocalPosters?.(segment.text, contextText) ?? []) {
       this.deps.store.add(built);
     }
+    // Remote fast-path (theater-data): fire-and-forget so a slow/unreachable base never
+    // blocks the keyword/LLM path below; each resolved suggestion is deduped by the store.
+    void this.deps
+      .matchTheaterDb?.(segment.text, contextText)
+      .then((built) => built.forEach((b) => this.deps.store.add(b)))
+      .catch((error) => logger.warn(`theater-db match failed: ${error instanceof Error ? error.message : error}`));
     for (const hit of this.deps.detector.scan(segment)) {
       this.deps.scheduler.register(hit, this.now());
     }

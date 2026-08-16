@@ -56,6 +56,31 @@ describe("LiveAssistOrchestrator", () => {
     expect(events.some((e) => e.type === "suggestion:new")).toBe(true);
   });
 
+  it("fires a theater-db suggestion via the async remote fast-path (fire-and-forget)", async () => {
+    const built = {
+      intent: "theater-db", entity: "42", title: "Cassandre",
+      preview: { kind: "image", imageUrl: "u" }, triggerExcerpt: "x",
+      applyPayload: { theatreId: 42 }, confidence: 0.95,
+    };
+    const { orch, events } = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 }, // extractor would say no
+      { matchTheaterDb: async (text: string) => (text.includes("cassandre") ? [built] : []) },
+    );
+    await orch.ingestSegment(seg("un spectacle cassandre", 0, 1000));
+    await new Promise((r) => setTimeout(r, 0)); // let the fire-and-forget promise resolve
+    expect(events.some((e) => e.type === "suggestion:new")).toBe(true);
+  });
+
+  it("never lets a slow/failing theater-db call throw out of ingest", async () => {
+    const { orch, events } = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 },
+      { matchTheaterDb: async () => { throw new Error("base down"); } },
+    );
+    await expect(orch.ingestSegment(seg("un spectacle cassandre", 0, 1000))).resolves.toBeUndefined();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(events.some((e) => e.type === "suggestion:new")).toBe(false);
+  });
+
   it("drains a pending window on tick when no further segment arrives (silence)", async () => {
     let fakeNow = 0;
     const { orch, events } = makeOrchestrator(
