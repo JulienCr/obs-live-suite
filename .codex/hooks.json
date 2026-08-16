@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python 'D:\\dev\\obs-tools\\.codex\\hooks\\post-tool-call.py'"
+          }
+        ]
+      }
+    ]
+  }
+}
