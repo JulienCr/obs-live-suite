@@ -74,6 +74,40 @@ function Resolve-NodeExe {
   return $null
 }
 
+function Resolve-Pm2Cli {
+  param([string] $NodeExe, [string] $ProjectRoot)
+
+  # The project declares pm2 as a devDependency, so a plain `pnpm install` is
+  # enough and no global install is required. Prefer that copy: it is the one
+  # `pnpm pm2:start` runs, and pinning to it keeps the scheduled task on the same
+  # version as the documented command.
+  $local = Join-Path $ProjectRoot 'node_modules\pm2\bin\pm2'
+  if (Test-Path $local) { return $local }
+
+  # Global installs. The Node directory holds them for fnm/nvm-style layouts, but
+  # that is a coincidence of those managers, not a rule - so ask npm for the real
+  # prefix before giving up.
+  $candidates = @(
+    (Join-Path (Split-Path $NodeExe -Parent) 'node_modules\pm2\bin\pm2'),
+    (Join-Path $env:APPDATA 'npm\node_modules\pm2\bin\pm2')
+  )
+  foreach ($candidate in $candidates) {
+    if (Test-Path $candidate) { return $candidate }
+  }
+
+  try {
+    $npmRoot = (& npm root -g 2>$null | Select-Object -First 1)
+    if ($npmRoot) {
+      $fromNpm = Join-Path $npmRoot.Trim() 'pm2\bin\pm2'
+      if (Test-Path $fromNpm) { return $fromNpm }
+    }
+  } catch {
+    # npm missing from a scheduled task's PATH is not fatal on its own.
+  }
+
+  return $null
+}
+
 Write-Log '--- pm2-boot start ---'
 
 if ($DelaySeconds -gt 0) {
@@ -87,10 +121,21 @@ if (-not $node) {
   exit 1
 }
 
-# The pm2 package lives next to node.exe in the global install directory.
-$pm2 = Join-Path (Split-Path $node -Parent) 'node_modules\pm2\bin\pm2'
-if (-not (Test-Path $pm2)) {
-  Write-Log ("FATAL: pm2 not found at {0}. Run `npm i -g pm2` for this Node version." -f $pm2)
+# ecosystem.config.cjs uses `script: 'node'`, which PM2 only treats as an
+# executable if it is on PATH - otherwise it looks for a file named "node" in the
+# project root and fails. A scheduled task inherits none of fnm's per-shell PATH,
+# so put the resolved Node directory back on it. Done before resolving pm2, which
+# may need npm on PATH.
+$nodeDir = Split-Path $node -Parent
+if (($env:Path -split ';') -notcontains $nodeDir) {
+  $env:Path = "{0};{1}" -f $nodeDir, $env:Path
+  Write-Log ("PATH += {0}" -f $nodeDir)
+}
+
+$pm2 = Resolve-Pm2Cli -NodeExe $node -ProjectRoot $projectRoot
+if (-not $pm2) {
+  Write-Log 'FATAL: pm2 not found (project node_modules, global prefix and Node directory all failed).'
+  Write-Log 'Run `pnpm install` in the project, or `npm i -g pm2`.'
   exit 1
 }
 
@@ -103,16 +148,6 @@ if (-not (Test-Path $ecosystem)) {
 Write-Log ("node : {0}" -f $node)
 Write-Log ("pm2  : {0}" -f $pm2)
 Write-Log ("root : {0}" -f $projectRoot)
-
-# ecosystem.config.cjs uses `script: 'node'`, which PM2 only treats as an
-# executable if it is on PATH - otherwise it looks for a file named "node" in the
-# project root and fails. A scheduled task inherits none of fnm's per-shell PATH,
-# so put the resolved Node directory back on it.
-$nodeDir = Split-Path $node -Parent
-if (($env:Path -split ';') -notcontains $nodeDir) {
-  $env:Path = "{0};{1}" -f $nodeDir, $env:Path
-  Write-Log ("PATH += {0}" -f $nodeDir)
-}
 
 Push-Location $projectRoot
 try {
@@ -148,7 +183,9 @@ try {
   # of an inline script when handing it to a native command.
   Start-Sleep -Seconds 8
   $statusScript = Join-Path $PSScriptRoot 'pm2-status.cjs'
-  $pm2Module = Join-Path (Split-Path $node -Parent) 'node_modules\pm2'
+  # Derived from the resolved CLI (<pm2>/bin/pm2), so it follows whichever copy
+  # Resolve-Pm2Cli picked instead of re-guessing a location.
+  $pm2Module = Split-Path (Split-Path $pm2 -Parent) -Parent
   $statusLines = & $node $statusScript $pm2Module 2>&1
 
   $notOnline = @()

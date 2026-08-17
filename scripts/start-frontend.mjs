@@ -35,16 +35,23 @@ if (!hasBuild) {
 }
 
 const childEnv = { ...process.env };
-// NODE_ENV drives the mode on both paths: server.js derives Next's `dev` flag
-// from it, and `next start` refuses to run without a build.
+// Without a build, server.js would boot in production mode, find no BUILD_ID and
+// exit - PM2 then restarts it until it gives up. Degrading to dev mode keeps the
+// frontend reachable instead.
 //
-// The absence of a build wins over the parent's NODE_ENV. PM2 sets it to
-// production, so keeping it would send server.js into production mode with no
-// BUILD_ID to serve - it exits immediately and PM2 restarts it until it gives
-// up. Degrading to dev mode keeps the frontend reachable instead.
+// NEXT_DEV rather than NODE_ENV on the HTTPS path, because NODE_ENV also selects
+// storage: AppConfig sends a non-production process to .appdata/obs-live-suite.
+// Flipping it here would leave the frontend reading a different database and
+// uploads directory than the backend, which PM2 keeps in production - assets
+// created by the backend would 404 on the frontend. Only Next's dev flag moves.
 if (hasBuild) {
   childEnv.NODE_ENV = 'production';
+} else if (hasHttpsCerts) {
+  childEnv.NEXT_DEV = 'true';
+  childEnv.TAILWIND_MODE = 'watch';
 } else {
+  // `next dev` forces NODE_ENV=development in its own process, so there is
+  // nothing to decouple on this path.
   childEnv.NODE_ENV = 'development';
   childEnv.TAILWIND_MODE = 'watch';
 }
