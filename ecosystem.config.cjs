@@ -7,7 +7,11 @@ module.exports = {
       name: 'obs-backend',
       cwd: __dirname,
       script: 'node',
-      args: 'node_modules/tsx/dist/cli.mjs server/backend.ts',
+      // `--import tsx` loads the loader in-process. Going through tsx's CLI
+      // instead makes it re-spawn a second node, and PM2 runs its apps without a
+      // console, so that grandchild gets a brand-new console -> a stray terminal
+      // window on Windows. windowsHide below only covers the child PM2 spawns.
+      args: '--import tsx server/backend.ts',
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
@@ -57,7 +61,8 @@ module.exports = {
       name: 'obs-mcp',
       cwd: __dirname + '/mcp-server',
       script: 'node',
-      args: '../node_modules/tsx/dist/cli.mjs src/index.ts',
+      // In-process loader, no tsx CLI re-spawn - see the obs-backend note above.
+      args: '--import tsx src/index.ts',
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
