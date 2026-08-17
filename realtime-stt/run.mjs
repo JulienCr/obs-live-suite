@@ -63,9 +63,13 @@ if (!upToDate) {
 // stdio is a pipe, so Python block-buffers (~8 KB) and a long-running service with
 // sparse output never flushes — leaving stt-out.log empty. Unbuffered makes each
 // print() land in the log immediately, like the (Node) backend/frontend do.
+// windowsHide keeps Windows from allocating a console for python.exe. Under PM2
+// this process has none to inherit, so without it the interpreter opens its own
+// terminal window on screen.
 const child = spawn(venvPy, ["-u", "main.py"], {
   cwd: here,
   stdio: "inherit",
+  windowsHide: true,
   env: { ...process.env, PYTHONUNBUFFERED: "1" },
 });
 child.on("exit", (code) => process.exit(code ?? 0));

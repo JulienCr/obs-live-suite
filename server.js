@@ -10,7 +10,11 @@ import next from 'next';
 import { getPortConflictReport } from './scripts/port-diagnostics.mjs';
 import { getHttpsServerOptions } from './lib/config/tlsContext.mjs';
 
-const dev = process.env.NODE_ENV !== 'production';
+// NEXT_DEV decouples Next's dev flag from NODE_ENV, which also selects storage:
+// AppConfig sends a non-production process to .appdata/obs-live-suite instead of
+// the real user data directory. Serving an unbuilt app must not silently move the
+// frontend off the database and uploads the backend is still using.
+const dev = process.env.NEXT_DEV === 'true' || process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0'; // Listen on all network interfaces
 const port = parseInt(process.env.APP_PORT || '3000', 10);
 
