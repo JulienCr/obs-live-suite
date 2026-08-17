@@ -773,6 +773,12 @@ export const LIVE_ASSIST = {
   LOCAL_POSTER_DOMAIN_KEYWORDS: [
     "spectacle", "impro", "pièce", "théâtre", "affiche", "film", "cinéma", "concert", "série",
   ],
+  /** The domain-keyword default from before "affiche" joined it. Saved settings store this
+   *  array explicitly, so a Zod default never reaches an upgraded install — matching it exactly
+   *  is how migrateLiveAssistSettings tells an untouched list from a customized one. */
+  LEGACY_DOMAIN_KEYWORDS: [
+    "spectacle", "impro", "pièce", "théâtre", "film", "cinéma", "concert", "série",
+  ],
   /** French stop-word set excluded from poster title triggers.
    *  Source: spaCy French stopwords (https://github.com/explosion/spaCy), filtered
    *  to ≥4 chars after norm() (lowercase + NFD accent-strip + apostrophe-fold),

@@ -75,6 +75,26 @@ describe("LiveAssist models", () => {
       expect(out.contextPromptsByProvider["poster-theatre"]).toBeUndefined();
     });
 
+    it("refreshes an untouched domain-keyword list so upgrades gain « affiche »", () => {
+      // An upgraded install stores the old default explicitly, so the Zod default never
+      // reaches it and "affiche <titre>" would not open the fast-paths there.
+      const stored = LiveAssistSettingsSchema.parse({
+        localPosterDomainKeywords: [
+          "spectacle", "impro", "pièce", "théâtre", "film", "cinéma", "concert", "série",
+        ],
+      });
+      const out = migrateLiveAssistSettings(stored);
+      expect(out.localPosterDomainKeywords).toContain("affiche");
+    });
+
+    it("leaves a customised domain-keyword list alone", () => {
+      const stored = LiveAssistSettingsSchema.parse({
+        localPosterDomainKeywords: ["spectacle", "impro"],
+      });
+      const out = migrateLiveAssistSettings(stored);
+      expect(out.localPosterDomainKeywords).toEqual(["spectacle", "impro"]);
+    });
+
     it("leaves a customised poster list untouched but still adds the missing poster-tmdb", () => {
       const stored = LiveAssistSettingsSchema.parse({
         keywordsByProvider: { poster: ["mon", "custom", "film"], definition: ["définition"] },

@@ -120,27 +120,6 @@ export function LiveAssistSettings() {
             />
           </div>
 
-          {/* Show-domain keywords: let an everyday-word title (e.g. "Pilote") fire when one
-              is spoken nearby. Distinctive titles fire without them. Comma-separated. */}
-          <div className="space-y-1 pt-1">
-            <Label htmlFor="liveAssistDomainKeywords" className="text-sm font-medium">
-              {t("localPosterDomainKeywords")}
-            </Label>
-            <p className="text-sm text-muted-foreground">{t("localPosterDomainKeywordsHelp")}</p>
-            <Input
-              id="liveAssistDomainKeywords"
-              value={data.localPosterDomainKeywords.join(", ")}
-              onChange={(e) =>
-                setData({
-                  ...data,
-                  localPosterDomainKeywords: e.target.value
-                    .split(",")
-                    .map((w) => w.trim())
-                    .filter(Boolean),
-                })
-              }
-            />
-          </div>
         </div>
       )}
 
@@ -190,6 +169,33 @@ export function LiveAssistSettings() {
               onCheckedChange={(checked) => setData({ ...data, theaterDbShadow: checked })}
             />
           </div>
+        </div>
+      )}
+
+      {/* Show-domain keywords: let an everyday-word title (e.g. "Pilote") fire when one is
+          spoken nearby. Distinctive titles fire without them. Comma-separated.
+          Shown for EITHER fast-path, not nested under local posters: these words gate every
+          theater-db match too, so hiding them with local posters left the remote matcher
+          running on rules the operator could neither see nor tune. */}
+      {(data.localPostersEnabled || data.theaterDbEnabled) && (
+        <div className="space-y-1">
+          <Label htmlFor="liveAssistDomainKeywords" className="text-sm font-medium">
+            {t("localPosterDomainKeywords")}
+          </Label>
+          <p className="text-sm text-muted-foreground">{t("localPosterDomainKeywordsHelp")}</p>
+          <Input
+            id="liveAssistDomainKeywords"
+            value={data.localPosterDomainKeywords.join(", ")}
+            onChange={(e) =>
+              setData({
+                ...data,
+                localPosterDomainKeywords: e.target.value
+                  .split(",")
+                  .map((w) => w.trim())
+                  .filter(Boolean),
+              })
+            }
+          />
         </div>
       )}
 

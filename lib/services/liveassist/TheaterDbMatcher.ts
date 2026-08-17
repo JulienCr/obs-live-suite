@@ -89,6 +89,13 @@ function tokenize(normalized: string): string[] {
  *
  * A **precision post-filter** then keeps a candidate only if its TITLE (not just its FTS-matched
  * accroche) contains a token that fuzzy-matches (length-aware, ≥ `minSimilarity`) a query term.
+ *
+ * KNOWN LIMIT — typo tolerance is a post-filter, not a retrieval strategy. The fuzzy step runs on
+ * candidates the base already returned, and the query sent to theater-data is exact and AND-based.
+ * So an STT misspelling inside a distinctive title ("Eclipsia" for "Eclypsia") returns no rows and
+ * the fuzzy comparison never happens; only typos in a show the base surfaces anyway are absorbed.
+ * Closing this needs a fuzzy/trigram search on the theater-data side, or a deliberately looser
+ * query here — which would trade precision for recall on every match.
  */
 export class TheaterDbMatcher {
   private minSimilarity: number = LIVE_ASSIST.LOCAL_POSTER_MIN_SIMILARITY;
@@ -128,14 +135,20 @@ export class TheaterDbMatcher {
     return span;
   }
 
-  /** A word the FTS can actually search on: not grammatical, not a domain anchor, not tiny. */
-  private isContentWord(word: string): boolean {
-    return word.length >= 3 && !FUNCTION_WORDS.has(word) && !this.domainTokens.has(word);
+  /**
+   * A word the FTS can actually search on: not grammatical, not too short, and not the
+   * anchor that introduced the title. Only the anchor is excluded, not every domain word:
+   * once a preceding anchor has fixed the title's position, a further domain token is
+   * legitimate title content ("le spectacle **Impro**", "le spectacle Le **Concert**"),
+   * and discarding those left nothing to query.
+   */
+  private isContentWord(word: string, anchor?: string): boolean {
+    return word.length >= 3 && !FUNCTION_WORDS.has(word) && word !== anchor;
   }
 
-  /** Keep only content words (drop grammatical + domain words + very short), capped. */
-  private toTerms(words: string[]): string[] {
-    return words.filter((w) => this.isContentWord(w)).slice(0, MAX_QUERY_TERMS);
+  /** Keep only content words (drop grammatical + the anchor + very short), capped. */
+  private toTerms(words: string[], anchor?: string): string[] {
+    return words.filter((w) => this.isContentWord(w, anchor)).slice(0, MAX_QUERY_TERMS);
   }
 
   private hasDomainContext(contextText: string): boolean {
@@ -167,16 +180,42 @@ export class TheaterDbMatcher {
     // The title is the phrase FOLLOWING the domain keyword ("du spectacle X"), bounded at the
     // first commentary word so we don't send the rest of the sentence to the AND-based FTS. If
     // the current segment has no domain word but the recent context does, the segment IS the title.
-    const domainIdx = words.findIndex((w) => this.domainTokens.has(w));
-    let span: string[];
-    if (domainIdx !== -1) {
-      span = this.titleSpan(words, domainIdx + 1);
-    } else if (contextText && this.hasDomainContext(contextText)) {
-      span = this.titleSpan(words, 0);
-    } else {
-      return [];
+    // Try EVERY domain anchor, not just the first: one segment often carries an aside
+    // before the announcement ("ce film est nul, mais le spectacle Cassandre"), where the
+    // opening anchor yields only commentary and the real title follows a later one.
+    // The first anchor producing searchable terms wins.
+    const anchorIndexes = words.reduce<number[]>((acc, w, i) => {
+      if (this.domainTokens.has(w)) acc.push(i);
+      return acc;
+    }, []);
+
+    // The first anchor that yields anything searchable wins. Skipping barren ones matters
+    // when a domain word sits INSIDE the title ("le spectacle Le Concert"): the span after
+    // "concert" is empty, so it must not preempt the anchor that introduced the title.
+    //
+    // KNOWN LIMIT: when an aside precedes the announcement ("ce film est nul, mais le
+    // spectacle Cassandre"), the first anchor yields "nul" and the real title is never
+    // reached. Picking the last anchor instead just moves the miss — a title followed by
+    // commentary that repeats a domain word ("de la pièce Roméo et Juliette … une super
+    // pièce, je me souviens") would then search "souviens". Telling an announcing anchor
+    // from a commenting one needs more than the word lists here, so the simple rule stands
+    // and the case is left to the LLM window.
+    let terms: string[] = [];
+    let anchor: string | undefined;
+    for (const index of anchorIndexes) {
+      const candidateTerms = this.toTerms(this.titleSpan(words, index + 1), words[index]);
+      if (candidateTerms.length > 0) {
+        terms = candidateTerms;
+        anchor = words[index];
+        break;
+      }
     }
-    const terms = this.toTerms(span);
+
+    if (anchorIndexes.length === 0) {
+      // No domain word here, but one in the recent look-back: the segment IS the title.
+      if (!contextText || !this.hasDomainContext(contextText)) return [];
+      terms = this.toTerms(this.titleSpan(words, 0));
+    }
     if (terms.length === 0) return [];
 
     const candidates = await this.searchFn(terms.join(" "), THEATER_DATA.SEARCH_LIMIT);
@@ -191,7 +230,7 @@ export class TheaterDbMatcher {
     const scored: Scored[] = candidates.map((candidate) => {
       // Title tokens use the SAME light trimming as the query (grammatical words only), so real
       // title words the big stop-word list would drop ("retour") remain matchable.
-      const titleTokens = [...new Set(this.toTerms(tokenize(norm(candidate.title))))];
+      const titleTokens = [...new Set(this.toTerms(tokenize(norm(candidate.title)), anchor))];
       const matchedTerms = new Set<string>();
       let best: { token: string; word: string; score: number } | null = null;
       for (const titleToken of titleTokens) {

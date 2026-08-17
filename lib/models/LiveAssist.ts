@@ -105,7 +105,19 @@ export function migrateLiveAssistSettings(s: LiveAssistSettings): LiveAssistSett
   }
   const prompts: Record<string, string> = { ...(s.contextPromptsByProvider ?? {}) };
   delete prompts["poster-theatre"];
-  return { ...s, keywordsByProvider: kw, contextPromptsByProvider: prompts };
+  // Saved settings carry this array explicitly, so its Zod default only ever applies to a
+  // fresh install. Without this an upgraded one keeps the pre-"affiche" list, and
+  // "affiche <titre>" silently fails to reach the fast-paths there. Only an exactly
+  // untouched list is refreshed; a customized one is left alone.
+  const domainKeywords = eq(s.localPosterDomainKeywords, LIVE_ASSIST.LEGACY_DOMAIN_KEYWORDS)
+    ? [...LIVE_ASSIST.LOCAL_POSTER_DOMAIN_KEYWORDS]
+    : s.localPosterDomainKeywords;
+  return {
+    ...s,
+    keywordsByProvider: kw,
+    contextPromptsByProvider: prompts,
+    localPosterDomainKeywords: domainKeywords,
+  };
 }
 
 /** WebSocket event payloads on the `live-assist` channel. */

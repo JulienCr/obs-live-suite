@@ -66,10 +66,17 @@ describe("TheaterDbMatcher", () => {
     expect(r).toHaveLength(0); // but the title shares no term with "retour richard"
   });
 
-  it("tolerates an STT typo on a long title token", async () => {
+  it("tolerates an STT typo on a long title token WHEN the base still returns the show", async () => {
+    // Scope note, so this test is not read as more than it is: the typo tolerance lives in
+    // SCORING, after retrieval. The stub returns "Eclypsia" whatever the query, which stands
+    // in for a base able to surface the show from a misspelt term. Against the real
+    // theater-data FTS the query is exact and AND-based, so "eclipsia" returns nothing and
+    // fuzzyScore never runs — see the KNOWN LIMIT on TheaterDbMatcher. Making the tolerance
+    // reach retrieval needs a fuzzy/trigram search on the theater-data side.
     const search = stubSearch([candidate(1, "Eclypsia")]);
     const m = new TheaterDbMatcher(search.fn);
     const r = await m.match("le spectacle Eclipsia arrive"); // spoken "eclipsia" vs title "eclypsia"
+    expect(search.calls[0]).toContain("eclipsia"); // the misspelt term is what reaches the base
     expect(r).toHaveLength(1);
     expect(r[0].score).toBeGreaterThan(0.8);
   });
@@ -153,6 +160,22 @@ describe("TheaterDbMatcher", () => {
     const m = new TheaterDbMatcher(search.fn);
     await m.match("le spectacle Cassandre je crois");
     expect(search.calls[0]).toBe("cassandre");
+  });
+
+  it("skips a barren domain anchor instead of giving up on the segment", async () => {
+    const search = stubSearch([candidate(1, "Le Concert")]);
+    const m = new TheaterDbMatcher(search.fn);
+    // "concert" is both a domain word and the title; the span after it is empty, so it
+    // must not preempt "spectacle", the anchor that actually introduced the title.
+    await m.match("le spectacle Le Concert");
+    expect(search.calls[0]).toBe("concert");
+  });
+
+  it("keeps a domain word that is part of the title, dropping only the anchor", async () => {
+    const search = stubSearch([candidate(1, "Impro")]);
+    const m = new TheaterDbMatcher(search.fn);
+    await m.match("le spectacle Impro");
+    expect(search.calls[0]).toBe("impro");
   });
 
   it("does not over-constrain the FTS: caps the query terms", async () => {
