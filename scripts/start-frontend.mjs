@@ -1,9 +1,26 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
-import { resolve } from 'path';
+import { homedir, platform } from 'os';
+import { join, resolve } from 'path';
 
 const CWD = resolve('.');
+
+/**
+ * The production data directory, mirroring getDefaultDataDir() in
+ * lib/config/AppConfig.ts. Duplicated rather than imported because this launcher
+ * runs as plain Node, with no TypeScript loader — keep the two in step.
+ */
+function productionDataDir() {
+  switch (platform()) {
+    case 'win32':
+      return join(process.env.APPDATA || join(homedir(), 'AppData', 'Roaming'), 'obs-live-suite');
+    case 'darwin':
+      return join(homedir(), 'Library', 'Application Support', 'obs-live-suite');
+    default:
+      return join(homedir(), '.config', 'obs-live-suite');
+  }
+}
 
 // Certificate paths (same as lib/config/certificates.ts)
 const CERT_PATH = resolve(CWD, 'localhost+4.pem');
@@ -50,10 +67,17 @@ if (hasBuild) {
   childEnv.NEXT_DEV = 'true';
   childEnv.TAILWIND_MODE = 'watch';
 } else {
-  // `next dev` forces NODE_ENV=development in its own process, so there is
-  // nothing to decouple on this path.
+  // `next dev` forces NODE_ENV=development inside its own process, so NEXT_DEV
+  // cannot protect this path: AppConfig runs there and would pick the dev data
+  // directory. Pin the storage explicitly instead, so the frontend keeps reading
+  // the database and uploads the production backend is writing. An override
+  // already present in the environment wins.
   childEnv.NODE_ENV = 'development';
   childEnv.TAILWIND_MODE = 'watch';
+  const dataDir = productionDataDir();
+  childEnv.DATA_DIR ??= dataDir;
+  childEnv.DATABASE_PATH ??= join(dataDir, 'data.db');
+  childEnv.LOG_FILE ??= join(dataDir, 'logs', 'app.log');
 }
 
 // Set APP_PORT for server.js
