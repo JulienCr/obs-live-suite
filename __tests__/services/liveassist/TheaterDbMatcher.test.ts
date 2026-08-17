@@ -178,6 +178,25 @@ describe("TheaterDbMatcher", () => {
     expect(search.calls[0]).toBe("impro");
   });
 
+  it("stops the title at a sentence end, not just at a commentary word", async () => {
+    const search = stubSearch([candidate(1, "Cassandre")]);
+    const m = new TheaterDbMatcher(search.fn);
+    // Punctuation is the boundary here: "génial" is a new sentence, and the AND-based FTS
+    // returns nothing for "cassandre genial" even though the title was stated plainly.
+    await m.match("le spectacle Cassandre. C'était génial");
+    expect(search.calls[0]).toBe("cassandre");
+  });
+
+  it("does not fire on a PARTIAL title overlap made only of general words", async () => {
+    // "soir" is in the title and "génial" in the accroche, so coverage is 1 — but neither
+    // term is a name, so this is conversation matching a show by coincidence.
+    const search = stubSearch([candidate(1, "Ce soir ou jamais")]);
+    const m = new TheaterDbMatcher(search.fn);
+    const r = await m.match("un spectacle génial ce soir");
+    expect(search.calls).toHaveLength(1); // it still queries…
+    expect(r).toHaveLength(0); // …but the partial general-word hit is not evidence
+  });
+
   it("does not over-constrain the FTS: caps the query terms", async () => {
     const search = stubSearch([candidate(1, "X")]);
     const m = new TheaterDbMatcher(search.fn);

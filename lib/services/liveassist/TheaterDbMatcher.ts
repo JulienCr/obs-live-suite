@@ -29,6 +29,9 @@ const FUNCTION_WORDS = new Set([
   "car", "ni", "or", "appelle", "nomme", "intitule",
 ]);
 
+/** Sentence enders. A full stop always closes an announced title, whatever follows it. */
+const SENTENCE_SEPARATORS = /[.!?;:\n…]+/;
+
 /** Cap the AND query length so a long context never over-constrains the FTS to zero rows. */
 const MAX_QUERY_TERMS = 6;
 
@@ -177,21 +180,22 @@ export class TheaterDbMatcher {
     const words = tokenize(norm(text));
     if (words.length === 0) return [];
 
-    // The title is the phrase FOLLOWING the domain keyword ("du spectacle X"), bounded at the
-    // first commentary word so we don't send the rest of the sentence to the AND-based FTS. If
-    // the current segment has no domain word but the recent context does, the segment IS the title.
-    // Try EVERY domain anchor, not just the first: one segment often carries an aside
-    // before the announcement ("ce film est nul, mais le spectacle Cassandre"), where the
-    // opening anchor yields only commentary and the real title follows a later one.
-    // The first anchor producing searchable terms wins.
-    const anchorIndexes = words.reduce<number[]>((acc, w, i) => {
-      if (this.domainTokens.has(w)) acc.push(i);
-      return acc;
-    }, []);
+    // Extraction runs per SENTENCE. tokenize() drops punctuation, so without this the
+    // commentary of a following sentence joins the title: "le spectacle Cassandre. C'était
+    // génial" became the AND query "cassandre genial", which the FTS answers with nothing
+    // even though the title was stated plainly. BOUNDARY_WORDS only catches that when the
+    // next sentence happens to open with one of them; a full stop always ends a title.
+    const sentences = text
+      .split(SENTENCE_SEPARATORS)
+      .map((s) => tokenize(norm(s)))
+      .filter((s) => s.length > 0);
 
-    // The first anchor that yields anything searchable wins. Skipping barren ones matters
-    // when a domain word sits INSIDE the title ("le spectacle Le Concert"): the span after
-    // "concert" is empty, so it must not preempt the anchor that introduced the title.
+    // The title is the phrase FOLLOWING a domain keyword ("du spectacle X"), bounded at the
+    // first commentary word so we don't send the rest of the sentence to the AND-based FTS.
+    //
+    // Every anchor is tried, not just the first: skipping a barren one matters when a domain
+    // word sits INSIDE the title ("le spectacle Le Concert"), where the span after "concert"
+    // is empty and must not preempt the anchor that introduced the title.
     //
     // KNOWN LIMIT: when an aside precedes the announcement ("ce film est nul, mais le
     // spectacle Cassandre"), the first anchor yields "nul" and the real title is never
@@ -202,16 +206,21 @@ export class TheaterDbMatcher {
     // and the case is left to the LLM window.
     let terms: string[] = [];
     let anchor: string | undefined;
-    for (const index of anchorIndexes) {
-      const candidateTerms = this.toTerms(this.titleSpan(words, index + 1), words[index]);
-      if (candidateTerms.length > 0) {
-        terms = candidateTerms;
-        anchor = words[index];
-        break;
+    let sawAnchor = false;
+    outer: for (const sentence of sentences) {
+      for (const [index, word] of sentence.entries()) {
+        if (!this.domainTokens.has(word)) continue;
+        sawAnchor = true;
+        const candidateTerms = this.toTerms(this.titleSpan(sentence, index + 1), word);
+        if (candidateTerms.length > 0) {
+          terms = candidateTerms;
+          anchor = word;
+          break outer;
+        }
       }
     }
 
-    if (anchorIndexes.length === 0) {
+    if (!sawAnchor) {
       // No domain word here, but one in the recent look-back: the segment IS the title.
       if (!contextText || !this.hasDomainContext(contextText)) return [];
       terms = this.toTerms(this.titleSpan(words, 0));
@@ -253,10 +262,17 @@ export class TheaterDbMatcher {
 
     const maxCoverage = Math.max(...scored.map((s) => s.coverage));
     let kept: Scored[];
-    if (maxCoverage > 0) {
+    const hasSpecificTerm = terms.some((t) => !isGeneralWord(t));
+    if (maxCoverage > 0 && (hasSpecificTerm || maxCoverage === terms.length)) {
       // A title matched → keep the best-covered candidates. Precise; drops generic-word hitchhikers.
+      //
+      // A PARTIAL overlap made only of general words is excluded: "un spectacle génial ce
+      // soir" hits "Ce soir ou jamais" on `soir` alone, which is coincidence, not a title.
+      // The same guard already governs the coverage-0 branch below; applying it here too
+      // stops a default-enabled matcher from emitting confident, unrelated cards. Full
+      // coverage still passes — every spoken word being in the title IS the evidence.
       kept = scored.filter((s) => s.coverage === maxCoverage);
-    } else if (terms.some((t) => !isGeneralWord(t))) {
+    } else if (maxCoverage === 0 && hasSpecificTerm) {
       // NO title matched, but the query is a PROPER NAME (≥1 specific token — "roxane michelet",
       // "cruau") → a performer/author whose name lives in the cast/accroche (theater-data indexes
       // those). Trust the FTS relevance order, capped tight. A common-word query ("génial soir" —
