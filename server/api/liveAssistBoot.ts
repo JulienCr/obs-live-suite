@@ -212,8 +212,21 @@ export function buildOrchestrator(): {
   };
   refreshTheaterDb(liveAssistSettings);
   registry.register(
-    new TheaterDbProvider(createPosterAndGet, (payload) =>
-      postJson("/api/overlays/poster", { action: "show", payload }, "poster show failed"),
+    new TheaterDbProvider(
+      createPosterAndGet,
+      (payload) => postJson("/api/overlays/poster", { action: "show", payload }, "poster show failed"),
+      // Same theatreId identity the match hook dedups on, reused so a retry after a
+      // failed "show" step reuses the row instead of downloading the affiche again.
+      (theatreId) =>
+        theatreId == null
+          ? null
+          : PosterRepository.getInstance()
+              .getAll()
+              .find(
+                (p) =>
+                  String((p.metadata as { theatreId?: number | string } | null | undefined)?.theatreId) ===
+                  String(theatreId),
+              ) ?? null,
     ),
   );
 
@@ -332,7 +345,12 @@ export function buildOrchestrator(): {
           .map(String),
       );
       const fresh = matches.filter((m) => !localTheatreIds.has(String(m.candidate.id)));
-      const fired = !s.theaterDbShadow;
+      // Re-read: the operator can disable theater-db or switch to shadow while the remote
+      // base is answering, and the settings captured above are then stale. Judge on the
+      // state that holds now, not the one that authorized the request.
+      const after = getSettings();
+      if (!after.theaterDbEnabled) return [];
+      const fired = !after.theaterDbShadow;
       for (const m of fresh) {
         recorder.recordLocalMatch({
           provider: "theater-db",

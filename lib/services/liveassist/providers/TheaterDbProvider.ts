@@ -31,6 +31,15 @@ export class TheaterDbProvider implements ActionProvider {
   constructor(
     private readonly createPoster: PosterCreator,
     private readonly showPoster: PosterShower,
+    /**
+     * Existing library row for a show, looked up by its theater-data id. apply() is
+     * create-then-show, so a failed show step leaves the card pending with the poster
+     * already created; without this, validating again downloads a second copy of the
+     * same show. Also covers the operator having added it manually meanwhile.
+     */
+    private readonly findPosterByTheatreId?: (
+      theatreId: unknown,
+    ) => { id: string; fileUrl: string } | null,
   ) {}
 
   /** Unused: theater-db suggestions are produced by the fast-path matcher, not the LLM. */
@@ -62,22 +71,29 @@ export class TheaterDbProvider implements ActionProvider {
     if (!title || !fileUrl) return { ok: false, message: "Affiche théâtre incomplète." };
     const tagline = typeof payload.tagline === "string" && payload.tagline ? payload.tagline : undefined;
 
-    // 1) Create it in the library (downloads the image locally, tags it "theatre").
-    const created = await this.createPoster({
-      title,
-      fileUrl,
-      description: tagline,
-      metadata: { theatreId: payload.theatreId, source: "theater-data" },
-    });
-    if (!created.ok || !created.poster) {
-      return { ok: false, message: created.message ?? "Création de l'affiche échouée." };
+    // 1) Create it in the library (downloads the image locally, tags it "theatre"),
+    //    unless this show is already there — see findPosterByTheatreId. Step 2 can fail
+    //    on its own, and the card then stays pending for another try; reusing the row
+    //    keeps that retry from piling up duplicates of the same affiche.
+    let poster = this.findPosterByTheatreId?.(payload.theatreId) ?? null;
+    if (!poster) {
+      const created = await this.createPoster({
+        title,
+        fileUrl,
+        description: tagline,
+        metadata: { theatreId: payload.theatreId, source: "theater-data" },
+      });
+      if (!created.ok || !created.poster) {
+        return { ok: false, message: created.message ?? "Création de l'affiche échouée." };
+      }
+      poster = created.poster;
     }
 
     // 2) Show it on-air on the chosen side (`target` is the only client-trusted field).
     const side = payload.target === "right" ? "right" : "left";
     return this.showPoster({
-      posterId: created.poster.id,
-      fileUrl: created.poster.fileUrl, // local URL after downloadToLocal
+      posterId: poster.id,
+      fileUrl: poster.fileUrl, // local URL after downloadToLocal
       type: "image",
       side,
       transition: "fade",

@@ -164,9 +164,18 @@ export class LiveAssistOrchestrator {
     }
     // Remote fast-path (theater-data): fire-and-forget so a slow/unreachable base never
     // blocks the keyword/LLM path below; each resolved suggestion is deduped by the store.
+    // The state that authorized the request can change while it is in flight, so nothing
+    // it captured survives the await: re-check on completion instead. Without this, a
+    // response arriving within the request timeout pops a card seconds after the operator
+    // disabled Live Assist, or refills a board they just emptied.
+    const generationAtRequest = this.deps.store.generation();
     void this.deps
       .matchTheaterDb?.(segment.text, contextText)
-      .then((built) => built.forEach((b) => this.deps.store.add(b)))
+      .then((built) => {
+        if (!this.isEnabled()) return;
+        if (this.deps.store.generation() !== generationAtRequest) return;
+        built.forEach((b) => this.deps.store.add(b));
+      })
       .catch((error) => logger.warn(`theater-db match failed: ${error instanceof Error ? error.message : error}`));
     for (const hit of this.deps.detector.scan(segment)) {
       this.deps.scheduler.register(hit, this.now());

@@ -85,6 +85,35 @@ describe("TheaterDbProvider", () => {
     expect(showPoster).not.toHaveBeenCalled();
   });
 
+  it("apply() reuses an existing poster instead of downloading the show twice", async () => {
+    // Reproduces the retry after a failed "show" step: the poster is already in the
+    // library, so validating again must not create and download a second copy.
+    const createPoster: jest.MockedFunction<PosterCreator> = jest.fn();
+    const showPoster: jest.MockedFunction<PosterShower> = jest.fn().mockResolvedValue({ ok: true });
+    const findExisting = jest.fn().mockReturnValue({ id: "p-existing", fileUrl: "/uploads/x.jpg" });
+    const p = new TheaterDbProvider(createPoster, showPoster, findExisting);
+
+    const res = await p.apply({ theatreId: 42, title: "X", fileUrl: "u", target: "left" });
+
+    expect(res.ok).toBe(true);
+    expect(createPoster).not.toHaveBeenCalled();
+    expect(findExisting).toHaveBeenCalledWith(42);
+    expect(showPoster).toHaveBeenCalledWith(expect.objectContaining({ posterId: "p-existing" }));
+  });
+
+  it("apply() still creates the poster when the show is not in the library yet", async () => {
+    const createPoster: jest.MockedFunction<PosterCreator> = jest
+      .fn()
+      .mockResolvedValue({ ok: true, poster: { id: "p-new", fileUrl: "/uploads/n.jpg" } });
+    const showPoster: jest.MockedFunction<PosterShower> = jest.fn().mockResolvedValue({ ok: true });
+    const p = new TheaterDbProvider(createPoster, showPoster, () => null);
+
+    await p.apply({ theatreId: 42, title: "X", fileUrl: "u" });
+
+    expect(createPoster).toHaveBeenCalledTimes(1);
+    expect(showPoster).toHaveBeenCalledWith(expect.objectContaining({ posterId: "p-new" }));
+  });
+
   it("apply() rejects an incomplete payload", async () => {
     const p = new TheaterDbProvider(jest.fn(), jest.fn());
     const res = await p.apply({ theatreId: 1 });

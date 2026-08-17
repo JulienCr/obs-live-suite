@@ -113,18 +113,29 @@ export class TheaterDbMatcher {
    *  opinion verbs (ah/mais/je/crois…) stop it — so we don't send the whole sentence to the FTS. */
   private titleSpan(words: string[], start: number): string[] {
     const span: string[] = [];
+    let hasContent = false;
     for (let i = start; i < words.length && span.length < MAX_TITLE_SPAN; i++) {
-      if (BOUNDARY_WORDS.has(words[i])) break;
+      // A boundary word only ends the title once the span holds something searchable.
+      // Titles genuinely open on these words — "le spectacle **Je suis** la maman du
+      // bourreau" — and cutting there yields an empty query, so the show can never be
+      // found. Waiting for a content word keeps that title whole while still stopping
+      // at the commentary that follows a real one ("… Cassandre **je crois**").
+      // Pure commentary costs nothing: its words are dropped by toTerms anyway.
+      if (hasContent && BOUNDARY_WORDS.has(words[i])) break;
       span.push(words[i]);
+      if (this.isContentWord(words[i])) hasContent = true;
     }
     return span;
   }
 
+  /** A word the FTS can actually search on: not grammatical, not a domain anchor, not tiny. */
+  private isContentWord(word: string): boolean {
+    return word.length >= 3 && !FUNCTION_WORDS.has(word) && !this.domainTokens.has(word);
+  }
+
   /** Keep only content words (drop grammatical + domain words + very short), capped. */
   private toTerms(words: string[]): string[] {
-    return words
-      .filter((w) => w.length >= 3 && !FUNCTION_WORDS.has(w) && !this.domainTokens.has(w))
-      .slice(0, MAX_QUERY_TERMS);
+    return words.filter((w) => this.isContentWord(w)).slice(0, MAX_QUERY_TERMS);
   }
 
   private hasDomainContext(contextText: string): boolean {

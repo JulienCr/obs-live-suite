@@ -30,8 +30,23 @@ function makeOrchestrator(extractObj: any, extraDeps?: Record<string, unknown>) 
     now: () => 0,
     ...extraDeps,
   });
-  return { orch, events };
+  return { orch, events, store };
 }
+
+/** A theater-db stub whose answer lands only when the test says so. */
+function deferredTheaterDb(result: unknown[]) {
+  let release!: () => void;
+  const pending = new Promise<any[]>((resolve) => {
+    release = () => resolve(result as any[]);
+  });
+  return { matchTheaterDb: () => pending, release };
+}
+
+const THEATER_DB_BUILT = {
+  intent: "theater-db", entity: "42", title: "Cassandre",
+  preview: { kind: "image", imageUrl: "u" }, triggerExcerpt: "x",
+  applyPayload: { theatreId: 42 }, confidence: 0.95,
+};
 
 describe("LiveAssistOrchestrator", () => {
   it("creates a suggestion when a keyword fires and the extractor is actionnable", async () => {
@@ -77,6 +92,33 @@ describe("LiveAssistOrchestrator", () => {
       { matchTheaterDb: async () => { throw new Error("base down"); } },
     );
     await expect(orch.ingestSegment(seg("un spectacle cassandre", 0, 1000))).resolves.toBeUndefined();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(events.some((e) => e.type === "suggestion:new")).toBe(false);
+  });
+
+  it("drops an in-flight theater-db match when Live Assist is disabled meanwhile", async () => {
+    const db = deferredTheaterDb([THEATER_DB_BUILT]);
+    let enabled = true;
+    const { orch, events } = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 },
+      { matchTheaterDb: db.matchTheaterDb, isEnabled: () => enabled },
+    );
+    await orch.ingestSegment(seg("un spectacle cassandre", 0, 1000));
+    enabled = false; // operator disables while the remote base is still answering
+    db.release();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(events.some((e) => e.type === "suggestion:new")).toBe(false);
+  });
+
+  it("drops an in-flight theater-db match when the board was cleared meanwhile", async () => {
+    const db = deferredTheaterDb([THEATER_DB_BUILT]);
+    const { orch, events, store } = makeOrchestrator(
+      { actionnable: false, intent: "none", entite: "", confiance: 0 },
+      { matchTheaterDb: db.matchTheaterDb },
+    );
+    await orch.ingestSegment(seg("un spectacle cassandre", 0, 1000));
+    store.clear(); // operator empties the board while the request is in flight
+    db.release();
     await new Promise((r) => setTimeout(r, 0));
     expect(events.some((e) => e.type === "suggestion:new")).toBe(false);
   });

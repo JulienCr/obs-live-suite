@@ -138,6 +138,23 @@ describe("TheaterDbMatcher", () => {
     expect(search.calls[0]).toBe("roi oiseau"); // "et"/"l" dropped as function words, not a cut
   });
 
+  it("keeps a boundary word that OPENS the title", async () => {
+    const search = stubSearch([candidate(1, "Je suis la maman du bourreau")]);
+    const m = new TheaterDbMatcher(search.fn);
+    const r = await m.match("le spectacle Je suis la maman du bourreau");
+    // "je" is a boundary word, but the word right after the domain anchor opens the
+    // title by construction — cutting there would search nothing at all.
+    expect(search.calls[0]).toBe("suis maman bourreau");
+    expect(r).toHaveLength(1);
+  });
+
+  it("still cuts on a boundary word that FOLLOWS the title", async () => {
+    const search = stubSearch([candidate(1, "Cassandre")]);
+    const m = new TheaterDbMatcher(search.fn);
+    await m.match("le spectacle Cassandre je crois");
+    expect(search.calls[0]).toBe("cassandre");
+  });
+
   it("does not over-constrain the FTS: caps the query terms", async () => {
     const search = stubSearch([candidate(1, "X")]);
     const m = new TheaterDbMatcher(search.fn);
