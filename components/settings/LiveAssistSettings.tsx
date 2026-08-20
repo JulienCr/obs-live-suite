@@ -120,27 +120,82 @@ export function LiveAssistSettings() {
             />
           </div>
 
-          {/* Show-domain keywords: let an everyday-word title (e.g. "Pilote") fire when one
-              is spoken nearby. Distinctive titles fire without them. Comma-separated. */}
-          <div className="space-y-1 pt-1">
-            <Label htmlFor="liveAssistDomainKeywords" className="text-sm font-medium">
-              {t("localPosterDomainKeywords")}
-            </Label>
-            <p className="text-sm text-muted-foreground">{t("localPosterDomainKeywordsHelp")}</p>
-            <Input
-              id="liveAssistDomainKeywords"
-              value={data.localPosterDomainKeywords.join(", ")}
-              onChange={(e) =>
-                setData({
-                  ...data,
-                  localPosterDomainKeywords: e.target.value
-                    .split(",")
-                    .map((w) => w.trim())
-                    .filter(Boolean),
-                })
-              }
+        </div>
+      )}
+
+      {/* theater-db — the remote fast-path: query the BilletReduc base (:4173) directly (no LLM)
+          when a distinctive show title is spoken in show context. Shares the show-domain
+          keywords above with local posters. */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-1">
+          <Label htmlFor="liveAssistTheaterDb" className="text-base font-medium">
+            {t("theaterDb")}
+          </Label>
+          <p className="text-sm text-muted-foreground">{t("theaterDbHelp")}</p>
+        </div>
+        <Switch
+          id="liveAssistTheaterDb"
+          checked={data.theaterDbEnabled}
+          onCheckedChange={(checked) => setData({ ...data, theaterDbEnabled: checked })}
+        />
+      </div>
+
+      {data.theaterDbEnabled && (
+        <div className="space-y-3">
+          <Label className="text-base font-medium">{t("theaterDbSensitivity")}</Label>
+          <div className="flex items-center gap-4">
+            <Slider
+              value={[data.theaterDbMinSimilarity]}
+              onValueChange={([v]) => setData({ ...data, theaterDbMinSimilarity: v })}
+              min={0.5}
+              max={1}
+              step={0.05}
+              className="flex-1"
+            />
+            <span className="text-sm font-mono w-12 text-right">{data.theaterDbMinSimilarity.toFixed(2)}</span>
+          </div>
+
+          {/* Dry-run: log would-be matches to the transcript file without firing cards. */}
+          <div className="flex items-center justify-between gap-4 pt-1">
+            <div className="space-y-1">
+              <Label htmlFor="liveAssistTheaterDbShadow" className="text-sm font-medium">
+                {t("theaterDbShadow")}
+              </Label>
+              <p className="text-sm text-muted-foreground">{t("theaterDbShadowHelp")}</p>
+            </div>
+            <Switch
+              id="liveAssistTheaterDbShadow"
+              checked={data.theaterDbShadow}
+              onCheckedChange={(checked) => setData({ ...data, theaterDbShadow: checked })}
             />
           </div>
+        </div>
+      )}
+
+      {/* Show-domain keywords: let an everyday-word title (e.g. "Pilote") fire when one is
+          spoken nearby. Distinctive titles fire without them. Comma-separated.
+          Shown for EITHER fast-path, not nested under local posters: these words gate every
+          theater-db match too, so hiding them with local posters left the remote matcher
+          running on rules the operator could neither see nor tune. */}
+      {(data.localPostersEnabled || data.theaterDbEnabled) && (
+        <div className="space-y-1">
+          <Label htmlFor="liveAssistDomainKeywords" className="text-sm font-medium">
+            {t("localPosterDomainKeywords")}
+          </Label>
+          <p className="text-sm text-muted-foreground">{t("localPosterDomainKeywordsHelp")}</p>
+          <Input
+            id="liveAssistDomainKeywords"
+            value={data.localPosterDomainKeywords.join(", ")}
+            onChange={(e) =>
+              setData({
+                ...data,
+                localPosterDomainKeywords: e.target.value
+                  .split(",")
+                  .map((w) => w.trim())
+                  .filter(Boolean),
+              })
+            }
+          />
         </div>
       )}
 

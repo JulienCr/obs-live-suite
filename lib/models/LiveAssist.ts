@@ -64,6 +64,14 @@ export const LiveAssistSettingsSchema = z.object({
   /** Show-domain keywords that let an everyday-word poster title fire when spoken in
    *  context (e.g. "Pilote" fires near "spectacle"/"impro"). Distinctive titles ignore this. */
   localPosterDomainKeywords: z.array(z.string()).default([...LIVE_ASSIST.LOCAL_POSTER_DOMAIN_KEYWORDS]),
+  /** theater-db fast-path: query the remote BilletReduc base (:4173) directly, with NO LLM,
+   *  when a distinctive word is spoken in show context. The remote sibling of local-poster. */
+  theaterDbEnabled: z.boolean().default(true),
+  /** Dry-run: compute & LOG would-be theater-db matches without firing any card. */
+  theaterDbShadow: z.boolean().default(false),
+  /** Similarity bar (0–1) between a spoken distinctive word and a returned show title;
+   *  higher = stricter (guards against theater-data's full-text returning a tangential show). */
+  theaterDbMinSimilarity: z.number().min(0).max(1).default(LIVE_ASSIST.LOCAL_POSTER_MIN_SIMILARITY),
   windowBeforeSec: z.number().int().nonnegative().default(LIVE_ASSIST.WINDOW_BEFORE_SEC),
   windowAfterSec: z.number().int().nonnegative().default(LIVE_ASSIST.WINDOW_AFTER_SEC),
   confidenceThreshold: z.number().min(0).max(1).default(LIVE_ASSIST.CONFIDENCE_THRESHOLD),
@@ -73,11 +81,13 @@ export type LiveAssistSettings = z.infer<typeof LiveAssistSettingsSchema>;
 /**
  * Bring stored Live Assist settings forward to the current provider set without
  * surprising the user:
- *  (a) additively surface any default provider key missing from the stored map
- *      (e.g. the `poster-tmdb` provider added after a config was first saved), and
- *  (b) ONLY if the stored `poster` keywords are still the exact pre-split legacy
- *      default, migrate them to the new split (film/série moved to `poster-tmdb`).
- * A customised config is left untouched.
+ *  (a) migrate an untouched `poster` keyword list forward: the pre-tmdb-split legacy
+ *      default → the current default; and the tmdb-split-era default (théâtre still on
+ *      Wikipedia) → EMPTY, since théâtre moved to the non-LLM fast-paths and `poster`
+ *      (Wikipedia) is now dormant. A customised `poster` list is left untouched.
+ *  (b) prune the `poster-theatre` key/prompt: it became the `theater-db` fast-path,
+ *      which has no keyword list — leaving the key would show a ghost editor row.
+ *  (c) additively surface any default provider key missing from the stored map.
  */
 export function migrateLiveAssistSettings(s: LiveAssistSettings): LiveAssistSettings {
   const kw: Record<string, string[]> = { ...s.keywordsByProvider };
@@ -86,10 +96,28 @@ export function migrateLiveAssistSettings(s: LiveAssistSettings): LiveAssistSett
   if (eq(kw.poster, LIVE_ASSIST.LEGACY_POSTER_KEYWORDS)) {
     kw.poster = [...LIVE_ASSIST.DEFAULT_KEYWORDS.poster];
   }
+  if (eq(kw.poster, LIVE_ASSIST.POSTER_KEYWORDS_PRE_FASTPATH)) {
+    kw.poster = []; // théâtre moved to fast-paths → Wikipedia poster goes dormant
+  }
+  delete kw["poster-theatre"]; // now the theater-db fast-path (no keyword list)
   for (const [pid, words] of Object.entries(LIVE_ASSIST.DEFAULT_KEYWORDS)) {
     if (!kw[pid]) kw[pid] = [...words];
   }
-  return { ...s, keywordsByProvider: kw };
+  const prompts: Record<string, string> = { ...(s.contextPromptsByProvider ?? {}) };
+  delete prompts["poster-theatre"];
+  // Saved settings carry this array explicitly, so its Zod default only ever applies to a
+  // fresh install. Without this an upgraded one keeps the pre-"affiche" list, and
+  // "affiche <titre>" silently fails to reach the fast-paths there. Only an exactly
+  // untouched list is refreshed; a customized one is left alone.
+  const domainKeywords = eq(s.localPosterDomainKeywords, LIVE_ASSIST.LEGACY_DOMAIN_KEYWORDS)
+    ? [...LIVE_ASSIST.LOCAL_POSTER_DOMAIN_KEYWORDS]
+    : s.localPosterDomainKeywords;
+  return {
+    ...s,
+    keywordsByProvider: kw,
+    contextPromptsByProvider: prompts,
+    localPosterDomainKeywords: domainKeywords,
+  };
 }
 
 /** WebSocket event payloads on the `live-assist` channel. */

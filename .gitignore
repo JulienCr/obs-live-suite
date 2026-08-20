@@ -83,6 +83,8 @@ server/static/
 .grepai/
 _local/
 .worktrees/
+# Claude Code worktrees: full checkouts of other branches, never repo content.
+.claude/worktrees/
 
 # Studio Return (Tauri)
 studio-return/src-tauri/target/

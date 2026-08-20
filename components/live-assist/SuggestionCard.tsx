@@ -17,11 +17,22 @@ export function SuggestionCard({ suggestion: s, onApply, onDismiss }: Props) {
   const isDismissed = s.status === "dismissed";
   const isDefinition = s.intent === "definition";
   const isLocalPoster = s.intent === "local-poster";
+  const isTheaterDb = s.intent === "theater-db";
+  // Both fast-paths show a poster on the program overlay on the chosen side.
+  const isPosterShow = isLocalPoster || isTheaterDb;
   const [expanded, setExpanded] = useState(false);
   // Once acted on, collapse to just icon + title to save space; an explicit
   // expand reveals the detail again. Pending cards always show their detail.
   const showDetail = isPending || expanded;
-  const icon = isDefinition ? "📖" : isLocalPoster ? "🖼️" : s.intent === "poster-tmdb" ? "🎬" : "🎭";
+  const icon = isDefinition
+    ? "📖"
+    : isLocalPoster
+      ? "🖼️"
+      : isTheaterDb
+        ? "🎟️"
+        : s.intent === "poster-tmdb"
+          ? "🎬"
+          : "🎭";
 
   return (
     <div className={`rounded border p-3 flex flex-col gap-2 ${isPending ? "" : "opacity-70"}`}>
@@ -61,8 +72,9 @@ export function SuggestionCard({ suggestion: s, onApply, onDismiss }: Props) {
           (re-validate), shown even while collapsed. Applied → none (it's done). */}
       {(isPending || isDismissed) && (
         <div className="flex gap-2 flex-wrap">
-          {isLocalPoster ? (
-            // A local poster is shown on the program overlay on the chosen side.
+          {isPosterShow ? (
+            // A poster (local library, or created from theater-data on validate) is shown
+            // on the program overlay on the chosen side.
             <>
               <Button size="sm" onClick={() => onApply(s, "left")}>{t("posterLeft")}</Button>
               <Button size="sm" variant="outline" onClick={() => onApply(s, "right")}>{t("posterRight")}</Button>

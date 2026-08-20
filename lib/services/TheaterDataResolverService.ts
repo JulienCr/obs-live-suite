@@ -44,11 +44,14 @@ type CacheEntry = { value: TheatreCandidate[]; exp: number };
  * :4173). Purpose-built for théâtre / impro / concerts, so it sidesteps the poor
  * poster quality Wikipedia gives for stage shows (issue #116).
  *
- * Consumed two ways:
- *  - Live Assist: the `poster-theatre` PosterActionProvider calls `resolveAndFetch`
- *    (top-1 auto-apply, like Wikipedia / TMDB).
+ * Consumed two ways, both via `search` (NO LLM):
+ *  - Live Assist: the `theater-db` fast-path ({@link TheaterDbMatcher}) calls `search`
+ *    when a distinctive show title is spoken in show context, then proposes a card.
  *  - Manual add-poster UI: the `/api/theatre/search` proxy calls `search` (a list
  *    of candidates a human picks from).
+ *
+ * (`resolveAndFetch` is the top-1 convenience wrapper — retained for the manual/typed
+ * path and tests; the Live Assist fast-path uses `search` directly.)
  *
  * The base URL is read live from the `theater_data_url` setting. The server is
  * launched manually in WSL, so it is often down — every network path degrades

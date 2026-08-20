@@ -10,6 +10,7 @@ export class SuggestionStore {
   private readonly dedupWindowMs: number;
   private readonly now: () => number;
   private readonly makeId: () => string;
+  private gen = 0;
 
   constructor(
     private readonly publish: Publisher,
@@ -55,9 +56,19 @@ export class SuggestionStore {
     return s;
   }
 
+  /**
+   * Bumped on every clear. An async producer snapshots it before starting and
+   * compares on completion, so a result computed before a "vider" cannot land
+   * after it and repopulate a board the operator just emptied.
+   */
+  generation(): number {
+    return this.gen;
+  }
+
   /** Drop every stored suggestion (panic "vider"). Broadcast so all dashboards empty in sync. */
   clear(): void {
     this.items.length = 0;
+    this.gen++;
     this.publish({ type: "suggestions:cleared", payload: {} });
   }
 }
