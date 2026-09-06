@@ -114,7 +114,7 @@ Dashboard → API Route → ChannelManager.publish() → WebSocket → Overlay
 - `WorkspaceService` - Dockview workspace layouts (built-in + user, default activation)
 - `MediaPlayerManager` - Routes media-player commands to Chrome extension drivers via WS (correlates command/response)
 - `WordHarvestManager` - "10 words" improv game state machine (collecting → complete → performing)
-- `SubVideoService` - YouTube timestamp clip extraction (yt-dlp/ffmpeg) into sub-posters
+- `SubVideoService` - YouTube timestamp clip extraction (ffmpeg) into sub-posters
 
 **Quiz Services** (lib/services/Quiz*):
 - `QuizManager` - State machine orchestration
@@ -494,7 +494,8 @@ All use fork mode with autorestart and memory limits.
 - `PathSettings.tsx`, `PluginSettings.tsx`
 - `PresenterChannelSettings.tsx`, `StreamerbotSettings.tsx`
 - `TwitchSettings.tsx` (`/settings/twitch` - OAuth + stream info)
-- `InstagramSettings.tsx` (`/settings/instagram` - session-id login for profile/media)
+- `InstagramSettings.tsx` (`/settings/instagram` - tooling health + session-id login; public posts/reels
+  need no account, only profile pictures and private content do)
 - `MidiSettings.tsx` (`/settings/midi` - Web MIDI ports + per-action messages, e.g. QLC+)
 - `TitleRevealDefaultsSettings.tsx` (`/settings/title-reveal` - Title Reveal defaults)
 - `ChatMessagesSettings.tsx`, `OverlaySettings.tsx`, `StudioReturnSettings.tsx`

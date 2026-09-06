@@ -917,6 +917,38 @@ export const THEATER_DATA = {
 } as const;
 
 // ============================================================================
+// INSTAGRAM — yt-dlp (public posts/reels, anonymous) + instaloader (profile pic)
+// ============================================================================
+
+/**
+ * Instagram ingestion config.
+ *
+ * Public posts and reels are read anonymously by yt-dlp, whose extractor impersonates
+ * a browser TLS fingerprint (curl_cffi) for Instagram's logged-out GraphQL query.
+ * Profile pictures have no such path and still require a session cookie.
+ */
+export const INSTAGRAM = {
+  /** Kill yt-dlp / instaloader after this many ms (per attempt, and they can chain). */
+  COMMAND_TIMEOUT_MS: 30000,
+  /** yt-dlp's info dict embeds comments; Node's 1 MB default overflows on busy posts. */
+  MAX_OUTPUT_BYTES: 10 * 1024 * 1024,
+  /** Netscape cookie expiry (Jan 2038): `0` means "session cookie" and gets dropped. */
+  COOKIE_EXPIRY_EPOCH: 2147483647,
+  /** Separator of the instaloader `--post-metadata-txt` template. */
+  META_SEPARATOR: "\t||||\t",
+  /** First release whose Instagram extractor serves public posts logged-out. */
+  MIN_YTDLP_VERSION: "2026.08.19",
+  /** yt-dlp warns past this age; the Instagram extractor breaks roughly as often. */
+  YTDLP_STALE_DAYS: 90,
+  /** Version/impersonation probes run while a settings page waits, so keep them short. */
+  HEALTH_TIMEOUT_MS: 5000,
+  /** Video containers yt-dlp may write for an Instagram post. */
+  VIDEO_EXTENSIONS: ["mp4", "webm", "mkv", "mov"],
+  /** Image extensions yt-dlp may write for an Instagram post. */
+  IMAGE_EXTENSIONS: ["jpg", "jpeg", "png", "webp", "avif"],
+} as const;
+
+// ============================================================================
 // WORD HARVEST CONSTANTS
 // ============================================================================
 

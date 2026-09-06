@@ -782,21 +782,6 @@ export class SettingsService {
   // =========================================================================
 
   /**
-   * Get the browser to use for Instagram cookies (yt-dlp --cookies-from-browser)
-   */
-  getInstagramCookiesBrowser(): string {
-    return this.db.getSetting("instagram.cookiesBrowser") || "chrome";
-  }
-
-  /**
-   * Save the browser to use for Instagram cookies
-   */
-  saveInstagramCookiesBrowser(browser: string): void {
-    this.db.setSetting("instagram.cookiesBrowser", browser);
-    this.logger.info(`Instagram cookies browser set to: ${browser}`);
-  }
-
-  /**
    * Get the Instagram username used for authenticated requests
    */
   getInstagramUsername(): string {
