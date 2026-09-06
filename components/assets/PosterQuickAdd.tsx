@@ -259,14 +259,14 @@ export function PosterQuickAdd({
   /**
    * Process Instagram post/reel URL
    */
-  const handleInstagramUrl = async (url: string, urlType: "post" | "reel") => {
+  const handleInstagramUrl = async (url: string) => {
     setProcessing(true);
     setError(null);
 
     try {
       const data = await apiPost<{ url: string; type: MediaType; title: string; source: string; duration: number | null }>(
         "/api/assets/instagram",
-        { url, type: "media", urlType }
+        { url, type: "media" }
       );
 
       setPreview({
@@ -314,7 +314,7 @@ export function PosterQuickAdd({
     if (isYouTubeUrl(trimmed)) {
       handleYouTubeUrl(trimmed);
     } else if (instagramType === "post" || instagramType === "reel") {
-      handleInstagramUrl(trimmed, instagramType);
+      handleInstagramUrl(trimmed);
     } else if (isDirectMediaUrl(trimmed)) {
       handleDirectMediaUrl(trimmed);
     } else {

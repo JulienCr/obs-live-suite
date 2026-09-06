@@ -120,7 +120,8 @@ export function InstagramSettings() {
       });
       setResult({ success: true, message: t("sessionIdSaved") });
       setSessionId("");
-      await fetchStatus();
+      // The capability card reads the session too, so it has to be re-probed here.
+      await Promise.all([fetchStatus(), fetchHealth()]);
     } catch (error) {
       setResult({
         success: false,
@@ -139,7 +140,7 @@ export function InstagramSettings() {
       await apiPost("/api/settings/instagram/logout");
       setResult({ success: true, message: t("logoutSuccess") });
       setSessionId("");
-      await fetchStatus();
+      await Promise.all([fetchStatus(), fetchHealth()]);
     } catch (error) {
       setResult({
         success: false,

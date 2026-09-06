@@ -377,6 +377,29 @@ describe("POST /api/assets/instagram", () => {
       expect(body.error).toMatch(/2026\.08\.19/);
     });
 
+    it("returns 503 naming the missing binary instead of a bare 500", async () => {
+      execFileAsyncMock.mockRejectedValueOnce(new Error("spawn yt-dlp ENOENT"));
+      execFileAsyncMock.mockRejectedValueOnce(new Error("spawn instaloader ENOENT"));
+
+      const res = await POST(makeRequest({ url: "https://www.instagram.com/p/ABC/", type: "media" }));
+
+      expect(res.status).toBe(503);
+      const body = await res.json();
+      expect(body.error).toMatch(/introuvable/i);
+    });
+
+    it("keeps instaloader's auth diagnosis when yt-dlp merely timed out", async () => {
+      execFileAsyncMock.mockRejectedValueOnce(Object.assign(new Error("Command timed out"), { killed: true }));
+      execFileAsyncMock.mockRejectedValueOnce(Object.assign(new Error("Command failed"), {
+        stderr: "JSON Query to graphql/query: 403 Forbidden\n",
+      }));
+
+      const res = await POST(makeRequest({ url: "https://www.instagram.com/p/ABC/", type: "media" }));
+
+      // 408 here would hide the only actionable message the user can act on.
+      expect(res.status).toBe(401);
+    });
+
     it("returns 500 when both yt-dlp and instaloader fail with unknown errors", async () => {
       execFileAsyncMock.mockRejectedValueOnce(new Error("yt-dlp crashed"));
       execFileAsyncMock.mockRejectedValueOnce(new Error("instaloader crashed"));

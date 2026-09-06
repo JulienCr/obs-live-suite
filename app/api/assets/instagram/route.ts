@@ -41,10 +41,9 @@ const YTDLP_MEDIA_ARGS = [
 interface YtDlpMeta {
   description?: string;
   title?: string;
-  /** The @handle. `uploader` holds the full name, which is not what we display. */
+  /** The @handle. `uploader` holds the full name, and `uploader_id` a numeric pk. */
   channel?: string;
   uploader?: string;
-  uploader_id?: string;
   duration?: number;
   thumbnail?: string;
   thumbnails?: { url?: string }[];
@@ -138,6 +137,14 @@ const MEDIA_AUTH_MESSAGE =
   "Ce contenu Instagram requiert une authentification (post privé, supprimé ou compte " +
   "restreint). Configurez votre compte dans Paramètres > Instagram.";
 
+const MISSING_TOOL_MESSAGE =
+  "Outil introuvable : yt-dlp (ou instaloader pour les photos de profil) n'est pas installé, " +
+  "ou absent du PATH. Paramètres > Instagram indique l'état des deux.";
+
+const TIMEOUT_MESSAGE =
+  `Délai dépassé (${INSTAGRAM.COMMAND_TIMEOUT_MS / 1000} s par outil). ` +
+  "Le téléchargement Instagram a pris trop de temps.";
+
 /**
  * Map a yt-dlp or instaloader failure onto a status and a French message.
  * `scope` matters because only the profile picture still needs an account.
@@ -153,6 +160,10 @@ function parseInstagramError(
   // and the actionable fix is updating the binary, not configuring an account.
   if (has("impersonat", "curl_cffi", "curl-cffi")) {
     return { status: 503, message: UPDATE_YTDLP_MESSAGE };
+  }
+  // The likeliest first-run failure, and the one a bare 500 explains worst.
+  if (has("enoent", "is not recognized", "no such file")) {
+    return { status: 503, message: MISSING_TOOL_MESSAGE };
   }
   if (
     has(
@@ -284,7 +295,7 @@ async function downloadMediaViaYtDlp(url: string): Promise<MediaDownloadResult> 
     throw run.error ?? new Error("yt-dlp returned no Instagram metadata");
   }
 
-  const owner = meta?.channel || meta?.uploader_id || meta?.uploader || "";
+  const owner = meta?.channel || meta?.uploader || "";
   const { title, source } = describeMedia(
     meta?.description || "",
     owner,
@@ -442,13 +453,12 @@ function isTimeoutError(error: unknown): boolean {
 }
 
 function instagramErrorResponse(error: unknown, scope: "media" | "profile"): NextResponse {
-  if (isTimeoutError(error)) {
-    return NextResponse.json(
-      { error: "Délai dépassé (30s). Le téléchargement Instagram a pris trop de temps." },
-      { status: 408 }
-    );
-  }
   const { status, message } = parseInstagramError(error, scope);
+  // A named diagnosis beats the timeout: the two tools chain, so a first-attempt
+  // hang would otherwise mask what the second one actually reported.
+  if (status === 500 && isTimeoutError(error)) {
+    return NextResponse.json({ error: TIMEOUT_MESSAGE }, { status: 408 });
+  }
   return NextResponse.json({ error: message }, { status });
 }
 
