@@ -74,9 +74,15 @@ A comprehensive desktop-first web application for managing live show production 
 
 ### Optional (Instagram integration)
 
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) — downloads Instagram reels/videos (`pip install yt-dlp`)
-- [instaloader](https://instaloader.github.io/) — downloads Instagram profile pictures and image posts (`pipx install instaloader`)
-- A logged-in browser session (Chrome by default) for yt-dlp cookie authentication
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) **2026.08.19 or newer, with `curl_cffi`** — downloads public
+  posts and reels without any account. The standalone binary bundles `curl_cffi`; with pip, install
+  `pip install "yt-dlp[default,curl-cffi]"` (plain `pip install yt-dlp` has no impersonation, and
+  Instagram then refuses anonymous requests). Check with `yt-dlp --list-impersonate-targets`: no line
+  may read `(unavailable)`. Keep exactly one yt-dlp on the `PATH` — a second, older one silently wins.
+- [instaloader](https://instaloader.github.io/) — only needed for **profile pictures**, which still
+  require an Instagram session (`pipx install instaloader`). Paste a `sessionid` in Settings > Instagram.
+
+Settings > Instagram reports the state of both tools and which flow each one can serve.
 
 ## Setup
 

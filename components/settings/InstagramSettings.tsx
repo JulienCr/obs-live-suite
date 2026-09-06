@@ -11,9 +11,11 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
+  AlertTriangle,
   LogOut,
   Cookie,
   ShieldAlert,
+  Stethoscope,
 } from "lucide-react";
 import { apiGet, apiPost, extractErrorMessage } from "@/lib/utils/ClientFetch";
 
@@ -24,6 +26,44 @@ interface InstagramStatus {
   sessionIdMasked: string;
 }
 
+interface InstagramHealth {
+  ytdlp: {
+    found: boolean;
+    version: string;
+    paths: string[];
+    outdated: boolean;
+    impersonation: boolean;
+  };
+  instaloader: { found: boolean; version: string; paths: string[] };
+  session: { configured: boolean };
+  minYtdlpVersion: string;
+}
+
+/** One flow, its verdict, and what to do about it when it is not green. */
+function CapabilityRow({
+  ok,
+  label,
+  detail,
+}: {
+  ok: boolean;
+  label: string;
+  detail: string;
+}) {
+  return (
+    <div className="flex items-start gap-2 text-sm">
+      {ok ? (
+        <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-green-600" />
+      ) : (
+        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+      )}
+      <div>
+        <span className="font-medium">{label}</span>
+        <p className="text-xs text-muted-foreground">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
 export function InstagramSettings() {
   const t = useTranslations("settings.instagram");
 
@@ -32,6 +72,8 @@ export function InstagramSettings() {
     username: "", hasSession: false, hasSessionId: false, sessionIdMasked: "",
   });
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const [health, setHealth] = useState<InstagramHealth | null>(null);
 
   const [username, setUsername] = useState("");
   const [sessionId, setSessionId] = useState("");
@@ -50,8 +92,19 @@ export function InstagramSettings() {
     }
   };
 
+  // Kept separate from fetchStatus: it spawns yt-dlp and instaloader, so it must not
+  // hold up the form.
+  const fetchHealth = async () => {
+    try {
+      setHealth(await apiGet<InstagramHealth>("/api/settings/instagram/health"));
+    } catch (error) {
+      console.error("Failed to probe Instagram tooling:", error);
+    }
+  };
+
   useEffect(() => {
     fetchStatus();
+    fetchHealth();
   }, []);
 
   const handleSaveSessionId = async () => {
@@ -67,7 +120,8 @@ export function InstagramSettings() {
       });
       setResult({ success: true, message: t("sessionIdSaved") });
       setSessionId("");
-      await fetchStatus();
+      // The capability card reads the session too, so it has to be re-probed here.
+      await Promise.all([fetchStatus(), fetchHealth()]);
     } catch (error) {
       setResult({
         success: false,
@@ -86,7 +140,7 @@ export function InstagramSettings() {
       await apiPost("/api/settings/instagram/logout");
       setResult({ success: true, message: t("logoutSuccess") });
       setSessionId("");
-      await fetchStatus();
+      await Promise.all([fetchStatus(), fetchHealth()]);
     } catch (error) {
       setResult({
         success: false,
@@ -106,12 +160,57 @@ export function InstagramSettings() {
     );
   }
 
+  const mediaIssue = !health
+    ? ""
+    : !health.ytdlp.found
+      ? t("ytdlpMissing")
+      : health.ytdlp.outdated
+        ? t("ytdlpOutdated", { version: health.ytdlp.version, min: health.minYtdlpVersion })
+        : !health.ytdlp.impersonation
+          ? t("ytdlpNoImpersonation")
+          : "";
+
+  const profileIssue = !health
+    ? ""
+    : !health.instaloader.found
+      ? t("instaloaderMissing")
+      : !health.session.configured
+        ? t("sessionRequired")
+        : "";
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold mb-2">{t("title")}</h2>
         <p className="text-sm text-muted-foreground">{t("description")}</p>
       </div>
+
+      {/* What actually works right now, per flow */}
+      {health && (
+        <div className="space-y-3 rounded-md border p-4">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Stethoscope className="w-4 h-4" />
+            {t("capabilities")}
+          </div>
+
+          <CapabilityRow
+            ok={!mediaIssue}
+            label={t("postsAndReels")}
+            detail={mediaIssue || t("noAccountNeeded", { version: health.ytdlp.version })}
+          />
+          <CapabilityRow
+            ok={!profileIssue}
+            label={t("profilePictures")}
+            detail={profileIssue || t("sessionOk")}
+          />
+
+          {health.ytdlp.paths.length > 1 && (
+            <p className="text-xs text-amber-600">
+              {t("ytdlpDuplicate", { paths: health.ytdlp.paths.join(", ") })}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Connection status */}
       <div className="flex items-center gap-2">
@@ -124,7 +223,8 @@ export function InstagramSettings() {
             {status.hasSessionId && ` (${t("viaSessionId")})`}
           </Badge>
         ) : (
-          <Badge variant="destructive" className="flex items-center gap-1">
+          // Not an error state any more: only profile pictures need the session.
+          <Badge variant="secondary" className="flex items-center gap-1">
             <XCircle className="w-3 h-3" />
             {t("notConnected")}
           </Badge>
